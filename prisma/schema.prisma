@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -10,4 +5,82 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+enum Role {
+  ADMIN_KUBRI
+  ORG_ADMIN
+  ORG_MEMBER
+}
+
+model Organization {
+  id              String   @id @default(uuid())
+  name            String
+  slug            String   @unique
+  makeDatastoreId String
+  makeApiToken    String
+  createdAt       DateTime @default(now())
+  settings        Json?
+
+  users          User[]
+  candidateNotes CandidateNote[]
+  candidateTags  CandidateTag[]
+  auditLogs      AuditLog[]
+}
+
+model User {
+  id             String    @id @default(uuid())
+  email          String    @unique
+  name           String
+  passwordHash   String
+  role           Role
+  organizationId String
+  createdAt      DateTime  @default(now())
+  lastLoginAt    DateTime?
+
+  organization   Organization   @relation(fields: [organizationId], references: [id])
+  candidateNotes CandidateNote[]
+  auditLogs      AuditLog[]
+}
+
+model CandidateNote {
+  id             String   @id @default(uuid())
+  makeRecordId   String
+  organizationId String
+  userId         String
+  content        String
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+
+  @@index([makeRecordId, organizationId])
+}
+
+model CandidateTag {
+  id             String   @id @default(uuid())
+  makeRecordId   String
+  organizationId String
+  tag            String
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([makeRecordId, organizationId])
+}
+
+model AuditLog {
+  id             String   @id @default(uuid())
+  userId         String
+  organizationId String
+  action         String
+  resourceType   String
+  resourceId     String
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  user         User         @relation(fields: [userId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId, createdAt])
 }

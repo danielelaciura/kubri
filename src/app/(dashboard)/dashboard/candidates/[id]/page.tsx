@@ -1,0 +1,118 @@
+import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { prisma } from "@/lib/db";
+import { getCandidateForOrg } from "@/lib/make/service";
+import { CandidateProfile } from "@/components/candidates/candidate-profile";
+import { TranscriptViewer } from "@/components/candidates/transcript-viewer";
+import { CandidateNotes } from "@/components/candidates/candidate-notes";
+import { CandidateTags } from "@/components/candidates/candidate-tags";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, AlertCircle } from "lucide-react";
+import Link from "next/link";
+
+interface CandidateDetailPageProps {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+export default async function CandidateDetailPage({
+  params,
+  searchParams,
+}: CandidateDetailPageProps) {
+  const session = await auth();
+  if (!session?.user?.organizationId) redirect("/login");
+
+  const { id } = await params;
+  const rawSearchParams = await searchParams;
+  const returnParams =
+    typeof rawSearchParams["returnParams"] === "string"
+      ? rawSearchParams["returnParams"]
+      : "";
+
+  const organizationId = session.user.organizationId;
+
+  // Parallel data fetching
+  const [candidate, notes, tags] = await Promise.all([
+    getCandidateForOrg(organizationId, id).catch(() => null),
+    prisma.candidateNote.findMany({
+      where: {
+        makeRecordId: id,
+        organizationId,
+      },
+      include: {
+        user: {
+          select: { name: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.candidateTag.findMany({
+      where: {
+        makeRecordId: id,
+        organizationId,
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
+
+  const backUrl = `/dashboard/candidates${returnParams}`;
+
+  if (!candidate) {
+    return (
+      <div className="space-y-6">
+        <Link href={backUrl}>
+          <Button variant="ghost" size="sm" className="gap-1">
+            <ArrowLeft className="h-4 w-4" />
+            Torna alla lista
+          </Button>
+        </Link>
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-destructive/50 p-12 text-center">
+          <AlertCircle className="h-12 w-12 text-destructive/50" />
+          <h2 className="mt-4 text-lg font-medium text-destructive">
+            Candidato non trovato
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Il profilo richiesto non esiste o non è accessibile.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const formattedNotes = notes.map((n) => ({
+    id: n.id,
+    content: n.content,
+    userName: n.user.name,
+    createdAt: n.createdAt,
+  }));
+
+  const formattedTags = tags.map((t) => ({
+    id: t.id,
+    tag: t.tag,
+  }));
+
+  return (
+    <div className="space-y-6">
+      <Link href={backUrl}>
+        <Button variant="ghost" size="sm" className="gap-1">
+          <ArrowLeft className="h-4 w-4" />
+          Torna alla lista
+        </Button>
+      </Link>
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Main content: profile + transcript */}
+        <div className="space-y-6 lg:col-span-2">
+          <CandidateProfile candidate={candidate} />
+          <TranscriptViewer transcript={candidate.interviewTranscript} />
+        </div>
+
+        {/* Sidebar: tags + notes */}
+        <div className="space-y-6">
+          <CandidateTags tags={formattedTags} makeRecordId={id} />
+          <CandidateNotes notes={formattedNotes} makeRecordId={id} />
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,194 @@
+"use client";
+
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { StatusBadge } from "@/components/candidates/status-badge";
+import { ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
+import type { Candidate, PaginatedResult, SortConfig } from "@/types";
+
+interface CandidatesTableProps {
+  result: PaginatedResult<Candidate>;
+  sort: SortConfig;
+}
+
+export function CandidatesTable({ result, sort }: CandidatesTableProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const { data: candidates, page, totalPages, total } = result;
+
+  const handleSort = (field: SortConfig["field"]) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (sort.field === field) {
+      params.set("sortDir", sort.direction === "asc" ? "desc" : "asc");
+    } else {
+      params.set("sortField", field);
+      params.set("sortDir", "asc");
+    }
+    params.delete("page");
+    router.push(`/dashboard/candidates?${params.toString()}`);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("page", String(newPage));
+    router.push(`/dashboard/candidates?${params.toString()}`);
+  };
+
+  const handlePageSizeChange = (newSize: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("pageSize", String(newSize));
+    params.delete("page");
+    router.push(`/dashboard/candidates?${params.toString()}`);
+  };
+
+  const handleRowClick = (id: string) => {
+    const params = searchParams.toString();
+    const returnUrl = params ? `?${params}` : "";
+    router.push(`/dashboard/candidates/${id}?returnParams=${encodeURIComponent(returnUrl)}`);
+  };
+
+  const SortButton = ({ field, label }: { field: SortConfig["field"]; label: string }) => (
+    <button
+      onClick={() => handleSort(field)}
+      className="flex items-center gap-1 hover:text-foreground"
+    >
+      {label}
+      <ArrowUpDown className="h-3 w-3" />
+    </button>
+  );
+
+  const formatDate = (date: Date) =>
+    date.toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit", year: "numeric" });
+
+  const renderTags = (items: string[], max: number = 2) => {
+    const visible = items.slice(0, max);
+    const overflow = items.length - max;
+    return (
+      <div className="flex flex-wrap gap-1">
+        {visible.map((item) => (
+          <Badge key={item} variant="secondary" className="text-xs">
+            {item}
+          </Badge>
+        ))}
+        {overflow > 0 && (
+          <Badge variant="outline" className="text-xs">
+            +{overflow}
+          </Badge>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div>
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>
+                <SortButton field="name" label="Nome" />
+              </TableHead>
+              <TableHead>Nazionalità</TableHead>
+              <TableHead>Lingue</TableHead>
+              <TableHead>Competenze</TableHead>
+              <TableHead>Disponibilità</TableHead>
+              <TableHead>Città</TableHead>
+              <TableHead>
+                <SortButton field="interviewStatus" label="Stato" />
+              </TableHead>
+              <TableHead>
+                <SortButton field="createdAt" label="Data" />
+              </TableHead>
+              <TableHead>Canale</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {candidates.map((candidate) => (
+              <TableRow
+                key={candidate.id}
+                className="cursor-pointer hover:bg-muted/50"
+                onClick={() => handleRowClick(candidate.id)}
+              >
+                <TableCell className="font-medium">{candidate.name}</TableCell>
+                <TableCell>{candidate.nationality}</TableCell>
+                <TableCell>{renderTags(candidate.languages)}</TableCell>
+                <TableCell>{renderTags(candidate.skills, 3)}</TableCell>
+                <TableCell>
+                  {candidate.availability === "immediate"
+                    ? "Immediata"
+                    : candidate.availability === "within_1_month"
+                      ? "Entro 1 mese"
+                      : "Altro"}
+                </TableCell>
+                <TableCell>{candidate.city}</TableCell>
+                <TableCell>
+                  <StatusBadge status={candidate.interviewStatus} />
+                </TableCell>
+                <TableCell>{formatDate(candidate.createdAt)}</TableCell>
+                <TableCell>
+                  <Badge variant="outline" className="text-xs capitalize">
+                    {candidate.channel}
+                  </Badge>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Pagination */}
+      <div className="mt-4 flex items-center justify-between">
+        <div className="text-sm text-muted-foreground">
+          {total} candidati totali
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm">Righe per pagina:</span>
+            <select
+              value={result.pageSize}
+              onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+              className="rounded-md border border-input bg-background px-2 py-1 text-sm"
+            >
+              {[10, 25, 50].map((size) => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page <= 1}
+              onClick={() => handlePageChange(page - 1)}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-sm">
+              Pagina {page} di {totalPages || 1}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= totalPages}
+              onClick={() => handlePageChange(page + 1)}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

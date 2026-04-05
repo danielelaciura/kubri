@@ -1,6 +1,12 @@
 import { auth } from "@/lib/auth";
 import type { Role } from "@/generated/prisma/client";
 
+const ROLE_HIERARCHY: Record<Role, number> = {
+  ADMIN_KUBRI: 3,
+  ORG_ADMIN: 2,
+  ORG_MEMBER: 1,
+};
+
 export async function getCurrentUser() {
   const session = await auth();
 
@@ -11,10 +17,12 @@ export async function getCurrentUser() {
   return session.user;
 }
 
-export async function requireRole(role: Role) {
+export async function requireRole(minimumRole: Role) {
   const user = await getCurrentUser();
+  const userLevel = ROLE_HIERARCHY[user.role as Role] ?? 0;
+  const requiredLevel = ROLE_HIERARCHY[minimumRole];
 
-  if (user.role !== role) {
+  if (userLevel < requiredLevel) {
     throw new Error("Permessi insufficienti");
   }
 
@@ -28,5 +36,5 @@ export async function requireOrganization() {
     throw new Error("Nessuna organizzazione associata");
   }
 
-  return user.organizationId;
+  return user;
 }

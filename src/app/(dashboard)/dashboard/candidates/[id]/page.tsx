@@ -7,7 +7,7 @@ import { TranscriptViewer } from "@/components/candidates/transcript-viewer";
 import { CandidateNotes } from "@/components/candidates/candidate-notes";
 import { CandidateTags } from "@/components/candidates/candidate-tags";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, AlertCircle } from "lucide-react";
+import { ArrowLeft, AlertCircle, FileDown } from "lucide-react";
 import Link from "next/link";
 
 interface CandidateDetailPageProps {
@@ -93,12 +93,24 @@ export default async function CandidateDetailPage({
 
   return (
     <div className="space-y-6">
-      <Link href={backUrl}>
-        <Button variant="ghost" size="sm" className="gap-1">
-          <ArrowLeft className="h-4 w-4" />
-          Torna alla lista
-        </Button>
-      </Link>
+      <div className="flex items-center justify-between">
+        <Link href={backUrl}>
+          <Button variant="ghost" size="sm" className="gap-1">
+            <ArrowLeft className="h-4 w-4" />
+            Torna alla lista
+          </Button>
+        </Link>
+        <a
+          href={`/api/candidates/${id}/export/pdf`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <Button variant="outline" size="sm" className="gap-2" type="button">
+            <FileDown className="h-4 w-4" />
+            Esporta PDF
+          </Button>
+        </a>
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Main content: profile + transcript */}

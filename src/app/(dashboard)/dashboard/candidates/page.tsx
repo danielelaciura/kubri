@@ -7,7 +7,7 @@ import { CandidatesTable } from "@/components/candidates/candidates-table";
 import { CandidateFilters } from "@/components/candidates/candidate-filters";
 import { Button } from "@/components/ui/button";
 import { strings } from "@/lib/i18n/strings";
-import { RefreshCw, Users, AlertCircle } from "lucide-react";
+import { RefreshCw, Users, AlertCircle, Download } from "lucide-react";
 import { revalidatePath } from "next/cache";
 
 interface CandidatesPageProps {
@@ -59,12 +59,24 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
         <h1 className="text-2xl font-bold tracking-tight">
           {strings.pages.candidates}
         </h1>
-        <form action={refreshCandidates}>
-          <Button variant="outline" size="sm" className="gap-2" type="submit">
-            <RefreshCw className="h-4 w-4" />
-            {strings.common.refresh}
-          </Button>
-        </form>
+        <div className="flex items-center gap-2">
+          <a
+            href={`/api/candidates/export/csv?${new URLSearchParams(flatParams).toString()}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Button variant="outline" size="sm" className="gap-2" type="button">
+              <Download className="h-4 w-4" />
+              Esporta CSV
+            </Button>
+          </a>
+          <form action={refreshCandidates}>
+            <Button variant="outline" size="sm" className="gap-2" type="submit">
+              <RefreshCw className="h-4 w-4" />
+              {strings.common.refresh}
+            </Button>
+          </form>
+        </div>
       </div>
 
       <CandidateFilters initialFilters={flatParams} />

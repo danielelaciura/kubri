@@ -29,6 +29,9 @@ importers:
       dotenv:
         specifier: ^17.4.0
         version: 17.4.0
+      lru-cache:
+        specifier: ^11.2.7
+        version: 11.2.7
       lucide-react:
         specifier: ^1.7.0
         version: 1.7.0(react@19.2.4)

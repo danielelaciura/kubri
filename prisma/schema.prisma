@@ -22,10 +22,11 @@ model Organization {
   createdAt       DateTime @default(now())
   settings        Json?
 
-  users          User[]
-  candidateNotes CandidateNote[]
-  candidateTags  CandidateTag[]
-  auditLogs      AuditLog[]
+  users           User[]
+  candidateNotes  CandidateNote[]
+  candidateTags   CandidateTag[]
+  auditLogs       AuditLog[]
+  jobDescriptions JobDescription[]
 }
 
 model User {
@@ -38,9 +39,10 @@ model User {
   createdAt      DateTime  @default(now())
   lastLoginAt    DateTime?
 
-  organization   Organization   @relation(fields: [organizationId], references: [id])
-  candidateNotes CandidateNote[]
-  auditLogs      AuditLog[]
+  organization    Organization     @relation(fields: [organizationId], references: [id])
+  candidateNotes  CandidateNote[]
+  auditLogs       AuditLog[]
+  jobDescriptions JobDescription[]
 }
 
 model CandidateNote {
@@ -82,5 +84,26 @@ model AuditLog {
   user         User         @relation(fields: [userId], references: [id])
   organization Organization @relation(fields: [organizationId], references: [id])
 
+  @@index([organizationId, createdAt])
+}
+
+model JobDescription {
+  id                   String   @id @default(uuid())
+  organizationId       String
+  createdByUserId      String
+  name                 String
+  locationRaw          String
+  locationMunicipality String?
+  locationProvince     String?
+  locationRegion       String?
+  description          String
+  skills               String[]
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  createdBy    User         @relation(fields: [createdByUserId], references: [id])
+
+  @@unique([organizationId, name])
   @@index([organizationId, createdAt])
 }

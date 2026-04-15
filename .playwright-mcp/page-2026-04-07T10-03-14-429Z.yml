@@ -1,0 +1,231 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - link "dp" [ref=e3] [cursor=pointer]:
+      - /url: https://dashboardpack.com/theme-details/apex-dashboard-nextjs
+    - heading "Apex Dashboard — Shadcn Next.js 16 Admin Template Live Demo Preview" [level=5] [ref=e4]
+    - generic [ref=e6]:
+      - link "View Details" [ref=e7] [cursor=pointer]:
+        - /url: https://dashboardpack.com/theme-details/apex-dashboard-nextjs
+        - generic [ref=e8]: 
+      - text: 
+      - generic "Add to cart" [ref=e9]:
+        - link "" [ref=e10] [cursor=pointer]:
+          - /url: javascript:void(0);
+          - generic [ref=e11]: 
+    - link "Remove Frame" [ref=e12] [cursor=pointer]:
+      - /url: https://apex-dashboard.pages.dev/
+      - generic [ref=e13]: 
+  - iframe [ref=e14]:
+    - generic [active] [ref=f1e1]:
+      - link "Skip to content" [ref=f1e2] [cursor=pointer]:
+        - /url: "#main-content"
+      - generic [ref=f1e4]:
+        - complementary [ref=f1e5]:
+          - generic [ref=f1e6]:
+            - img [ref=f1e8]
+            - generic [ref=f1e10]:
+              - generic [ref=f1e11]: Apex
+              - generic [ref=f1e12]: Dashboard
+          - navigation "Main navigation" [ref=f1e13]:
+            - generic [ref=f1e14]:
+              - button "Overview" [ref=f1e15]:
+                - generic [ref=f1e16]: Overview
+                - img [ref=f1e17]
+              - generic [ref=f1e21]:
+                - link "Dashboard" [ref=f1e22] [cursor=pointer]:
+                  - /url: /
+                  - img [ref=f1e23]
+                  - generic [ref=f1e28]: Dashboard
+                - link "Analytics" [ref=f1e29] [cursor=pointer]:
+                  - /url: /analytics
+                  - img [ref=f1e30]
+                  - generic [ref=f1e32]: Analytics
+                - link "eCommerce" [ref=f1e33] [cursor=pointer]:
+                  - /url: /ecommerce
+                  - img [ref=f1e34]
+                  - generic [ref=f1e38]: eCommerce
+                - link "CRM" [ref=f1e39] [cursor=pointer]:
+                  - /url: /crm
+                  - img [ref=f1e40]
+                  - generic [ref=f1e45]: CRM
+                - link "SaaS" [ref=f1e46] [cursor=pointer]:
+                  - /url: /saas
+                  - img [ref=f1e47]
+                  - generic [ref=f1e52]: SaaS
+                - link "Charts" [ref=f1e53] [cursor=pointer]:
+                  - /url: /charts
+                  - img [ref=f1e54]
+                  - generic [ref=f1e56]: Charts
+            - generic [ref=f1e57]:
+              - button "Commerce" [ref=f1e58]:
+                - generic [ref=f1e59]: Commerce
+                - img [ref=f1e60]
+              - generic [ref=f1e64]:
+                - link "Orders 12" [ref=f1e65] [cursor=pointer]:
+                  - /url: /orders
+                  - img [ref=f1e66]
+                  - generic [ref=f1e70]: Orders
+                  - generic [ref=f1e71]: "12"
+                - link "Products" [ref=f1e72] [cursor=pointer]:
+                  - /url: /products
+                  - img [ref=f1e73]
+                  - generic [ref=f1e77]: Products
+                - link "Customers" [ref=f1e78] [cursor=pointer]:
+                  - /url: /customers
+                  - img [ref=f1e79]
+                  - generic [ref=f1e84]: Customers
+                - link "Invoices" [ref=f1e85] [cursor=pointer]:
+                  - /url: /invoices
+                  - img [ref=f1e86]
+                  - generic [ref=f1e89]: Invoices
+            - generic [ref=f1e90]:
+              - button "Apps" [ref=f1e91]:
+                - generic [ref=f1e92]: Apps
+                - img [ref=f1e93]
+              - generic [ref=f1e97]:
+                - link "Mail" [ref=f1e98] [cursor=pointer]:
+                  - /url: /mail
+                  - img [ref=f1e99]
+                  - generic [ref=f1e102]: Mail
+                - link "Chat" [ref=f1e103] [cursor=pointer]:
+                  - /url: /chat
+                  - img [ref=f1e104]
+                  - generic [ref=f1e106]: Chat
+                - link "Files" [ref=f1e107] [cursor=pointer]:
+                  - /url: /files
+                  - img [ref=f1e108]
+                  - generic [ref=f1e110]: Files
+                - link "Kanban" [ref=f1e111] [cursor=pointer]:
+                  - /url: /kanban
+                  - img [ref=f1e112]
+                  - generic [ref=f1e113]: Kanban
+                - link "Calendar" [ref=f1e114] [cursor=pointer]:
+                  - /url: /calendar
+                  - img [ref=f1e115]
+                  - generic [ref=f1e117]: Calendar
+                - link "Wizard" [ref=f1e118] [cursor=pointer]:
+                  - /url: /wizard
+                  - img [ref=f1e119]
+                  - generic [ref=f1e122]: Wizard
+                - link "Forms" [ref=f1e123] [cursor=pointer]:
+                  - /url: /forms
+                  - img [ref=f1e124]
+                  - generic [ref=f1e128]: Forms
+            - generic [ref=f1e129]:
+              - button "Finance" [ref=f1e130]:
+                - generic [ref=f1e131]: Finance
+                - img [ref=f1e132]
+              - link "Billing" [ref=f1e137] [cursor=pointer]:
+                - /url: /billing
+                - img [ref=f1e138]
+                - generic [ref=f1e140]: Billing
+            - generic [ref=f1e142]:
+              - button "System" [ref=f1e143]:
+                - generic [ref=f1e144]: System
+                - img [ref=f1e145]
+              - generic [ref=f1e149]:
+                - link "Users" [ref=f1e150] [cursor=pointer]:
+                  - /url: /users
+                  - img [ref=f1e151]
+                  - generic [ref=f1e163]: Users
+                - link "Notifications 3" [ref=f1e164] [cursor=pointer]:
+                  - /url: /notifications
+                  - img [ref=f1e165]
+                  - generic [ref=f1e168]: Notifications
+                  - generic [ref=f1e169]: "3"
+                - link "Settings" [ref=f1e170] [cursor=pointer]:
+                  - /url: /settings
+                  - img [ref=f1e171]
+                  - generic [ref=f1e174]: Settings
+                - link "Help & Support" [ref=f1e175] [cursor=pointer]:
+                  - /url: /support
+                  - img [ref=f1e176]
+                  - generic [ref=f1e179]: Help & Support
+            - link "Documentation" [ref=f1e181] [cursor=pointer]:
+              - /url: /docs
+              - img [ref=f1e182]
+              - generic [ref=f1e184]: Documentation
+          - generic [ref=f1e186]:
+            - link "AS Aigars S. Admin" [ref=f1e187] [cursor=pointer]:
+              - /url: /profile
+              - generic [ref=f1e188]: AS
+              - generic [ref=f1e189]:
+                - generic [ref=f1e190]: Aigars S.
+                - generic [ref=f1e191]: Admin
+            - button "Log out" [ref=f1e192]:
+              - img [ref=f1e193]
+          - button "Collapse sidebar" [ref=f1e196]:
+            - img [ref=f1e197]
+        - generic [ref=f1e199]:
+          - heading "Command Palette" [level=2] [ref=f1e200]
+          - paragraph [ref=f1e201]: Search for pages, actions, and quick links.
+        - generic [ref=f1e202]:
+          - banner [ref=f1e204]:
+            - button "Search anything... ⌘K" [ref=f1e206]:
+              - img [ref=f1e207]
+              - text: Search anything...
+              - generic: ⌘K
+            - generic [ref=f1e210]:
+              - button "New Order" [ref=f1e211]:
+                - img
+                - text: New Order
+              - button "Toggle theme" [ref=f1e213]:
+                - img [ref=f1e214]
+              - button "Customize theme" [ref=f1e216]:
+                - img [ref=f1e217]
+              - button "Notifications" [ref=f1e223]:
+                - img [ref=f1e224]
+              - button "User menu" [ref=f1e228]: AS
+          - main [ref=f1e229]:
+            - generic [ref=f1e230]:
+              - generic [ref=f1e231]:
+                - heading "Dashboard" [level=1] [ref=f1e232]
+                - paragraph [ref=f1e233]: Welcome back, Aigars. Here's what's happening with your business today.
+              - generic [ref=f1e234]:
+                - generic [ref=f1e235]:
+                  - generic [ref=f1e237]:
+                    - generic [ref=f1e238]:
+                      - paragraph [ref=f1e239]: Total Revenue
+                      - paragraph [ref=f1e240]: $48,295
+                      - generic [ref=f1e241]:
+                        - img [ref=f1e242]
+                        - generic [ref=f1e245]: +12.5%
+                        - generic [ref=f1e246]: vs last month
+                    - img [ref=f1e248]
+                  - application [ref=f1e253]
+                - generic [ref=f1e261]:
+                  - generic [ref=f1e263]:
+                    - generic [ref=f1e264]:
+                      - paragraph [ref=f1e265]: Active Users
+                      - paragraph [ref=f1e266]: 2,847
+                      - generic [ref=f1e267]:
+                        - img [ref=f1e268]
+                        - generic [ref=f1e271]: +8.2%
+                        - generic [ref=f1e272]: vs last month
+                    - img [ref=f1e274]
+                  - application [ref=f1e282]
+                - generic [ref=f1e290]:
+                  - generic [ref=f1e292]:
+                    - generic [ref=f1e293]:
+                      - paragraph [ref=f1e294]: Total Orders
+                      - paragraph [ref=f1e295]: 1,432
+                      - generic [ref=f1e296]:
+                        - img [ref=f1e297]
+                        - generic [ref=f1e300]: "-3.1%"
+                        - generic [ref=f1e301]: vs last month
+                    - img [ref=f1e303]
+                  - application [ref=f1e310]
+                - generic [ref=f1e318]:
+                  - generic [ref=f1e320]:
+                    - generic [ref=f1e321]:
+                      - paragraph [ref=f1e322]: Page Views
+                      - paragraph [ref=f1e323]: 284K
+                      - generic [ref=f1e324]:
+                        - img [ref=f1e325]
+                        - generic [ref=f1e328]: +24.7%
+                        - generic [ref=f1e329]: vs last month
+                    - img [ref=f1e331]
+                  - application [ref=f1e337]
+      - region "Notifications alt+T"
+      - alert [ref=f1e351]
+  - text:                  

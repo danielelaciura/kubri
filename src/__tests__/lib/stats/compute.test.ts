@@ -14,7 +14,6 @@ function makeCandidate(
     workExperiences: [],
     availability: "immediate",
     city: "Roma",
-    interviewStatus: overrides.interviewStatus ?? "completed",
     interviewTranscript: [],
     channel: "telegram",
     createdAt: overrides.createdAt ?? new Date("2026-03-30T10:00:00Z"),
@@ -33,51 +32,21 @@ describe("computeStats", () => {
     vi.useRealTimers();
   });
 
-  it("returns zero counts and empty week counts for an empty array", () => {
+  it("returns zero total and empty week counts for an empty array", () => {
     const stats = computeStats([]);
 
     expect(stats.total).toBe(0);
-    expect(stats.byStatus).toEqual({
-      completed: 0,
-      in_progress: 0,
-      abandoned: 0,
-      incomplete: 0,
-    });
     expect(stats.weeklyTrend).toHaveLength(8);
     for (const week of stats.weeklyTrend) {
       expect(week.count).toBe(0);
     }
   });
 
-  it("counts a single completed candidate correctly", () => {
-    const candidates = [makeCandidate({ interviewStatus: "completed" })];
+  it("counts a single candidate correctly", () => {
+    const candidates = [makeCandidate()];
     const stats = computeStats(candidates);
 
     expect(stats.total).toBe(1);
-    expect(stats.byStatus.completed).toBe(1);
-    expect(stats.byStatus.in_progress).toBe(0);
-    expect(stats.byStatus.abandoned).toBe(0);
-    expect(stats.byStatus.incomplete).toBe(0);
-  });
-
-  it("counts by interview status correctly with various distributions", () => {
-    const candidates = [
-      makeCandidate({ id: "1", interviewStatus: "completed" }),
-      makeCandidate({ id: "2", interviewStatus: "completed" }),
-      makeCandidate({ id: "3", interviewStatus: "completed" }),
-      makeCandidate({ id: "4", interviewStatus: "in_progress" }),
-      makeCandidate({ id: "5", interviewStatus: "in_progress" }),
-      makeCandidate({ id: "6", interviewStatus: "abandoned" }),
-      makeCandidate({ id: "7", interviewStatus: "incomplete" }),
-    ];
-
-    const stats = computeStats(candidates);
-
-    expect(stats.total).toBe(7);
-    expect(stats.byStatus.completed).toBe(3);
-    expect(stats.byStatus.in_progress).toBe(2);
-    expect(stats.byStatus.abandoned).toBe(1);
-    expect(stats.byStatus.incomplete).toBe(1);
   });
 
   it("groups candidates by week for the last 8 weeks", () => {
@@ -110,17 +79,13 @@ describe("computeStats", () => {
     }
   });
 
-  it("handles all candidates in a single status", () => {
+  it("counts total for multiple candidates", () => {
     const candidates = Array.from({ length: 5 }, (_, i) =>
-      makeCandidate({ id: String(i), interviewStatus: "abandoned" }),
+      makeCandidate({ id: String(i) }),
     );
 
     const stats = computeStats(candidates);
 
     expect(stats.total).toBe(5);
-    expect(stats.byStatus.abandoned).toBe(5);
-    expect(stats.byStatus.completed).toBe(0);
-    expect(stats.byStatus.in_progress).toBe(0);
-    expect(stats.byStatus.incomplete).toBe(0);
   });
 });

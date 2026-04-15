@@ -1,23 +1,12 @@
-import type { Candidate, InterviewStatus } from "@/types";
+import type { Candidate } from "@/types";
 
 export interface DashboardStats {
   total: number;
-  byStatus: Record<InterviewStatus, number>;
   weeklyTrend: { week: string; count: number }[];
 }
 
 export function computeStats(candidates: Candidate[]): DashboardStats {
   const total = candidates.length;
-
-  const byStatus: Record<InterviewStatus, number> = {
-    completed: 0,
-    in_progress: 0,
-    abandoned: 0,
-    incomplete: 0,
-  };
-  for (const c of candidates) {
-    byStatus[c.interviewStatus]++;
-  }
 
   // Group by week for the last 8 weeks
   const now = new Date();
@@ -38,5 +27,5 @@ export function computeStats(candidates: Candidate[]): DashboardStats {
     weeks.push({ week: label, count });
   }
 
-  return { total, byStatus, weeklyTrend: weeks };
+  return { total, weeklyTrend: weeks };
 }

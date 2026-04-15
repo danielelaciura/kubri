@@ -39,6 +39,7 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
   } catch {
     errorMessage = "Errore nel caricamento dei dati. Riprova più tardi.";
   }
+  candidates = candidates.filter((c) => c.lastName.trim() !== "");
 
   const filtered = filterCandidates(candidates, filters);
   const sorted = sortCandidates(filtered, sort);

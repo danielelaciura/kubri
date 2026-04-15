@@ -1,0 +1,116 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - generic [ref=e5]:
+        - generic [ref=e7]: K
+        - generic [ref=e8]:
+          - generic [ref=e9]: Kubri
+          - generic [ref=e10]: Kubri Demo
+      - navigation [ref=e12]:
+        - link "Candidati" [ref=e13] [cursor=pointer]:
+          - /url: /dashboard/candidates
+          - img [ref=e14]
+          - text: Candidati
+        - link "Impostazioni" [ref=e19] [cursor=pointer]:
+          - /url: /dashboard/settings
+          - img [ref=e20]
+          - text: Impostazioni
+        - link "Statistiche" [ref=e23] [cursor=pointer]:
+          - /url: /dashboard/stats
+          - img [ref=e24]
+          - text: Statistiche
+        - link "Amministrazione" [ref=e27] [cursor=pointer]:
+          - /url: /admin
+          - img [ref=e28]
+          - text: Amministrazione
+    - generic [ref=e30]:
+      - banner [ref=e31]:
+        - generic [ref=e32]:
+          - generic [ref=e34]: AK
+          - generic [ref=e35]: Admin Kubri
+          - button "Esci" [ref=e36]:
+            - img
+            - text: Esci
+      - main [ref=e37]:
+        - generic [ref=e38]:
+          - generic [ref=e39]:
+            - heading "Candidati" [level=1] [ref=e40]
+            - generic [ref=e41]:
+              - link "Esporta CSV" [ref=e42] [cursor=pointer]:
+                - /url: /api/candidates/export/csv?
+                - button "Esporta CSV" [ref=e43]:
+                  - img
+                  - text: Esporta CSV
+              - button "Aggiorna" [ref=e45]:
+                - img
+                - text: Aggiorna
+          - generic [ref=e47]:
+            - generic [ref=e48]:
+              - img [ref=e49]
+              - textbox "Cerca per nome, competenze, esperienze..." [ref=e52]
+            - button "Filtra" [ref=e53]:
+              - img
+              - text: Filtra
+            - button "Cerca" [ref=e54]
+          - generic [ref=e55]:
+            - table [ref=e58]:
+              - rowgroup [ref=e59]:
+                - row "Nome Paese di origine Lingue Competenze Indirizzo Stato Data Canale" [ref=e60]:
+                  - columnheader "Nome" [ref=e61]:
+                    - button "Nome" [ref=e62]:
+                      - text: Nome
+                      - img [ref=e63]
+                  - columnheader "Paese di origine" [ref=e66]
+                  - columnheader "Lingue" [ref=e67]
+                  - columnheader "Competenze" [ref=e68]
+                  - columnheader "Indirizzo" [ref=e69]
+                  - columnheader "Stato" [ref=e70]:
+                    - button "Stato" [ref=e71]:
+                      - text: Stato
+                      - img [ref=e72]
+                  - columnheader "Data" [ref=e75]:
+                    - button "Data" [ref=e76]:
+                      - text: Data
+                      - img [ref=e77]
+                  - columnheader "Canale" [ref=e80]
+              - rowgroup [ref=e81]:
+                - row "Pippo Incompleta 07/04/2026 telegram" [ref=e82] [cursor=pointer]:
+                  - cell "Pippo" [ref=e83]
+                  - cell [ref=e84]
+                  - cell [ref=e85]
+                  - cell [ref=e86]
+                  - cell [ref=e87]
+                  - cell "Incompleta" [ref=e88]:
+                    - generic [ref=e89]: Incompleta
+                  - cell "07/04/2026" [ref=e90]
+                  - cell "telegram" [ref=e91]:
+                    - generic [ref=e92]: telegram
+                - row "Minnie Incompleta 07/04/2026 telegram" [ref=e93] [cursor=pointer]:
+                  - cell "Minnie" [ref=e94]
+                  - cell [ref=e95]
+                  - cell [ref=e96]
+                  - cell [ref=e97]
+                  - cell [ref=e98]
+                  - cell "Incompleta" [ref=e99]:
+                    - generic [ref=e100]: Incompleta
+                  - cell "07/04/2026" [ref=e101]
+                  - cell "telegram" [ref=e102]:
+                    - generic [ref=e103]: telegram
+            - generic [ref=e104]:
+              - generic [ref=e105]: 2 candidati totali
+              - generic [ref=e106]:
+                - generic [ref=e107]:
+                  - generic [ref=e108]: "Righe per pagina:"
+                  - combobox [ref=e109]:
+                    - option "10"
+                    - option "25" [selected]
+                    - option "50"
+                - generic [ref=e110]:
+                  - button [disabled]:
+                    - img
+                  - generic [ref=e111]: Pagina 1 di 1
+                  - button [disabled]:
+                    - img
+  - button "Open Next.js Dev Tools" [ref=e117] [cursor=pointer]:
+    - img [ref=e118]
+  - alert [ref=e121]

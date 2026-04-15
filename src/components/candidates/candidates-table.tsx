@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { StatusBadge } from "@/components/candidates/status-badge";
 import { ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
 import type { Candidate, PaginatedResult, SortConfig } from "@/types";
 
@@ -76,7 +75,7 @@ export function CandidatesTable({ result, sort }: CandidatesTableProps) {
     return (
       <div className="flex flex-wrap gap-1">
         {visible.map((item) => (
-          <Badge key={item} variant="secondary" className="text-xs">
+          <Badge key={item} variant="secondary" className="text-xs bg-kubri-50">
             {item}
           </Badge>
         ))}
@@ -91,25 +90,23 @@ export function CandidatesTable({ result, sort }: CandidatesTableProps) {
 
   return (
     <div>
-      <div className="rounded-md border">
+      <div className="rounded-lg border border-border/60 bg-card shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>
-                <SortButton field="name" label="Nome" />
+                <SortButton field="lastName" label="Cognome " />
               </TableHead>
-              <TableHead>Nazionalità</TableHead>
+              <TableHead>
+                 Nome
+              </TableHead>
+              <TableHead>Paese di origine</TableHead>
               <TableHead>Lingue</TableHead>
               <TableHead>Competenze</TableHead>
-              <TableHead>Disponibilità</TableHead>
-              <TableHead>Città</TableHead>
-              <TableHead>
-                <SortButton field="interviewStatus" label="Stato" />
-              </TableHead>
+              <TableHead>Indirizzo</TableHead>
               <TableHead>
                 <SortButton field="createdAt" label="Data" />
               </TableHead>
-              <TableHead>Canale</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -119,27 +116,23 @@ export function CandidatesTable({ result, sort }: CandidatesTableProps) {
                 className="cursor-pointer hover:bg-muted/50"
                 onClick={() => handleRowClick(candidate.id)}
               >
-                <TableCell className="font-medium">{candidate.name}</TableCell>
-                <TableCell>{candidate.nationality}</TableCell>
-                <TableCell>{renderTags(candidate.languages)}</TableCell>
-                <TableCell>{renderTags(candidate.skills, 3)}</TableCell>
-                <TableCell>
-                  {candidate.availability === "immediate"
-                    ? "Immediata"
-                    : candidate.availability === "within_1_month"
-                      ? "Entro 1 mese"
-                      : "Altro"}
+                <TableCell className="font-medium">
+                 {candidate.lastName}
                 </TableCell>
-                <TableCell>{candidate.city}</TableCell>
-                <TableCell>
-                  <StatusBadge status={candidate.interviewStatus} />
+                <TableCell className="font-medium">
+                  {candidate.firstName} 
                 </TableCell>
+                <TableCell>{candidate.countryOfOrigin}</TableCell>
+                <TableCell>
+                  {candidate.languages.language && (
+                    <Badge variant="secondary" className="text-xs capitalize">
+                      {candidate.languages.language}
+                    </Badge>
+                  )}
+                </TableCell>
+                <TableCell>{renderTags(candidate.skillsAndCompetences, 3)}</TableCell>
+                <TableCell className="max-w-[140px] truncate">{candidate.address}</TableCell>
                 <TableCell>{formatDate(candidate.createdAt)}</TableCell>
-                <TableCell>
-                  <Badge variant="outline" className="text-xs capitalize">
-                    {candidate.channel}
-                  </Badge>
-                </TableCell>
               </TableRow>
             ))}
           </TableBody>

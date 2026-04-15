@@ -21,7 +21,7 @@ interface WeeklyChartProps {
 
 export function WeeklyChart({ data }: WeeklyChartProps) {
   return (
-    <Card>
+    <Card className="shadow-sm border-border/60">
       <CardHeader>
         <CardTitle>Interviste per settimana</CardTitle>
       </CardHeader>
@@ -47,7 +47,7 @@ export function WeeklyChart({ data }: WeeklyChartProps) {
               />
               <Bar
                 dataKey="count"
-                fill="#0d97e9"
+                fill="oklch(0.5647 0.1653 291.4)"
                 radius={[4, 4, 0, 0]}
               />
             </BarChart>

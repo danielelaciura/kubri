@@ -1,0 +1,464 @@
+- generic [active] [ref=e1]:
+  - link "Skip to content" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e4]:
+    - complementary [ref=e5]:
+      - generic [ref=e6]:
+        - img [ref=e8]
+        - generic [ref=e10]:
+          - generic [ref=e11]: Apex
+          - generic [ref=e12]: Dashboard
+      - navigation "Main navigation" [ref=e13]:
+        - generic [ref=e14]:
+          - button "Overview" [ref=e15]:
+            - generic [ref=e16]: Overview
+            - img [ref=e17]
+          - generic [ref=e21]:
+            - link "Dashboard" [ref=e22] [cursor=pointer]:
+              - /url: /
+              - img [ref=e23]
+              - generic [ref=e28]: Dashboard
+            - link "Analytics" [ref=e29] [cursor=pointer]:
+              - /url: /analytics
+              - img [ref=e30]
+              - generic [ref=e32]: Analytics
+            - link "eCommerce" [ref=e33] [cursor=pointer]:
+              - /url: /ecommerce
+              - img [ref=e34]
+              - generic [ref=e38]: eCommerce
+            - link "CRM" [ref=e39] [cursor=pointer]:
+              - /url: /crm
+              - img [ref=e40]
+              - generic [ref=e45]: CRM
+            - link "SaaS" [ref=e46] [cursor=pointer]:
+              - /url: /saas
+              - img [ref=e47]
+              - generic [ref=e52]: SaaS
+            - link "Charts" [ref=e53] [cursor=pointer]:
+              - /url: /charts
+              - img [ref=e54]
+              - generic [ref=e56]: Charts
+        - generic [ref=e57]:
+          - button "Commerce" [ref=e58]:
+            - generic [ref=e59]: Commerce
+            - img [ref=e60]
+          - generic [ref=e64]:
+            - link "Orders 12" [ref=e65] [cursor=pointer]:
+              - /url: /orders
+              - img [ref=e66]
+              - generic [ref=e70]: Orders
+              - generic [ref=e71]: "12"
+            - link "Products" [ref=e72] [cursor=pointer]:
+              - /url: /products
+              - img [ref=e73]
+              - generic [ref=e77]: Products
+            - link "Customers" [ref=e78] [cursor=pointer]:
+              - /url: /customers
+              - img [ref=e79]
+              - generic [ref=e84]: Customers
+            - link "Invoices" [ref=e85] [cursor=pointer]:
+              - /url: /invoices
+              - img [ref=e86]
+              - generic [ref=e89]: Invoices
+        - generic [ref=e90]:
+          - button "Apps" [ref=e91]:
+            - generic [ref=e92]: Apps
+            - img [ref=e93]
+          - generic [ref=e97]:
+            - link "Mail" [ref=e98] [cursor=pointer]:
+              - /url: /mail
+              - img [ref=e99]
+              - generic [ref=e102]: Mail
+            - link "Chat" [ref=e103] [cursor=pointer]:
+              - /url: /chat
+              - img [ref=e104]
+              - generic [ref=e106]: Chat
+            - link "Files" [ref=e107] [cursor=pointer]:
+              - /url: /files
+              - img [ref=e108]
+              - generic [ref=e110]: Files
+            - link "Kanban" [ref=e111] [cursor=pointer]:
+              - /url: /kanban
+              - img [ref=e112]
+              - generic [ref=e113]: Kanban
+            - link "Calendar" [ref=e114] [cursor=pointer]:
+              - /url: /calendar
+              - img [ref=e115]
+              - generic [ref=e117]: Calendar
+            - link "Wizard" [ref=e118] [cursor=pointer]:
+              - /url: /wizard
+              - img [ref=e119]
+              - generic [ref=e122]: Wizard
+            - link "Forms" [ref=e123] [cursor=pointer]:
+              - /url: /forms
+              - img [ref=e124]
+              - generic [ref=e128]: Forms
+        - generic [ref=e129]:
+          - button "Finance" [ref=e130]:
+            - generic [ref=e131]: Finance
+            - img [ref=e132]
+          - link "Billing" [ref=e137] [cursor=pointer]:
+            - /url: /billing
+            - img [ref=e138]
+            - generic [ref=e140]: Billing
+        - generic [ref=e142]:
+          - button "System" [ref=e143]:
+            - generic [ref=e144]: System
+            - img [ref=e145]
+          - generic [ref=e149]:
+            - link "Users" [ref=e150] [cursor=pointer]:
+              - /url: /users
+              - img [ref=e151]
+              - generic [ref=e163]: Users
+            - link "Notifications 3" [ref=e164] [cursor=pointer]:
+              - /url: /notifications
+              - img [ref=e165]
+              - generic [ref=e168]: Notifications
+              - generic [ref=e169]: "3"
+            - link "Settings" [ref=e170] [cursor=pointer]:
+              - /url: /settings
+              - img [ref=e171]
+              - generic [ref=e174]: Settings
+            - link "Help & Support" [ref=e175] [cursor=pointer]:
+              - /url: /support
+              - img [ref=e176]
+              - generic [ref=e179]: Help & Support
+        - link "Documentation" [ref=e181] [cursor=pointer]:
+          - /url: /docs
+          - img [ref=e182]
+          - generic [ref=e184]: Documentation
+      - generic [ref=e186]:
+        - link "AS Aigars S. Admin" [ref=e187] [cursor=pointer]:
+          - /url: /profile
+          - generic [ref=e188]: AS
+          - generic [ref=e189]:
+            - generic [ref=e190]: Aigars S.
+            - generic [ref=e191]: Admin
+        - button "Log out" [ref=e192]:
+          - img [ref=e193]
+      - button "Collapse sidebar" [ref=e196]:
+        - img [ref=e197]
+    - generic [ref=e199]:
+      - heading "Command Palette" [level=2] [ref=e200]
+      - paragraph [ref=e201]: Search for pages, actions, and quick links.
+    - generic [ref=e202]:
+      - banner [ref=e204]:
+        - button "Search anything... ⌘K" [ref=e206]:
+          - img [ref=e207]
+          - text: Search anything...
+          - generic: ⌘K
+        - generic [ref=e210]:
+          - button "New Order" [ref=e211]:
+            - img
+            - text: New Order
+          - button "Toggle theme" [ref=e213]:
+            - img [ref=e214]
+          - button "Customize theme" [ref=e216]:
+            - img [ref=e217]
+          - button "Notifications" [ref=e223]:
+            - img [ref=e224]
+          - button "User menu" [ref=e228]: AS
+      - main [ref=e229]:
+        - generic [ref=e230]:
+          - generic [ref=e232]:
+            - generic [ref=e233]:
+              - navigation "breadcrumb" [ref=e234]:
+                - list [ref=e235]:
+                  - listitem [ref=e236]:
+                    - link "Dashboard" [ref=e237] [cursor=pointer]:
+                      - /url: /
+                  - listitem [ref=e238]:
+                    - img [ref=e239]
+                  - listitem [ref=e241]:
+                    - link "Orders" [disabled] [ref=e242]
+              - heading "Orders" [level=1] [ref=e243]
+              - paragraph [ref=e244]: Manage and track all customer orders.
+            - button "New Order" [ref=e246]:
+              - img
+              - text: New Order
+          - generic [ref=e247]:
+            - button "All" [ref=e248]
+            - button "Completed" [ref=e249]
+            - button "Processing" [ref=e250]
+            - button "Pending" [ref=e251]
+            - button "Cancelled" [ref=e252]
+          - generic [ref=e253]:
+            - generic [ref=e254]:
+              - generic [ref=e256]:
+                - img [ref=e257]
+                - textbox "Search orders..." [ref=e260]
+              - generic [ref=e261]:
+                - button "Columns" [ref=e262]:
+                  - img
+                  - generic [ref=e263]: Columns
+                - button "Export" [ref=e264]:
+                  - img
+                  - generic [ref=e265]: Export
+            - table [ref=e268]:
+              - rowgroup [ref=e269]:
+                - row "Select all Order Customer Product Status Date Trend Amount" [ref=e270]:
+                  - columnheader "Select all" [ref=e271]:
+                    - checkbox "Select all" [ref=e272]
+                  - columnheader "Order" [ref=e273]:
+                    - button "Order" [ref=e274]:
+                      - text: Order
+                      - img [ref=e276]
+                  - columnheader "Customer" [ref=e279]:
+                    - button "Customer" [ref=e280]:
+                      - text: Customer
+                      - img [ref=e282]
+                  - columnheader "Product" [ref=e285]:
+                    - button "Product" [ref=e286]:
+                      - text: Product
+                      - img [ref=e288]
+                  - columnheader "Status" [ref=e291]:
+                    - button "Status" [ref=e292]:
+                      - text: Status
+                      - img [ref=e294]
+                  - columnheader "Date" [ref=e297]:
+                    - button "Date" [ref=e298]:
+                      - text: Date
+                      - img [ref=e300]
+                  - columnheader "Trend" [ref=e303]
+                  - columnheader "Amount" [ref=e304]:
+                    - button "Amount" [ref=e305]:
+                      - text: Amount
+                      - img [ref=e307]
+                  - columnheader [ref=e310]
+              - rowgroup [ref=e311]:
+                - row "Select row ORD-7891 EW Emma Wilson emma@example.com Pro Dashboard License completed Feb 14, 2026 $299.00 Actions" [ref=e312] [cursor=pointer]:
+                  - cell "Select row" [ref=e313]:
+                    - checkbox "Select row" [ref=e314]
+                  - cell "ORD-7891" [ref=e315]
+                  - cell "EW Emma Wilson emma@example.com" [ref=e316]:
+                    - generic [ref=e317]:
+                      - generic [ref=e318]: EW
+                      - generic [ref=e319]:
+                        - paragraph [ref=e320]: Emma Wilson
+                        - paragraph [ref=e321]: emma@example.com
+                  - cell "Pro Dashboard License" [ref=e322]
+                  - cell "completed" [ref=e323]:
+                    - generic [ref=e324]: completed
+                  - cell "Feb 14, 2026" [ref=e325]
+                  - cell [ref=e326]:
+                    - application [ref=e328]
+                  - cell "$299.00" [ref=e332]:
+                    - generic [ref=e333]: $299.00
+                  - cell "Actions" [ref=e334]:
+                    - button "Actions" [ref=e335]:
+                      - img
+                      - generic [ref=e336]: Actions
+                - row "Select row ORD-7890 JC James Chen james@company.io Team Plan Upgrade processing Feb 14, 2026 $599.00 Actions" [ref=e337] [cursor=pointer]:
+                  - cell "Select row" [ref=e338]:
+                    - checkbox "Select row" [ref=e339]
+                  - cell "ORD-7890" [ref=e340]
+                  - cell "JC James Chen james@company.io" [ref=e341]:
+                    - generic [ref=e342]:
+                      - generic [ref=e343]: JC
+                      - generic [ref=e344]:
+                        - paragraph [ref=e345]: James Chen
+                        - paragraph [ref=e346]: james@company.io
+                  - cell "Team Plan Upgrade" [ref=e347]
+                  - cell "processing" [ref=e348]:
+                    - generic [ref=e349]: processing
+                  - cell "Feb 14, 2026" [ref=e350]
+                  - cell [ref=e351]:
+                    - application [ref=e353]
+                  - cell "$599.00" [ref=e357]:
+                    - generic [ref=e358]: $599.00
+                  - cell "Actions" [ref=e359]:
+                    - button "Actions" [ref=e360]:
+                      - img
+                      - generic [ref=e361]: Actions
+                - row "Select row ORD-7889 SG Sofia Garcia sofia@startup.co Enterprise License completed Feb 13, 2026 $1,499.00 Actions" [ref=e362] [cursor=pointer]:
+                  - cell "Select row" [ref=e363]:
+                    - checkbox "Select row" [ref=e364]
+                  - cell "ORD-7889" [ref=e365]
+                  - cell "SG Sofia Garcia sofia@startup.co" [ref=e366]:
+                    - generic [ref=e367]:
+                      - generic [ref=e368]: SG
+                      - generic [ref=e369]:
+                        - paragraph [ref=e370]: Sofia Garcia
+                        - paragraph [ref=e371]: sofia@startup.co
+                  - cell "Enterprise License" [ref=e372]
+                  - cell "completed" [ref=e373]:
+                    - generic [ref=e374]: completed
+                  - cell "Feb 13, 2026" [ref=e375]
+                  - cell [ref=e376]:
+                    - application [ref=e378]
+                  - cell "$1,499.00" [ref=e382]:
+                    - generic [ref=e383]: $1,499.00
+                  - cell "Actions" [ref=e384]:
+                    - button "Actions" [ref=e385]:
+                      - img
+                      - generic [ref=e386]: Actions
+                - row "Select row ORD-7888 AT Alex Thompson alex@dev.com Single License pending Feb 13, 2026 $79.00 Actions" [ref=e387] [cursor=pointer]:
+                  - cell "Select row" [ref=e388]:
+                    - checkbox "Select row" [ref=e389]
+                  - cell "ORD-7888" [ref=e390]
+                  - cell "AT Alex Thompson alex@dev.com" [ref=e391]:
+                    - generic [ref=e392]:
+                      - generic [ref=e393]: AT
+                      - generic [ref=e394]:
+                        - paragraph [ref=e395]: Alex Thompson
+                        - paragraph [ref=e396]: alex@dev.com
+                  - cell "Single License" [ref=e397]
+                  - cell "pending" [ref=e398]:
+                    - generic [ref=e399]: pending
+                  - cell "Feb 13, 2026" [ref=e400]
+                  - cell [ref=e401]:
+                    - application [ref=e403]
+                  - cell "$79.00" [ref=e407]:
+                    - generic [ref=e408]: $79.00
+                  - cell "Actions" [ref=e409]:
+                    - button "Actions" [ref=e410]:
+                      - img
+                      - generic [ref=e411]: Actions
+                - row "Select row ORD-7887 MS Maria Santos maria@agency.co Pro Dashboard License completed Feb 12, 2026 $299.00 Actions" [ref=e412] [cursor=pointer]:
+                  - cell "Select row" [ref=e413]:
+                    - checkbox "Select row" [ref=e414]
+                  - cell "ORD-7887" [ref=e415]
+                  - cell "MS Maria Santos maria@agency.co" [ref=e416]:
+                    - generic [ref=e417]:
+                      - generic [ref=e418]: MS
+                      - generic [ref=e419]:
+                        - paragraph [ref=e420]: Maria Santos
+                        - paragraph [ref=e421]: maria@agency.co
+                  - cell "Pro Dashboard License" [ref=e422]
+                  - cell "completed" [ref=e423]:
+                    - generic [ref=e424]: completed
+                  - cell "Feb 12, 2026" [ref=e425]
+                  - cell [ref=e426]:
+                    - application [ref=e428]
+                  - cell "$299.00" [ref=e432]:
+                    - generic [ref=e433]: $299.00
+                  - cell "Actions" [ref=e434]:
+                    - button "Actions" [ref=e435]:
+                      - img
+                      - generic [ref=e436]: Actions
+                - row "Select row ORD-7886 DK David Kim david@tech.io Team Plan Upgrade cancelled Feb 12, 2026 $599.00 Actions" [ref=e437] [cursor=pointer]:
+                  - cell "Select row" [ref=e438]:
+                    - checkbox "Select row" [ref=e439]
+                  - cell "ORD-7886" [ref=e440]
+                  - cell "DK David Kim david@tech.io" [ref=e441]:
+                    - generic [ref=e442]:
+                      - generic [ref=e443]: DK
+                      - generic [ref=e444]:
+                        - paragraph [ref=e445]: David Kim
+                        - paragraph [ref=e446]: david@tech.io
+                  - cell "Team Plan Upgrade" [ref=e447]
+                  - cell "cancelled" [ref=e448]:
+                    - generic [ref=e449]: cancelled
+                  - cell "Feb 12, 2026" [ref=e450]
+                  - cell [ref=e451]:
+                    - application [ref=e453]
+                  - cell "$599.00" [ref=e457]:
+                    - generic [ref=e458]: $599.00
+                  - cell "Actions" [ref=e459]:
+                    - button "Actions" [ref=e460]:
+                      - img
+                      - generic [ref=e461]: Actions
+                - row "Select row ORD-7885 LP Lisa Park lisa@design.co Pro Dashboard License completed Feb 11, 2026 $299.00 Actions" [ref=e462] [cursor=pointer]:
+                  - cell "Select row" [ref=e463]:
+                    - checkbox "Select row" [ref=e464]
+                  - cell "ORD-7885" [ref=e465]
+                  - cell "LP Lisa Park lisa@design.co" [ref=e466]:
+                    - generic [ref=e467]:
+                      - generic [ref=e468]: LP
+                      - generic [ref=e469]:
+                        - paragraph [ref=e470]: Lisa Park
+                        - paragraph [ref=e471]: lisa@design.co
+                  - cell "Pro Dashboard License" [ref=e472]
+                  - cell "completed" [ref=e473]:
+                    - generic [ref=e474]: completed
+                  - cell "Feb 11, 2026" [ref=e475]
+                  - cell [ref=e476]:
+                    - application [ref=e478]
+                  - cell "$299.00" [ref=e482]:
+                    - generic [ref=e483]: $299.00
+                  - cell "Actions" [ref=e484]:
+                    - button "Actions" [ref=e485]:
+                      - img
+                      - generic [ref=e486]: Actions
+                - row "Select row ORD-7884 RM Ryan Mitchell ryan@startup.io Enterprise License completed Feb 11, 2026 $1,499.00 Actions" [ref=e487] [cursor=pointer]:
+                  - cell "Select row" [ref=e488]:
+                    - checkbox "Select row" [ref=e489]
+                  - cell "ORD-7884" [ref=e490]
+                  - cell "RM Ryan Mitchell ryan@startup.io" [ref=e491]:
+                    - generic [ref=e492]:
+                      - generic [ref=e493]: RM
+                      - generic [ref=e494]:
+                        - paragraph [ref=e495]: Ryan Mitchell
+                        - paragraph [ref=e496]: ryan@startup.io
+                  - cell "Enterprise License" [ref=e497]
+                  - cell "completed" [ref=e498]:
+                    - generic [ref=e499]: completed
+                  - cell "Feb 11, 2026" [ref=e500]
+                  - cell [ref=e501]:
+                    - application [ref=e503]
+                  - cell "$1,499.00" [ref=e507]:
+                    - generic [ref=e508]: $1,499.00
+                  - cell "Actions" [ref=e509]:
+                    - button "Actions" [ref=e510]:
+                      - img
+                      - generic [ref=e511]: Actions
+                - row "Select row ORD-7883 NP Nina Patel nina@corp.com Single License processing Feb 10, 2026 $79.00 Actions" [ref=e512] [cursor=pointer]:
+                  - cell "Select row" [ref=e513]:
+                    - checkbox "Select row" [ref=e514]
+                  - cell "ORD-7883" [ref=e515]
+                  - cell "NP Nina Patel nina@corp.com" [ref=e516]:
+                    - generic [ref=e517]:
+                      - generic [ref=e518]: NP
+                      - generic [ref=e519]:
+                        - paragraph [ref=e520]: Nina Patel
+                        - paragraph [ref=e521]: nina@corp.com
+                  - cell "Single License" [ref=e522]
+                  - cell "processing" [ref=e523]:
+                    - generic [ref=e524]: processing
+                  - cell "Feb 10, 2026" [ref=e525]
+                  - cell [ref=e526]:
+                    - application [ref=e528]
+                  - cell "$79.00" [ref=e532]:
+                    - generic [ref=e533]: $79.00
+                  - cell "Actions" [ref=e534]:
+                    - button "Actions" [ref=e535]:
+                      - img
+                      - generic [ref=e536]: Actions
+                - row "Select row ORD-7882 TB Tom Bradley tom@agency.io Team Plan Upgrade pending Feb 10, 2026 $599.00 Actions" [ref=e537] [cursor=pointer]:
+                  - cell "Select row" [ref=e538]:
+                    - checkbox "Select row" [ref=e539]
+                  - cell "ORD-7882" [ref=e540]
+                  - cell "TB Tom Bradley tom@agency.io" [ref=e541]:
+                    - generic [ref=e542]:
+                      - generic [ref=e543]: TB
+                      - generic [ref=e544]:
+                        - paragraph [ref=e545]: Tom Bradley
+                        - paragraph [ref=e546]: tom@agency.io
+                  - cell "Team Plan Upgrade" [ref=e547]
+                  - cell "pending" [ref=e548]:
+                    - generic [ref=e549]: pending
+                  - cell "Feb 10, 2026" [ref=e550]
+                  - cell [ref=e551]:
+                    - application [ref=e553]
+                  - cell "$599.00" [ref=e557]:
+                    - generic [ref=e558]: $599.00
+                  - cell "Actions" [ref=e559]:
+                    - button "Actions" [ref=e560]:
+                      - img
+                      - generic [ref=e561]: Actions
+            - generic [ref=e562]:
+              - generic [ref=e564]: Showing 1-10 of 20 results
+              - generic [ref=e565]:
+                - generic [ref=e566]:
+                  - generic [ref=e567]: Rows
+                  - combobox [ref=e568]:
+                    - generic: "10"
+                    - img
+                - generic [ref=e569]:
+                  - button "Previous" [disabled]
+                  - generic [ref=e570]:
+                    - button "1" [ref=e571]
+                    - button "2" [ref=e572]
+                  - button "Next" [ref=e573]
+  - region "Notifications alt+T"
+  - alert [ref=e574]

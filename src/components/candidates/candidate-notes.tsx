@@ -74,7 +74,7 @@ export function CandidateNotes({ notes, makeRecordId }: CandidateNotesProps) {
   );
 
   return (
-    <Card>
+    <Card className="shadow-sm border-border/60">
       <CardHeader>
         <CardTitle>Note</CardTitle>
       </CardHeader>

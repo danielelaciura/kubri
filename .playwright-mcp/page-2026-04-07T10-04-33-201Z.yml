@@ -1,0 +1,360 @@
+- generic [active] [ref=e1]:
+  - link "Skip to content" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e4]:
+    - complementary [ref=e5]:
+      - generic [ref=e6]:
+        - img [ref=e8]
+        - generic [ref=e10]:
+          - generic [ref=e11]: Apex
+          - generic [ref=e12]: Dashboard
+      - navigation "Main navigation" [ref=e13]:
+        - generic [ref=e14]:
+          - button "Overview" [ref=e15]:
+            - generic [ref=e16]: Overview
+            - img [ref=e17]
+          - generic [ref=e21]:
+            - link "Dashboard" [ref=e22] [cursor=pointer]:
+              - /url: /
+              - img [ref=e23]
+              - generic [ref=e28]: Dashboard
+            - link "Analytics" [ref=e29] [cursor=pointer]:
+              - /url: /analytics
+              - img [ref=e30]
+              - generic [ref=e32]: Analytics
+            - link "eCommerce" [ref=e33] [cursor=pointer]:
+              - /url: /ecommerce
+              - img [ref=e34]
+              - generic [ref=e38]: eCommerce
+            - link "CRM" [ref=e39] [cursor=pointer]:
+              - /url: /crm
+              - img [ref=e40]
+              - generic [ref=e45]: CRM
+            - link "SaaS" [ref=e46] [cursor=pointer]:
+              - /url: /saas
+              - img [ref=e47]
+              - generic [ref=e52]: SaaS
+            - link "Charts" [ref=e53] [cursor=pointer]:
+              - /url: /charts
+              - img [ref=e54]
+              - generic [ref=e56]: Charts
+        - generic [ref=e57]:
+          - button "Commerce" [ref=e58]:
+            - generic [ref=e59]: Commerce
+            - img [ref=e60]
+          - generic [ref=e64]:
+            - link "Orders 12" [ref=e65] [cursor=pointer]:
+              - /url: /orders
+              - img [ref=e66]
+              - generic [ref=e70]: Orders
+              - generic [ref=e71]: "12"
+            - link "Products" [ref=e72] [cursor=pointer]:
+              - /url: /products
+              - img [ref=e73]
+              - generic [ref=e77]: Products
+            - link "Customers" [ref=e78] [cursor=pointer]:
+              - /url: /customers
+              - img [ref=e79]
+              - generic [ref=e84]: Customers
+            - link "Invoices" [ref=e85] [cursor=pointer]:
+              - /url: /invoices
+              - img [ref=e86]
+              - generic [ref=e89]: Invoices
+        - generic [ref=e90]:
+          - button "Apps" [ref=e91]:
+            - generic [ref=e92]: Apps
+            - img [ref=e93]
+          - generic [ref=e97]:
+            - link "Mail" [ref=e98] [cursor=pointer]:
+              - /url: /mail
+              - img [ref=e99]
+              - generic [ref=e102]: Mail
+            - link "Chat" [ref=e103] [cursor=pointer]:
+              - /url: /chat
+              - img [ref=e104]
+              - generic [ref=e106]: Chat
+            - link "Files" [ref=e107] [cursor=pointer]:
+              - /url: /files
+              - img [ref=e108]
+              - generic [ref=e110]: Files
+            - link "Kanban" [ref=e111] [cursor=pointer]:
+              - /url: /kanban
+              - img [ref=e112]
+              - generic [ref=e113]: Kanban
+            - link "Calendar" [ref=e114] [cursor=pointer]:
+              - /url: /calendar
+              - img [ref=e115]
+              - generic [ref=e117]: Calendar
+            - link "Wizard" [ref=e118] [cursor=pointer]:
+              - /url: /wizard
+              - img [ref=e119]
+              - generic [ref=e122]: Wizard
+            - link "Forms" [ref=e123] [cursor=pointer]:
+              - /url: /forms
+              - img [ref=e124]
+              - generic [ref=e128]: Forms
+        - generic [ref=e129]:
+          - button "Finance" [ref=e130]:
+            - generic [ref=e131]: Finance
+            - img [ref=e132]
+          - link "Billing" [ref=e137] [cursor=pointer]:
+            - /url: /billing
+            - img [ref=e138]
+            - generic [ref=e140]: Billing
+        - generic [ref=e142]:
+          - button "System" [ref=e143]:
+            - generic [ref=e144]: System
+            - img [ref=e145]
+          - generic [ref=e149]:
+            - link "Users" [ref=e150] [cursor=pointer]:
+              - /url: /users
+              - img [ref=e151]
+              - generic [ref=e163]: Users
+            - link "Notifications 3" [ref=e164] [cursor=pointer]:
+              - /url: /notifications
+              - img [ref=e165]
+              - generic [ref=e168]: Notifications
+              - generic [ref=e169]: "3"
+            - link "Settings" [ref=e170] [cursor=pointer]:
+              - /url: /settings
+              - img [ref=e171]
+              - generic [ref=e174]: Settings
+            - link "Help & Support" [ref=e175] [cursor=pointer]:
+              - /url: /support
+              - img [ref=e176]
+              - generic [ref=e179]: Help & Support
+        - link "Documentation" [ref=e181] [cursor=pointer]:
+          - /url: /docs
+          - img [ref=e182]
+          - generic [ref=e184]: Documentation
+      - generic [ref=e186]:
+        - link "AS Aigars S. Admin" [ref=e187] [cursor=pointer]:
+          - /url: /profile
+          - generic [ref=e188]: AS
+          - generic [ref=e189]:
+            - generic [ref=e190]: Aigars S.
+            - generic [ref=e191]: Admin
+        - button "Log out" [ref=e192]:
+          - img [ref=e193]
+      - button "Collapse sidebar" [ref=e196]:
+        - img [ref=e197]
+    - generic [ref=e199]:
+      - heading "Command Palette" [level=2] [ref=e200]
+      - paragraph [ref=e201]: Search for pages, actions, and quick links.
+    - generic [ref=e202]:
+      - banner [ref=e204]:
+        - button "Search anything... ⌘K" [ref=e206]:
+          - img [ref=e207]
+          - text: Search anything...
+          - generic: ⌘K
+        - generic [ref=e210]:
+          - button "New Order" [ref=e211]:
+            - img
+            - text: New Order
+          - button "Toggle theme" [ref=e213]:
+            - img [ref=e214]
+          - button "Customize theme" [ref=e216]:
+            - img [ref=e217]
+          - button "Notifications" [ref=e223]:
+            - img [ref=e224]
+          - button "User menu" [ref=e228]: AS
+      - main [ref=e229]:
+        - generic [ref=e230]:
+          - generic [ref=e233]:
+            - navigation "breadcrumb" [ref=e234]:
+              - list [ref=e235]:
+                - listitem [ref=e236]:
+                  - link "Dashboard" [ref=e237] [cursor=pointer]:
+                    - /url: /
+                - listitem [ref=e238]:
+                  - img [ref=e239]
+                - listitem [ref=e241]:
+                  - link "Customers" [disabled] [ref=e242]
+            - heading "Customers" [level=1] [ref=e243]
+            - paragraph [ref=e244]: View and manage your customer base.
+          - generic [ref=e245]:
+            - button "All" [ref=e246]
+            - button "Active" [ref=e247]
+            - button "Inactive" [ref=e248]
+          - generic [ref=e249]:
+            - generic [ref=e250]:
+              - generic [ref=e252]:
+                - img [ref=e253]
+                - textbox "Search customers..." [ref=e256]
+              - generic [ref=e257]:
+                - button "Columns" [ref=e258]:
+                  - img
+                  - generic [ref=e259]: Columns
+                - button "Export" [ref=e260]:
+                  - img
+                  - generic [ref=e261]: Export
+            - table [ref=e264]:
+              - rowgroup [ref=e265]:
+                - row "Customer Status Joined Orders Total Spent" [ref=e266]:
+                  - columnheader "Customer" [ref=e267]:
+                    - button "Customer" [ref=e268]:
+                      - text: Customer
+                      - img [ref=e270]
+                  - columnheader "Status" [ref=e273]:
+                    - button "Status" [ref=e274]:
+                      - text: Status
+                      - img [ref=e276]
+                  - columnheader "Joined" [ref=e279]:
+                    - button "Joined" [ref=e280]:
+                      - text: Joined
+                      - img [ref=e282]
+                  - columnheader "Orders" [ref=e285]:
+                    - button "Orders" [ref=e286]:
+                      - text: Orders
+                      - img [ref=e288]
+                  - columnheader "Total Spent" [ref=e291]:
+                    - button "Total Spent" [ref=e292]:
+                      - text: Total Spent
+                      - img [ref=e294]
+              - rowgroup [ref=e297]:
+                - row "EW Emma Wilson emma@example.com active Jan 5, 2026 3 $898.00" [ref=e298]:
+                  - cell "EW Emma Wilson emma@example.com" [ref=e299]:
+                    - generic [ref=e300]:
+                      - generic [ref=e301]: EW
+                      - generic [ref=e302]:
+                        - paragraph [ref=e303]: Emma Wilson
+                        - paragraph [ref=e304]: emma@example.com
+                  - cell "active" [ref=e305]:
+                    - generic [ref=e306]: active
+                  - cell "Jan 5, 2026" [ref=e307]
+                  - cell "3" [ref=e308]
+                  - cell "$898.00" [ref=e309]:
+                    - generic [ref=e310]: $898.00
+                - row "JC James Chen james@company.io active Jan 12, 2026 1 $599.00" [ref=e311]:
+                  - cell "JC James Chen james@company.io" [ref=e312]:
+                    - generic [ref=e313]:
+                      - generic [ref=e314]: JC
+                      - generic [ref=e315]:
+                        - paragraph [ref=e316]: James Chen
+                        - paragraph [ref=e317]: james@company.io
+                  - cell "active" [ref=e318]:
+                    - generic [ref=e319]: active
+                  - cell "Jan 12, 2026" [ref=e320]
+                  - cell "1" [ref=e321]
+                  - cell "$599.00" [ref=e322]:
+                    - generic [ref=e323]: $599.00
+                - row "SG Sofia Garcia sofia@startup.co active Dec 18, 2025 2 $1,548.00" [ref=e324]:
+                  - cell "SG Sofia Garcia sofia@startup.co" [ref=e325]:
+                    - generic [ref=e326]:
+                      - generic [ref=e327]: SG
+                      - generic [ref=e328]:
+                        - paragraph [ref=e329]: Sofia Garcia
+                        - paragraph [ref=e330]: sofia@startup.co
+                  - cell "active" [ref=e331]:
+                    - generic [ref=e332]: active
+                  - cell "Dec 18, 2025" [ref=e333]
+                  - cell "2" [ref=e334]
+                  - cell "$1,548.00" [ref=e335]:
+                    - generic [ref=e336]: $1,548.00
+                - row "AT Alex Thompson alex@dev.com active Jan 20, 2026 1 $79.00" [ref=e337]:
+                  - cell "AT Alex Thompson alex@dev.com" [ref=e338]:
+                    - generic [ref=e339]:
+                      - generic [ref=e340]: AT
+                      - generic [ref=e341]:
+                        - paragraph [ref=e342]: Alex Thompson
+                        - paragraph [ref=e343]: alex@dev.com
+                  - cell "active" [ref=e344]:
+                    - generic [ref=e345]: active
+                  - cell "Jan 20, 2026" [ref=e346]
+                  - cell "1" [ref=e347]
+                  - cell "$79.00" [ref=e348]:
+                    - generic [ref=e349]: $79.00
+                - row "MS Maria Santos maria@agency.co active Dec 2, 2025 1 $299.00" [ref=e350]:
+                  - cell "MS Maria Santos maria@agency.co" [ref=e351]:
+                    - generic [ref=e352]:
+                      - generic [ref=e353]: MS
+                      - generic [ref=e354]:
+                        - paragraph [ref=e355]: Maria Santos
+                        - paragraph [ref=e356]: maria@agency.co
+                  - cell "active" [ref=e357]:
+                    - generic [ref=e358]: active
+                  - cell "Dec 2, 2025" [ref=e359]
+                  - cell "1" [ref=e360]
+                  - cell "$299.00" [ref=e361]:
+                    - generic [ref=e362]: $299.00
+                - row "DK David Kim david@tech.io inactive Nov 15, 2025 1 $0.00" [ref=e363]:
+                  - cell "DK David Kim david@tech.io" [ref=e364]:
+                    - generic [ref=e365]:
+                      - generic [ref=e366]: DK
+                      - generic [ref=e367]:
+                        - paragraph [ref=e368]: David Kim
+                        - paragraph [ref=e369]: david@tech.io
+                  - cell "inactive" [ref=e370]:
+                    - generic [ref=e371]: inactive
+                  - cell "Nov 15, 2025" [ref=e372]
+                  - cell "1" [ref=e373]
+                  - cell "$0.00" [ref=e374]:
+                    - generic [ref=e375]: $0.00
+                - row "LP Lisa Park lisa@design.co active Jan 8, 2026 1 $299.00" [ref=e376]:
+                  - cell "LP Lisa Park lisa@design.co" [ref=e377]:
+                    - generic [ref=e378]:
+                      - generic [ref=e379]: LP
+                      - generic [ref=e380]:
+                        - paragraph [ref=e381]: Lisa Park
+                        - paragraph [ref=e382]: lisa@design.co
+                  - cell "active" [ref=e383]:
+                    - generic [ref=e384]: active
+                  - cell "Jan 8, 2026" [ref=e385]
+                  - cell "1" [ref=e386]
+                  - cell "$299.00" [ref=e387]:
+                    - generic [ref=e388]: $299.00
+                - row "RM Ryan Mitchell ryan@startup.io active Dec 28, 2025 1 $1,499.00" [ref=e389]:
+                  - cell "RM Ryan Mitchell ryan@startup.io" [ref=e390]:
+                    - generic [ref=e391]:
+                      - generic [ref=e392]: RM
+                      - generic [ref=e393]:
+                        - paragraph [ref=e394]: Ryan Mitchell
+                        - paragraph [ref=e395]: ryan@startup.io
+                  - cell "active" [ref=e396]:
+                    - generic [ref=e397]: active
+                  - cell "Dec 28, 2025" [ref=e398]
+                  - cell "1" [ref=e399]
+                  - cell "$1,499.00" [ref=e400]:
+                    - generic [ref=e401]: $1,499.00
+                - row "NP Nina Patel nina@corp.com active Jan 15, 2026 1 $79.00" [ref=e402]:
+                  - cell "NP Nina Patel nina@corp.com" [ref=e403]:
+                    - generic [ref=e404]:
+                      - generic [ref=e405]: NP
+                      - generic [ref=e406]:
+                        - paragraph [ref=e407]: Nina Patel
+                        - paragraph [ref=e408]: nina@corp.com
+                  - cell "active" [ref=e409]:
+                    - generic [ref=e410]: active
+                  - cell "Jan 15, 2026" [ref=e411]
+                  - cell "1" [ref=e412]
+                  - cell "$79.00" [ref=e413]:
+                    - generic [ref=e414]: $79.00
+                - row "TB Tom Bradley tom@agency.io active Jan 22, 2026 1 $599.00" [ref=e415]:
+                  - cell "TB Tom Bradley tom@agency.io" [ref=e416]:
+                    - generic [ref=e417]:
+                      - generic [ref=e418]: TB
+                      - generic [ref=e419]:
+                        - paragraph [ref=e420]: Tom Bradley
+                        - paragraph [ref=e421]: tom@agency.io
+                  - cell "active" [ref=e422]:
+                    - generic [ref=e423]: active
+                  - cell "Jan 22, 2026" [ref=e424]
+                  - cell "1" [ref=e425]
+                  - cell "$599.00" [ref=e426]:
+                    - generic [ref=e427]: $599.00
+            - generic [ref=e428]:
+              - generic [ref=e430]: Showing 1-10 of 18 results
+              - generic [ref=e431]:
+                - generic [ref=e432]:
+                  - generic [ref=e433]: Rows
+                  - combobox [ref=e434]:
+                    - generic: "10"
+                    - img
+                - generic [ref=e435]:
+                  - button "Previous" [disabled]
+                  - generic [ref=e436]:
+                    - button "1" [ref=e437]
+                    - button "2" [ref=e438]
+                  - button "Next" [ref=e439]
+  - region "Notifications alt+T"
+  - alert [ref=e440]

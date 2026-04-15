@@ -12,7 +12,6 @@ function makeCandidate(overrides: Partial<Candidate> = {}): Candidate {
     workExperiences: [],
     availability: "immediate",
     city: "Milano",
-    interviewStatus: "completed",
     interviewTranscript: [],
     channel: "telegram",
     createdAt: new Date("2025-06-15T10:00:00Z"),
@@ -31,7 +30,7 @@ describe("candidatesToCsv", () => {
     const csv = candidatesToCsv([]);
     const firstLine = csv.replace("\uFEFF", "").split("\n")[0];
     expect(firstLine).toBe(
-      "Nome,Nazionalità,Lingue,Competenze,Disponibilità,Città,Stato intervista,Data,Canale"
+      "Nome,Nazionalità,Lingue,Competenze,Disponibilità,Città,Data,Canale"
     );
   });
 
@@ -47,7 +46,6 @@ describe("candidatesToCsv", () => {
     expect(row).toContain("Cucina, Pulizie");
     expect(row).toContain("Immediata");
     expect(row).toContain("Milano");
-    expect(row).toContain("Completata");
     expect(row).toContain("telegram");
   });
 
@@ -60,20 +58,6 @@ describe("candidatesToCsv", () => {
 
     const other = candidatesToCsv([makeCandidate({ availability: "other" })]);
     expect(other).toContain("Altro");
-  });
-
-  it("maps interview status labels to Italian", () => {
-    const completed = candidatesToCsv([makeCandidate({ interviewStatus: "completed" })]);
-    expect(completed).toContain("Completata");
-
-    const inProgress = candidatesToCsv([makeCandidate({ interviewStatus: "in_progress" })]);
-    expect(inProgress).toContain("In corso");
-
-    const abandoned = candidatesToCsv([makeCandidate({ interviewStatus: "abandoned" })]);
-    expect(abandoned).toContain("Abbandonata");
-
-    const incomplete = candidatesToCsv([makeCandidate({ interviewStatus: "incomplete" })]);
-    expect(incomplete).toContain("Incompleta");
   });
 
   it("escapes cells containing commas", () => {
@@ -125,7 +109,7 @@ describe("candidatesToCsv", () => {
     const candidates = [
       makeCandidate({ id: "1", name: "Mario Rossi" }),
       makeCandidate({ id: "2", name: "Anna Bianchi", city: "Roma" }),
-      makeCandidate({ id: "3", name: "Luca Verdi", interviewStatus: "in_progress" }),
+      makeCandidate({ id: "3", name: "Luca Verdi" }),
     ];
     const csv = candidatesToCsv(candidates);
     const lines = csv.replace("\uFEFF", "").split("\n");
@@ -135,7 +119,6 @@ describe("candidatesToCsv", () => {
     expect(lines[2]).toContain("Anna Bianchi");
     expect(lines[2]).toContain("Roma");
     expect(lines[3]).toContain("Luca Verdi");
-    expect(lines[3]).toContain("In corso");
   });
 
   it("formats dates in Italian locale", () => {

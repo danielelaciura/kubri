@@ -1,42 +1,33 @@
 import type { Candidate, CandidateFilters, SortConfig, PaginatedResult } from "@/types";
 
-const STATUS_ORDER: Record<string, number> = {
-  completed: 0,
-  in_progress: 1,
-  abandoned: 2,
-  incomplete: 3,
-};
-
 export function filterCandidates(
   candidates: Candidate[],
   filters: CandidateFilters
 ): Candidate[] {
   return candidates.filter((c) => {
-    if (filters.status && filters.status.length > 0) {
-      if (!filters.status.includes(c.interviewStatus)) return false;
-    }
-
     if (filters.languages && filters.languages.length > 0) {
+      const allLangs = [
+        c.languages.language,
+        c.languages.additionalLanguages,
+      ]
+        .join(" ")
+        .toLowerCase();
       const has = filters.languages.some((lang) =>
-        c.languages.some((cl) => cl.toLowerCase() === lang.toLowerCase())
+        allLangs.includes(lang.toLowerCase())
       );
       if (!has) return false;
     }
 
-    if (filters.nationality) {
-      if (!c.nationality.toLowerCase().includes(filters.nationality.toLowerCase())) {
+    if (filters.countryOfOrigin) {
+      if (!c.countryOfOrigin.toLowerCase().includes(filters.countryOfOrigin.toLowerCase())) {
         return false;
       }
     }
 
     if (filters.city) {
-      if (!c.city.toLowerCase().includes(filters.city.toLowerCase())) {
+      if (!c.address.toLowerCase().includes(filters.city.toLowerCase())) {
         return false;
       }
-    }
-
-    if (filters.availability) {
-      if (c.availability !== filters.availability) return false;
     }
 
     if (filters.dateFrom) {
@@ -50,9 +41,12 @@ export function filterCandidates(
     if (filters.search) {
       const query = filters.search.toLowerCase();
       const searchable = [
-        c.name,
-        ...c.skills,
-        ...c.workExperiences.map((w) => `${w.role} ${w.description}`),
+        c.firstName,
+        c.lastName,
+        ...c.skillsAndCompetences,
+        ...c.workExperience,
+        c.countryOfOrigin,
+        c.address,
       ]
         .join(" ")
         .toLowerCase();
@@ -72,15 +66,12 @@ export function sortCandidates(
 
   sorted.sort((a, b) => {
     switch (sort.field) {
-      case "name":
-        return a.name.localeCompare(b.name) * dir;
+      case "firstName":
+        return a.firstName.localeCompare(b.firstName) * dir;
+      case "lastName":
+        return a.lastName.localeCompare(b.lastName) * dir;
       case "createdAt":
         return (a.createdAt.getTime() - b.createdAt.getTime()) * dir;
-      case "interviewStatus": {
-        const aOrder = STATUS_ORDER[a.interviewStatus] ?? 99;
-        const bOrder = STATUS_ORDER[b.interviewStatus] ?? 99;
-        return (aOrder - bOrder) * dir;
-      }
       default:
         return 0;
     }

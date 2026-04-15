@@ -1,47 +1,57 @@
-export type InterviewStatus = "completed" | "in_progress" | "abandoned" | "incomplete";
-export type Availability = "immediate" | "within_1_month" | "other";
 export type Channel = "telegram" | "whatsapp";
 
-export interface WorkExperience {
-  role: string;
-  description: string;
-  duration?: string;
+export interface Languages {
+  language: string;
+  additionalLanguages: string[];
 }
 
-export interface TranscriptEntry {
-  question: string;
-  answer: string;
+export interface JobPreferences {
+  desiredJob: string;
+  partTimePreference: boolean;
+  preferredLocation: string;
+  constraints: string;
+  hasDesiredJobExperience: string;
 }
 
 export interface Candidate {
   id: string;
-  name: string;
-  nationality: string;
-  languages: string[];
-  skills: string[];
-  workExperiences: WorkExperience[];
-  availability: Availability;
-  city: string;
-  interviewStatus: InterviewStatus;
-  interviewTranscript: TranscriptEntry[];
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string;
+  countryOfOrigin: string;
+  address: string;
+  phone: string;
+  legalStatus: string;
+  workingPermit: string;
+  meanOfTransport: string;
+  educationAndTraining: string[];
+  workExperience: string[];
+  skillsAndCompetences: string[];
+  languages: Languages;
+  drivingLicense: string;
+  jobPreferences: JobPreferences;
+  centroPerImpiego: string;
+  interviewLanguage: string;
+  sourceOrganization: string;
   channel: Channel;
+  consent: boolean;
+  cvPdfLink: string;
+  cvDocLink: string;
   createdAt: Date;
   updatedAt: Date;
 }
 
 export interface CandidateFilters {
   search?: string;
-  status?: InterviewStatus[];
   languages?: string[];
-  nationality?: string;
+  countryOfOrigin?: string;
   city?: string;
-  availability?: Availability;
   dateFrom?: Date;
   dateTo?: Date;
 }
 
 export interface SortConfig {
-  field: "name" | "createdAt" | "interviewStatus";
+  field: "firstName" | "lastName" | "createdAt";
   direction: "asc" | "desc";
 }
 

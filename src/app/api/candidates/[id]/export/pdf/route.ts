@@ -52,7 +52,8 @@ export async function GET(
     const buffer = await renderToBuffer(pdfDocument);
 
     const today = new Date().toISOString().slice(0, 10);
-    const safeName = candidate.name
+    const fullName = `${candidate.firstName} ${candidate.lastName}`.trim();
+    const safeName = fullName
       .replace(/[^a-zA-Z0-9\u00C0-\u024F\s-]/g, "")
       .replace(/\s+/g, "-")
       .toLowerCase();
@@ -64,7 +65,7 @@ export async function GET(
       resourceType: "candidates",
       resourceId: id,
       metadata: {
-        candidateName: candidate.name,
+        candidateName: fullName,
       },
     });
 

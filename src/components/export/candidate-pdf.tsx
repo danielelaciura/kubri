@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   label: {
-    width: 120,
+    width: 140,
     fontFamily: "Helvetica-Bold",
     fontSize: 10,
     color: GRAY,
@@ -70,35 +70,6 @@ const styles = StyleSheet.create({
   },
   listItem: {
     marginBottom: 3,
-    paddingLeft: 8,
-  },
-  experienceBlock: {
-    marginBottom: 8,
-    padding: 8,
-    backgroundColor: LIGHT_GRAY,
-    borderRadius: 4,
-  },
-  experienceRole: {
-    fontFamily: "Helvetica-Bold",
-    fontSize: 10,
-    marginBottom: 2,
-  },
-  experienceDesc: {
-    fontSize: 9,
-    color: GRAY,
-  },
-  transcriptEntry: {
-    marginBottom: 8,
-  },
-  question: {
-    fontFamily: "Helvetica-Bold",
-    fontSize: 9,
-    color: BLUE,
-    marginBottom: 2,
-  },
-  answer: {
-    fontSize: 9,
-    color: "#374151",
     paddingLeft: 8,
   },
   noteBlock: {
@@ -126,30 +97,6 @@ const styles = StyleSheet.create({
   },
 });
 
-function availabilityLabel(a: string): string {
-  switch (a) {
-    case "immediate":
-      return "Immediata";
-    case "within_1_month":
-      return "Entro 1 mese";
-    default:
-      return "Altro";
-  }
-}
-
-function statusLabel(s: string): string {
-  switch (s) {
-    case "completed":
-      return "Completata";
-    case "in_progress":
-      return "In corso";
-    case "abandoned":
-      return "Abbandonata";
-    default:
-      return "Incompleta";
-  }
-}
-
 interface NoteData {
   content: string;
   userName: string;
@@ -173,27 +120,45 @@ export function renderCandidatePdf({ candidate, notes }: CandidatePdfProps) {
           <Text style={styles.dateText}>Esportato il {exportDate}</Text>
         </View>
 
-        <Text style={styles.candidateName}>{c.name}</Text>
+        <Text style={styles.candidateName}>
+          {c.firstName} {c.lastName}
+        </Text>
 
         {/* Informazioni personali */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Informazioni personali</Text>
+          {c.dateOfBirth && (
+            <View style={styles.row}>
+              <Text style={styles.label}>Data di nascita</Text>
+              <Text style={styles.value}>{c.dateOfBirth}</Text>
+            </View>
+          )}
           <View style={styles.row}>
-            <Text style={styles.label}>Nazionalità</Text>
-            <Text style={styles.value}>{c.nationality}</Text>
+            <Text style={styles.label}>Paese di origine</Text>
+            <Text style={styles.value}>{c.countryOfOrigin || "—"}</Text>
           </View>
           <View style={styles.row}>
-            <Text style={styles.label}>Città</Text>
-            <Text style={styles.value}>{c.city}</Text>
+            <Text style={styles.label}>Indirizzo</Text>
+            <Text style={styles.value}>{c.address || "—"}</Text>
           </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Disponibilità</Text>
-            <Text style={styles.value}>{availabilityLabel(c.availability)}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Stato intervista</Text>
-            <Text style={styles.value}>{statusLabel(c.interviewStatus)}</Text>
-          </View>
+          {c.phone && (
+            <View style={styles.row}>
+              <Text style={styles.label}>Telefono</Text>
+              <Text style={styles.value}>{c.phone}</Text>
+            </View>
+          )}
+          {c.legalStatus && (
+            <View style={styles.row}>
+              <Text style={styles.label}>Stato legale</Text>
+              <Text style={styles.value}>{c.legalStatus}</Text>
+            </View>
+          )}
+          {c.workingPermit && (
+            <View style={styles.row}>
+              <Text style={styles.label}>Permesso di lavoro</Text>
+              <Text style={styles.value}>{c.workingPermit}</Text>
+            </View>
+          )}
           <View style={styles.row}>
             <Text style={styles.label}>Canale</Text>
             <Text style={styles.value}>{c.channel}</Text>
@@ -209,22 +174,37 @@ export function renderCandidatePdf({ candidate, notes }: CandidatePdfProps) {
         {/* Lingue */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Lingue</Text>
-          {c.languages.length > 0 ? (
-            c.languages.map((lang, i) => (
-              <Text key={i} style={styles.listItem}>
-                {"\u2022"} {lang}
-              </Text>
-            ))
+          {c.languages.language ? (
+            <Text style={styles.listItem}>
+              {"\u2022"} Lingua madre: {c.languages.language}
+            </Text>
           ) : (
             <Text style={styles.listItem}>Nessuna lingua indicata</Text>
           )}
+          {c.languages.additionalLanguages && (
+            <Text style={styles.listItem}>
+              {"\u2022"} Altre: {c.languages.additionalLanguages}
+            </Text>
+          )}
         </View>
+
+        {/* Formazione */}
+        {c.educationAndTraining.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Formazione</Text>
+            {c.educationAndTraining.map((item, i) => (
+              <Text key={i} style={styles.listItem}>
+                {"\u2022"} {item}
+              </Text>
+            ))}
+          </View>
+        )}
 
         {/* Competenze */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Competenze</Text>
-          {c.skills.length > 0 ? (
-            c.skills.map((skill, i) => (
+          {c.skillsAndCompetences.length > 0 ? (
+            c.skillsAndCompetences.map((skill, i) => (
               <Text key={i} style={styles.listItem}>
                 {"\u2022"} {skill}
               </Text>
@@ -237,31 +217,37 @@ export function renderCandidatePdf({ candidate, notes }: CandidatePdfProps) {
         {/* Esperienze lavorative */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Esperienze lavorative</Text>
-          {c.workExperiences.length > 0 ? (
-            c.workExperiences.map((exp, i) => (
-              <View key={i} style={styles.experienceBlock}>
-                <Text style={styles.experienceRole}>
-                  {exp.role}
-                  {exp.duration ? ` (${exp.duration})` : ""}
-                </Text>
-                <Text style={styles.experienceDesc}>{exp.description}</Text>
-              </View>
+          {c.workExperience.length > 0 ? (
+            c.workExperience.map((exp, i) => (
+              <Text key={i} style={styles.listItem}>
+                {"\u2022"} {exp}
+              </Text>
             ))
           ) : (
             <Text style={styles.listItem}>Nessuna esperienza indicata</Text>
           )}
         </View>
 
-        {/* Trascrizione intervista */}
-        {c.interviewTranscript.length > 0 && (
-          <View style={styles.section} break>
-            <Text style={styles.sectionTitle}>Trascrizione intervista</Text>
-            {c.interviewTranscript.map((entry, i) => (
-              <View key={i} style={styles.transcriptEntry}>
-                <Text style={styles.question}>D: {entry.question}</Text>
-                <Text style={styles.answer}>R: {entry.answer}</Text>
+        {/* Preferenze lavorative */}
+        {c.jobPreferences.desiredJob && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Preferenze lavorative</Text>
+            <View style={styles.row}>
+              <Text style={styles.label}>Lavoro desiderato</Text>
+              <Text style={styles.value}>{c.jobPreferences.desiredJob}</Text>
+            </View>
+            {c.jobPreferences.preferredLocation && (
+              <View style={styles.row}>
+                <Text style={styles.label}>Zona preferita</Text>
+                <Text style={styles.value}>{c.jobPreferences.preferredLocation}</Text>
               </View>
-            ))}
+            )}
+            <View style={styles.row}>
+              <Text style={styles.label}>Orario</Text>
+              <Text style={styles.value}>
+                {c.jobPreferences.partTimePreference ? "Part-time" : "Full-time"}
+              </Text>
+            </View>
           </View>
         )}
 

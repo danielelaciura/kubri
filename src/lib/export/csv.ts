@@ -1,15 +1,21 @@
-import type { Candidate, Availability, InterviewStatus } from "@/types";
+import type { Candidate } from "@/types";
 
 const BOM = "\uFEFF";
 
 const HEADERS = [
   "Nome",
-  "Nazionalità",
-  "Lingue",
+  "Cognome",
+  "Data di nascita",
+  "Paese di origine",
+  "Indirizzo",
+  "Telefono",
+  "Stato legale",
+  "Permesso di lavoro",
+  "Lingua madre",
+  "Altre lingue",
   "Competenze",
-  "Disponibilità",
-  "Città",
-  "Stato intervista",
+  "Esperienze lavorative",
+  "Lavoro desiderato",
   "Data",
   "Canale",
 ];
@@ -21,40 +27,22 @@ function escapeCell(value: string): string {
   return value;
 }
 
-function availabilityLabel(a: Availability): string {
-  switch (a) {
-    case "immediate":
-      return "Immediata";
-    case "within_1_month":
-      return "Entro 1 mese";
-    default:
-      return "Altro";
-  }
-}
-
-function statusLabel(s: InterviewStatus): string {
-  switch (s) {
-    case "completed":
-      return "Completata";
-    case "in_progress":
-      return "In corso";
-    case "abandoned":
-      return "Abbandonata";
-    default:
-      return "Incompleta";
-  }
-}
-
 export function candidatesToCsv(candidates: Candidate[]): string {
   const rows = candidates.map((c) =>
     [
-      c.name,
-      c.nationality,
-      c.languages.join(", "),
-      c.skills.join(", "),
-      availabilityLabel(c.availability),
-      c.city,
-      statusLabel(c.interviewStatus),
+      c.firstName,
+      c.lastName,
+      c.dateOfBirth,
+      c.countryOfOrigin,
+      c.address,
+      c.phone,
+      c.legalStatus,
+      c.workingPermit,
+      c.languages.language,
+      c.languages.additionalLanguages,
+      c.skillsAndCompetences.join("; "),
+      c.workExperience.join("; "),
+      c.jobPreferences.desiredJob,
       c.createdAt.toLocaleDateString("it-IT"),
       c.channel,
     ]

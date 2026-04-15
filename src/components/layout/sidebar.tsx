@@ -1,12 +1,12 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Users, Settings, BarChart3, Shield, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { strings } from "@/lib/i18n/strings";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 
 interface SidebarProps {
   organizationName: string;
@@ -60,20 +60,29 @@ export function Sidebar({
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-border bg-card transition-transform duration-200 lg:translate-x-0 lg:static lg:z-auto",
+          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-border bg-sidebar transition-transform duration-200 lg:translate-x-0 lg:static lg:z-auto",
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         {/* Header */}
-        <div className="flex h-16 items-center justify-between px-4">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-lg font-bold text-kubri-600 shrink-0">
-              Kubri
-            </span>
-            <Separator orientation="vertical" className="h-5" />
-            <span className="text-sm text-muted-foreground truncate">
-              {organizationName}
-            </span>
+        <div className="flex h-16 items-center justify-between px-5">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Image
+              src="/kubri-logo.png"
+              alt="Kubri"
+              width={32}
+              height={32}
+              className="h-8 w-8 shrink-0 object-contain"
+              priority
+            />
+            <div className="min-w-0">
+              <span className="block text-sm font-semibold text-foreground">
+                Kubri
+              </span>
+              <span className="block text-xs text-muted-foreground truncate">
+                {organizationName}
+              </span>
+            </div>
           </div>
           <Button
             variant="ghost"
@@ -86,7 +95,7 @@ export function Sidebar({
           </Button>
         </div>
 
-        <Separator />
+        <div className="mx-4 border-t border-border" />
 
         {/* Navigation */}
         <nav className="flex-1 space-y-1 p-3">
@@ -99,16 +108,16 @@ export function Sidebar({
                 href={item.href}
                 onClick={onClose}
                 className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                   isActive
-                    ? "bg-kubri-50 text-kubri-700"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    ? "bg-kubri-50 text-kubri-800"
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
                 )}
               >
                 <item.icon
                   className={cn(
                     "h-4 w-4 shrink-0",
-                    isActive ? "text-kubri-600" : ""
+                    isActive ? "text-kubri-800" : ""
                   )}
                 />
                 {item.label}
@@ -118,7 +127,7 @@ export function Sidebar({
 
           {isAdmin && (
             <>
-              <Separator className="my-3" />
+              <div className="mx-1 my-3 border-t border-border" />
               {(() => {
                 const isActive =
                   pathname === adminItem.href ||
@@ -128,10 +137,10 @@ export function Sidebar({
                     href={adminItem.href}
                     onClick={onClose}
                     className={cn(
-                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                       isActive
-                        ? "bg-kubri-50 text-kubri-700"
-                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                        ? "bg-kubri-100 text-kubri-800"
+                        : "text-muted-foreground hover:bg-accent hover:text-foreground"
                     )}
                   >
                     <adminItem.icon

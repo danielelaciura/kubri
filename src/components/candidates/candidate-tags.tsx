@@ -114,7 +114,7 @@ export function CandidateTags({ tags, makeRecordId }: CandidateTagsProps) {
   const existingTagNames = tags.map((t) => t.tag.toLowerCase());
 
   return (
-    <Card>
+    <Card className="shadow-sm border-border/60">
       <CardHeader>
         <CardTitle>Tag</CardTitle>
       </CardHeader>

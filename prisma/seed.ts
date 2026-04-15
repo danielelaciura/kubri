@@ -16,7 +16,9 @@ async function main() {
   // Create demo organization
   const org = await prisma.organization.upsert({
     where: { slug: "kubri-demo" },
-    update: {},
+    update: {
+      makeApiToken: encrypt("fake-make-api-token-for-demo"),
+    },
     create: {
       name: "Kubri Demo",
       slug: "kubri-demo",

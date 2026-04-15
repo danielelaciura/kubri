@@ -18,7 +18,6 @@ function makeCandidate(overrides: Partial<Candidate> = {}): Candidate {
     ],
     availability: "immediate",
     city: "Milano",
-    interviewStatus: "completed",
     interviewTranscript: [],
     channel: "telegram",
     createdAt: new Date("2025-01-15"),
@@ -39,7 +38,6 @@ const candidates: Candidate[] = [
     ],
     availability: "immediate",
     city: "Milano",
-    interviewStatus: "completed",
     createdAt: new Date("2025-01-15"),
   }),
   makeCandidate({
@@ -53,7 +51,6 @@ const candidates: Candidate[] = [
     ],
     availability: "within_1_month",
     city: "Roma",
-    interviewStatus: "in_progress",
     createdAt: new Date("2025-02-10"),
   }),
   makeCandidate({
@@ -67,7 +64,6 @@ const candidates: Candidate[] = [
     ],
     availability: "immediate",
     city: "Torino",
-    interviewStatus: "completed",
     createdAt: new Date("2025-03-01"),
   }),
   makeCandidate({
@@ -81,7 +77,6 @@ const candidates: Candidate[] = [
     ],
     availability: "other",
     city: "milano",
-    interviewStatus: "abandoned",
     createdAt: new Date("2025-01-20"),
   }),
   makeCandidate({
@@ -95,7 +90,6 @@ const candidates: Candidate[] = [
     ],
     availability: "immediate",
     city: "Firenze",
-    interviewStatus: "incomplete",
     createdAt: new Date("2025-02-25"),
   }),
 ];
@@ -104,20 +98,6 @@ describe("filterCandidates", () => {
   it("returns all candidates when filters are empty", () => {
     const result = filterCandidates(candidates, {});
     expect(result).toHaveLength(5);
-  });
-
-  it("filters by single status", () => {
-    const result = filterCandidates(candidates, { status: ["completed"] });
-    expect(result).toHaveLength(2);
-    expect(result.map((c) => c.id)).toEqual(["1", "3"]);
-  });
-
-  it("filters by multiple statuses", () => {
-    const result = filterCandidates(candidates, {
-      status: ["completed", "in_progress"],
-    });
-    expect(result).toHaveLength(3);
-    expect(result.map((c) => c.id)).toEqual(["1", "2", "3"]);
   });
 
   it("filters by language", () => {
@@ -201,20 +181,11 @@ describe("filterCandidates", () => {
 
   it("combines multiple filters (AND logic)", () => {
     const result = filterCandidates(candidates, {
-      status: ["completed"],
       availability: "immediate",
       languages: ["Italiano"],
     });
     expect(result).toHaveLength(2);
     expect(result.map((c) => c.id)).toEqual(["1", "3"]);
-  });
-
-  it("returns empty when no candidates match combined filters", () => {
-    const result = filterCandidates(candidates, {
-      status: ["abandoned"],
-      availability: "immediate",
-    });
-    expect(result).toHaveLength(0);
   });
 });
 
@@ -263,34 +234,6 @@ describe("sortCandidates", () => {
     expect(result.map((c) => c.id)).toEqual(["3", "5", "2", "4", "1"]);
   });
 
-  it("sorts by interviewStatus (completed > in_progress > abandoned > incomplete)", () => {
-    const result = sortCandidates([...candidates], {
-      field: "interviewStatus",
-      direction: "asc",
-    });
-    // asc: completed first, then in_progress, abandoned, incomplete
-    expect(result.map((c) => c.interviewStatus)).toEqual([
-      "completed",
-      "completed",
-      "in_progress",
-      "abandoned",
-      "incomplete",
-    ]);
-  });
-
-  it("sorts by interviewStatus descending (incomplete first)", () => {
-    const result = sortCandidates([...candidates], {
-      field: "interviewStatus",
-      direction: "desc",
-    });
-    expect(result.map((c) => c.interviewStatus)).toEqual([
-      "incomplete",
-      "abandoned",
-      "in_progress",
-      "completed",
-      "completed",
-    ]);
-  });
 });
 
 describe("paginateCandidates", () => {

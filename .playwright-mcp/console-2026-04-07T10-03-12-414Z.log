@@ -1,0 +1,21 @@
+[     986ms] [LOG] JQMIGRATE: Migrate is installed, version 3.4.1 @ https://dashboardpack.com/wp-includes/js/jquery/jquery-migrate.min.js:1
+[    1961ms] [WARNING] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. @ https://apex-dashboard.pages.dev/_next/static/chunks/6702-26dfef1ef61cdd0b.js:0
+[    1961ms] [WARNING] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. @ https://apex-dashboard.pages.dev/_next/static/chunks/6702-26dfef1ef61cdd0b.js:0
+[    1962ms] [WARNING] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. @ https://apex-dashboard.pages.dev/_next/static/chunks/6702-26dfef1ef61cdd0b.js:0
+[    1962ms] [WARNING] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. @ https://apex-dashboard.pages.dev/_next/static/chunks/6702-26dfef1ef61cdd0b.js:0
+[    2033ms] [WARNING] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. @ https://apex-dashboard.pages.dev/_next/static/chunks/6702-26dfef1ef61cdd0b.js:0

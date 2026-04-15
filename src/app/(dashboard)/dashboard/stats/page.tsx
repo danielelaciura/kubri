@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { Users, CheckCircle, Clock, XCircle } from "lucide-react";
+import { Users } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { strings } from "@/lib/i18n/strings";
 import { getCandidatesForOrg } from "@/lib/make/service";
@@ -50,21 +50,7 @@ export default async function StatsPage() {
           title="Totale candidati"
           value={stats.total}
           icon={Users}
-        />
-        <StatCard
-          title="Completate"
-          value={stats.byStatus.completed}
-          icon={CheckCircle}
-        />
-        <StatCard
-          title="In corso"
-          value={stats.byStatus.in_progress}
-          icon={Clock}
-        />
-        <StatCard
-          title="Abbandonate"
-          value={stats.byStatus.abandoned}
-          icon={XCircle}
+          iconClassName="bg-kubri-100 text-kubri-800"
         />
       </div>
 

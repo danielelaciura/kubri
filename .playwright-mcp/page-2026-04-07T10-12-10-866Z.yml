@@ -1,0 +1,116 @@
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e19] [cursor=pointer]:
+    - img [ref=e20]
+  - alert [ref=e23]
+  - generic [ref=e24]:
+    - complementary [ref=e25]:
+      - generic [ref=e27]:
+        - generic [ref=e29]: K
+        - generic [ref=e30]:
+          - generic [ref=e31]: Kubri
+          - generic [ref=e32]: Kubri Demo
+      - navigation [ref=e34]:
+        - link "Candidati" [ref=e35] [cursor=pointer]:
+          - /url: /dashboard/candidates
+          - img [ref=e36]
+          - text: Candidati
+        - link "Impostazioni" [ref=e41] [cursor=pointer]:
+          - /url: /dashboard/settings
+          - img [ref=e42]
+          - text: Impostazioni
+        - link "Statistiche" [ref=e45] [cursor=pointer]:
+          - /url: /dashboard/stats
+          - img [ref=e46]
+          - text: Statistiche
+        - link "Amministrazione" [ref=e49] [cursor=pointer]:
+          - /url: /admin
+          - img [ref=e50]
+          - text: Amministrazione
+    - generic [ref=e52]:
+      - banner [ref=e53]:
+        - generic [ref=e54]:
+          - generic [ref=e56]: AK
+          - generic [ref=e57]: Admin Kubri
+          - button "Esci" [ref=e58]:
+            - img
+            - text: Esci
+      - main [ref=e59]:
+        - generic [ref=e60]:
+          - generic [ref=e61]:
+            - heading "Candidati" [level=1] [ref=e62]
+            - generic [ref=e63]:
+              - link "Esporta CSV" [ref=e64] [cursor=pointer]:
+                - /url: /api/candidates/export/csv?
+                - button "Esporta CSV" [ref=e65]:
+                  - img
+                  - text: Esporta CSV
+              - button "Aggiorna" [ref=e67]:
+                - img
+                - text: Aggiorna
+          - generic [ref=e69]:
+            - generic [ref=e70]:
+              - img [ref=e71]
+              - textbox "Cerca per nome, competenze, esperienze..." [ref=e74]
+            - button "Filtra" [ref=e75]:
+              - img
+              - text: Filtra
+            - button "Cerca" [ref=e76]
+          - generic [ref=e77]:
+            - table [ref=e80]:
+              - rowgroup [ref=e81]:
+                - row "Nome Paese di origine Lingue Competenze Indirizzo Stato Data Canale" [ref=e82]:
+                  - columnheader "Nome" [ref=e83]:
+                    - button "Nome" [ref=e84]:
+                      - text: Nome
+                      - img [ref=e85]
+                  - columnheader "Paese di origine" [ref=e88]
+                  - columnheader "Lingue" [ref=e89]
+                  - columnheader "Competenze" [ref=e90]
+                  - columnheader "Indirizzo" [ref=e91]
+                  - columnheader "Stato" [ref=e92]:
+                    - button "Stato" [ref=e93]:
+                      - text: Stato
+                      - img [ref=e94]
+                  - columnheader "Data" [ref=e97]:
+                    - button "Data" [ref=e98]:
+                      - text: Data
+                      - img [ref=e99]
+                  - columnheader "Canale" [ref=e102]
+              - rowgroup [ref=e103]:
+                - row "Pippo Incompleta 07/04/2026 telegram" [ref=e104] [cursor=pointer]:
+                  - cell "Pippo" [ref=e105]
+                  - cell [ref=e106]
+                  - cell [ref=e107]
+                  - cell [ref=e108]
+                  - cell [ref=e109]
+                  - cell "Incompleta" [ref=e110]:
+                    - generic [ref=e111]: Incompleta
+                  - cell "07/04/2026" [ref=e112]
+                  - cell "telegram" [ref=e113]:
+                    - generic [ref=e114]: telegram
+                - row "Minnie Incompleta 07/04/2026 telegram" [ref=e115] [cursor=pointer]:
+                  - cell "Minnie" [ref=e116]
+                  - cell [ref=e117]
+                  - cell [ref=e118]
+                  - cell [ref=e119]
+                  - cell [ref=e120]
+                  - cell "Incompleta" [ref=e121]:
+                    - generic [ref=e122]: Incompleta
+                  - cell "07/04/2026" [ref=e123]
+                  - cell "telegram" [ref=e124]:
+                    - generic [ref=e125]: telegram
+            - generic [ref=e126]:
+              - generic [ref=e127]: 2 candidati totali
+              - generic [ref=e128]:
+                - generic [ref=e129]:
+                  - generic [ref=e130]: "Righe per pagina:"
+                  - combobox [ref=e131]:
+                    - option "10"
+                    - option "25" [selected]
+                    - option "50"
+                - generic [ref=e132]:
+                  - button [disabled]:
+                    - img
+                  - generic [ref=e133]: Pagina 1 di 1
+                  - button [disabled]:
+                    - img

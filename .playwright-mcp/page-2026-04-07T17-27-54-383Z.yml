@@ -1,0 +1,112 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - generic [ref=e5]:
+        - generic [ref=e7]: K
+        - generic [ref=e8]:
+          - generic [ref=e9]: Kubri
+          - generic [ref=e10]: Kubri Demo
+      - navigation [ref=e12]:
+        - link "Candidati" [ref=e13] [cursor=pointer]:
+          - /url: /dashboard/candidates
+          - img [ref=e14]
+          - text: Candidati
+        - link "Impostazioni" [ref=e19] [cursor=pointer]:
+          - /url: /dashboard/settings
+          - img [ref=e20]
+          - text: Impostazioni
+        - link "Statistiche" [ref=e23] [cursor=pointer]:
+          - /url: /dashboard/stats
+          - img [ref=e24]
+          - text: Statistiche
+        - link "Amministrazione" [ref=e27] [cursor=pointer]:
+          - /url: /admin
+          - img [ref=e28]
+          - text: Amministrazione
+    - generic [ref=e30]:
+      - banner [ref=e31]:
+        - generic [ref=e32]:
+          - generic [ref=e34]: AK
+          - generic [ref=e35]: Admin Kubri
+          - button "Esci" [ref=e36]:
+            - img
+            - text: Esci
+      - main [ref=e37]:
+        - generic [ref=e166]:
+          - generic [ref=e167]:
+            - link "Torna alla lista" [ref=e168] [cursor=pointer]:
+              - /url: /dashboard/candidates
+              - button "Torna alla lista" [ref=e169]:
+                - img
+                - text: Torna alla lista
+            - link "Esporta PDF" [ref=e170] [cursor=pointer]:
+              - /url: /api/candidates/90b295878ea6/export/pdf
+              - button "Esporta PDF" [ref=e171]:
+                - img
+                - text: Esporta PDF
+          - generic [ref=e172]:
+            - generic [ref=e174]:
+              - generic [ref=e175]:
+                - generic [ref=e176]:
+                  - heading "Pippo Pippo" [level=1] [ref=e177]
+                  - paragraph [ref=e178]: Registrato il 07/04/2026
+                - generic [ref=e179]: Incompleta
+              - generic [ref=e180]:
+                - generic [ref=e182]: Informazioni personali
+                - generic [ref=e184]:
+                  - generic [ref=e185]:
+                    - img [ref=e186]
+                    - generic [ref=e188]: "Data di nascita:"
+                    - generic [ref=e189]: 05/04/1985
+                  - generic [ref=e190]:
+                    - img [ref=e191]
+                    - generic [ref=e194]: "Paese di origine:"
+                    - generic [ref=e195]: Spagna
+                  - generic [ref=e196]:
+                    - img [ref=e197]
+                    - generic [ref=e200]: "Indirizzo:"
+                    - generic [ref=e201]: Via Fabriano Milano
+                  - generic [ref=e202]:
+                    - img [ref=e203]
+                    - generic [ref=e205]: "Telefono:"
+                    - generic [ref=e206]: "4322343243"
+                  - generic [ref=e207]:
+                    - img [ref=e208]
+                    - generic [ref=e210]: "Canale:"
+                    - generic [ref=e211]: telegram
+              - generic [ref=e212]:
+                - generic [ref=e214]: Formazione
+                - list [ref=e216]:
+                  - listitem [ref=e217]:
+                    - img [ref=e218]
+                    - generic [ref=e221]: Laurea in Storia, Madrid 2023
+                  - listitem [ref=e222]:
+                    - img [ref=e223]
+                    - generic [ref=e226]: laurea in scienze, Barcellona 2024
+              - generic [ref=e227]:
+                - generic [ref=e229]: Competenze
+                - generic [ref=e232]: So servire ai tavoli e preparare piatti semplici
+              - generic [ref=e233]:
+                - generic [ref=e235]: Esperienze lavorative
+                - list [ref=e237]:
+                  - listitem [ref=e238]:
+                    - paragraph [ref=e239]: Cameriere Ristorante Mimmo 2024
+            - generic [ref=e240]:
+              - generic [ref=e241]:
+                - generic [ref=e243]: Tag
+                - generic [ref=e244]:
+                  - generic [ref=e245]:
+                    - textbox "Nuovo tag..." [ref=e246]
+                    - button [disabled]:
+                      - img
+                  - paragraph [ref=e247]: Nessun tag aggiunto
+              - generic [ref=e248]:
+                - generic [ref=e250]: Note
+                - generic [ref=e251]:
+                  - generic [ref=e252]:
+                    - textbox "Scrivi una nota..." [ref=e253]
+                    - button "Aggiungi nota" [ref=e254]
+                  - paragraph [ref=e255]: Nessuna nota aggiunta
+  - button "Open Next.js Dev Tools" [ref=e161] [cursor=pointer]:
+    - img [ref=e162]
+  - alert [ref=e165]

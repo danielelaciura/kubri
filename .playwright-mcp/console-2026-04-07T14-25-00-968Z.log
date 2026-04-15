@@ -1,0 +1,186 @@
+[     546ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3000/_next/static/chunks/0r_m_next_dist_13~aa_a._.js:2431
+[     558ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/0r_m_next_dist_13~aa_a._.js:2431
+[     602ms] [WARNING] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. @ http://localhost:3000/_next/static/chunks/0r_m_next_dist_13~aa_a._.js:2431
+[     602ms] [WARNING] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. @ http://localhost:3000/_next/static/chunks/0r_m_next_dist_13~aa_a._.js:2431
+[     604ms] [ERROR] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+%s%s https://react.dev/link/hydration-mismatch 
+
+  ...
+    <InnerScrollAndFocusHandlerOld focusAndScrollRef={{scrollRef:null, ...}} cacheNode={{rsc:{...}, ...}}>
+      <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+        <LoadingBoundary name="(dashboard)/" loading={null}>
+          <HTTPAccessFallbackBoundary notFound={{...}} forbidden={undefined} unauthorized={undefined}>
+            <HTTPAccessFallbackErrorBoundary pathname="/dashboard..." notFound={{...}} forbidden={undefined} ...>
+              <RedirectBoundary>
+                <RedirectErrorBoundary router={{...}}>
+                  <InnerLayoutRouter url="/dashboard..." tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+                    <SegmentViewNode type="layout" pagePath="(dashboard...">
+                      <SegmentTrieNode>
+                      <script>
+                      <script>
+                      <script>
+                      <DashboardLayout>
+                        <DashboardShell userName="Admin Kubri" organizationName="Kubri Demo" isAdmin={true}>
+                          <div className="flex h-scr...">
+                            <Sidebar organizationName="Kubri Demo" isAdmin={true} isOpen={false} ...>
+                              <aside
++                               className="fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-border bg-si..."
+-                               className="fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-sidebar transition-transf..."
+                              >
+                                <div className="flex h-16 ...">
+                                  <div className="flex items...">
+                                    <div>
+                                    <div className="min-w-0">
+                                      <span
++                                       className="block text-sm font-semibold text-foreground"
+-                                       className="block text-sm font-semibold text-sidebar-accent-foreground"
+                                      >
++                                       Kubri
+                                      <span
++                                       className="block text-xs text-muted-foreground truncate"
+-                                       className="block text-xs text-sidebar-foreground truncate"
+                                      >
++                                       Kubri Demo
+                                  <Button variant="ghost" size="icon" className="lg:hidden ..." ...>
+                                    <Button data-slot="button" className={"group/bu..."} onClick={function onClose}>
+                                      <button
+                                        type="button"
+                                        onClick={function onClick}
+                                        onMouseDown={function onMouseDown}
+                                        onKeyDown={function}
+                                        onKeyUp={function onKeyUp}
+                                        onPointerDown={function onPointerDown}
+                                        tabIndex={0}
+                                        disabled={false}
+                                        data-slot="button"
+                                        ref={function}
++                                       className={"group/button inline-flex items-center justify-center rounded-lg b..."}
+-                                       className={"group/button inline-flex items-center justify-center rounded-lg b..."}
+                                      >
+                                <div
++                                 className="mx-4 border-t border-border"
+-                                 className="mx-4 border-t border-sidebar-border"
+                                >
+                                <nav className="flex-1 spa...">
+                                  <LinkComponent href="/dashboard..." onClick={function onClose} ...>
+                                    <a
++                                     className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium tr..."
+-                                     className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium tr..."
+                                      ref={function}
+                                      onClick={function onClick}
+                                      onMouseEnter={function onMouseEnter}
+                                      onTouchStart={function onTouchStart}
+                                      href="/dashboard/candidates"
+                                    >
+                                  <LinkComponent href="/dashboard..." onClick={function onClose} ...>
+                                    <a
++                                     className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium tr..."
+-                                     className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium tr..."
+                                      ref={function}
+                                      onClick={function onClick}
+                                      onMouseEnter={function onMouseEnter}
+                                      onTouchStart={function onTouchStart}
+                                      href="/dashboard/settings"
+                                    >
+                                  <LinkComponent href="/dashboard..." onClick={function onClose} ...>
+                                    <a
++                                     className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium tr..."
+-                                     className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium tr..."
+                                      ref={function}
+                                      onClick={function onClick}
+                                      onMouseEnter={function onMouseEnter}
+                                      onTouchStart={function onTouchStart}
+                                      href="/dashboard/stats"
+                                    >
+                                      <ChartColumn className="h-4 w-4 sh...">
+                                        <svg
+                                          ref={null}
+                                          xmlns="http://www.w3.org/2000/svg"
+                                          width={24}
+                                          height={24}
+                                          viewBox="0 0 24 24"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          strokeWidth={2}
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
++                                         className="lucide lucide-chart-column h-4 w-4 shrink-0 text-kubri-600"
+-                                         className="lucide lucide-chart-column h-4 w-4 shrink-0"
+                                          aria-hidden="true"
+                                        >
+                                      ...
+                                  <div
++                                   className="mx-1 my-3 border-t border-border"
+-                                   className="mx-1 my-3 border-t border-sidebar-border"
+                                  >
+                                  <LinkComponent href="/admin" onClick={function onClose} className="flex items...">
+                                    <a
++                                     className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium tr..."
+-                                     className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium tr..."
+                                      ref={function}
+                                      onClick={function onClick}
+                                      onMouseEnter={function onMouseEnter}
+                                      onTouchStart={function onTouchStart}
+                                      href="/admin"
+                                    >
+                            <div className="flex flex-...">
+                              <Header userName="Admin Kubri" onMenuToggle={function onMenuToggle}>
+                                <header className="flex h-16 ...">
+                                  <Button>
+                                  <div>
+                                  <div>
+                                  <div className="flex items...">
+                                    <div
++                                     className="flex h-8 w-8 items-center justify-center rounded-full bg-kubri-100 te..."
+-                                     className="flex h-8 w-8 items-center justify-center rounded-full bg-kubri-100 te..."
+                                    >
+                                    ...
+                              ...
+                  ...
+      ...
+ @ http://localhost:3000/_next/static/chunks/0r_m_next_dist_13~aa_a._.js:3272
+[  383191ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/0r_m_next_dist_13~aa_a._.js:2431
+[  384485ms] [LOG] [Fast Refresh] done in 1395ms @ http://localhost:3000/_next/static/chunks/0r_m_next_dist_13~aa_a._.js:2431
+[  384741ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/0r_m_next_dist_13~aa_a._.js:2431
+[  384774ms] [LOG] [Fast Refresh] done in 135ms @ http://localhost:3000/_next/static/chunks/0r_m_next_dist_13~aa_a._.js:2431
+[  385017ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/dashboard/stats:0
+[  385106ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3000/_next/static/chunks/0r_m_next_dist_13~aa_a._.js:2431
+[  385114ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/0r_m_next_dist_13~aa_a._.js:2431
+[  385176ms] ReferenceError: geistSans is not defined
+    at RootLayout (about://React/Server/file:///Users/daniele/Projects/kubri/.next/dev/server/chunks/ssr/%5Broot-of-the-server%5D__0a5zj64._.js?0:81:23)
+    at resolveErrorDev (http://localhost:3000/_next/static/chunks/0r_m_next_dist_compiled_react-server-dom-turbopack_090yu7s._.js:1919:105)
+    at processFullStringRow (http://localhost:3000/_next/static/chunks/0r_m_next_dist_compiled_react-server-dom-turbopack_090yu7s._.js:2434:29)
+    at processFullBinaryRow (http://localhost:3000/_next/static/chunks/0r_m_next_dist_compiled_react-server-dom-turbopack_090yu7s._.js:2393:9)
+    at processBinaryChunk (http://localhost:3000/_next/static/chunks/0r_m_next_dist_compiled_react-server-dom-turbopack_090yu7s._.js:2502:221)
+    at progress (http://localhost:3000/_next/static/chunks/0r_m_next_dist_compiled_react-server-dom-turbopack_090yu7s._.js:2689:13)
+[  388411ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/0r_m_next_dist_13~aa_a._.js:2431
+[  388481ms] [LOG] [Fast Refresh] done in 32ms @ http://localhost:3000/_next/static/chunks/0r_m_next_dist_13~aa_a._.js:2431
+[  388750ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3000/_next/static/chunks/0r_m_next_dist_13~aa_a._.js:2431
+[  388760ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/0r_m_next_dist_13~aa_a._.js:2431
+[  388831ms] [WARNING] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. @ http://localhost:3000/_next/static/chunks/0r_m_next_dist_13~aa_a._.js:2431
+[  388832ms] [WARNING] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. @ http://localhost:3000/_next/static/chunks/0r_m_next_dist_13~aa_a._.js:2431
+[  398818ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/0r_m_next_dist_13~aa_a._.js:2431
+[  398852ms] [LOG] [Fast Refresh] done in 81ms @ http://localhost:3000/_next/static/chunks/0r_m_next_dist_13~aa_a._.js:2431
+[  413682ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/0r_m_next_dist_13~aa_a._.js:2431
+[  413715ms] [LOG] [Fast Refresh] done in 78ms @ http://localhost:3000/_next/static/chunks/0r_m_next_dist_13~aa_a._.js:2431

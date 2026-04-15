@@ -1,0 +1,148 @@
+[    1566ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3000/_next/static/chunks/0r_m_next_dist_13~aa_a._.js:2431
+[    1581ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/0r_m_next_dist_13~aa_a._.js:2431
+[    1605ms] [ERROR] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+%s%s https://react.dev/link/hydration-mismatch 
+
+  ...
+    <InnerScrollAndFocusHandlerOld focusAndScrollRef={{scrollRef:null, ...}} cacheNode={{rsc:{...}, ...}}>
+      <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+        <LoadingBoundary name="(dashboard)/" loading={null}>
+          <HTTPAccessFallbackBoundary notFound={{...}} forbidden={undefined} unauthorized={undefined}>
+            <HTTPAccessFallbackErrorBoundary pathname="/dashboard..." notFound={{...}} forbidden={undefined} ...>
+              <RedirectBoundary>
+                <RedirectErrorBoundary router={{...}}>
+                  <InnerLayoutRouter url="/dashboard..." tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+                    <SegmentViewNode type="layout" pagePath="(dashboard...">
+                      <SegmentTrieNode>
+                      <script>
+                      <script>
+                      <script>
+                      <DashboardLayout>
+                        <DashboardShell userName="Admin Kubri" organizationName="Kubri Demo" isAdmin={true}>
+                          <div className="flex h-scr...">
+                            <Sidebar organizationName="Kubri Demo" isAdmin={true} isOpen={false} ...>
+                              <aside
++                               className="fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-border bg-si..."
+-                               className="fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-sidebar transition-transf..."
+                              >
+                                <div className="flex h-16 ...">
+                                  <div className="flex items...">
+                                    <div>
+                                    <div className="min-w-0">
+                                      <span
++                                       className="block text-sm font-semibold text-foreground"
+-                                       className="block text-sm font-semibold text-sidebar-accent-foreground"
+                                      >
++                                       Kubri
+                                      <span
++                                       className="block text-xs text-muted-foreground truncate"
+-                                       className="block text-xs text-sidebar-foreground truncate"
+                                      >
++                                       Kubri Demo
+                                  <Button variant="ghost" size="icon" className="lg:hidden ..." ...>
+                                    <Button data-slot="button" className={"group/bu..."} onClick={function onClose}>
+                                      <button
+                                        type="button"
+                                        onClick={function onClick}
+                                        onMouseDown={function onMouseDown}
+                                        onKeyDown={function}
+                                        onKeyUp={function onKeyUp}
+                                        onPointerDown={function onPointerDown}
+                                        tabIndex={0}
+                                        disabled={false}
+                                        data-slot="button"
+                                        ref={function}
++                                       className={"group/button inline-flex items-center justify-center rounded-lg b..."}
+-                                       className={"group/button inline-flex items-center justify-center rounded-lg b..."}
+                                      >
+                                <div
++                                 className="mx-4 border-t border-border"
+-                                 className="mx-4 border-t border-sidebar-border"
+                                >
+                                <nav className="flex-1 spa...">
+                                  <LinkComponent href="/dashboard..." onClick={function onClose} ...>
+                                    <a
++                                     className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium tr..."
+-                                     className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium tr..."
+                                      ref={function}
+                                      onClick={function onClick}
+                                      onMouseEnter={function onMouseEnter}
+                                      onTouchStart={function onTouchStart}
+                                      href="/dashboard/candidates"
+                                    >
+                                      <Users className="h-4 w-4 sh...">
+                                        <svg
+                                          ref={null}
+                                          xmlns="http://www.w3.org/2000/svg"
+                                          width={24}
+                                          height={24}
+                                          viewBox="0 0 24 24"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          strokeWidth={2}
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
++                                         className="lucide lucide-users h-4 w-4 shrink-0 text-kubri-600"
+-                                         className="lucide lucide-users h-4 w-4 shrink-0"
+                                          aria-hidden="true"
+                                        >
+                                      ...
+                                  <LinkComponent href="/dashboard..." onClick={function onClose} ...>
+                                    <a
++                                     className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium tr..."
+-                                     className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium tr..."
+                                      ref={function}
+                                      onClick={function onClick}
+                                      onMouseEnter={function onMouseEnter}
+                                      onTouchStart={function onTouchStart}
+                                      href="/dashboard/settings"
+                                    >
+                                  <LinkComponent href="/dashboard..." onClick={function onClose} ...>
+                                    <a
++                                     className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium tr..."
+-                                     className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium tr..."
+                                      ref={function}
+                                      onClick={function onClick}
+                                      onMouseEnter={function onMouseEnter}
+                                      onTouchStart={function onTouchStart}
+                                      href="/dashboard/stats"
+                                    >
+                                  <div
++                                   className="mx-1 my-3 border-t border-border"
+-                                   className="mx-1 my-3 border-t border-sidebar-border"
+                                  >
+                                  <LinkComponent href="/admin" onClick={function onClose} className="flex items...">
+                                    <a
++                                     className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium tr..."
+-                                     className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium tr..."
+                                      ref={function}
+                                      onClick={function onClick}
+                                      onMouseEnter={function onMouseEnter}
+                                      onTouchStart={function onTouchStart}
+                                      href="/admin"
+                                    >
+                            <div className="flex flex-...">
+                              <Header userName="Admin Kubri" onMenuToggle={function onMenuToggle}>
+                                <header className="flex h-16 ...">
+                                  <Button>
+                                  <div>
+                                  <div>
+                                  <div className="flex items...">
+                                    <div
++                                     className="flex h-8 w-8 items-center justify-center rounded-full bg-kubri-100 te..."
+-                                     className="flex h-8 w-8 items-center justify-center rounded-full bg-kubri-100 te..."
+                                    >
+                                    ...
+                              ...
+                  ...
+      ...
+ @ http://localhost:3000/_next/static/chunks/0r_m_next_dist_13~aa_a._.js:3272

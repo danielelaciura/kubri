@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/db";
 import { decrypt } from "@/lib/encryption";
-import { MakeApiClient, MakeNotFoundError } from "./client";
-import { cachedFetch, invalidateCache, LIST_TTL_MS, RECORD_TTL_MS } from "./cache";
-import { normalizeCandidate, normalizeCandidates } from "./normalize";
+import { MakeApiClient } from "./client";
+import { cachedFetch, invalidateCache, LIST_TTL_MS } from "./cache";
+import { normalizeCandidates } from "./normalize";
 import type { Candidate } from "@/types";
 
 async function getOrgCredentials(organizationId: string): Promise<{
@@ -24,13 +24,6 @@ function listCacheKey(orgId: string, datastoreId: string): string {
   return `make:${orgId}:${datastoreId}:list`;
 }
 
-function recordCacheKey(
-  orgId: string,
-  datastoreId: string,
-  recordId: string,
-): string {
-  return `make:${orgId}:${datastoreId}:record:${recordId}`;
-}
 
 /**
  * Fetch all candidates for an organization from the Make.com Data Store.
@@ -45,7 +38,7 @@ export async function getCandidatesForOrg(
   const key = listCacheKey(organizationId, datastoreId);
   const response = await cachedFetch(
     key,
-    () => client.listRecords(),
+    () => client.listAllRecords(),
     LIST_TTL_MS,
   );
 
@@ -54,30 +47,16 @@ export async function getCandidatesForOrg(
 
 /**
  * Fetch a single candidate for an organization from the Make.com Data Store.
- * Results are cached for 30 seconds.
+ * Uses the list endpoint and filters by key, since the Make.com Data Store API
+ * does not support fetching a single record by key.
  * Returns null if the record is not found.
  */
 export async function getCandidateForOrg(
   organizationId: string,
   recordId: string,
 ): Promise<Candidate | null> {
-  const { datastoreId, apiToken } = await getOrgCredentials(organizationId);
-  const client = new MakeApiClient(datastoreId, apiToken);
-
-  const key = recordCacheKey(organizationId, datastoreId, recordId);
-  try {
-    const record = await cachedFetch(
-      key,
-      () => client.getRecord(recordId),
-      RECORD_TTL_MS,
-    );
-    return normalizeCandidate(record);
-  } catch (error) {
-    if (error instanceof MakeNotFoundError) {
-      return null;
-    }
-    throw error;
-  }
+  const candidates = await getCandidatesForOrg(organizationId);
+  return candidates.find((c) => c.id === recordId) ?? null;
 }
 
 /**

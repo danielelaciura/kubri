@@ -1,116 +1,19 @@
 import type { MakeDataStoreRecord } from "./types";
-import type {
-  Candidate,
-  InterviewStatus,
-  Availability,
-  Channel,
-  WorkExperience,
-  TranscriptEntry,
-} from "@/types";
+import type { Candidate, Channel } from "@/types";
 
-const VALID_STATUSES: ReadonlySet<string> = new Set([
-  "completed",
-  "in_progress",
-  "abandoned",
-  "incomplete",
-]);
+function safeString(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
 
-const VALID_AVAILABILITIES: ReadonlySet<string> = new Set([
-  "immediate",
-  "within_1_month",
-  "other",
-]);
+function safeBoolean(value: unknown): boolean {
+  return typeof value === "boolean" ? value : false;
+}
 
-const VALID_CHANNELS: ReadonlySet<string> = new Set(["telegram", "whatsapp"]);
-
-function parseStringOrArray(value: unknown): string[] {
+function safeStringArray(value: unknown): string[] {
   if (!value) return [];
   if (Array.isArray(value)) {
     return value.map((v) => String(v).trim()).filter(Boolean);
   }
-  if (typeof value === "string") {
-    return value
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-  }
-  return [];
-}
-
-function parseFlowControl(value: unknown): Record<string, unknown> | null {
-  if (!value) return null;
-  if (typeof value === "object" && !Array.isArray(value)) {
-    return value as Record<string, unknown>;
-  }
-  if (typeof value === "string") {
-    try {
-      const parsed: unknown = JSON.parse(value);
-      if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
-        return parsed as Record<string, unknown>;
-      }
-    } catch {
-      return null;
-    }
-  }
-  return null;
-}
-
-function deriveInterviewStatus(flowControl: unknown): InterviewStatus {
-  const parsed = parseFlowControl(flowControl);
-  if (!parsed) return "incomplete";
-  const status = typeof parsed["status"] === "string" ? parsed["status"] : "";
-  if (VALID_STATUSES.has(status)) return status as InterviewStatus;
-  return "incomplete";
-}
-
-function parseWorkExperiences(value: unknown): WorkExperience[] {
-  if (!value) return [];
-
-  let data: unknown = value;
-  if (typeof value === "string") {
-    try {
-      data = JSON.parse(value);
-    } catch {
-      return [];
-    }
-  }
-
-  if (Array.isArray(data)) {
-    return data.map((item) => {
-      const obj = item as Record<string, unknown>;
-      return {
-        role: typeof obj["role"] === "string" ? obj["role"] : "",
-        description: typeof obj["description"] === "string" ? obj["description"] : "",
-        duration: typeof obj["duration"] === "string" ? obj["duration"] : undefined,
-      };
-    });
-  }
-
-  return [];
-}
-
-function parseTranscript(value: unknown): TranscriptEntry[] {
-  if (!value) return [];
-
-  let data: unknown = value;
-  if (typeof value === "string") {
-    try {
-      data = JSON.parse(value);
-    } catch {
-      return [];
-    }
-  }
-
-  if (Array.isArray(data)) {
-    return data.map((item) => {
-      const obj = item as Record<string, unknown>;
-      return {
-        question: typeof obj["question"] === "string" ? obj["question"] : "",
-        answer: typeof obj["answer"] === "string" ? obj["answer"] : "",
-      };
-    });
-  }
-
   return [];
 }
 
@@ -123,35 +26,50 @@ function parseDate(value: unknown): Date {
   return new Date();
 }
 
-function parseAvailability(value: unknown): Availability {
-  if (typeof value === "string" && VALID_AVAILABILITIES.has(value)) {
-    return value as Availability;
-  }
-  return "other";
-}
-
-function parseChannel(value: unknown): Channel {
-  if (typeof value === "string" && VALID_CHANNELS.has(value)) {
-    return value as Channel;
-  }
+function deriveChannel(source: unknown): Channel {
+  const s = safeString(source).toLowerCase();
+  if (s.includes("whatsapp")) return "whatsapp";
   return "telegram";
 }
 
 export function normalizeCandidate(raw: MakeDataStoreRecord): Candidate {
+  const d = raw.data;
+
   return {
-    id: raw.id,
-    name: typeof raw.name === "string" ? raw.name : "",
-    nationality: typeof raw.nationality === "string" ? raw.nationality : "",
-    languages: parseStringOrArray(raw.languages),
-    skills: parseStringOrArray(raw.skills),
-    workExperiences: parseWorkExperiences(raw.work_experiences),
-    availability: parseAvailability(raw.availability),
-    city: typeof raw.city === "string" ? raw.city : "",
-    interviewStatus: deriveInterviewStatus(raw.flow_control),
-    interviewTranscript: parseTranscript(raw.interview_transcript),
-    channel: parseChannel(raw.channel),
-    createdAt: parseDate(raw.created_at),
-    updatedAt: parseDate(raw.updated_at),
+    id: raw.key,
+    firstName: safeString(d.first_name),
+    lastName: safeString(d.last_name),
+    dateOfBirth: safeString(d.birthday),
+    countryOfOrigin: safeString(d.country),
+    address: safeString(d.address),
+    phone: safeString(d.phone),
+    legalStatus: safeString(d.legal_status),
+    workingPermit: safeString(d.working_permit),
+    meanOfTransport: safeString(d.transport),
+    educationAndTraining: safeStringArray(d.education_and_training),
+    workExperience: safeStringArray(d.work_experience),
+    skillsAndCompetences: safeStringArray(d.skills_and_competences),
+    languages: {
+      language: safeString(d.language),
+      additionalLanguages: safeStringArray(d.additional_languages),
+    },
+    drivingLicense: safeString(d.driving_license),
+    jobPreferences: {
+      desiredJob: safeString(d.job_preferences?.desired_job),
+      partTimePreference: safeBoolean(d.job_preferences?.part_time_preference),
+      preferredLocation: safeString(d.job_preferences?.preferred_location),
+      constraints: safeString(d.job_preferences?.constraints),
+      hasDesiredJobExperience: safeString(d.job_preferences?.has_desired_job_experience),
+    },
+    centroPerImpiego: safeString(d.centro_per_impiego),
+    interviewLanguage: safeString(d.language),
+    sourceOrganization: safeString(d.source_organization),
+    channel: deriveChannel(d.source_organization),
+    consent: safeBoolean(d.consent),
+    cvPdfLink: safeString(d.cvPdfLink),
+    cvDocLink: safeString(d.cvDocLink),
+    createdAt: parseDate(d.last_updated),
+    updatedAt: parseDate(d.last_updated),
   };
 }
 

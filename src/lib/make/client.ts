@@ -1,6 +1,6 @@
 import type { MakeDataStoreRecord, MakeListResponse } from "./types";
 
-const DEFAULT_BASE_URL = "https://eu1.make.com/api/v2";
+const DEFAULT_BASE_URL = "https://eu2.make.com/api/v2";
 const MAX_RETRIES = 3;
 const INITIAL_BACKOFF_MS = 1000;
 
@@ -105,6 +105,34 @@ export class MakeApiClient {
     const response = await this.fetchWithRetry(url.toString());
     const data: unknown = await response.json();
     return data as MakeListResponse;
+  }
+
+  /**
+   * Fetch all records by paginating through the data store.
+   * Uses the `count` field from the first response to determine total records,
+   * then fetches remaining pages as needed.
+   */
+  async listAllRecords(): Promise<MakeListResponse> {
+    const PAGE_SIZE = 100;
+
+    const first = await this.listRecords({ limit: PAGE_SIZE, offset: 0 });
+    const total = first.count ?? first.records.length;
+
+    if (total <= PAGE_SIZE) {
+      return first;
+    }
+
+    const allRecords = [...first.records];
+    let offset = PAGE_SIZE;
+
+    while (offset < total) {
+      const page = await this.listRecords({ limit: PAGE_SIZE, offset });
+      allRecords.push(...page.records);
+      if (page.records.length === 0) break;
+      offset += page.records.length;
+    }
+
+    return { records: allRecords, count: total };
   }
 
   async getRecord(recordId: string): Promise<MakeDataStoreRecord> {

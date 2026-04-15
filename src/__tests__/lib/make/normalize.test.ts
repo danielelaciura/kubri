@@ -40,7 +40,6 @@ describe("normalizeCandidate", () => {
     ]);
     expect(result.availability).toBe("immediate");
     expect(result.city).toBe("Milan");
-    expect(result.interviewStatus).toBe("completed");
     expect(result.interviewTranscript).toEqual([
       { question: "What is your name?", answer: "Mario Rossi" },
     ]);
@@ -61,17 +60,10 @@ describe("normalizeCandidate", () => {
     expect(result.workExperiences).toEqual([]);
     expect(result.availability).toBe("other");
     expect(result.city).toBe("");
-    expect(result.interviewStatus).toBe("incomplete");
     expect(result.interviewTranscript).toEqual([]);
     expect(result.channel).toBe("telegram");
     expect(result.createdAt).toBeInstanceOf(Date);
     expect(result.updatedAt).toBeInstanceOf(Date);
-  });
-
-  it("defaults to 'incomplete' when flow_control is a malformed JSON string", () => {
-    const raw = makeCompleteRecord({ flow_control: "{not valid json" });
-    const result = normalizeCandidate(raw);
-    expect(result.interviewStatus).toBe("incomplete");
   });
 
   it("splits comma-separated languages string into array", () => {
@@ -101,38 +93,6 @@ describe("normalizeCandidate", () => {
     expect(result.languages).toEqual([]);
     expect(result.skills).toEqual([]);
     expect(result.city).toBe("");
-  });
-
-  describe("interviewStatus derived from flow_control", () => {
-    it("maps status 'completed' correctly", () => {
-      const raw = makeCompleteRecord({ flow_control: { status: "completed" } });
-      expect(normalizeCandidate(raw).interviewStatus).toBe("completed");
-    });
-
-    it("maps status 'in_progress' correctly", () => {
-      const raw = makeCompleteRecord({ flow_control: { status: "in_progress" } });
-      expect(normalizeCandidate(raw).interviewStatus).toBe("in_progress");
-    });
-
-    it("maps status 'abandoned' correctly", () => {
-      const raw = makeCompleteRecord({ flow_control: { status: "abandoned" } });
-      expect(normalizeCandidate(raw).interviewStatus).toBe("abandoned");
-    });
-
-    it("defaults to 'incomplete' when flow_control is missing", () => {
-      const raw = makeCompleteRecord({ flow_control: undefined });
-      expect(normalizeCandidate(raw).interviewStatus).toBe("incomplete");
-    });
-
-    it("defaults to 'incomplete' when flow_control has invalid status", () => {
-      const raw = makeCompleteRecord({ flow_control: { status: "unknown_value" } });
-      expect(normalizeCandidate(raw).interviewStatus).toBe("incomplete");
-    });
-
-    it("parses flow_control from JSON string", () => {
-      const raw = makeCompleteRecord({ flow_control: '{"status": "completed"}' });
-      expect(normalizeCandidate(raw).interviewStatus).toBe("completed");
-    });
   });
 
   it("parses work_experiences from JSON string", () => {

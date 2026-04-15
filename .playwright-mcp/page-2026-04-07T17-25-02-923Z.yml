@@ -1,0 +1,157 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - generic [ref=e5]:
+        - generic [ref=e7]: K
+        - generic [ref=e8]:
+          - generic [ref=e9]: Kubri
+          - generic [ref=e10]: Kubri Demo
+      - navigation [ref=e12]:
+        - link "Candidati" [ref=e13] [cursor=pointer]:
+          - /url: /dashboard/candidates
+          - img [ref=e14]
+          - text: Candidati
+        - link "Impostazioni" [ref=e19] [cursor=pointer]:
+          - /url: /dashboard/settings
+          - img [ref=e20]
+          - text: Impostazioni
+        - link "Statistiche" [ref=e23] [cursor=pointer]:
+          - /url: /dashboard/stats
+          - img [ref=e24]
+          - text: Statistiche
+        - link "Amministrazione" [ref=e27] [cursor=pointer]:
+          - /url: /admin
+          - img [ref=e28]
+          - text: Amministrazione
+    - generic [ref=e30]:
+      - banner [ref=e31]:
+        - generic [ref=e32]:
+          - generic [ref=e34]: AK
+          - generic [ref=e35]: Admin Kubri
+          - button "Esci" [ref=e36]:
+            - img
+            - text: Esci
+      - main [ref=e37]:
+        - generic [ref=e38]:
+          - generic [ref=e39]:
+            - heading "Candidati" [level=1] [ref=e40]
+            - generic [ref=e41]:
+              - link "Esporta CSV" [ref=e42] [cursor=pointer]:
+                - /url: /api/candidates/export/csv?
+                - button "Esporta CSV" [ref=e43]:
+                  - img
+                  - text: Esporta CSV
+              - button "Aggiorna" [ref=e45]:
+                - img
+                - text: Aggiorna
+          - generic [ref=e47]:
+            - generic [ref=e48]:
+              - img [ref=e49]
+              - textbox "Cerca per nome, competenze, esperienze..." [ref=e52]
+            - button "Filtra" [ref=e53]:
+              - img
+              - text: Filtra
+            - button "Cerca" [ref=e54]
+          - generic [ref=e55]:
+            - table [ref=e58]:
+              - rowgroup [ref=e59]:
+                - row "Nome Paese di origine Lingue Competenze Indirizzo Stato Data Canale" [ref=e60]:
+                  - columnheader "Nome" [ref=e61]:
+                    - button "Nome" [ref=e62]:
+                      - text: Nome
+                      - img [ref=e63]
+                  - columnheader "Paese di origine" [ref=e66]
+                  - columnheader "Lingue" [ref=e67]
+                  - columnheader "Competenze" [ref=e68]
+                  - columnheader "Indirizzo" [ref=e69]
+                  - columnheader "Stato" [ref=e70]:
+                    - button "Stato" [ref=e71]:
+                      - text: Stato
+                      - img [ref=e72]
+                  - columnheader "Data" [ref=e75]:
+                    - button "Data" [ref=e76]:
+                      - text: Data
+                      - img [ref=e77]
+                  - columnheader "Canale" [ref=e80]
+              - rowgroup [ref=e81]:
+                - row "Daniele La Ciura Guatemala Servizio tavoli chef lavapiatti +2 Via Praderonie 62 Fiume veneto Incompleta 07/04/2026 telegram" [ref=e82] [cursor=pointer]:
+                  - cell "Daniele La Ciura" [ref=e83]
+                  - cell "Guatemala" [ref=e84]
+                  - cell [ref=e85]
+                  - cell "Servizio tavoli chef lavapiatti +2" [ref=e86]:
+                    - generic [ref=e87]:
+                      - generic [ref=e88]: Servizio tavoli
+                      - generic [ref=e89]: chef
+                      - generic [ref=e90]: lavapiatti
+                      - generic [ref=e91]: "+2"
+                  - cell "Via Praderonie 62 Fiume veneto" [ref=e92]
+                  - cell "Incompleta" [ref=e93]:
+                    - generic [ref=e94]: Incompleta
+                  - cell "07/04/2026" [ref=e95]
+                  - cell "telegram" [ref=e96]:
+                    - generic [ref=e97]: telegram
+                - row "Pippo Pippo Spagna So servire ai tavoli e preparare piatti semplici Via Fabriano Milano Incompleta 07/04/2026 telegram" [ref=e98] [cursor=pointer]:
+                  - cell "Pippo Pippo" [ref=e99]
+                  - cell "Spagna" [ref=e100]
+                  - cell [ref=e101]
+                  - cell "So servire ai tavoli e preparare piatti semplici" [ref=e102]:
+                    - generic [ref=e104]: So servire ai tavoli e preparare piatti semplici
+                  - cell "Via Fabriano Milano" [ref=e105]
+                  - cell "Incompleta" [ref=e106]:
+                    - generic [ref=e107]: Incompleta
+                  - cell "07/04/2026" [ref=e108]
+                  - cell "telegram" [ref=e109]:
+                    - generic [ref=e110]: telegram
+                - row "Daniele La Ciura Guatemala Lavoro sodo Via le mani 43, Roma Incompleta 07/04/2026 telegram" [ref=e111] [cursor=pointer]:
+                  - cell "Daniele La Ciura" [ref=e112]
+                  - cell "Guatemala" [ref=e113]
+                  - cell [ref=e114]
+                  - cell "Lavoro sodo" [ref=e115]:
+                    - generic [ref=e117]: Lavoro sodo
+                  - cell "Via le mani 43, Roma" [ref=e118]
+                  - cell "Incompleta" [ref=e119]:
+                    - generic [ref=e120]: Incompleta
+                  - cell "07/04/2026" [ref=e121]
+                  - cell "telegram" [ref=e122]:
+                    - generic [ref=e123]: telegram
+                - row "Romeo Egiuliletta El Salvador camminare Via Fab 29, Milano Incompleta 07/04/2026 telegram" [ref=e124] [cursor=pointer]:
+                  - cell "Romeo Egiuliletta" [ref=e125]
+                  - cell "El Salvador" [ref=e126]
+                  - cell [ref=e127]
+                  - cell "camminare" [ref=e128]:
+                    - generic [ref=e130]: camminare
+                  - cell "Via Fab 29, Milano" [ref=e131]
+                  - cell "Incompleta" [ref=e132]:
+                    - generic [ref=e133]: Incompleta
+                  - cell "07/04/2026" [ref=e134]
+                  - cell "telegram" [ref=e135]:
+                    - generic [ref=e136]: telegram
+                - row "Daniele Rossi Burkina Faso Via Fabriano 7, Milano Incompleta 07/04/2026 telegram" [ref=e137] [cursor=pointer]:
+                  - cell "Daniele Rossi" [ref=e138]
+                  - cell "Burkina Faso" [ref=e139]
+                  - cell [ref=e140]
+                  - cell [ref=e141]
+                  - cell "Via Fabriano 7, Milano" [ref=e142]
+                  - cell "Incompleta" [ref=e143]:
+                    - generic [ref=e144]: Incompleta
+                  - cell "07/04/2026" [ref=e145]
+                  - cell "telegram" [ref=e146]:
+                    - generic [ref=e147]: telegram
+            - generic [ref=e148]:
+              - generic [ref=e149]: 5 candidati totali
+              - generic [ref=e150]:
+                - generic [ref=e151]:
+                  - generic [ref=e152]: "Righe per pagina:"
+                  - combobox [ref=e153]:
+                    - option "10"
+                    - option "25" [selected]
+                    - option "50"
+                - generic [ref=e154]:
+                  - button [disabled]:
+                    - img
+                  - generic [ref=e155]: Pagina 1 di 1
+                  - button [disabled]:
+                    - img
+  - button "Open Next.js Dev Tools" [ref=e161] [cursor=pointer]:
+    - img [ref=e162]
+  - alert [ref=e165]

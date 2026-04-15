@@ -1,0 +1,80 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - generic [ref=e5]:
+        - generic [ref=e7]: K
+        - generic [ref=e8]:
+          - generic [ref=e9]: Kubri
+          - generic [ref=e10]: Kubri Demo
+      - navigation [ref=e12]:
+        - link "Candidati" [ref=e13] [cursor=pointer]:
+          - /url: /dashboard/candidates
+          - img [ref=e14]
+          - text: Candidati
+        - link "Impostazioni" [ref=e19] [cursor=pointer]:
+          - /url: /dashboard/settings
+          - img [ref=e20]
+          - text: Impostazioni
+        - link "Statistiche" [ref=e23] [cursor=pointer]:
+          - /url: /dashboard/stats
+          - img [ref=e24]
+          - text: Statistiche
+        - link "Amministrazione" [ref=e27] [cursor=pointer]:
+          - /url: /admin
+          - img [ref=e28]
+          - text: Amministrazione
+    - generic [ref=e30]:
+      - banner [ref=e31]:
+        - generic [ref=e32]:
+          - generic [ref=e34]: AK
+          - generic [ref=e35]: Admin Kubri
+          - button "Esci" [ref=e36]:
+            - img
+            - text: Esci
+      - main [ref=e37]:
+        - generic [ref=e38]:
+          - heading "Statistiche" [level=1] [ref=e39]
+          - generic [ref=e40]:
+            - generic [ref=e41]:
+              - generic [ref=e42]:
+                - generic [ref=e43]: Totale candidati
+                - img [ref=e45]
+              - generic [ref=e51]: "1"
+            - generic [ref=e52]:
+              - generic [ref=e53]:
+                - generic [ref=e54]: Completate
+                - img [ref=e56]
+              - generic [ref=e60]: "0"
+            - generic [ref=e61]:
+              - generic [ref=e62]:
+                - generic [ref=e63]: In corso
+                - img [ref=e65]
+              - generic [ref=e69]: "0"
+            - generic [ref=e70]:
+              - generic [ref=e71]:
+                - generic [ref=e72]: Incomplete
+                - img [ref=e74]
+              - generic [ref=e79]: "1"
+          - generic [ref=e80]:
+            - generic [ref=e82]: Interviste per settimana
+            - application [ref=e87]:
+              - generic [ref=e88]:
+                - generic [ref=e89]:
+                  - generic [ref=e91]: 17/02
+                  - generic [ref=e93]: 24/02
+                  - generic [ref=e95]: 03/03
+                  - generic [ref=e97]: 10/03
+                  - generic [ref=e99]: 17/03
+                  - generic [ref=e101]: 24/03
+                  - generic [ref=e103]: 31/03
+                  - generic [ref=e105]: 07/04
+                - generic [ref=e106]:
+                  - generic [ref=e108]: "0"
+                  - generic [ref=e110]: "1"
+                  - generic [ref=e112]: "2"
+                  - generic [ref=e114]: "3"
+                  - generic [ref=e116]: "4"
+  - button "Open Next.js Dev Tools" [ref=e122] [cursor=pointer]:
+    - img [ref=e123]
+  - alert [ref=e126]
+  - generic [ref=e127]: "0"

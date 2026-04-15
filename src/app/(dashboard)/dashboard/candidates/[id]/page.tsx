@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getCandidateForOrg } from "@/lib/make/service";
 import { CandidateProfile } from "@/components/candidates/candidate-profile";
-import { TranscriptViewer } from "@/components/candidates/transcript-viewer";
 import { CandidateNotes } from "@/components/candidates/candidate-notes";
 import { CandidateTags } from "@/components/candidates/candidate-tags";
 import { Button } from "@/components/ui/button";
@@ -116,7 +115,6 @@ export default async function CandidateDetailPage({
         {/* Main content: profile + transcript */}
         <div className="space-y-6 lg:col-span-2">
           <CandidateProfile candidate={candidate} />
-          <TranscriptViewer transcript={candidate.interviewTranscript} />
         </div>
 
         {/* Sidebar: tags + notes */}

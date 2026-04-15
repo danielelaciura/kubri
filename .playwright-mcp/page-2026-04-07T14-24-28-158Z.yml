@@ -1,0 +1,115 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - generic [ref=e5]:
+        - generic [ref=e7]: K
+        - generic [ref=e8]:
+          - generic [ref=e9]: Kubri
+          - generic [ref=e10]: Kubri Demo
+      - navigation [ref=e12]:
+        - link "Candidati" [ref=e13] [cursor=pointer]:
+          - /url: /dashboard/candidates
+          - img [ref=e14]
+          - text: Candidati
+        - link "Impostazioni" [ref=e19] [cursor=pointer]:
+          - /url: /dashboard/settings
+          - img [ref=e20]
+          - text: Impostazioni
+        - link "Statistiche" [ref=e23] [cursor=pointer]:
+          - /url: /dashboard/stats
+          - img [ref=e24]
+          - text: Statistiche
+        - link "Amministrazione" [ref=e27] [cursor=pointer]:
+          - /url: /admin
+          - img [ref=e28]
+          - text: Amministrazione
+    - generic [ref=e30]:
+      - banner [ref=e31]:
+        - generic [ref=e32]:
+          - generic [ref=e34]: AK
+          - generic [ref=e35]: Admin Kubri
+          - button "Esci" [ref=e36]:
+            - img
+            - text: Esci
+      - main [ref=e37]:
+        - generic [ref=e38]:
+          - generic [ref=e39]:
+            - heading "Candidati" [level=1] [ref=e40]
+            - generic [ref=e41]:
+              - link "Esporta CSV" [ref=e42] [cursor=pointer]:
+                - /url: /api/candidates/export/csv?
+                - button "Esporta CSV" [ref=e43]:
+                  - img
+                  - text: Esporta CSV
+              - button "Aggiorna" [ref=e45]:
+                - img
+                - text: Aggiorna
+          - generic [ref=e47]:
+            - generic [ref=e48]:
+              - img [ref=e49]
+              - textbox "Cerca per nome, competenze, esperienze..." [ref=e52]
+            - button "Filtra" [ref=e53]:
+              - img
+              - text: Filtra
+            - button "Cerca" [ref=e54]
+          - generic [ref=e55]:
+            - table [ref=e58]:
+              - rowgroup [ref=e59]:
+                - row "Nome Paese di origine Lingue Competenze Indirizzo Stato Data Canale" [ref=e60]:
+                  - columnheader "Nome" [ref=e61]:
+                    - button "Nome" [ref=e62]:
+                      - text: Nome
+                      - img [ref=e63]
+                  - columnheader "Paese di origine" [ref=e66]
+                  - columnheader "Lingue" [ref=e67]
+                  - columnheader "Competenze" [ref=e68]
+                  - columnheader "Indirizzo" [ref=e69]
+                  - columnheader "Stato" [ref=e70]:
+                    - button "Stato" [ref=e71]:
+                      - text: Stato
+                      - img [ref=e72]
+                  - columnheader "Data" [ref=e75]:
+                    - button "Data" [ref=e76]:
+                      - text: Data
+                      - img [ref=e77]
+                  - columnheader "Canale" [ref=e80]
+              - rowgroup [ref=e81]:
+                - row "Mimmo Mammone Fare la calza Via Ciccio Ciccio Pordenone Incompleta 07/04/2026 telegram" [ref=e82] [cursor=pointer]:
+                  - cell "Mimmo Mammone" [ref=e83]
+                  - cell [ref=e84]
+                  - cell [ref=e85]
+                  - cell "Fare la calza" [ref=e86]:
+                    - generic [ref=e88]: Fare la calza
+                  - cell "Via Ciccio Ciccio Pordenone" [ref=e89]
+                  - cell "Incompleta" [ref=e90]:
+                    - generic [ref=e91]: Incompleta
+                  - cell "07/04/2026" [ref=e92]
+                  - cell "telegram" [ref=e93]:
+                    - generic [ref=e94]: telegram
+            - generic [ref=e95]:
+              - generic [ref=e96]: 1 candidati totali
+              - generic [ref=e97]:
+                - generic [ref=e98]:
+                  - generic [ref=e99]: "Righe per pagina:"
+                  - combobox [ref=e100]:
+                    - option "10"
+                    - option "25" [selected]
+                    - option "50"
+                - generic [ref=e101]:
+                  - button [disabled]:
+                    - img
+                  - generic [ref=e102]: Pagina 1 di 1
+                  - button [disabled]:
+                    - img
+  - generic [ref=e107] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e108]:
+      - img [ref=e109]
+    - generic [ref=e112]:
+      - button "Open issues overlay" [ref=e113]:
+        - generic [ref=e114]:
+          - generic [ref=e115]: "0"
+          - generic [ref=e116]: "1"
+        - generic [ref=e117]: Issue
+      - button "Collapse issues badge" [ref=e118]:
+        - img [ref=e119]
+  - alert [ref=e121]

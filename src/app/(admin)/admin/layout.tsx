@@ -29,6 +29,7 @@ export default async function AdminLayout({
       userName={session.user.name ?? "Utente"}
       organizationName={organization?.name ?? "Kubri"}
       isAdmin={true}
+      isOrgAdmin={true}
     >
       {children}
     </DashboardShell>

@@ -39,7 +39,7 @@ export function candidatesToCsv(candidates: Candidate[]): string {
       c.legalStatus,
       c.workingPermit,
       c.languages.language,
-      c.languages.additionalLanguages,
+      c.languages.additionalLanguages.join("; "),
       c.skillsAndCompetences.join("; "),
       c.workExperience.join("; "),
       c.jobPreferences.desiredJob,

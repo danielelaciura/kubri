@@ -73,8 +73,9 @@ function normalizeHeader(h: string): string {
 
 function parseCsv(text: string): Row[] {
   const rows = parseCsvRows(text, ";");
-  if (rows.length === 0) throw new Error("Empty CSV");
-  const header = rows[0].map(normalizeHeader);
+  const headerRow = rows[0];
+  if (!headerRow) throw new Error("Empty CSV");
+  const header = headerRow.map(normalizeHeader);
   const idx = {
     region: header.findIndex(
       (h) => h.includes("denominazione regione") || h === "regione",
@@ -92,7 +93,7 @@ function parseCsv(text: string): Row[] {
   for (const cells of rows.slice(1)) {
     const municipality = cells[idx.municipality]?.trim();
     const province = cells[idx.province]?.trim();
-    const provinceCode = cells[idx.provinceCode]?.trim();
+    const provinceCode = cells[idx.provinceCode]?.trim() ?? "";
     const region = cells[idx.region]?.trim();
     if (municipality && province && region) {
       out.push({ municipality, province, provinceCode, region });

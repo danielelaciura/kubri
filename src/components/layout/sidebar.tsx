@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, Settings, BarChart3, Shield, X } from "lucide-react";
+import { Users, Settings, BarChart3, Shield, X, Briefcase } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { strings } from "@/lib/i18n/strings";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,11 @@ const navItems = [
     label: strings.nav.candidates,
     href: "/dashboard/candidates",
     icon: Users,
+  },
+  {
+    label: strings.nav.jobs,
+    href: "/dashboard/jobs",
+    icon: Briefcase,
   },
   {
     label: strings.nav.settings,

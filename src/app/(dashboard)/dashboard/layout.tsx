@@ -25,6 +25,10 @@ export default async function DashboardLayout({
       userName={session.user.name ?? "Utente"}
       organizationName={organization?.name ?? "Organizzazione"}
       isAdmin={session.user.role === Role.ADMIN_KUBRI}
+      isOrgAdmin={
+        session.user.role === Role.ORG_ADMIN ||
+        session.user.role === Role.ADMIN_KUBRI
+      }
     >
       {children}
     </DashboardShell>

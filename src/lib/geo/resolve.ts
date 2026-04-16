@@ -53,19 +53,19 @@ function levenshtein(a: string, b: string): number {
   const n = b.length;
   if (!m) return n;
   if (!n) return m;
-  const row = Array.from({ length: n + 1 }, (_, i) => i);
+  const row: number[] = Array.from({ length: n + 1 }, (_, i) => i);
   for (let i = 1; i <= m; i++) {
     let prev = i;
     for (let j = 1; j <= n; j++) {
       const val = a[i - 1] === b[j - 1]
-        ? row[j - 1]
-        : 1 + Math.min(row[j - 1], row[j], prev);
+        ? (row[j - 1] as number)
+        : 1 + Math.min(row[j - 1] as number, row[j] as number, prev);
       row[j - 1] = prev;
       prev = val;
     }
     row[n] = prev;
   }
-  return row[n];
+  return row[n] as number;
 }
 
 function fuzzyFind(query: string, candidates: string[], maxDistance: number): string | undefined {

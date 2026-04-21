@@ -30,10 +30,10 @@ export function Header({ userName, isOrgAdmin, onMenuToggle }: HeaderProps) {
         <Link href="/dashboard/jobs/new" className="hidden lg:block">
           <Button
             size="lg"
-            className="text-kubri-800 bg-white border border-kubri-800 hover:bg-kubri-50"
+            className="text-kubri-800 bg-white border hover:bg-kubri-50"
           >
             <Plus className="mr-1 h-4 w-4" />
-            Aggiungi Job description
+            Aggiungi offerta
           </Button>
         </Link>
       )}

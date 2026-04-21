@@ -94,7 +94,7 @@ export default async function OrganizationsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">
+          <h1 className="text-2xl tracking-tight">
             {strings.pages.organizations}
           </h1>
           <p className="mt-1 text-muted-foreground">

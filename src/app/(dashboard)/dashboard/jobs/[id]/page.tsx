@@ -39,13 +39,13 @@ export default async function JobDetailPage({
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">{jd.name}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <h1 className="text-2xl tracking-tight">{jd.name}</h1>
+          <span className="font-medium mt-md">
             {jd.locationRaw}
             {jd.locationRegion && jd.locationRaw !== jd.locationRegion && (
               <> · {jd.locationRegion}</>
             )}
-          </p>
+          </span>
         </div>
         {isAdmin && (
           <div className="flex gap-2">
@@ -87,7 +87,7 @@ export default async function JobDetailPage({
       )}
 
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">{strings.jobs.matchHeading}</h2>
+        <h2 className="text-lg ">{strings.jobs.matchHeading}</h2>
         <form action={refreshCandidatesForJob}>
           <Button variant="outline" size="sm" type="submit" className="gap-1">
             <RefreshCw className="h-4 w-4" />

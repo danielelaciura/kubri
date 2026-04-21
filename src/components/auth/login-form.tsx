@@ -5,6 +5,8 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import Image from "next/image";
+
 import {
   Card,
   CardContent,
@@ -52,10 +54,21 @@ export function LoginForm() {
     }
   }
 
+  const imageStyle = {
+    margin: "10px auto"
+  }
+
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="text-center">
-        <CardTitle className="text-2xl font-bold">Kubri Dashboard</CardTitle>
+        <Image
+              src="/kubri-logo.png"
+              alt="Kubri"
+              width={42}
+              height={42}
+              style={imageStyle}
+        />
+        <CardTitle className="text-2xl font-bold">Kubri</CardTitle>
         <CardDescription>Accedi al tuo account</CardDescription>
       </CardHeader>
       <CardContent>

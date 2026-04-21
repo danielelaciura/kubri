@@ -13,7 +13,9 @@ export default async function EditJobPage({
   const { id } = await params;
   const session = await auth();
   if (!session?.user?.organizationId) redirect("/login");
-  if (session.user.role !== "ORG_ADMIN") redirect(`/dashboard/jobs/${id}`);
+  if (session.user.role !== "ORG_ADMIN" && session.user.role !== "ADMIN_KUBRI") {
+    redirect(`/dashboard/jobs/${id}`);
+  }
 
   const jd = await getJobDescription({ id, organizationId: session.user.organizationId });
   if (!jd) notFound();
@@ -25,7 +27,7 @@ export default async function EditJobPage({
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">{strings.pages.jobEdit}</h1>
+      <h1 className="text-2xl tracking-tight">{strings.pages.jobEdit}</h1>
       <JobForm
         mode="edit"
         initial={{

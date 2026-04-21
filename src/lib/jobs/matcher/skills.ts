@@ -27,5 +27,7 @@ export function skillsScore(params: {
 
   let hit = 0;
   for (const s of jdStems) if (candStems.has(s)) hit++;
-  return hit / jdStems.size;
+  const jdCoverage = hit / jdStems.size;
+  const candCoverage = hit / candStems.size;
+  return 0.5 * jdCoverage + 0.5 * candCoverage;
 }

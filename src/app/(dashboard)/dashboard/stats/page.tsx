@@ -29,7 +29,7 @@ export default async function StatsPage() {
   if (error || !stats) {
     return (
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">
+        <h1 className="text-2xl tracking-tight">
           {strings.pages.stats}
         </h1>
         <p className="mt-2 text-destructive">
@@ -41,7 +41,7 @@ export default async function StatsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">
+      <h1 className="text-2xl tracking-tight">
         {strings.pages.stats}
       </h1>
 

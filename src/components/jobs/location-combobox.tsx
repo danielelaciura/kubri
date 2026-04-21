@@ -52,6 +52,7 @@ export function LocationCombobox({ name, defaultValue = "", placeholder }: Locat
         onFocus={() => setOpen(true)}
         placeholder={placeholder}
         autoComplete="off"
+        className="bg-white"
       />
       {open && suggestions.length > 0 && (
         <ul className="absolute z-50 mt-1 w-full rounded-md border border-border bg-popover shadow-md">

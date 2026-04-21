@@ -17,7 +17,7 @@ export default function Error({
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4">
-      <h1 className="text-2xl font-bold">{strings.common.error}</h1>
+      <h1 className="text-2xl">{strings.common.error}</h1>
       <p className="text-muted-foreground">
         Si è verificato un errore. Riprova.
       </p>

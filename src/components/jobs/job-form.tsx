@@ -48,7 +48,14 @@ export function JobForm({ mode, initial, action }: JobFormProps) {
     <form onSubmit={onSubmit} className="space-y-6 max-w-2xl">
       <div className="space-y-2">
         <Label htmlFor="name">{strings.jobs.fieldName}</Label>
-        <Input id="name" name="name" defaultValue={initial?.name} required maxLength={120} />
+        <Input
+          id="name"
+          name="name"
+          defaultValue={initial?.name}
+          required
+          maxLength={120}
+          className="bg-white"
+        />
       </div>
 
       <div className="space-y-2">
@@ -69,6 +76,7 @@ export function JobForm({ mode, initial, action }: JobFormProps) {
           rows={8}
           minLength={20}
           maxLength={5000}
+          className="bg-white"
           required
         />
       </div>

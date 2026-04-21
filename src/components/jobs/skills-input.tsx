@@ -60,6 +60,7 @@ export function SkillsInput({ value, onChange, name }: SkillsInputProps) {
         onKeyDown={onKey}
         onBlur={commit}
         placeholder={strings.jobs.skillPlaceholder}
+        className="bg-white"
       />
       {name && <input type="hidden" name={name} value={JSON.stringify(value)} />}
     </div>

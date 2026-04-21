@@ -11,7 +11,7 @@ const STOPWORDS_IT = new Set([
   "altro","altra","altri","altre","stesso","stessa","stessi","stesse","tutto","tutta","tutti","tutte",
   "del","dello","della","dei","degli","delle","al","allo","alla","ai","agli","alle",
   "dal","dallo","dalla","dai","dagli","dalle","nel","nello","nella","nei","negli","nelle",
-  "sul","sullo","sulla","sui","sugli","sulle","col","coi",
+  "sul","sullo","sulla","sui","sugli","sulle","col","coi", "manutenzione", "lavori"
 ]);
 
 export function normalize(input: string): string {

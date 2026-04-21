@@ -57,7 +57,7 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">
+        <h1 className="text-2xl tracking-tight">
           {strings.pages.candidates}
         </h1>
         <div className="flex items-center gap-2">

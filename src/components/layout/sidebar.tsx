@@ -115,14 +115,14 @@ export function Sidebar({
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                   isActive
-                    ? "bg-kubri-50 text-kubri-800"
+                    ? "bg-kubri-800 text-white"
                     : "text-muted-foreground hover:bg-accent hover:text-foreground"
                 )}
               >
                 <item.icon
                   className={cn(
                     "h-4 w-4 shrink-0",
-                    isActive ? "text-kubri-800" : ""
+                    isActive ? "text-white" : ""
                   )}
                 />
                 {item.label}

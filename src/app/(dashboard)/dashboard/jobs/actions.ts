@@ -14,7 +14,7 @@ export async function createJobAction(formData: FormData): Promise<ActionResult>
   if (
     !session?.user?.id ||
     !session.user.organizationId ||
-    session.user.role !== "ORG_ADMIN"
+    (session.user.role !== "ORG_ADMIN" && session.user.role !== "ADMIN_KUBRI")
   ) {
     return { ok: false, error: "Non autorizzato" };
   }

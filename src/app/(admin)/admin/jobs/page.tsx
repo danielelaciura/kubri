@@ -22,7 +22,7 @@ export default async function AdminJobsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">{strings.pages.jobs}</h1>
+      <h1 className="text-2xl tracking-tight">{strings.pages.jobs}</h1>
 
       <div className="rounded-lg border border-border/60 bg-card shadow-sm">
         <Table>

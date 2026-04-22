@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, Settings, BarChart3, Shield, X } from "lucide-react";
+import { Users, Settings, BarChart3, Shield, Building2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { strings } from "@/lib/i18n/strings";
 import { Button } from "@/components/ui/button";
@@ -33,11 +33,18 @@ const navItems = [
   },
 ];
 
-const adminItem = {
-  label: strings.nav.admin,
-  href: "/admin",
-  icon: Shield,
-};
+const adminItems = [
+  {
+    label: strings.nav.admin,
+    href: "/admin",
+    icon: Shield,
+  },
+  {
+    label: strings.nav.organizations,
+    href: "/admin/organizations",
+    icon: Building2,
+  },
+];
 
 export function Sidebar({
   organizationName,
@@ -128,13 +135,16 @@ export function Sidebar({
           {isAdmin && (
             <>
               <div className="mx-1 my-3 border-t border-border" />
-              {(() => {
+              {adminItems.map((item) => {
                 const isActive =
-                  pathname === adminItem.href ||
-                  pathname.startsWith(adminItem.href + "/");
+                  item.href === "/admin"
+                    ? pathname === item.href
+                    : pathname === item.href ||
+                      pathname.startsWith(item.href + "/");
                 return (
                   <Link
-                    href={adminItem.href}
+                    key={item.href}
+                    href={item.href}
                     onClick={onClose}
                     className={cn(
                       "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
@@ -143,16 +153,16 @@ export function Sidebar({
                         : "text-muted-foreground hover:bg-accent hover:text-foreground"
                     )}
                   >
-                    <adminItem.icon
+                    <item.icon
                       className={cn(
                         "h-4 w-4 shrink-0",
                         isActive ? "text-kubri-600" : ""
                       )}
                     />
-                    {adminItem.label}
+                    {item.label}
                   </Link>
                 );
-              })()}
+              })}
             </>
           )}
         </nav>

@@ -92,19 +92,6 @@ export function MembersActions({ inviteAction }: MembersActionsProps) {
               <option value="ORG_ADMIN">{strings.roles.ORG_ADMIN}</option>
             </select>
           </div>
-          <div className="space-y-2">
-            <label htmlFor="invite-password" className="text-sm font-medium">
-              {strings.members.password}
-            </label>
-            <Input
-              id="invite-password"
-              name="temporaryPassword"
-              type="password"
-              required
-              minLength={8}
-              placeholder="Min. 8 caratteri"
-            />
-          </div>
           <DialogFooter>
             <DialogClose render={<Button variant="outline" />}>
               {strings.common.cancel}

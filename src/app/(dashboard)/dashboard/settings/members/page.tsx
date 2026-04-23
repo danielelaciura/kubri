@@ -1,11 +1,11 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { prisma } from "@/lib/db";
 import { Role } from "@/generated/prisma/client";
 import { logAudit } from "@/lib/audit";
+import { getAppOrigin } from "@/lib/origin";
 import {
   inviteMemberSchema,
   removeMemberSchema,
@@ -35,13 +35,6 @@ type MemberWithStatusRow = {
   lastLoginAt: Date | null;
   isPending: boolean;
 };
-
-async function originFromHeaders(): Promise<string> {
-  const h = await headers();
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  const host = h.get("host") ?? "localhost:3000";
-  return `${proto}://${host}`;
-}
 
 export default async function MembersPage() {
   const supabase = await createSupabaseServerClient();
@@ -96,7 +89,7 @@ export default async function MembersPage() {
     if (existing) throw new Error(strings.members.emailExists);
 
     const admin = createSupabaseAdminClient();
-    const origin = await originFromHeaders();
+    const origin = await getAppOrigin();
     const { error } = await admin.auth.admin.inviteUserByEmail(parsed.data.email, {
       data: {
         name: parsed.data.name,
@@ -145,7 +138,7 @@ export default async function MembersPage() {
     if (!target) throw new Error("Utente non trovato");
 
     const admin = createSupabaseAdminClient();
-    const origin = await originFromHeaders();
+    const origin = await getAppOrigin();
     const { error } = await admin.auth.admin.inviteUserByEmail(target.email, {
       data: {
         name: target.name,

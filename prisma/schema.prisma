@@ -14,7 +14,7 @@ enum Role {
 }
 
 model Organization {
-  id              String   @id @default(uuid())
+  id              String   @id @default(uuid()) @db.Uuid
   name            String
   slug            String   @unique
   makeDatastoreId String
@@ -29,25 +29,24 @@ model Organization {
 }
 
 model User {
-  id             String    @id @default(uuid())
+  id             String    @id @db.Uuid
   email          String    @unique
   name           String
-  passwordHash   String
-  role           Role
-  organizationId String
+  role           Role      @default(ORG_MEMBER)
+  organizationId String?   @db.Uuid
   createdAt      DateTime  @default(now())
   lastLoginAt    DateTime?
 
-  organization   Organization   @relation(fields: [organizationId], references: [id])
+  organization   Organization?   @relation(fields: [organizationId], references: [id])
   candidateNotes CandidateNote[]
   auditLogs      AuditLog[]
 }
 
 model CandidateNote {
-  id             String   @id @default(uuid())
+  id             String   @id @default(uuid()) @db.Uuid
   makeRecordId   String
-  organizationId String
-  userId         String
+  organizationId String   @db.Uuid
+  userId         String   @db.Uuid
   content        String
   createdAt      DateTime @default(now())
 
@@ -58,9 +57,9 @@ model CandidateNote {
 }
 
 model CandidateTag {
-  id             String   @id @default(uuid())
+  id             String   @id @default(uuid()) @db.Uuid
   makeRecordId   String
-  organizationId String
+  organizationId String   @db.Uuid
   tag            String
   createdAt      DateTime @default(now())
 
@@ -70,9 +69,9 @@ model CandidateTag {
 }
 
 model AuditLog {
-  id             String   @id @default(uuid())
-  userId         String
-  organizationId String
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @db.Uuid
+  organizationId String   @db.Uuid
   action         String
   resourceType   String
   resourceId     String
@@ -84,3 +83,7 @@ model AuditLog {
 
   @@index([organizationId, createdAt])
 }
+
+// NOTE: public.members_with_status is a Postgres view (see 20260423_supabase_auth_trigger migration).
+// It is queried from app code via prisma.$queryRaw — not declared as a Prisma model because
+// Prisma's migrate tooling would otherwise try to create a physical table with the same name.

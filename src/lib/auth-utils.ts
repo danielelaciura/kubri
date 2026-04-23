@@ -1,4 +1,5 @@
-import { auth } from "@/lib/auth";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { prisma } from "@/lib/db";
 import type { Role } from "@/generated/prisma/client";
 
 const ROLE_HIERARCHY: Record<Role, number> = {
@@ -7,22 +8,42 @@ const ROLE_HIERARCHY: Record<Role, number> = {
   ORG_MEMBER: 1,
 };
 
-export async function getCurrentUser() {
-  const session = await auth();
+export function hasMinimumRole(userRole: Role, minimumRole: Role): boolean {
+  return (ROLE_HIERARCHY[userRole] ?? 0) >= ROLE_HIERARCHY[minimumRole];
+}
 
-  if (!session?.user) {
+export async function getCurrentUser() {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user: authUser },
+  } = await supabase.auth.getUser();
+
+  if (!authUser) {
     throw new Error("Non autenticato");
   }
 
-  return session.user;
+  const dbUser = await prisma.user.findUnique({
+    where: { id: authUser.id },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      organizationId: true,
+    },
+  });
+
+  if (!dbUser) {
+    throw new Error("Utente non trovato");
+  }
+
+  return dbUser;
 }
 
 export async function requireRole(minimumRole: Role) {
   const user = await getCurrentUser();
-  const userLevel = ROLE_HIERARCHY[user.role as Role] ?? 0;
-  const requiredLevel = ROLE_HIERARCHY[minimumRole];
 
-  if (userLevel < requiredLevel) {
+  if (!hasMinimumRole(user.role, minimumRole)) {
     throw new Error("Permessi insufficienti");
   }
 
@@ -36,5 +57,5 @@ export async function requireOrganization() {
     throw new Error("Nessuna organizzazione associata");
   }
 
-  return user;
+  return user as typeof user & { organizationId: string };
 }

@@ -32,6 +32,7 @@ export default async function AdminLayout({
       userName={user.name ?? "Utente"}
       organizationName={organization?.name ?? "Kubri"}
       isAdmin={true}
+      isOrgAdmin={true}
     >
       {children}
     </DashboardShell>

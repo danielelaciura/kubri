@@ -2103,7 +2103,7 @@ export default async function NewJobPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">{strings.pages.jobNew}</h1>
+      <h1 className="text-2xl tracking-tight">{strings.pages.jobNew}</h1>
       <JobForm mode="create" action={createJobAction} />
     </div>
   );
@@ -2165,7 +2165,7 @@ export default async function JobsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">{strings.pages.jobs}</h1>
+        <h1 className="text-2xl tracking-tight">{strings.pages.jobs}</h1>
       </div>
 
       {jobs.length === 0 ? (
@@ -2530,7 +2530,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">{jd.name}</h1>
+          <h1 className="text-2xl tracking-tight">{jd.name}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {jd.locationRaw}
             {jd.locationRegion && jd.locationRaw !== jd.locationRegion && (
@@ -2578,7 +2578,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
       )}
 
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">{strings.jobs.matchHeading}</h2>
+        <h2 className="text-lg ">{strings.jobs.matchHeading}</h2>
         <form action={refreshCandidatesForJob}>
           <Button variant="outline" size="sm" type="submit" className="gap-1">
             <RefreshCw className="h-4 w-4" />
@@ -2739,7 +2739,7 @@ export default async function EditJobPage({ params }: { params: Promise<{ id: st
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">{strings.pages.jobEdit}</h1>
+      <h1 className="text-2xl tracking-tight">{strings.pages.jobEdit}</h1>
       <JobForm
         mode="edit"
         initial={{
@@ -2805,7 +2805,7 @@ export default async function AdminJobsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">{strings.pages.jobs}</h1>
+      <h1 className="text-2xl tracking-tight">{strings.pages.jobs}</h1>
 
       <div className="rounded-lg border border-border/60 bg-card shadow-sm">
         <Table>

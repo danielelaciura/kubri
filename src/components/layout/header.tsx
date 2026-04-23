@@ -1,16 +1,18 @@
 "use client";
 
-import { LogOut, Menu } from "lucide-react";
+import Link from "next/link";
+import { LogOut, Menu, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { strings } from "@/lib/i18n/strings";
 import { logoutAction } from "@/lib/auth-actions";
 
 interface HeaderProps {
   userName: string;
+  isOrgAdmin: boolean;
   onMenuToggle: () => void;
 }
 
-export function Header({ userName, onMenuToggle }: HeaderProps) {
+export function Header({ userName, isOrgAdmin, onMenuToggle }: HeaderProps) {
   return (
     <header className="flex h-16 items-center justify-between border-b border-border bg-card px-4 lg:px-6 shadow-sm">
       <Button
@@ -24,7 +26,17 @@ export function Header({ userName, onMenuToggle }: HeaderProps) {
       </Button>
 
       <div className="lg:hidden" />
-      {/* Spacer for desktop — pushes user info to the right */}
+      {isOrgAdmin && (
+        <Link href="/dashboard/jobs/new" className="hidden lg:block">
+          <Button
+            size="lg"
+            className="text-kubri-800 bg-white border hover:bg-kubri-50"
+          >
+            <Plus className="mr-1 h-4 w-4" />
+            Aggiungi offerta
+          </Button>
+        </Link>
+      )}
       <div className="hidden lg:block" />
 
       <div className="flex items-center gap-3">

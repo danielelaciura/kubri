@@ -74,7 +74,7 @@ export default async function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">
+      <h1 className="text-2xl tracking-tight">
         {strings.pages.settings}
       </h1>
       <p className="text-muted-foreground">

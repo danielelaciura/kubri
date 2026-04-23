@@ -42,6 +42,9 @@ export default async function DashboardLayout({
         userName={dbUser.name ?? "Utente"}
         organizationName={organization?.name ?? "Organizzazione"}
         isAdmin={dbUser.role === Role.ADMIN_KUBRI}
+        isOrgAdmin={
+          dbUser.role === Role.ORG_ADMIN || dbUser.role === Role.ADMIN_KUBRI
+        }
       >
         {children}
       </DashboardShell>

@@ -10,18 +10,14 @@ export const createOrgSchema = z.object({
   makeApiToken: z.string().min(1, "API Token obbligatorio"),
   adminEmail: z.email("Email non valida"),
   adminName: z.string().min(1, "Nome obbligatorio"),
-  adminPassword: z
-    .string()
-    .min(8, "La password deve avere almeno 8 caratteri"),
+  // adminPassword removed — Supabase invite flow handles password
 });
 
 export const inviteMemberSchema = z.object({
   email: z.email("Email non valida"),
   name: z.string().min(1, "Nome obbligatorio"),
   role: z.enum(["ORG_ADMIN", "ORG_MEMBER"]),
-  temporaryPassword: z
-    .string()
-    .min(8, "La password deve avere almeno 8 caratteri"),
+  // temporaryPassword removed
 });
 
 export const updateOrgSettingsSchema = z.object({
@@ -34,5 +30,9 @@ export const changeRoleSchema = z.object({
 });
 
 export const removeMemberSchema = z.object({
+  userId: z.string().min(1),
+});
+
+export const resendInviteSchema = z.object({
   userId: z.string().min(1),
 });

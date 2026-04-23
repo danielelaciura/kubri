@@ -1,11 +1,12 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { auth } from "@/lib/auth";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { prisma } from "@/lib/db";
 import { Role } from "@/generated/prisma/client";
 import { encrypt } from "@/lib/encryption";
-import { hashPassword } from "@/lib/password";
 import { logAudit } from "@/lib/audit";
+import { getAppOrigin } from "@/lib/origin";
 import { createOrgSchema } from "@/lib/validations/organization";
 import { strings } from "@/lib/i18n/strings";
 import {
@@ -19,8 +20,17 @@ import {
 import { CreateOrgDialog } from "@/components/admin/create-org-dialog";
 
 export default async function OrganizationsPage() {
-  const session = await auth();
-  if (!session?.user || session.user.role !== Role.ADMIN_KUBRI) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user: authUser },
+  } = await supabase.auth.getUser();
+  if (!authUser) redirect("/login");
+
+  const currentAdmin = await prisma.user.findUnique({
+    where: { id: authUser.id },
+    select: { id: true, role: true },
+  });
+  if (!currentAdmin || currentAdmin.role !== Role.ADMIN_KUBRI) {
     redirect("/dashboard");
   }
 
@@ -37,8 +47,17 @@ export default async function OrganizationsPage() {
 
   async function createOrg(formData: FormData) {
     "use server";
-    const s = await auth();
-    if (!s?.user || s.user.role !== Role.ADMIN_KUBRI) {
+    const sbRead = await createSupabaseServerClient();
+    const {
+      data: { user: aUser },
+    } = await sbRead.auth.getUser();
+    if (!aUser) throw new Error("Non autenticato");
+
+    const me = await prisma.user.findUnique({
+      where: { id: aUser.id },
+      select: { id: true, role: true },
+    });
+    if (!me || me.role !== Role.ADMIN_KUBRI) {
       throw new Error("Permessi insufficienti");
     }
 
@@ -49,17 +68,14 @@ export default async function OrganizationsPage() {
       makeApiToken: formData.get("makeApiToken"),
       adminEmail: formData.get("adminEmail"),
       adminName: formData.get("adminName"),
-      adminPassword: formData.get("adminPassword"),
     });
-
     if (!parsed.success) {
       throw new Error("Dati non validi");
     }
 
     const encryptedToken = encrypt(parsed.data.makeApiToken);
-    const passwordHash = await hashPassword(parsed.data.adminPassword);
 
-    const org = await prisma.organization.create({
+    const organization = await prisma.organization.create({
       data: {
         name: parsed.data.name,
         slug: parsed.data.slug,
@@ -68,23 +84,37 @@ export default async function OrganizationsPage() {
       },
     });
 
-    await prisma.user.create({
-      data: {
-        email: parsed.data.adminEmail,
-        name: parsed.data.adminName,
-        passwordHash,
-        role: Role.ORG_ADMIN,
-        organizationId: org.id,
+    const admin = createSupabaseAdminClient();
+    const origin = await getAppOrigin();
+
+    const { error: inviteError } = await admin.auth.admin.inviteUserByEmail(
+      parsed.data.adminEmail,
+      {
+        data: {
+          name: parsed.data.adminName,
+          role: "ORG_ADMIN",
+          organization_id: organization.id,
+        },
+        redirectTo: `${origin}/auth/callback?next=/auth/set-password`,
       },
-    });
+    );
+    if (inviteError) {
+      // Roll back org creation so admin can retry without a unique-slug conflict.
+      await prisma.organization.delete({ where: { id: organization.id } });
+      throw new Error(inviteError.message);
+    }
 
     await logAudit({
-      userId: s.user.id,
-      organizationId: org.id,
+      userId: me.id,
+      organizationId: organization.id,
       action: "create_organization",
       resourceType: "Organization",
-      resourceId: org.id,
-      metadata: { name: parsed.data.name, slug: parsed.data.slug },
+      resourceId: organization.id,
+      metadata: {
+        name: parsed.data.name,
+        slug: parsed.data.slug,
+        adminEmail: parsed.data.adminEmail,
+      },
     });
 
     revalidatePath("/admin/organizations");

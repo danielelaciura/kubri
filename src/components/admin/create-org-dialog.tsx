@@ -81,10 +81,6 @@ export function CreateOrgDialog({ action }: CreateOrgDialogProps) {
                 <Input name="adminEmail" type="email" required />
               </div>
             </div>
-            <div className="mt-4">
-              <label className="mb-1 block text-sm font-medium">Password temporanea</label>
-              <Input name="adminPassword" type="password" required minLength={8} />
-            </div>
           </div>
 
           {error && (

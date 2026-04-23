@@ -1,6 +1,6 @@
 import { redirect, notFound } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { auth } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth-utils";
 import { prisma } from "@/lib/db";
 import { Role } from "@/generated/prisma/client";
 import { logAudit } from "@/lib/audit";
@@ -25,8 +25,13 @@ interface OrgDetailPageProps {
 }
 
 export default async function OrgDetailPage({ params }: OrgDetailPageProps) {
-  const session = await auth();
-  if (!session?.user || session.user.role !== Role.ADMIN_KUBRI) {
+  let currentUser;
+  try {
+    currentUser = await getCurrentUser();
+  } catch {
+    redirect("/login");
+  }
+  if (currentUser.role !== Role.ADMIN_KUBRI) {
     redirect("/dashboard");
   }
 
@@ -59,8 +64,8 @@ export default async function OrgDetailPage({ params }: OrgDetailPageProps) {
 
   async function updateOrgName(formData: FormData) {
     "use server";
-    const s = await auth();
-    if (!s?.user || s.user.role !== Role.ADMIN_KUBRI) {
+    const s = await getCurrentUser();
+    if (s.role !== Role.ADMIN_KUBRI) {
       throw new Error("Permessi insufficienti");
     }
 
@@ -78,7 +83,7 @@ export default async function OrgDetailPage({ params }: OrgDetailPageProps) {
     });
 
     await logAudit({
-      userId: s.user.id,
+      userId: s.id,
       organizationId: id,
       action: "update_organization",
       resourceType: "Organization",

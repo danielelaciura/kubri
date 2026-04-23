@@ -1,6 +1,6 @@
 "use server";
 
-import { auth } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth-utils";
 import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 import { z } from "zod/v4";
@@ -20,8 +20,8 @@ const tagSchema = z.object({
 });
 
 export async function addNote(formData: FormData) {
-  const session = await auth();
-  if (!session?.user?.id || !session.user.organizationId) {
+  const session = await getCurrentUser();
+  if (!session.organizationId) {
     throw new Error("Non autenticato");
   }
 
@@ -35,7 +35,7 @@ export async function addNote(formData: FormData) {
   }
 
   const { makeRecordId, content } = parsed.data;
-  const { id: userId, organizationId } = session.user;
+  const { id: userId, organizationId } = session;
 
   const note = await prisma.candidateNote.create({
     data: {
@@ -59,8 +59,8 @@ export async function addNote(formData: FormData) {
 }
 
 export async function addTag(formData: FormData) {
-  const session = await auth();
-  if (!session?.user?.id || !session.user.organizationId) {
+  const session = await getCurrentUser();
+  if (!session.organizationId) {
     throw new Error("Non autenticato");
   }
 
@@ -74,7 +74,7 @@ export async function addTag(formData: FormData) {
   }
 
   const { makeRecordId, tag } = parsed.data;
-  const { id: userId, organizationId } = session.user;
+  const { id: userId, organizationId } = session;
 
   // Check for duplicate tag within same record and organization
   const existing = await prisma.candidateTag.findFirst({
@@ -110,12 +110,12 @@ export async function addTag(formData: FormData) {
 }
 
 export async function removeTag(tagId: string) {
-  const session = await auth();
-  if (!session?.user?.id || !session.user.organizationId) {
+  const session = await getCurrentUser();
+  if (!session.organizationId) {
     throw new Error("Non autenticato");
   }
 
-  const { id: userId, organizationId } = session.user;
+  const { id: userId, organizationId } = session;
 
   // Find the tag ensuring it belongs to the user's organization
   const tag = await prisma.candidateTag.findFirst({

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { Users } from "lucide-react";
-import { auth } from "@/lib/auth";
+import { requireOrganization } from "@/lib/auth-utils";
 import { strings } from "@/lib/i18n/strings";
 import { getCandidatesForOrg } from "@/lib/make/service";
 import { computeStats } from "@/lib/stats/compute";
@@ -8,13 +8,13 @@ import { StatCard } from "@/components/stats/stat-card";
 import { WeeklyChart } from "@/components/stats/weekly-chart";
 
 export default async function StatsPage() {
-  const session = await auth();
-
-  if (!session?.user?.organizationId) {
+  let organizationId: string;
+  try {
+    const user = await requireOrganization();
+    organizationId = user.organizationId;
+  } catch {
     redirect("/login");
   }
-
-  const organizationId = session.user.organizationId;
 
   let stats;
   let error = false;

@@ -235,18 +235,26 @@ export default async function MembersPage() {
     });
     if (!target) throw new Error("Utente non trovato");
 
+    // Update Supabase user_metadata first so that if it fails, we haven't
+    // diverged public.User from auth.users. The trigger only reads metadata
+    // on insert (authz is read from public.User), so keeping metadata in
+    // sync matters only for future invite resends and admin listings.
+    const admin = createSupabaseAdminClient();
+    const { error: metaError } = await admin.auth.admin.updateUserById(
+      target.id,
+      {
+        user_metadata: {
+          name: target.name,
+          role: parsed.data.role,
+          organization_id: me.organizationId,
+        },
+      },
+    );
+    if (metaError) throw new Error(metaError.message);
+
     await prisma.user.update({
       where: { id: target.id },
       data: { role: parsed.data.role as Role },
-    });
-
-    const admin = createSupabaseAdminClient();
-    await admin.auth.admin.updateUserById(target.id, {
-      user_metadata: {
-        name: target.name,
-        role: parsed.data.role,
-        organization_id: me.organizationId,
-      },
     });
 
     await logAudit({

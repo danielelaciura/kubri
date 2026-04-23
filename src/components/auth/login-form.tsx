@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { mapSupabaseError } from "@/lib/supabase/errors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -31,25 +33,20 @@ export function LoginForm() {
 
     setIsLoading(true);
 
-    try {
-      const result = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      });
+    const supabase = createSupabaseBrowserClient();
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-      if (result?.error) {
-        setError("Credenziali non valide");
-        return;
-      }
-
-      router.push("/dashboard");
-      router.refresh();
-    } catch {
-      setError("Errore durante l'accesso");
-    } finally {
+    if (authError) {
+      setError(mapSupabaseError(authError));
       setIsLoading(false);
+      return;
     }
+
+    router.push("/dashboard");
+    router.refresh();
   }
 
   return (
@@ -61,10 +58,7 @@ export function LoginForm() {
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <label
-              htmlFor="email"
-              className="text-sm font-medium leading-none"
-            >
+            <label htmlFor="email" className="text-sm font-medium leading-none">
               Email
             </label>
             <Input
@@ -79,10 +73,7 @@ export function LoginForm() {
             />
           </div>
           <div className="space-y-2">
-            <label
-              htmlFor="password"
-              className="text-sm font-medium leading-none"
-            >
+            <label htmlFor="password" className="text-sm font-medium leading-none">
               Password
             </label>
             <Input
@@ -95,12 +86,15 @@ export function LoginForm() {
               required
             />
           </div>
-          {error && (
-            <p className="text-sm text-destructive text-center">{error}</p>
-          )}
+          {error && <p className="text-sm text-destructive text-center">{error}</p>}
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? "Accesso in corso..." : "Accedi"}
           </Button>
+          <p className="text-center text-sm">
+            <Link href="/login/forgot" className="text-muted-foreground underline">
+              Password dimenticata?
+            </Link>
+          </p>
         </form>
       </CardContent>
     </Card>

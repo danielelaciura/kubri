@@ -88,27 +88,11 @@ export function CreateOrgDialog({ action }: CreateOrgDialogProps) {
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <label
-                htmlFor="org-datastore"
-                className="text-sm font-medium"
-              >
-                Make.com Data Store ID
-              </label>
-              <Input id="org-datastore" name="makeDatastoreId" required />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="org-token" className="text-sm font-medium">
-                Make.com API Token
-              </label>
-              <Input
-                id="org-token"
-                name="makeApiToken"
-                type="password"
-                required
-              />
-            </div>
+          <div className="space-y-2">
+            <label htmlFor="org-datastore" className="text-sm font-medium">
+              Make.com Data Store ID
+            </label>
+            <Input id="org-datastore" name="makeDatastoreId" required />
           </div>
 
           <div className="border-t pt-4">

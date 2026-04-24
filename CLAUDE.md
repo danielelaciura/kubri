@@ -245,6 +245,92 @@ pnpm prisma db push         # push schema without migration (prototyping)
 pnpm prisma studio          # GUI to explore the DB
 ```
 
+## Database Migration Workflow (dev → prod)
+
+Prod and dev are two separate Supabase projects. **Vercel does NOT apply
+migrations on deploy** — they must be applied manually to prod before merging
+the PR that ships the new code.
+
+### Standard flow for any schema change
+
+1. Modify `prisma/schema.prisma`
+2. Generate + apply to dev:
+   ```bash
+   pnpm prisma migrate dev --name <descriptive_name>
+   ```
+3. Implement code, test, commit (migration files + code together)
+4. Open PR, code review
+5. **Before merging:** apply to prod
+   ```bash
+   set -a && source .env.prod && set +a && pnpm prisma migrate deploy
+   ```
+   (`.env.prod` is gitignored — contains `DATABASE_URL` 6543 + `DIRECT_URL` 5432)
+6. Verify status:
+   ```bash
+   set -a && source .env.prod && set +a && pnpm prisma migrate status
+   ```
+7. Merge PR → Vercel auto-deploys the new code (DB already aligned)
+
+### Why prod migration runs BEFORE merge
+
+The new code expects the new schema. If we merge first, Vercel deploys code
+that crashes against the old DB. Apply DB first, then ship code.
+
+### Destructive migrations (drop column, rename, type change)
+
+Use **expand & contract** to avoid downtime:
+1. Release N: add new column, code writes to both old + new
+2. Release N+1: backfill old rows → new column
+3. Release N+2: code reads only from new column
+4. Release N+3: drop old column
+
+For our current scale (small data, low traffic), a direct drop is acceptable
+if you accept ~10s of errors during the deploy window.
+
+### Backups before risky migrations
+
+```bash
+pg_dump "$DIRECT_URL" > /tmp/kubri-prod-pre-<name>-$(date +%Y%m%d-%H%M%S).sql
+```
+
+### Cheat sheet
+
+| Command | When |
+|---------|------|
+| `prisma migrate dev --name X` | Dev: new schema change |
+| `prisma migrate deploy` | Prod (and CI): apply pending migrations |
+| `prisma migrate status` | Check which migrations are pending |
+| `prisma migrate resolve --applied X` | Mark a migration as applied without running it (recovery) |
+| `prisma generate` | Regenerate TS client after schema change |
+
+### Things NOT to do on prod
+
+- ❌ `prisma db push` — bypasses migration history
+- ❌ `prisma migrate reset` — wipes everything
+- ❌ Editing already-committed migration files that have been applied
+- ❌ Modifying schema directly via Supabase Studio — drifts from Prisma
+- ❌ `prisma migrate dev` — dev-only command
+
+### Auto-deploy alternative (NOT used)
+
+Adding `prisma migrate deploy` to the build script (`"build": "prisma generate && prisma migrate deploy && next build"`) is rejected because:
+- Failed migration = broken build = stuck prod
+- New schema applied before old code spins down → 30-60s of errors
+- Hard to roll back
+
+Stick with the manual pre-merge flow.
+
+### Connection strings reminder
+
+- `DATABASE_URL` → port **6543** (transaction pooler, runtime queries)
+- `DIRECT_URL` → port **5432** (session pooler, DDL-safe, used by Prisma migrate)
+- Prisma reads `DIRECT_URL` first via `prisma.config.ts` (dotenv) — keep `.env.local` aligned with the dev DB so casual `prisma` commands don't hit prod by mistake
+
+### Generated Prisma client
+
+`src/generated/prisma/` is gitignored. `package.json` runs `prisma generate`
+in both `postinstall` and `build` so Vercel produces it on every deploy.
+
 ## Environment Variables
 
 ```env

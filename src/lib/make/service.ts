@@ -1,23 +1,23 @@
 import { prisma } from "@/lib/db";
-import { decrypt } from "@/lib/encryption";
 import { MakeApiClient } from "./client";
 import { cachedFetch, invalidateCache, LIST_TTL_MS } from "./cache";
 import { normalizeCandidates } from "./normalize";
 import type { Candidate } from "@/types";
 
-async function getOrgCredentials(organizationId: string): Promise<{
-  datastoreId: string;
-  apiToken: string;
-}> {
+function getApiToken(): string {
+  const token = process.env["MAKE_API_TOKEN"];
+  if (!token) {
+    throw new Error("MAKE_API_TOKEN environment variable is not set");
+  }
+  return token;
+}
+
+async function getOrgDatastoreId(organizationId: string): Promise<string> {
   const org = await prisma.organization.findUniqueOrThrow({
     where: { id: organizationId },
-    select: { makeDatastoreId: true, makeApiToken: true },
+    select: { makeDatastoreId: true },
   });
-
-  return {
-    datastoreId: org.makeDatastoreId,
-    apiToken: decrypt(org.makeApiToken),
-  };
+  return org.makeDatastoreId;
 }
 
 function listCacheKey(orgId: string, datastoreId: string): string {
@@ -32,8 +32,8 @@ function listCacheKey(orgId: string, datastoreId: string): string {
 export async function getCandidatesForOrg(
   organizationId: string,
 ): Promise<Candidate[]> {
-  const { datastoreId, apiToken } = await getOrgCredentials(organizationId);
-  const client = new MakeApiClient(datastoreId, apiToken);
+  const datastoreId = await getOrgDatastoreId(organizationId);
+  const client = new MakeApiClient(datastoreId, getApiToken());
 
   const key = listCacheKey(organizationId, datastoreId);
   const response = await cachedFetch(

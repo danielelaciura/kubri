@@ -18,7 +18,6 @@ model Organization {
   name            String
   slug            String   @unique
   makeDatastoreId String
-  makeApiToken    String
   createdAt       DateTime @default(now())
   settings        Json?
 

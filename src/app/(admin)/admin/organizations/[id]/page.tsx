@@ -8,6 +8,7 @@ import { logAudit } from "@/lib/audit";
 import { getAppOrigin } from "@/lib/origin";
 import {
   updateOrgSettingsSchema,
+  updateOrgDatastoreSchema,
   inviteMemberSchema,
 } from "@/lib/validations/organization";
 import { strings } from "@/lib/i18n/strings";
@@ -100,6 +101,35 @@ export default async function OrgDetailPage({ params }: OrgDetailPageProps) {
     revalidatePath(`/admin/organizations/${id}`);
   }
 
+  async function updateOrgDatastore(formData: FormData) {
+    "use server";
+    const s = await getCurrentUser();
+    if (s.role !== Role.ADMIN_KUBRI) {
+      throw new Error("Permessi insufficienti");
+    }
+
+    const parsed = updateOrgDatastoreSchema.safeParse({
+      makeDatastoreId: formData.get("makeDatastoreId"),
+    });
+    if (!parsed.success) throw new Error("Dati non validi");
+
+    await prisma.organization.update({
+      where: { id },
+      data: { makeDatastoreId: parsed.data.makeDatastoreId },
+    });
+
+    await logAudit({
+      userId: s.id,
+      organizationId: id,
+      action: "update_organization_datastore",
+      resourceType: "Organization",
+      resourceId: id,
+      metadata: { makeDatastoreId: parsed.data.makeDatastoreId },
+    });
+
+    revalidatePath(`/admin/organizations/${id}`);
+  }
+
   async function inviteOrgMember(formData: FormData) {
     "use server";
     const s = await getCurrentUser();
@@ -169,10 +199,6 @@ export default async function OrgDetailPage({ params }: OrgDetailPageProps) {
           </CardHeader>
           <CardContent className="space-y-3">
             <div>
-              <p className="text-sm text-muted-foreground">Data Store ID</p>
-              <p className="font-mono text-sm">{org.makeDatastoreId}</p>
-            </div>
-            <div>
               <p className="text-sm text-muted-foreground">Data creazione</p>
               <p className="text-sm">{org.createdAt.toLocaleDateString("it-IT")}</p>
             </div>
@@ -188,6 +214,28 @@ export default async function OrgDetailPage({ params }: OrgDetailPageProps) {
               <Input name="name" defaultValue={org.name} required />
               <Button type="submit">{strings.common.save}</Button>
             </form>
+          </CardContent>
+        </Card>
+
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle>Make.com Data Store</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form action={updateOrgDatastore} className="flex gap-2">
+              <Input
+                name="makeDatastoreId"
+                defaultValue={org.makeDatastoreId}
+                placeholder="Data Store ID"
+                required
+                className="font-mono"
+              />
+              <Button type="submit">{strings.common.save}</Button>
+            </form>
+            <p className="mt-2 text-xs text-muted-foreground">
+              ID del Data Store Make.com per i candidati di questa
+              organizzazione. Il token API è condiviso a livello di piattaforma.
+            </p>
           </CardContent>
         </Card>
       </div>

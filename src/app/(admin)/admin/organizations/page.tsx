@@ -4,7 +4,6 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { prisma } from "@/lib/db";
 import { Role } from "@/generated/prisma/client";
-import { encrypt } from "@/lib/encryption";
 import { logAudit } from "@/lib/audit";
 import { getAppOrigin } from "@/lib/origin";
 import { createOrgSchema } from "@/lib/validations/organization";
@@ -65,7 +64,6 @@ export default async function OrganizationsPage() {
       name: formData.get("name"),
       slug: formData.get("slug"),
       makeDatastoreId: formData.get("makeDatastoreId"),
-      makeApiToken: formData.get("makeApiToken"),
       adminEmail: formData.get("adminEmail"),
       adminName: formData.get("adminName"),
     });
@@ -73,14 +71,11 @@ export default async function OrganizationsPage() {
       throw new Error("Dati non validi");
     }
 
-    const encryptedToken = encrypt(parsed.data.makeApiToken);
-
     const organization = await prisma.organization.create({
       data: {
         name: parsed.data.name,
         slug: parsed.data.slug,
         makeDatastoreId: parsed.data.makeDatastoreId,
-        makeApiToken: encryptedToken,
       },
     });
 

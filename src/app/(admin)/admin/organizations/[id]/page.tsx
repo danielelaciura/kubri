@@ -10,6 +10,7 @@ import {
   updateOrgSettingsSchema,
   updateOrgDatastoreSchema,
   inviteMemberSchema,
+  resendInviteSchema,
 } from "@/lib/validations/organization";
 import { strings } from "@/lib/i18n/strings";
 import { InviteOrgMemberDialog } from "@/components/admin/invite-org-member-dialog";
@@ -53,21 +54,28 @@ export default async function OrgDetailPage({ params }: OrgDetailPageProps) {
       makeDatastoreId: true,
       createdAt: true,
       settings: true,
-      users: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          role: true,
-          createdAt: true,
-          lastLoginAt: true,
-        },
-        orderBy: { createdAt: "asc" },
-      },
     },
   });
 
   if (!org) notFound();
+
+  type MemberRow = {
+    id: string;
+    email: string;
+    name: string;
+    role: Role;
+    createdAt: Date;
+    lastLoginAt: Date | null;
+    isPending: boolean;
+  };
+
+  // members_with_status is a Postgres view (see migration 20260423101743_supabase_auth_trigger).
+  const members = await prisma.$queryRaw<MemberRow[]>`
+    SELECT id, email, name, role, "createdAt", "lastLoginAt", "isPending"
+    FROM public.members_with_status
+    WHERE "organizationId" = ${id}::uuid
+    ORDER BY "createdAt" ASC
+  `;
 
   async function updateOrgName(formData: FormData) {
     "use server";
@@ -125,6 +133,47 @@ export default async function OrgDetailPage({ params }: OrgDetailPageProps) {
       resourceType: "Organization",
       resourceId: id,
       metadata: { makeDatastoreId: parsed.data.makeDatastoreId },
+    });
+
+    revalidatePath(`/admin/organizations/${id}`);
+  }
+
+  async function resendInvite(formData: FormData) {
+    "use server";
+    const s = await getCurrentUser();
+    if (s.role !== Role.ADMIN_KUBRI) {
+      throw new Error("Permessi insufficienti");
+    }
+
+    const parsed = resendInviteSchema.safeParse({
+      userId: formData.get("userId"),
+    });
+    if (!parsed.success) throw new Error("Dati non validi");
+
+    const target = await prisma.user.findFirst({
+      where: { id: parsed.data.userId, organizationId: id },
+    });
+    if (!target) throw new Error("Utente non trovato");
+
+    const admin = createSupabaseAdminClient();
+    const origin = await getAppOrigin();
+    const { error } = await admin.auth.admin.inviteUserByEmail(target.email, {
+      data: {
+        name: target.name,
+        role: target.role,
+        organization_id: id,
+      },
+      redirectTo: `${origin}/auth/callback?next=/auth/set-password`,
+    });
+    if (error) throw new Error(error.message);
+
+    await logAudit({
+      userId: s.id,
+      organizationId: id,
+      action: "resend_invite",
+      resourceType: "User",
+      resourceId: target.id,
+      metadata: { email: target.email },
     });
 
     revalidatePath(`/admin/organizations/${id}`);
@@ -242,7 +291,7 @@ export default async function OrgDetailPage({ params }: OrgDetailPageProps) {
 
       <div>
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg">Membri ({org.users.length})</h2>
+          <h2 className="text-lg">Membri ({members.length})</h2>
           <InviteOrgMemberDialog action={inviteOrgMember} />
         </div>
         <Table>
@@ -251,12 +300,14 @@ export default async function OrgDetailPage({ params }: OrgDetailPageProps) {
               <TableHead>Nome</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Ruolo</TableHead>
+              <TableHead>Stato</TableHead>
               <TableHead>Iscrizione</TableHead>
               <TableHead>Ultimo accesso</TableHead>
+              <TableHead className="text-right">Azioni</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {org.users.map((user) => (
+            {members.map((user) => (
               <TableRow key={user.id}>
                 <TableCell className="font-medium">{user.name}</TableCell>
                 <TableCell>{user.email}</TableCell>
@@ -266,12 +317,34 @@ export default async function OrgDetailPage({ params }: OrgDetailPageProps) {
                   </Badge>
                 </TableCell>
                 <TableCell>
+                  {user.isPending ? (
+                    <Badge variant="outline">In attesa</Badge>
+                  ) : (
+                    <Badge>Attivo</Badge>
+                  )}
+                </TableCell>
+                <TableCell>
                   {user.createdAt.toLocaleDateString("it-IT")}
                 </TableCell>
                 <TableCell>
                   {user.lastLoginAt
                     ? user.lastLoginAt.toLocaleDateString("it-IT")
                     : "Mai"}
+                </TableCell>
+                <TableCell className="text-right">
+                  {user.isPending && (
+                    <form action={resendInvite} className="inline">
+                      <input type="hidden" name="userId" value={user.id} />
+                      <Button
+                        type="submit"
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs"
+                      >
+                        {strings.members.resendInvite}
+                      </Button>
+                    </form>
+                  )}
                 </TableCell>
               </TableRow>
             ))}

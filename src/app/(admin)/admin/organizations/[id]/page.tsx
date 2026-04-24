@@ -1,11 +1,17 @@
 import { redirect, notFound } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/auth-utils";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { prisma } from "@/lib/db";
 import { Role } from "@/generated/prisma/client";
 import { logAudit } from "@/lib/audit";
-import { updateOrgSettingsSchema } from "@/lib/validations/organization";
+import { getAppOrigin } from "@/lib/origin";
+import {
+  updateOrgSettingsSchema,
+  inviteMemberSchema,
+} from "@/lib/validations/organization";
 import { strings } from "@/lib/i18n/strings";
+import { InviteOrgMemberDialog } from "@/components/admin/invite-org-member-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -94,6 +100,52 @@ export default async function OrgDetailPage({ params }: OrgDetailPageProps) {
     revalidatePath(`/admin/organizations/${id}`);
   }
 
+  async function inviteOrgMember(formData: FormData) {
+    "use server";
+    const s = await getCurrentUser();
+    if (s.role !== Role.ADMIN_KUBRI) {
+      throw new Error("Permessi insufficienti");
+    }
+
+    const parsed = inviteMemberSchema.safeParse({
+      email: formData.get("email"),
+      name: formData.get("name"),
+      role: formData.get("role"),
+    });
+    if (!parsed.success) throw new Error("Dati non validi");
+
+    const existing = await prisma.user.findUnique({
+      where: { email: parsed.data.email },
+    });
+    if (existing) throw new Error(strings.members.emailExists);
+
+    const admin = createSupabaseAdminClient();
+    const origin = await getAppOrigin();
+    const { error } = await admin.auth.admin.inviteUserByEmail(
+      parsed.data.email,
+      {
+        data: {
+          name: parsed.data.name,
+          role: parsed.data.role,
+          organization_id: id,
+        },
+        redirectTo: `${origin}/auth/callback?next=/auth/set-password`,
+      },
+    );
+    if (error) throw new Error(error.message);
+
+    await logAudit({
+      userId: s.id,
+      organizationId: id,
+      action: "invite_member",
+      resourceType: "User",
+      resourceId: parsed.data.email,
+      metadata: { email: parsed.data.email, role: parsed.data.role },
+    });
+
+    revalidatePath(`/admin/organizations/${id}`);
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -141,9 +193,10 @@ export default async function OrgDetailPage({ params }: OrgDetailPageProps) {
       </div>
 
       <div>
-        <h2 className="mb-4 text-lg ">
-          Membri ({org.users.length})
-        </h2>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg">Membri ({org.users.length})</h2>
+          <InviteOrgMemberDialog action={inviteOrgMember} />
+        </div>
         <Table>
           <TableHeader>
             <TableRow>

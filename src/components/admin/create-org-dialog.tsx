@@ -1,10 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, X } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog";
 
 interface CreateOrgDialogProps {
   action: (formData: FormData) => Promise<void>;
@@ -28,57 +37,105 @@ export function CreateOrgDialog({ action }: CreateOrgDialogProps) {
     }
   }
 
-  if (!open) {
-    return (
-      <Button onClick={() => setOpen(true)} className="gap-2">
-        <Plus className="h-4 w-4" />
-        Nuova organizzazione
-      </Button>
-    );
-  }
-
   return (
-    <Card className="w-full max-w-lg">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Nuova organizzazione</CardTitle>
-        <Button variant="ghost" size="sm" onClick={() => setOpen(false)}>
-          <X className="h-4 w-4" />
-        </Button>
-      </CardHeader>
-      <CardContent>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) setError(null);
+      }}
+    >
+      <DialogTrigger
+        render={
+          <Button className="gap-2">
+            <Plus className="h-4 w-4" />
+            Nuova organizzazione
+          </Button>
+        }
+      />
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Nuova organizzazione</DialogTitle>
+          <DialogDescription>
+            Crea un&apos;organizzazione e invita il suo primo amministratore.
+          </DialogDescription>
+        </DialogHeader>
+
         <form action={handleSubmit} className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="mb-1 block text-sm font-medium">Nome</label>
-              <Input name="name" required placeholder="Nome organizzazione" />
+            <div className="space-y-2">
+              <label htmlFor="org-name" className="text-sm font-medium">
+                Nome
+              </label>
+              <Input
+                id="org-name"
+                name="name"
+                required
+                placeholder="Nome organizzazione"
+              />
             </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium">Slug</label>
-              <Input name="slug" required placeholder="nome-org" pattern="[a-z0-9-]+" />
+            <div className="space-y-2">
+              <label htmlFor="org-slug" className="text-sm font-medium">
+                Slug
+              </label>
+              <Input
+                id="org-slug"
+                name="slug"
+                required
+                placeholder="nome-org"
+                pattern="[a-z0-9-]+"
+              />
             </div>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="mb-1 block text-sm font-medium">Make.com Data Store ID</label>
-              <Input name="makeDatastoreId" required />
+            <div className="space-y-2">
+              <label
+                htmlFor="org-datastore"
+                className="text-sm font-medium"
+              >
+                Make.com Data Store ID
+              </label>
+              <Input id="org-datastore" name="makeDatastoreId" required />
             </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium">Make.com API Token</label>
-              <Input name="makeApiToken" type="password" required />
+            <div className="space-y-2">
+              <label htmlFor="org-token" className="text-sm font-medium">
+                Make.com API Token
+              </label>
+              <Input
+                id="org-token"
+                name="makeApiToken"
+                type="password"
+                required
+              />
             </div>
           </div>
 
           <div className="border-t pt-4">
             <p className="mb-3 text-sm font-medium">Amministratore iniziale</p>
             <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <label className="mb-1 block text-sm font-medium">Nome</label>
-                <Input name="adminName" required />
+              <div className="space-y-2">
+                <label
+                  htmlFor="org-admin-name"
+                  className="text-sm font-medium"
+                >
+                  Nome
+                </label>
+                <Input id="org-admin-name" name="adminName" required />
               </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium">Email</label>
-                <Input name="adminEmail" type="email" required />
+              <div className="space-y-2">
+                <label
+                  htmlFor="org-admin-email"
+                  className="text-sm font-medium"
+                >
+                  Email
+                </label>
+                <Input
+                  id="org-admin-email"
+                  name="adminEmail"
+                  type="email"
+                  required
+                />
               </div>
             </div>
           </div>
@@ -87,16 +144,20 @@ export function CreateOrgDialog({ action }: CreateOrgDialogProps) {
             <p className="text-sm text-destructive">{error}</p>
           )}
 
-          <div className="flex gap-2">
+          <DialogFooter>
+            <DialogClose
+              render={
+                <Button type="button" variant="outline">
+                  Annulla
+                </Button>
+              }
+            />
             <Button type="submit" disabled={pending}>
               {pending ? "Creazione..." : "Crea organizzazione"}
             </Button>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Annulla
-            </Button>
-          </div>
+          </DialogFooter>
         </form>
-      </CardContent>
-    </Card>
+      </DialogContent>
+    </Dialog>
   );
 }

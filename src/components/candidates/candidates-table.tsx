@@ -94,19 +94,20 @@ export function CandidatesTable({ result, sort }: CandidatesTableProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>
+              <TableHead className="font-bold w-40">
                 <SortButton field="lastName" label="Cognome " />
               </TableHead>
-              <TableHead>
+              <TableHead className="font-bold w-40">
                  Nome
               </TableHead>
-              <TableHead>Paese di origine</TableHead>
-              <TableHead>Lingue</TableHead>
-              <TableHead>Competenze</TableHead>
-              <TableHead>Indirizzo</TableHead>
-              <TableHead>
+              <TableHead className="font-bold">Zona di lavoro</TableHead>
+              <TableHead className="font-bold">Paese di origine</TableHead>
+              {/* <TableHead>Lingue</TableHead> */}
+              <TableHead className="font-bold">Competenze</TableHead>
+              {/* <TableHead>Indirizzo</TableHead> */}
+              {/* <TableHead>
                 <SortButton field="createdAt" label="Data" />
-              </TableHead>
+              </TableHead> */}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -116,23 +117,26 @@ export function CandidatesTable({ result, sort }: CandidatesTableProps) {
                 className="cursor-pointer hover:bg-muted/50"
                 onClick={() => handleRowClick(candidate.id)}
               >
-                <TableCell className="font-medium">
+                <TableCell>
                  {candidate.lastName}
                 </TableCell>
-                <TableCell className="font-medium">
+                <TableCell>
                   {candidate.firstName} 
                 </TableCell>
-                <TableCell>{candidate.countryOfOrigin}</TableCell>
                 <TableCell>
+                  {candidate.jobPreferences.preferredLocation}
+                </TableCell>
+                <TableCell>{candidate.countryOfOrigin}</TableCell>
+                {/* <TableCell>
                   {candidate.languages.language && (
                     <Badge variant="secondary" className="text-xs capitalize">
                       {candidate.languages.language}
                     </Badge>
                   )}
-                </TableCell>
+                </TableCell> */}
                 <TableCell>{renderTags(candidate.skillsAndCompetences, 3)}</TableCell>
-                <TableCell className="max-w-[140px] truncate">{candidate.address}</TableCell>
-                <TableCell>{formatDate(candidate.createdAt)}</TableCell>
+                {/* <TableCell className="max-w-[140px] truncate">{candidate.address}</TableCell> */}
+                {/* <TableCell>{formatDate(candidate.createdAt)}</TableCell> */}
               </TableRow>
             ))}
           </TableBody>

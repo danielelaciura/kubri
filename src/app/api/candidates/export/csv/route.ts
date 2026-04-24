@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { requireOrganization } from "@/lib/auth-utils";
 import { getCandidatesForOrg } from "@/lib/make/service";
 import { filterCandidates, sortCandidates } from "@/lib/candidates/filter";
 import { candidateFiltersSchema, toFiltersAndSort } from "@/lib/validations/candidate-filters";
@@ -6,12 +6,14 @@ import { candidatesToCsv } from "@/lib/export/csv";
 import { logAudit } from "@/lib/audit";
 
 export async function GET(request: Request) {
-  const session = await auth();
-  if (!session?.user?.organizationId || !session.user.id) {
+  let session;
+  try {
+    session = await requireOrganization();
+  } catch {
     return new Response("Non autorizzato", { status: 401 });
   }
 
-  const { organizationId } = session.user;
+  const { organizationId } = session;
   const url = new URL(request.url);
 
   // Parse filter params from URL search params
@@ -35,7 +37,7 @@ export async function GET(request: Request) {
     const today = new Date().toISOString().slice(0, 10);
 
     await logAudit({
-      userId: session.user.id,
+      userId: session.id,
       organizationId,
       action: "export.csv",
       resourceType: "candidates",

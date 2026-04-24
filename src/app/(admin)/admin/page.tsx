@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { Building2, Users } from "lucide-react";
-import { auth } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth-utils";
+import { Role } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
 import { strings } from "@/lib/i18n/strings";
 import { StatCard } from "@/components/stats/stat-card";
@@ -20,9 +21,12 @@ import {
 } from "@/components/ui/table";
 
 export default async function AdminPage() {
-  const session = await auth();
-
-  if (!session?.user?.role || session.user.role !== "ADMIN_KUBRI") {
+  try {
+    const user = await getCurrentUser();
+    if (user.role !== Role.ADMIN_KUBRI) {
+      redirect("/login");
+    }
+  } catch {
     redirect("/login");
   }
 
@@ -45,7 +49,7 @@ export default async function AdminPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">
+      <h1 className="text-2xl tracking-tight">
         {strings.pages.admin}
       </h1>
 

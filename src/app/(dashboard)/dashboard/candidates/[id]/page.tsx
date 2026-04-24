@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { requireOrganization } from "@/lib/auth-utils";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getCandidateForOrg } from "@/lib/make/service";
@@ -18,8 +18,13 @@ export default async function CandidateDetailPage({
   params,
   searchParams,
 }: CandidateDetailPageProps) {
-  const session = await auth();
-  if (!session?.user?.organizationId) redirect("/login");
+  let organizationId: string;
+  try {
+    const user = await requireOrganization();
+    organizationId = user.organizationId;
+  } catch {
+    redirect("/login");
+  }
 
   const { id } = await params;
   const rawSearchParams = await searchParams;
@@ -27,8 +32,6 @@ export default async function CandidateDetailPage({
     typeof rawSearchParams["returnParams"] === "string"
       ? rawSearchParams["returnParams"]
       : "";
-
-  const organizationId = session.user.organizationId;
 
   // Parallel data fetching
   const [candidate, notes, tags] = await Promise.all([

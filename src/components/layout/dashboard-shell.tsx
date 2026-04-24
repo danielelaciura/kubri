@@ -8,6 +8,7 @@ interface DashboardShellProps {
   userName: string;
   organizationName: string;
   isAdmin: boolean;
+  isOrgAdmin: boolean;
   children: React.ReactNode;
 }
 
@@ -15,6 +16,7 @@ export function DashboardShell({
   userName,
   organizationName,
   isAdmin,
+  isOrgAdmin,
   children,
 }: DashboardShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -31,6 +33,7 @@ export function DashboardShell({
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header
           userName={userName}
+          isOrgAdmin={isOrgAdmin}
           onMenuToggle={() => setSidebarOpen((prev) => !prev)}
         />
 

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { auth } from "@/lib/auth";
+import { getCurrentUser, requireOrganization } from "@/lib/auth-utils";
 import { prisma } from "@/lib/db";
 import { Role } from "@/generated/prisma/client";
 import { getCandidatesForOrg } from "@/lib/make/service";
@@ -12,22 +12,25 @@ import { Badge } from "@/components/ui/badge";
 import { OrgNameForm } from "@/components/settings/org-name-form";
 
 export default async function SettingsPage() {
-  const session = await auth();
-  if (!session?.user?.organizationId) redirect("/login");
+  let user;
+  try {
+    user = await requireOrganization();
+  } catch {
+    redirect("/login");
+  }
 
   const org = await prisma.organization.findUniqueOrThrow({
-    where: { id: session.user.organizationId },
+    where: { id: user.organizationId },
     select: { id: true, name: true, slug: true },
   });
 
   const isAdmin =
-    session.user.role === Role.ADMIN_KUBRI ||
-    session.user.role === Role.ORG_ADMIN;
+    user.role === Role.ADMIN_KUBRI || user.role === Role.ORG_ADMIN;
 
   // Check Make.com connection status
   let makeConnected = false;
   try {
-    await getCandidatesForOrg(session.user.organizationId);
+    await getCandidatesForOrg(user.organizationId);
     makeConnected = true;
   } catch {
     makeConnected = false;
@@ -35,11 +38,10 @@ export default async function SettingsPage() {
 
   async function updateOrgName(formData: FormData) {
     "use server";
-    const s = await auth();
-    if (!s?.user?.organizationId) throw new Error("Non autenticato");
+    const s = await getCurrentUser();
+    if (!s.organizationId) throw new Error("Non autenticato");
 
-    const userRole = s.user.role as Role;
-    if (userRole !== Role.ADMIN_KUBRI && userRole !== Role.ORG_ADMIN) {
+    if (s.role !== Role.ADMIN_KUBRI && s.role !== Role.ORG_ADMIN) {
       throw new Error("Permessi insufficienti");
     }
 
@@ -53,16 +55,16 @@ export default async function SettingsPage() {
 
     if (parsed.data.name) {
       await prisma.organization.update({
-        where: { id: s.user.organizationId },
+        where: { id: s.organizationId },
         data: { name: parsed.data.name },
       });
 
       await logAudit({
-        userId: s.user.id,
-        organizationId: s.user.organizationId,
+        userId: s.id,
+        organizationId: s.organizationId,
         action: "update_organization",
         resourceType: "Organization",
-        resourceId: s.user.organizationId,
+        resourceId: s.organizationId,
         metadata: { name: parsed.data.name },
       });
     }
@@ -72,7 +74,7 @@ export default async function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">
+      <h1 className="text-2xl tracking-tight">
         {strings.pages.settings}
       </h1>
       <p className="text-muted-foreground">

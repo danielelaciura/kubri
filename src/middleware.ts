@@ -1,34 +1,37 @@
-import NextAuth from "next-auth";
-import { NextResponse } from "next/server";
-import { authConfig } from "@/lib/auth.config";
+import { NextResponse, type NextRequest } from "next/server";
+import { updateSession } from "@/lib/supabase/middleware";
 
-const { auth } = NextAuth(authConfig);
+const PUBLIC_PREFIXES = [
+  "/login",
+  "/auth/callback",
+  "/auth/set-password",
+  "/auth/reset-password",
+];
 
-const publicRoutes = ["/login", "/api/auth"];
+export async function middleware(request: NextRequest) {
+  const { response, user } = await updateSession(request);
+  const { pathname } = request.nextUrl;
 
-export default auth((req) => {
-  const { pathname } = req.nextUrl;
+  const isPublic = PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
 
-  // Allow public routes
-  const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
-  if (isPublicRoute) {
-    // Redirect authenticated users away from login
-    if (pathname.startsWith("/login") && req.auth) {
-      return NextResponse.redirect(new URL("/dashboard", req.url));
+  if (isPublic) {
+    if (pathname.startsWith("/login") && user) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
     }
-    return NextResponse.next();
+    return response;
   }
 
-  // Redirect unauthenticated users to login
-  if (!req.auth) {
-    const loginUrl = new URL("/login", req.url);
+  if (!user) {
+    const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  return NextResponse.next();
-});
+  return response;
+}
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+  ],
 };

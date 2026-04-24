@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { getCurrentUser, requireOrganization } from "@/lib/auth-utils";
 import { redirect } from "next/navigation";
 import { getCandidatesForOrg, invalidateOrgCache } from "@/lib/make/service";
 import { filterCandidates, sortCandidates, paginateCandidates } from "@/lib/candidates/filter";
@@ -15,8 +15,12 @@ interface CandidatesPageProps {
 }
 
 export default async function CandidatesPage({ searchParams }: CandidatesPageProps) {
-  const session = await auth();
-  if (!session?.user?.organizationId) redirect("/login");
+  let user;
+  try {
+    user = await requireOrganization();
+  } catch {
+    redirect("/login");
+  }
 
   const rawParams = await searchParams;
   // Flatten array values to strings for Zod parsing
@@ -35,7 +39,7 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
   let candidates: Awaited<ReturnType<typeof getCandidatesForOrg>> = [];
 
   try {
-    candidates = await getCandidatesForOrg(session.user.organizationId);
+    candidates = await getCandidatesForOrg(user.organizationId);
   } catch {
     errorMessage = "Errore nel caricamento dei dati. Riprova più tardi.";
   }
@@ -47,9 +51,13 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
 
   async function refreshCandidates() {
     "use server";
-    const s = await auth();
-    if (s?.user?.organizationId) {
-      await invalidateOrgCache(s.user.organizationId);
+    try {
+      const s = await getCurrentUser();
+      if (s.organizationId) {
+        await invalidateOrgCache(s.organizationId);
+      }
+    } catch {
+      // user not authenticated; nothing to invalidate
     }
     revalidatePath("/dashboard/candidates");
   }
@@ -57,7 +65,7 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">
+        <h1 className="text-2xl tracking-tight">
           {strings.pages.candidates}
         </h1>
         <div className="flex items-center gap-2">

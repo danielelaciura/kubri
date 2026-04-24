@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { requireOrganization } from "@/lib/auth-utils";
 import { getCandidateForOrg } from "@/lib/make/service";
 import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
@@ -9,13 +9,15 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth();
-  if (!session?.user?.organizationId || !session.user.id) {
+  let session;
+  try {
+    session = await requireOrganization();
+  } catch {
     return new Response("Non autorizzato", { status: 401 });
   }
 
   const { id } = await params;
-  const { organizationId } = session.user;
+  const { organizationId } = session;
 
   try {
     const [candidate, notes] = await Promise.all([
@@ -59,7 +61,7 @@ export async function GET(
       .toLowerCase();
 
     await logAudit({
-      userId: session.user.id,
+      userId: session.id,
       organizationId,
       action: "export.pdf",
       resourceType: "candidates",

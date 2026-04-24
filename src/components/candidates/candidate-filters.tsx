@@ -122,7 +122,7 @@ export function CandidateFilters({ initialFilters }: CandidateFiltersProps) {
             </div>
 
             {/* Date range */}
-            <div>
+            {/* <div>
               <label className="mb-2 block text-sm font-medium">Periodo</label>
               <div className="flex gap-2">
                 <Input
@@ -138,7 +138,7 @@ export function CandidateFilters({ initialFilters }: CandidateFiltersProps) {
                   placeholder="A"
                 />
               </div>
-            </div>
+            </div> */}
           </div>
 
           {/* Filter actions */}

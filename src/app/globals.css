@@ -7,9 +7,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-nunito), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-nunito-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, monospace;
-  --font-heading: var(--font-quattrocento), Georgia, serif;
+  --font-heading: var(--font-jost), Georgia, serif;
   --color-kubri-50: oklch(0.850 0.0400 290);
   --color-kubri-100: oklch(0.800 0.0500 290);
   --color-kubri-200: oklch(0.750 0.0600 290);
@@ -141,4 +141,5 @@
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-heading);
   }
+
 }

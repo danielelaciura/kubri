@@ -1,11 +1,17 @@
 import { redirect, notFound } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { auth } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth-utils";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { prisma } from "@/lib/db";
 import { Role } from "@/generated/prisma/client";
 import { logAudit } from "@/lib/audit";
-import { updateOrgSettingsSchema } from "@/lib/validations/organization";
+import { getAppOrigin } from "@/lib/origin";
+import {
+  updateOrgSettingsSchema,
+  inviteMemberSchema,
+} from "@/lib/validations/organization";
 import { strings } from "@/lib/i18n/strings";
+import { InviteOrgMemberDialog } from "@/components/admin/invite-org-member-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -25,8 +31,13 @@ interface OrgDetailPageProps {
 }
 
 export default async function OrgDetailPage({ params }: OrgDetailPageProps) {
-  const session = await auth();
-  if (!session?.user || session.user.role !== Role.ADMIN_KUBRI) {
+  let currentUser;
+  try {
+    currentUser = await getCurrentUser();
+  } catch {
+    redirect("/login");
+  }
+  if (currentUser.role !== Role.ADMIN_KUBRI) {
     redirect("/dashboard");
   }
 
@@ -59,8 +70,8 @@ export default async function OrgDetailPage({ params }: OrgDetailPageProps) {
 
   async function updateOrgName(formData: FormData) {
     "use server";
-    const s = await auth();
-    if (!s?.user || s.user.role !== Role.ADMIN_KUBRI) {
+    const s = await getCurrentUser();
+    if (s.role !== Role.ADMIN_KUBRI) {
       throw new Error("Permessi insufficienti");
     }
 
@@ -78,12 +89,58 @@ export default async function OrgDetailPage({ params }: OrgDetailPageProps) {
     });
 
     await logAudit({
-      userId: s.user.id,
+      userId: s.id,
       organizationId: id,
       action: "update_organization",
       resourceType: "Organization",
       resourceId: id,
       metadata: { name: parsed.data.name },
+    });
+
+    revalidatePath(`/admin/organizations/${id}`);
+  }
+
+  async function inviteOrgMember(formData: FormData) {
+    "use server";
+    const s = await getCurrentUser();
+    if (s.role !== Role.ADMIN_KUBRI) {
+      throw new Error("Permessi insufficienti");
+    }
+
+    const parsed = inviteMemberSchema.safeParse({
+      email: formData.get("email"),
+      name: formData.get("name"),
+      role: formData.get("role"),
+    });
+    if (!parsed.success) throw new Error("Dati non validi");
+
+    const existing = await prisma.user.findUnique({
+      where: { email: parsed.data.email },
+    });
+    if (existing) throw new Error(strings.members.emailExists);
+
+    const admin = createSupabaseAdminClient();
+    const origin = await getAppOrigin();
+    const { error } = await admin.auth.admin.inviteUserByEmail(
+      parsed.data.email,
+      {
+        data: {
+          name: parsed.data.name,
+          role: parsed.data.role,
+          organization_id: id,
+        },
+        redirectTo: `${origin}/auth/callback?next=/auth/set-password`,
+      },
+    );
+    if (error) throw new Error(error.message);
+
+    await logAudit({
+      userId: s.id,
+      organizationId: id,
+      action: "invite_member",
+      resourceType: "User",
+      resourceId: parsed.data.email,
+      metadata: { email: parsed.data.email, role: parsed.data.role },
     });
 
     revalidatePath(`/admin/organizations/${id}`);
@@ -101,7 +158,7 @@ export default async function OrgDetailPage({ params }: OrgDetailPageProps) {
       </div>
 
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">{org.name}</h1>
+        <h1 className="text-2xl tracking-tight">{org.name}</h1>
         <p className="mt-1 text-sm text-muted-foreground font-mono">{org.slug}</p>
       </div>
 
@@ -136,9 +193,10 @@ export default async function OrgDetailPage({ params }: OrgDetailPageProps) {
       </div>
 
       <div>
-        <h2 className="mb-4 text-lg font-semibold">
-          Membri ({org.users.length})
-        </h2>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg">Membri ({org.users.length})</h2>
+          <InviteOrgMemberDialog action={inviteOrgMember} />
+        </div>
         <Table>
           <TableHeader>
             <TableRow>

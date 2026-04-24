@@ -14,7 +14,7 @@ enum Role {
 }
 
 model Organization {
-  id              String   @id @default(uuid())
+  id              String   @id @default(uuid()) @db.Uuid
   name            String
   slug            String   @unique
   makeDatastoreId String
@@ -22,32 +22,33 @@ model Organization {
   createdAt       DateTime @default(now())
   settings        Json?
 
-  users          User[]
-  candidateNotes CandidateNote[]
-  candidateTags  CandidateTag[]
-  auditLogs      AuditLog[]
+  users           User[]
+  candidateNotes  CandidateNote[]
+  candidateTags   CandidateTag[]
+  auditLogs       AuditLog[]
+  jobDescriptions JobDescription[]
 }
 
 model User {
-  id             String    @id @default(uuid())
+  id             String    @id @db.Uuid
   email          String    @unique
   name           String
-  passwordHash   String
-  role           Role
-  organizationId String
+  role           Role      @default(ORG_MEMBER)
+  organizationId String?   @db.Uuid
   createdAt      DateTime  @default(now())
   lastLoginAt    DateTime?
 
-  organization   Organization   @relation(fields: [organizationId], references: [id])
-  candidateNotes CandidateNote[]
-  auditLogs      AuditLog[]
+  organization    Organization?    @relation(fields: [organizationId], references: [id])
+  candidateNotes  CandidateNote[]
+  auditLogs       AuditLog[]
+  jobDescriptions JobDescription[]
 }
 
 model CandidateNote {
-  id             String   @id @default(uuid())
+  id             String   @id @default(uuid()) @db.Uuid
   makeRecordId   String
-  organizationId String
-  userId         String
+  organizationId String   @db.Uuid
+  userId         String   @db.Uuid
   content        String
   createdAt      DateTime @default(now())
 
@@ -58,9 +59,9 @@ model CandidateNote {
 }
 
 model CandidateTag {
-  id             String   @id @default(uuid())
+  id             String   @id @default(uuid()) @db.Uuid
   makeRecordId   String
-  organizationId String
+  organizationId String   @db.Uuid
   tag            String
   createdAt      DateTime @default(now())
 
@@ -70,9 +71,9 @@ model CandidateTag {
 }
 
 model AuditLog {
-  id             String   @id @default(uuid())
-  userId         String
-  organizationId String
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @db.Uuid
+  organizationId String   @db.Uuid
   action         String
   resourceType   String
   resourceId     String
@@ -82,5 +83,30 @@ model AuditLog {
   user         User         @relation(fields: [userId], references: [id])
   organization Organization @relation(fields: [organizationId], references: [id])
 
+  @@index([organizationId, createdAt])
+}
+
+// NOTE: public.members_with_status is a Postgres view (see 20260423_supabase_auth_trigger migration).
+// It is queried from app code via prisma.$queryRaw — not declared as a Prisma model because
+// Prisma's migrate tooling would otherwise try to create a physical table with the same name.
+
+model JobDescription {
+  id                   String   @id @default(uuid()) @db.Uuid
+  organizationId       String   @db.Uuid
+  createdByUserId      String   @db.Uuid
+  name                 String
+  locationRaw          String
+  locationMunicipality String?
+  locationProvince     String?
+  locationRegion       String?
+  description          String
+  skills               String[]
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  createdBy    User         @relation(fields: [createdByUserId], references: [id])
+
+  @@unique([organizationId, name])
   @@index([organizationId, createdAt])
 }

@@ -85,6 +85,27 @@ function nullableString(value: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+/**
+ * Coerce yes/no-ish values to a string label.
+ * Make scenarios sometimes send booleans (true/false) for fields that the
+ * Postgres column stores as text (e.g. working_permit, driving_license).
+ * - boolean → "Sì" / "No"
+ * - string  → trimmed (null if empty)
+ * - number  → "Sì" if non-zero, "No" if 0
+ * - other   → null
+ */
+function nullableYesNoString(value: unknown): string | null {
+  if (typeof value === "boolean") return value ? "Sì" : "No";
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value !== 0 ? "Sì" : "No";
+  }
+  return null;
+}
+
 function nullableBoolean(value: unknown): boolean | null {
   return typeof value === "boolean" ? value : null;
 }
@@ -120,9 +141,9 @@ export function normalizeForUpsert(
     address: nullableString(d["address"]),
     phone: nullableString(d["phone"]),
 
-    workingPermit: nullableString(d["working_permit"]),
+    workingPermit: nullableYesNoString(d["working_permit"]),
     meanOfTransport: nullableString(d["transport"]),
-    drivingLicense: nullableString(d["driving_license"]),
+    drivingLicense: nullableYesNoString(d["driving_license"]),
 
     educationAndTraining: safeStringArray(d["education_and_training"]),
     workExperience: safeStringArray(d["work_experience"]),

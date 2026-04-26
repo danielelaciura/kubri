@@ -3,6 +3,7 @@
 import { getCurrentUser } from "@/lib/auth-utils";
 import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
+import { requireLocalCandidateId } from "@/lib/candidates/resolve";
 import { z } from "zod/v4";
 import { revalidatePath } from "next/cache";
 
@@ -36,10 +37,14 @@ export async function addNote(formData: FormData) {
 
   const { makeRecordId, content } = parsed.data;
   const { id: userId, organizationId } = session;
+  const candidateId = await requireLocalCandidateId(
+    organizationId,
+    makeRecordId,
+  );
 
   const note = await prisma.candidateNote.create({
     data: {
-      makeRecordId,
+      candidateId,
       organizationId,
       userId,
       content,
@@ -52,7 +57,7 @@ export async function addNote(formData: FormData) {
     action: "note.create",
     resourceType: "candidate_note",
     resourceId: note.id,
-    metadata: { makeRecordId },
+    metadata: { makeRecordId, candidateId },
   });
 
   revalidatePath(`/dashboard/candidates/${makeRecordId}`);
@@ -75,11 +80,15 @@ export async function addTag(formData: FormData) {
 
   const { makeRecordId, tag } = parsed.data;
   const { id: userId, organizationId } = session;
+  const candidateId = await requireLocalCandidateId(
+    organizationId,
+    makeRecordId,
+  );
 
-  // Check for duplicate tag within same record and organization
+  // Check for duplicate tag within same candidate and organization
   const existing = await prisma.candidateTag.findFirst({
     where: {
-      makeRecordId,
+      candidateId,
       organizationId,
       tag,
     },
@@ -91,7 +100,7 @@ export async function addTag(formData: FormData) {
 
   const candidateTag = await prisma.candidateTag.create({
     data: {
-      makeRecordId,
+      candidateId,
       organizationId,
       tag,
     },
@@ -103,7 +112,7 @@ export async function addTag(formData: FormData) {
     action: "tag.create",
     resourceType: "candidate_tag",
     resourceId: candidateTag.id,
-    metadata: { makeRecordId, tag },
+    metadata: { makeRecordId, candidateId, tag },
   });
 
   revalidatePath(`/dashboard/candidates/${makeRecordId}`);
@@ -117,11 +126,15 @@ export async function removeTag(tagId: string) {
 
   const { id: userId, organizationId } = session;
 
-  // Find the tag ensuring it belongs to the user's organization
+  // Find the tag ensuring it belongs to the user's organization,
+  // and pull along the candidate's externalId so we can revalidate.
   const tag = await prisma.candidateTag.findFirst({
     where: {
       id: tagId,
       organizationId,
+    },
+    include: {
+      candidate: { select: { externalId: true } },
     },
   });
 
@@ -139,8 +152,8 @@ export async function removeTag(tagId: string) {
     action: "tag.delete",
     resourceType: "candidate_tag",
     resourceId: tagId,
-    metadata: { makeRecordId: tag.makeRecordId, tag: tag.tag },
+    metadata: { candidateId: tag.candidateId, tag: tag.tag },
   });
 
-  revalidatePath(`/dashboard/candidates/${tag.makeRecordId}`);
+  revalidatePath(`/dashboard/candidates/${tag.candidate.externalId}`);
 }

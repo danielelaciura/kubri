@@ -1,6 +1,7 @@
 import { requireOrganization } from "@/lib/auth-utils";
 import { getCandidateForOrg } from "@/lib/make/service";
 import { prisma } from "@/lib/db";
+import { findLocalCandidateId } from "@/lib/candidates/resolve";
 import { logAudit } from "@/lib/audit";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { renderCandidatePdf } from "@/components/export/candidate-pdf";
@@ -20,20 +21,31 @@ export async function GET(
   const { organizationId } = session;
 
   try {
+    // Resolve local Candidate row to fetch notes by FK candidateId.
+    const candidateLocalId = await findLocalCandidateId(organizationId, id);
+
     const [candidate, notes] = await Promise.all([
       getCandidateForOrg(organizationId, id),
-      prisma.candidateNote.findMany({
-        where: {
-          makeRecordId: id,
-          organizationId,
-        },
-        include: {
-          user: {
-            select: { name: true },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-      }),
+      candidateLocalId
+        ? prisma.candidateNote.findMany({
+            where: {
+              candidateId: candidateLocalId,
+              organizationId,
+            },
+            include: {
+              user: {
+                select: { name: true },
+              },
+            },
+            orderBy: { createdAt: "desc" },
+          })
+        : Promise.resolve(
+            [] as Array<{
+              content: string;
+              user: { name: string };
+              createdAt: Date;
+            }>,
+          ),
     ]);
 
     if (!candidate) {
@@ -78,7 +90,8 @@ export async function GET(
         "Content-Disposition": `attachment; filename="candidato-${safeName}-${today}.pdf"`,
       },
     });
-  } catch {
+  } catch (err) {
+    console.error("[pdf export]", err);
     return new Response("Errore durante l'esportazione", { status: 500 });
   }
 }

@@ -45,28 +45,33 @@ model User {
 
 model CandidateNote {
   id             String   @id @default(uuid()) @db.Uuid
-  makeRecordId   String
+  candidateId    String   @db.Uuid
   organizationId String   @db.Uuid
   userId         String   @db.Uuid
   content        String
   createdAt      DateTime @default(now())
 
+  candidate    Candidate    @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id])
   user         User         @relation(fields: [userId], references: [id])
 
-  @@index([makeRecordId, organizationId])
+  @@index([candidateId])
+  @@index([organizationId])
 }
 
 model CandidateTag {
   id             String   @id @default(uuid()) @db.Uuid
-  makeRecordId   String
+  candidateId    String   @db.Uuid
   organizationId String   @db.Uuid
   tag            String
   createdAt      DateTime @default(now())
 
+  candidate    Candidate    @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id])
 
-  @@index([makeRecordId, organizationId])
+  @@unique([candidateId, organizationId, tag])
+  @@index([candidateId])
+  @@index([organizationId])
 }
 
 model AuditLog {
@@ -150,6 +155,9 @@ model Candidate {
   sourceUpdatedAt     DateTime?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
+
+  notes CandidateNote[]
+  tags  CandidateTag[]
 
   @@unique([makeDatastoreId, externalId])
   @@index([makeDatastoreId])

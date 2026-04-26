@@ -1,6 +1,7 @@
 import { requireOrganization } from "@/lib/auth-utils";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { findLocalCandidateId } from "@/lib/candidates/resolve";
 import { getCandidateForOrg } from "@/lib/make/service";
 import { CandidateProfile } from "@/components/candidates/candidate-profile";
 import { CandidateNotes } from "@/components/candidates/candidate-notes";
@@ -33,28 +34,37 @@ export default async function CandidateDetailPage({
       ? rawSearchParams["returnParams"]
       : "";
 
+  // Resolve the local Candidate row (notes/tags now FK to Candidate.id, not the
+  // Make external id). The webhook syncs Candidate rows; until it has fired for
+  // a given record, no notes/tags exist either, so an empty array is correct.
+  const candidateLocalId = await findLocalCandidateId(organizationId, id);
+
   // Parallel data fetching
   const [candidate, notes, tags] = await Promise.all([
     getCandidateForOrg(organizationId, id).catch(() => null),
-    prisma.candidateNote.findMany({
-      where: {
-        makeRecordId: id,
-        organizationId,
-      },
-      include: {
-        user: {
-          select: { name: true },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.candidateTag.findMany({
-      where: {
-        makeRecordId: id,
-        organizationId,
-      },
-      orderBy: { createdAt: "desc" },
-    }),
+    candidateLocalId
+      ? prisma.candidateNote.findMany({
+          where: {
+            candidateId: candidateLocalId,
+            organizationId,
+          },
+          include: {
+            user: {
+              select: { name: true },
+            },
+          },
+          orderBy: { createdAt: "desc" },
+        })
+      : Promise.resolve([]),
+    candidateLocalId
+      ? prisma.candidateTag.findMany({
+          where: {
+            candidateId: candidateLocalId,
+            organizationId,
+          },
+          orderBy: { createdAt: "desc" },
+        })
+      : Promise.resolve([]),
   ]);
 
   const backUrl = `/dashboard/candidates${returnParams}`;

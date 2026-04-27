@@ -128,9 +128,9 @@ model Candidate {
   address         String?
   phone           String?
 
-  workingPermit   String?
+  workingPermit   Boolean?
   meanOfTransport String?
-  drivingLicense  String?
+  drivingLicense  Boolean?
 
   educationAndTraining String[] @default([])
   workExperience       String[] @default([])

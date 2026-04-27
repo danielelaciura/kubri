@@ -153,12 +153,14 @@ export function renderCandidatePdf({ candidate, notes }: CandidatePdfProps) {
               <Text style={styles.value}>{c.legalStatus}</Text>
             </View>
           )}
-          {c.workingPermit && (
-            <View style={styles.row}>
-              <Text style={styles.label}>Permesso di lavoro</Text>
-              <Text style={styles.value}>{c.workingPermit}</Text>
-            </View>
-          )}
+          <View style={styles.row}>
+            <Text style={styles.label}>Permesso di lavoro</Text>
+            <Text style={styles.value}>{c.workingPermit ? "Sì" : "No"}</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.label}>Patente</Text>
+            <Text style={styles.value}>{c.drivingLicense ? "Sì" : "No"}</Text>
+          </View>
           <View style={styles.row}>
             <Text style={styles.label}>Canale</Text>
             <Text style={styles.value}>{c.channel}</Text>

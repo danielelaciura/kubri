@@ -46,7 +46,7 @@ export function normalizeCandidate(raw: MakeDataStoreRecord): Candidate {
     address: safeString(d.address),
     phone: safeString(d.phone),
     legalStatus: safeString(d.legal_status),
-    workingPermit: safeString(d.working_permit),
+    workingPermit: safeBoolean(d.working_permit),
     meanOfTransport: safeString(d.transport),
     educationAndTraining: safeStringArray(d.education_and_training),
     workExperience: safeStringArray(d.work_experience),
@@ -55,16 +55,16 @@ export function normalizeCandidate(raw: MakeDataStoreRecord): Candidate {
       language: safeString(d.language),
       additionalLanguages: safeStringArray(d.additional_languages),
     },
-    drivingLicense: safeString(d.driving_license),
+    drivingLicense: safeBoolean(d.driving_license),
     jobPreferences: {
-      desiredJob: safeString(d.job_preferences?.desired_job),
+      desiredJob: safeString(d.job_preferences?.preferred_job),
       partTimePreference: safeBoolean(d.job_preferences?.part_time_preference),
       preferredLocation: safeString(d.job_preferences?.preferred_location),
       constraints: safeString(d.job_preferences?.constraints),
       hasDesiredJobExperience: safeString(d.job_preferences?.has_desired_job_experience),
     },
     centroPerImpiego: safeString(d.centro_per_impiego),
-    interviewLanguage: safeString(d.language),
+    interviewLanguage: safeString(d.interview_language),
     sourceOrganization: safeString(d.source_organization),
     channel: deriveChannel(d.source_organization),
     consent: safeBoolean(d.consent),
@@ -83,27 +83,6 @@ function nullableString(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
-}
-
-/**
- * Coerce yes/no-ish values to a string label.
- * Make scenarios sometimes send booleans (true/false) for fields that the
- * Postgres column stores as text (e.g. working_permit, driving_license).
- * - boolean → "Sì" / "No"
- * - string  → trimmed (null if empty)
- * - number  → "Sì" if non-zero, "No" if 0
- * - other   → null
- */
-function nullableYesNoString(value: unknown): string | null {
-  if (typeof value === "boolean") return value ? "Sì" : "No";
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    return trimmed.length > 0 ? trimmed : null;
-  }
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value !== 0 ? "Sì" : "No";
-  }
-  return null;
 }
 
 function nullableBoolean(value: unknown): boolean | null {
@@ -141,9 +120,9 @@ export function normalizeForUpsert(
     address: nullableString(d["address"]),
     phone: nullableString(d["phone"]),
 
-    workingPermit: nullableYesNoString(d["working_permit"]),
+    workingPermit: nullableBoolean(d["working_permit"]),
     meanOfTransport: nullableString(d["transport"]),
-    drivingLicense: nullableYesNoString(d["driving_license"]),
+    drivingLicense: nullableBoolean(d["driving_license"]),
 
     educationAndTraining: safeStringArray(d["education_and_training"]),
     workExperience: safeStringArray(d["work_experience"]),
@@ -153,7 +132,7 @@ export function normalizeForUpsert(
     additionalLanguages: safeStringArray(d["additional_languages"]),
     italianLevel: nullableString(d["italian_level"]),
 
-    desiredJob: nullableString(jp["desired_job"]),
+    desiredJob: nullableString(jp["preferred_job"]),
     partTimePreference: nullableBoolean(jp["part_time_preference"]),
     preferredLocation: nullableString(jp["preferred_location"]),
     jobConstraints: nullableString(jp["constraints"]),

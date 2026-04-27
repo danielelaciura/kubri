@@ -22,13 +22,13 @@ export interface Candidate {
   address: string;
   phone: string;
   legalStatus: string;
-  workingPermit: string;
+  workingPermit: boolean;
   meanOfTransport: string;
   educationAndTraining: string[];
   workExperience: string[];
   skillsAndCompetences: string[];
   languages: Languages;
-  drivingLicense: string;
+  drivingLicense: boolean;
   jobPreferences: JobPreferences;
   centroPerImpiego: string;
   interviewLanguage: string;

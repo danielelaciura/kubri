@@ -7,7 +7,7 @@ export interface MakeLanguages {
 }
 
 export interface MakeJobPreferences {
-  desired_job?: string;
+  preferred_job?: string;
   part_time_preference?: boolean;
   preferred_location?: string;
   constraints?: string;
@@ -34,13 +34,13 @@ export interface MakeRecordData {
   address?: string;
   phone?: string;
   legal_status?: string;
-  working_permit?: string;
+  working_permit?: boolean;
   transport?: string;
   education_and_training?: string[];
   work_experience?: string[];
   skills_and_competences?: string[];
   languages?: MakeLanguages;
-  driving_license?: string;
+  driving_license?: boolean;
   job_preferences?: MakeJobPreferences;
   centro_per_impiego?: string;
   create_cv?: boolean;

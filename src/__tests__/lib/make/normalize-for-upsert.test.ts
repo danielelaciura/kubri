@@ -13,9 +13,9 @@ describe("normalizeForUpsert", () => {
         country: "Italia",
         address: "Via Roma 1",
         phone: "+39 333",
-        working_permit: "permanente",
+        working_permit: true,
         transport: "auto",
-        driving_license: "B",
+        driving_license: true,
         education_and_training: ["Liceo"],
         work_experience: ["Magazziniere 2y"],
         skills_and_competences: ["puntuale"],
@@ -23,7 +23,7 @@ describe("normalizeForUpsert", () => {
         additional_languages: ["inglese"],
         italian_level: "B2",
         job_preferences: {
-          desired_job: "magazziniere",
+          preferred_job: "magazziniere",
           part_time_preference: true,
           preferred_location: "Milano",
           constraints: "no notturni",
@@ -41,7 +41,8 @@ describe("normalizeForUpsert", () => {
     expect(result.birthday).toBe("1995-03-12");
     expect(result.countryOfOrigin).toBe("Italia");
     expect(result.italianLevel).toBe("B2");
-    expect(result.drivingLicense).toBe("B");
+    expect(result.workingPermit).toBe(true);
+    expect(result.drivingLicense).toBe(true);
     expect(result.educationAndTraining).toEqual(["Liceo"]);
     expect(result.workExperience).toEqual(["Magazziniere 2y"]);
     expect(result.skillsAndCompetences).toEqual(["puntuale"]);

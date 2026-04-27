@@ -4,22 +4,42 @@ import {
   sortCandidates,
   paginateCandidates,
 } from "@/lib/candidates/filter";
-import type { Candidate, CandidateFilters, SortConfig } from "@/types";
+import type { Candidate } from "@/types";
 
 function makeCandidate(overrides: Partial<Candidate> = {}): Candidate {
   return {
     id: "1",
-    name: "Mario Rossi",
-    nationality: "Italiana",
-    languages: ["Italiano", "Inglese"],
-    skills: ["Cameriere", "Barista"],
-    workExperiences: [
-      { role: "Cameriere", description: "Servizio ai tavoli" },
-    ],
-    availability: "immediate",
-    city: "Milano",
-    interviewTranscript: [],
+    firstName: "Mario",
+    lastName: "Rossi",
+    dateOfBirth: "1990-05-15",
+    countryOfOrigin: "Italiana",
+    address: "Via Roma 1, Milano",
+    phone: "+39 333 1234567",
+    legalStatus: "citizen",
+    workingPermit: true,
+    meanOfTransport: "car",
+    educationAndTraining: [],
+    workExperience: ["Cameriere - Servizio ai tavoli"],
+    skillsAndCompetences: ["Cameriere", "Barista"],
+    languages: {
+      language: "Italiano",
+      additionalLanguages: ["Inglese"],
+    },
+    drivingLicense: true,
+    jobPreferences: {
+      desiredJob: "Cameriere",
+      partTimePreference: false,
+      preferredLocation: "Milano",
+      constraints: "",
+      hasDesiredJobExperience: "yes",
+    },
+    centroPerImpiego: "",
+    interviewLanguage: "it",
+    sourceOrganization: "Telegram Bot",
     channel: "telegram",
+    consent: true,
+    cvPdfLink: "",
+    cvDocLink: "",
     createdAt: new Date("2025-01-15"),
     updatedAt: new Date("2025-01-15"),
     ...overrides,
@@ -29,67 +49,57 @@ function makeCandidate(overrides: Partial<Candidate> = {}): Candidate {
 const candidates: Candidate[] = [
   makeCandidate({
     id: "1",
-    name: "Mario Rossi",
-    nationality: "Italiana",
-    languages: ["Italiano", "Inglese"],
-    skills: ["Cameriere", "Barista"],
-    workExperiences: [
-      { role: "Cameriere", description: "Servizio ai tavoli" },
-    ],
-    availability: "immediate",
-    city: "Milano",
+    firstName: "Mario",
+    lastName: "Rossi",
+    countryOfOrigin: "Italiana",
+    languages: { language: "Italiano", additionalLanguages: ["Inglese"] },
+    skillsAndCompetences: ["Cameriere", "Barista"],
+    workExperience: ["Cameriere - Servizio ai tavoli"],
+    address: "Via Roma 1, Milano",
     createdAt: new Date("2025-01-15"),
   }),
   makeCandidate({
     id: "2",
-    name: "Ahmed Hassan",
-    nationality: "Egiziana",
-    languages: ["Arabo", "Italiano"],
-    skills: ["Magazziniere", "Mulettista"],
-    workExperiences: [
-      { role: "Magazziniere", description: "Gestione magazzino e logistica" },
-    ],
-    availability: "within_1_month",
-    city: "Roma",
+    firstName: "Ahmed",
+    lastName: "Hassan",
+    countryOfOrigin: "Egiziana",
+    languages: { language: "Arabo", additionalLanguages: ["Italiano"] },
+    skillsAndCompetences: ["Magazziniere", "Mulettista"],
+    workExperience: ["Magazziniere - Gestione magazzino e logistica"],
+    address: "Via Appia 2, Roma",
     createdAt: new Date("2025-02-10"),
   }),
   makeCandidate({
     id: "3",
-    name: "Fatima Diallo",
-    nationality: "Senegalese",
-    languages: ["Francese", "Wolof", "Italiano"],
-    skills: ["Pulizie", "Cucina"],
-    workExperiences: [
-      { role: "Addetta pulizie", description: "Pulizia uffici e ambienti" },
-    ],
-    availability: "immediate",
-    city: "Torino",
+    firstName: "Fatima",
+    lastName: "Diallo",
+    countryOfOrigin: "Senegalese",
+    languages: { language: "Francese", additionalLanguages: ["Wolof", "Italiano"] },
+    skillsAndCompetences: ["Pulizie", "Cucina"],
+    workExperience: ["Addetta pulizie - Pulizia uffici e ambienti"],
+    address: "Via Po 3, Torino",
     createdAt: new Date("2025-03-01"),
   }),
   makeCandidate({
     id: "4",
-    name: "Li Wei",
-    nationality: "Cinese",
-    languages: ["Cinese", "Inglese"],
-    skills: ["Cuoco", "Lavapiatti"],
-    workExperiences: [
-      { role: "Cuoco", description: "Cucina cinese e italiana" },
-    ],
-    availability: "other",
-    city: "milano",
+    firstName: "Li",
+    lastName: "Wei",
+    countryOfOrigin: "Cinese",
+    languages: { language: "Cinese", additionalLanguages: ["Inglese"] },
+    skillsAndCompetences: ["Cuoco", "Lavapiatti"],
+    workExperience: ["Cuoco - Cucina cinese e italiana"],
+    address: "Via Dante 4, milano",
     createdAt: new Date("2025-01-20"),
   }),
   makeCandidate({
     id: "5",
-    name: "Ana Popescu",
-    nationality: "Rumena",
-    languages: ["Rumeno", "Italiano", "Inglese"],
-    skills: ["Cameriera", "Receptionist"],
-    workExperiences: [
-      { role: "Receptionist", description: "Accoglienza clienti in hotel" },
-    ],
-    availability: "immediate",
-    city: "Firenze",
+    firstName: "Ana",
+    lastName: "Popescu",
+    countryOfOrigin: "Rumena",
+    languages: { language: "Rumeno", additionalLanguages: ["Italiano", "Inglese"] },
+    skillsAndCompetences: ["Cameriera", "Receptionist"],
+    workExperience: ["Receptionist - Accoglienza clienti in hotel"],
+    address: "Piazza Duomo 5, Firenze",
     createdAt: new Date("2025-02-25"),
   }),
 ];
@@ -116,24 +126,16 @@ describe("filterCandidates", () => {
     expect(result.map((c) => c.id)).toEqual(["2", "3"]);
   });
 
-  it("filters by city case-insensitive partial match", () => {
+  it("filters by city (substring of address) case-insensitive", () => {
     const result = filterCandidates(candidates, { city: "milan" });
     expect(result).toHaveLength(2);
     expect(result.map((c) => c.id)).toEqual(["1", "4"]);
   });
 
-  it("filters by nationality case-insensitive partial match", () => {
-    const result = filterCandidates(candidates, { nationality: "ital" });
+  it("filters by countryOfOrigin case-insensitive partial match", () => {
+    const result = filterCandidates(candidates, { countryOfOrigin: "ital" });
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe("1");
-  });
-
-  it("filters by availability", () => {
-    const result = filterCandidates(candidates, {
-      availability: "immediate",
-    });
-    expect(result).toHaveLength(3);
-    expect(result.map((c) => c.id)).toEqual(["1", "3", "5"]);
   });
 
   it("filters by date range (dateFrom)", () => {
@@ -161,19 +163,19 @@ describe("filterCandidates", () => {
     expect(result.map((c) => c.id)).toEqual(["2", "5"]);
   });
 
-  it("full-text search across name", () => {
+  it("full-text search across firstName", () => {
     const result = filterCandidates(candidates, { search: "mario" });
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe("1");
   });
 
-  it("full-text search across skills", () => {
+  it("full-text search across skillsAndCompetences", () => {
     const result = filterCandidates(candidates, { search: "cuoco" });
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe("4");
   });
 
-  it("full-text search across work experiences", () => {
+  it("full-text search across workExperience", () => {
     const result = filterCandidates(candidates, { search: "logistica" });
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe("2");
@@ -181,40 +183,42 @@ describe("filterCandidates", () => {
 
   it("combines multiple filters (AND logic)", () => {
     const result = filterCandidates(candidates, {
-      availability: "immediate",
       languages: ["Italiano"],
+      city: "milan",
     });
-    expect(result).toHaveLength(2);
-    expect(result.map((c) => c.id)).toEqual(["1", "3"]);
+    // Only id 1 has "Italiano" AND address containing "milan"
+    // (id 4's address is "Via Dante 4, milano" but its languages are Cinese + Inglese)
+    expect(result).toHaveLength(1);
+    expect(result.map((c) => c.id)).toEqual(["1"]);
   });
 });
 
 describe("sortCandidates", () => {
-  it("sorts by name ascending", () => {
+  it("sorts by firstName ascending", () => {
     const result = sortCandidates([...candidates], {
-      field: "name",
+      field: "firstName",
       direction: "asc",
     });
-    expect(result.map((c) => c.name)).toEqual([
-      "Ahmed Hassan",
-      "Ana Popescu",
-      "Fatima Diallo",
-      "Li Wei",
-      "Mario Rossi",
+    expect(result.map((c) => c.firstName)).toEqual([
+      "Ahmed",
+      "Ana",
+      "Fatima",
+      "Li",
+      "Mario",
     ]);
   });
 
-  it("sorts by name descending", () => {
+  it("sorts by firstName descending", () => {
     const result = sortCandidates([...candidates], {
-      field: "name",
+      field: "firstName",
       direction: "desc",
     });
-    expect(result.map((c) => c.name)).toEqual([
-      "Mario Rossi",
-      "Li Wei",
-      "Fatima Diallo",
-      "Ana Popescu",
-      "Ahmed Hassan",
+    expect(result.map((c) => c.firstName)).toEqual([
+      "Mario",
+      "Li",
+      "Fatima",
+      "Ana",
+      "Ahmed",
     ]);
   });
 
@@ -233,7 +237,6 @@ describe("sortCandidates", () => {
     });
     expect(result.map((c) => c.id)).toEqual(["3", "5", "2", "4", "1"]);
   });
-
 });
 
 describe("paginateCandidates", () => {

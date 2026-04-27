@@ -2,7 +2,68 @@ import { prisma } from "@/lib/db";
 import { MakeApiClient } from "./client";
 import { cachedFetch, invalidateCache, LIST_TTL_MS } from "./cache";
 import { normalizeCandidates } from "./normalize";
-import type { Candidate } from "@/types";
+import type { Candidate, Channel } from "@/types";
+import type { CandidateModel as DbCandidate } from "@/generated/prisma/models/Candidate";
+
+/**
+ * TEMPORARY: when USE_PG_CANDIDATES=1 the read path serves candidates from
+ * the local Postgres Candidate table (populated by the Make webhook + the
+ * seed script) instead of calling the Make.com Data Store API. Lets us
+ * verify seeded data + the upcoming Phase 2 migration without touching
+ * the Make scenario yet.
+ */
+const USE_PG_CANDIDATES = process.env["USE_PG_CANDIDATES"] === "1";
+
+function dbCandidateToApp(c: DbCandidate): Candidate {
+  const channel: Channel = c.channel === "whatsapp" ? "whatsapp" : "telegram";
+  return {
+    id: c.externalId,
+    firstName: c.firstName ?? "",
+    lastName: c.lastName ?? "",
+    dateOfBirth: c.birthday ?? "",
+    countryOfOrigin: c.countryOfOrigin ?? "",
+    address: c.address ?? "",
+    phone: c.phone ?? "",
+    legalStatus: "",
+    workingPermit: c.workingPermit ?? false,
+    meanOfTransport: c.meanOfTransport ?? "",
+    educationAndTraining: c.educationAndTraining,
+    workExperience: c.workExperience,
+    skillsAndCompetences: c.skillsAndCompetences,
+    languages: {
+      language: c.language ?? "",
+      additionalLanguages: c.additionalLanguages,
+    },
+    drivingLicense: c.drivingLicense ?? false,
+    jobPreferences: {
+      desiredJob: c.desiredJob ?? "",
+      partTimePreference: c.partTimePreference ?? false,
+      preferredLocation: c.preferredLocation ?? "",
+      constraints: c.jobConstraints ?? "",
+      hasDesiredJobExperience: c.hasDesiredJobExperience ?? "",
+    },
+    centroPerImpiego: "",
+    interviewLanguage: c.interviewLanguage ?? c.language ?? "",
+    sourceOrganization: c.sourceOrganization ?? "",
+    channel,
+    consent: false,
+    cvPdfLink: "",
+    cvDocLink: "",
+    createdAt: c.sourceUpdatedAt ?? c.createdAt,
+    updatedAt: c.updatedAt,
+  };
+}
+
+async function getCandidatesFromDb(
+  organizationId: string,
+): Promise<Candidate[]> {
+  const datastoreId = await getOrgDatastoreId(organizationId);
+  const rows = await prisma.candidate.findMany({
+    where: { makeDatastoreId: datastoreId },
+    orderBy: { createdAt: "desc" },
+  });
+  return rows.map(dbCandidateToApp);
+}
 
 function getApiToken(): string {
   const token = process.env["MAKE_API_TOKEN"];
@@ -32,6 +93,10 @@ function listCacheKey(orgId: string, datastoreId: string): string {
 export async function getCandidatesForOrg(
   organizationId: string,
 ): Promise<Candidate[]> {
+  if (USE_PG_CANDIDATES) {
+    return getCandidatesFromDb(organizationId);
+  }
+
   const datastoreId = await getOrgDatastoreId(organizationId);
   const client = new MakeApiClient(datastoreId, getApiToken());
 

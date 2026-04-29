@@ -135,7 +135,7 @@ describe("filterCandidates", () => {
   it("filters by countryOfOrigin case-insensitive partial match", () => {
     const result = filterCandidates(candidates, { countryOfOrigin: "ital" });
     expect(result).toHaveLength(1);
-    expect(result[0].id).toBe("1");
+    expect(result[0]!.id).toBe("1");
   });
 
   it("filters by date range (dateFrom)", () => {
@@ -166,19 +166,19 @@ describe("filterCandidates", () => {
   it("full-text search across firstName", () => {
     const result = filterCandidates(candidates, { search: "mario" });
     expect(result).toHaveLength(1);
-    expect(result[0].id).toBe("1");
+    expect(result[0]!.id).toBe("1");
   });
 
   it("full-text search across skillsAndCompetences", () => {
     const result = filterCandidates(candidates, { search: "cuoco" });
     expect(result).toHaveLength(1);
-    expect(result[0].id).toBe("4");
+    expect(result[0]!.id).toBe("4");
   });
 
   it("full-text search across workExperience", () => {
     const result = filterCandidates(candidates, { search: "logistica" });
     expect(result).toHaveLength(1);
-    expect(result[0].id).toBe("2");
+    expect(result[0]!.id).toBe("2");
   });
 
   it("combines multiple filters (AND logic)", () => {

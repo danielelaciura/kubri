@@ -113,7 +113,9 @@ describe("normalizeForUpsert", () => {
       makeDatastoreId: "ds",
       data: { last_updated: "2026-04-24T15:32:11Z" },
     });
-    expect(result.sourceUpdatedAt?.toISOString()).toBe("2026-04-24T15:32:11.000Z");
+    expect((result.sourceUpdatedAt as Date | null)?.toISOString()).toBe(
+      "2026-04-24T15:32:11.000Z",
+    );
   });
 
   it("returns null for sourceUpdatedAt when last_updated is invalid", () => {

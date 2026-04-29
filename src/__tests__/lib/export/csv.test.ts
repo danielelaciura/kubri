@@ -131,7 +131,7 @@ describe("candidatesToCsv", () => {
     const lines = csv.replace("\uFEFF", "").split("\n");
     expect(lines).toHaveLength(2);
     // Should not throw and should produce a valid row with the expected number of columns
-    const cells = lines[1].split(",");
+    const cells = lines[1]!.split(",");
     expect(cells.length).toBe(15);
   });
 

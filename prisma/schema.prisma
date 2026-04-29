@@ -26,6 +26,31 @@ model Organization {
   candidateTags   CandidateTag[]
   auditLogs       AuditLog[]
   jobDescriptions JobDescription[]
+  pools           OrganizationPool[]
+}
+
+model Pool {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  slug        String   @unique
+  externalKey String?  @unique
+  isGlobal    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  candidates    Candidate[]
+  organizations OrganizationPool[]
+}
+
+model OrganizationPool {
+  organizationId String       @db.Uuid
+  poolId         String       @db.Uuid
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  pool           Pool         @relation(fields: [poolId], references: [id], onDelete: Restrict)
+
+  @@id([organizationId, poolId])
+  @@index([poolId])
 }
 
 model User {
@@ -155,6 +180,9 @@ model Candidate {
   sourceUpdatedAt     DateTime?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
+
+  poolId String? @db.Uuid
+  pool   Pool?   @relation(fields: [poolId], references: [id], onDelete: Restrict)
 
   notes CandidateNote[]
   tags  CandidateTag[]

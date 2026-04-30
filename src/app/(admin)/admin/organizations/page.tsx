@@ -40,6 +40,11 @@ export default async function OrganizationsPage() {
       slug: true,
       createdAt: true,
       _count: { select: { users: true } },
+      pools: {
+        select: {
+          pool: { select: { id: true, name: true, slug: true } },
+        },
+      },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -63,7 +68,6 @@ export default async function OrganizationsPage() {
     const parsed = createOrgSchema.safeParse({
       name: formData.get("name"),
       slug: formData.get("slug"),
-      makeDatastoreId: formData.get("makeDatastoreId"),
       adminEmail: formData.get("adminEmail"),
       adminName: formData.get("adminName"),
     });
@@ -71,12 +75,22 @@ export default async function OrganizationsPage() {
       throw new Error("Dati non validi");
     }
 
-    const organization = await prisma.organization.create({
-      data: {
-        name: parsed.data.name,
-        slug: parsed.data.slug,
-        makeDatastoreId: parsed.data.makeDatastoreId,
-      },
+    // Create the org and auto-attach the Global pool (Q2 = B: rimovibile dall'admin
+    // Kubri in seguito, ma di default ogni nuova org vede il pool condiviso).
+    const organization = await prisma.$transaction(async (tx) => {
+      const org = await tx.organization.create({
+        data: { name: parsed.data.name, slug: parsed.data.slug },
+      });
+      const global = await tx.pool.findFirst({
+        where: { isGlobal: true },
+        select: { id: true },
+      });
+      if (global) {
+        await tx.organizationPool.create({
+          data: { organizationId: org.id, poolId: global.id },
+        });
+      }
+      return org;
     });
 
     const admin = createSupabaseAdminClient();

@@ -1,26 +1,23 @@
 import { prisma } from "@/lib/db";
+import { getOrgAccessiblePoolIds } from "@/lib/pools/access";
 
 /**
  * Look up the local Candidate.id (UUID) for a candidate identified by its
- * Make external id, scoped to the user's organization. Returns null when no
- * Candidate row has been synced yet (page-render path: render gracefully).
+ * external id, scoped to pools accessible to the user's organization.
+ * Returns null when no Candidate row has been synced yet (page-render
+ * path: render gracefully).
  */
 export async function findLocalCandidateId(
   organizationId: string,
   externalId: string,
 ): Promise<string | null> {
-  const org = await prisma.organization.findUnique({
-    where: { id: organizationId },
-    select: { makeDatastoreId: true },
-  });
-  if (!org) return null;
+  const poolIds = await getOrgAccessiblePoolIds(organizationId);
+  if (poolIds.length === 0) return null;
 
-  const candidate = await prisma.candidate.findUnique({
+  const candidate = await prisma.candidate.findFirst({
     where: {
-      makeDatastoreId_externalId: {
-        makeDatastoreId: org.makeDatastoreId,
-        externalId,
-      },
+      externalId,
+      poolId: { in: poolIds },
     },
     select: { id: true },
   });

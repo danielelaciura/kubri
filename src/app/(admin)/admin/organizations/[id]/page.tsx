@@ -8,7 +8,6 @@ import { logAudit } from "@/lib/audit";
 import { getAppOrigin } from "@/lib/origin";
 import {
   updateOrgSettingsSchema,
-  updateOrgDatastoreSchema,
   inviteMemberSchema,
   resendInviteSchema,
 } from "@/lib/validations/organization";
@@ -51,9 +50,16 @@ export default async function OrgDetailPage({ params }: OrgDetailPageProps) {
       id: true,
       name: true,
       slug: true,
-      makeDatastoreId: true,
       createdAt: true,
       settings: true,
+      pools: {
+        select: {
+          pool: {
+            select: { id: true, name: true, slug: true, isGlobal: true },
+          },
+        },
+        orderBy: { createdAt: "asc" },
+      },
     },
   });
 
@@ -109,36 +115,7 @@ export default async function OrgDetailPage({ params }: OrgDetailPageProps) {
     revalidatePath(`/admin/organizations/${id}`);
   }
 
-  async function updateOrgDatastore(formData: FormData) {
-    "use server";
-    const s = await getCurrentUser();
-    if (s.role !== Role.ADMIN_KUBRI) {
-      throw new Error("Permessi insufficienti");
-    }
-
-    const parsed = updateOrgDatastoreSchema.safeParse({
-      makeDatastoreId: formData.get("makeDatastoreId"),
-    });
-    if (!parsed.success) throw new Error("Dati non validi");
-
-    await prisma.organization.update({
-      where: { id },
-      data: { makeDatastoreId: parsed.data.makeDatastoreId },
-    });
-
-    await logAudit({
-      userId: s.id,
-      organizationId: id,
-      action: "update_organization_datastore",
-      resourceType: "Organization",
-      resourceId: id,
-      metadata: { makeDatastoreId: parsed.data.makeDatastoreId },
-    });
-
-    revalidatePath(`/admin/organizations/${id}`);
-  }
-
-  async function resendInvite(formData: FormData) {
+async function resendInvite(formData: FormData) {
     "use server";
     const s = await getCurrentUser();
     if (s.role !== Role.ADMIN_KUBRI) {
@@ -268,22 +245,36 @@ export default async function OrgDetailPage({ params }: OrgDetailPageProps) {
 
         <Card className="md:col-span-2">
           <CardHeader>
-            <CardTitle>Make.com Data Store</CardTitle>
+            <CardTitle>Pool accessibili ({org.pools.length})</CardTitle>
           </CardHeader>
           <CardContent>
-            <form action={updateOrgDatastore} className="flex gap-2">
-              <Input
-                name="makeDatastoreId"
-                defaultValue={org.makeDatastoreId}
-                placeholder="Data Store ID"
-                required
-                className="font-mono"
-              />
-              <Button type="submit">{strings.common.save}</Button>
-            </form>
+            {org.pools.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Nessun pool agganciato a questa organizzazione.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {org.pools.map((op) => (
+                  <li
+                    key={op.pool.id}
+                    className="flex items-center gap-2 rounded border p-2"
+                  >
+                    <span className="font-medium">{op.pool.name}</span>
+                    <span className="font-mono text-xs text-muted-foreground">
+                      {op.pool.slug}
+                    </span>
+                    {op.pool.isGlobal && <Badge variant="secondary">Global</Badge>}
+                  </li>
+                ))}
+              </ul>
+            )}
             <p className="mt-2 text-xs text-muted-foreground">
-              ID del Data Store Make.com per i candidati di questa
-              organizzazione. Il token API è condiviso a livello di piattaforma.
+              I pool determinano quali candidati questa organizzazione può vedere. La
+              gestione dei pool si fa da{" "}
+              <a className="underline" href="/admin/pools">
+                /admin/pools
+              </a>
+              .
             </p>
           </CardContent>
         </Card>

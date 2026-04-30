@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach, afterAll } from "vitest";
 import { prisma } from "@/lib/db";
 import { resolvePoolByExternalKey, UnknownPoolError } from "@/lib/pools/resolve";
 
-describe("resolvePoolByExternalKey", () => {
+// SKIPPED: see access.test.ts — deleteMany({}) on candidate/pool wipes dev data.
+describe.skip("resolvePoolByExternalKey", () => {
   beforeEach(async () => {
     // Delete in FK-safe order: rows that reference Pool first.
     await prisma.candidateNote.deleteMany({});

@@ -7,7 +7,10 @@ import {
   getOrgAccessiblePools,
 } from "@/lib/pools/access";
 
-describe("getAccessiblePoolIds / getAccessiblePools", () => {
+// SKIPPED: this test suite uses deleteMany({}) on user/organization/etc
+// against the dev DB and wipes real data. Re-enable only when we have an
+// isolated test DB (pglite or TEST_DATABASE_URL). See docs/superpowers/specs/2026-04-27-pools-design.md §11.
+describe.skip("getAccessiblePoolIds / getAccessiblePools", () => {
   beforeEach(async () => {
     await prisma.candidateNote.deleteMany({});
     await prisma.candidateTag.deleteMany({});

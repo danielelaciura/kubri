@@ -39,7 +39,8 @@ async function cleanup() {
   await prisma.organization.deleteMany({});
 }
 
-describe("pool actions", () => {
+// SKIPPED: see access.test.ts — deleteMany({}) wipes the dev DB.
+describe.skip("pool actions", () => {
   beforeEach(async () => {
     await cleanup();
     // The admin user must exist as a real DB row because logAudit FKs userId.

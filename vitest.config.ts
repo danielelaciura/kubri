@@ -7,7 +7,10 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
-    setupFiles: [],
+    setupFiles: ["./vitest.setup.ts"],
+    // DB-backed tests in src/lib/pools/__tests__ share the dev database;
+    // disable cross-file parallelism so they don't trample each other.
+    fileParallelism: false,
     exclude: [
       "**/node_modules/**",
       "**/.worktrees/**",

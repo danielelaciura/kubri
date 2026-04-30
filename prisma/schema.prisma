@@ -17,7 +17,6 @@ model Organization {
   id              String   @id @default(uuid()) @db.Uuid
   name            String
   slug            String   @unique
-  makeDatastoreId String
   createdAt       DateTime @default(now())
   settings        Json?
 
@@ -144,7 +143,6 @@ model Candidate {
   id              String   @id @default(uuid()) @db.Uuid
 
   externalId      String
-  makeDatastoreId String
 
   firstName       String?
   lastName        String?
@@ -181,14 +179,14 @@ model Candidate {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
-  poolId String? @db.Uuid
-  pool   Pool?   @relation(fields: [poolId], references: [id], onDelete: Restrict)
+  poolId String @db.Uuid
+  pool   Pool   @relation(fields: [poolId], references: [id], onDelete: Restrict)
 
   notes CandidateNote[]
   tags  CandidateTag[]
 
-  @@unique([makeDatastoreId, externalId])
-  @@index([makeDatastoreId])
-  @@index([makeDatastoreId, createdAt])
-  @@index([makeDatastoreId, lastName])
+  @@unique([poolId, externalId])
+  @@index([poolId])
+  @@index([poolId, createdAt])
+  @@index([poolId, lastName])
 }

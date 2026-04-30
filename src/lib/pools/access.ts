@@ -39,3 +39,33 @@ export async function getAccessiblePools(userId: string): Promise<Pool[]> {
 
   return user.organization?.pools.map((op) => op.pool) ?? [];
 }
+
+/**
+ * Returns the pool IDs attached to the given organization.
+ * Unlike `getAccessiblePoolIds`, this is org-scoped and does NOT apply
+ * the ADMIN_KUBRI bypass — orgs see only their own pools regardless of
+ * the requesting user's role.
+ */
+export async function getOrgAccessiblePoolIds(
+  organizationId: string,
+): Promise<string[]> {
+  const rows = await prisma.organizationPool.findMany({
+    where: { organizationId },
+    select: { poolId: true },
+  });
+  return rows.map((r) => r.poolId);
+}
+
+/**
+ * Returns the full Pool objects attached to the given organization.
+ * Org-scoped; no admin bypass.
+ */
+export async function getOrgAccessiblePools(
+  organizationId: string,
+): Promise<Pool[]> {
+  const rows = await prisma.organizationPool.findMany({
+    where: { organizationId },
+    select: { pool: true },
+  });
+  return rows.map((r) => r.pool);
+}

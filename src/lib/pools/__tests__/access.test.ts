@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeEach, afterAll } from "vitest";
 import { prisma } from "@/lib/db";
-import { getAccessiblePoolIds, getAccessiblePools } from "@/lib/pools/access";
+import {
+  getAccessiblePoolIds,
+  getAccessiblePools,
+  getOrgAccessiblePoolIds,
+  getOrgAccessiblePools,
+} from "@/lib/pools/access";
 
 describe("getAccessiblePoolIds / getAccessiblePools", () => {
   beforeEach(async () => {
@@ -52,6 +57,39 @@ describe("getAccessiblePoolIds / getAccessiblePools", () => {
     expect(ids).not.toContain(p2.id);
   });
 
+  it("getOrgAccessiblePoolIds returns only the pools attached to the org (no admin bypass)", async () => {
+    const p1 = await prisma.pool.create({ data: { name: "P1", slug: "p1" } });
+    const p2 = await prisma.pool.create({ data: { name: "P2", slug: "p2" } });
+    const org = await prisma.organization.create({
+      data: {
+        name: "Org",
+        slug: "org",
+        pools: { create: [{ poolId: p1.id }] },
+      },
+    });
+
+    const ids = await getOrgAccessiblePoolIds(org.id);
+    expect(ids).toEqual([p1.id]);
+    expect(ids).not.toContain(p2.id);
+  });
+
+  it("getOrgAccessiblePools returns full Pool objects for the org", async () => {
+    const p1 = await prisma.pool.create({
+      data: { name: "P1", slug: "p1", externalKey: "ext-org-1" },
+    });
+    const org = await prisma.organization.create({
+      data: {
+        name: "Org",
+        slug: "org",
+        pools: { create: [{ poolId: p1.id }] },
+      },
+    });
+
+    const pools = await getOrgAccessiblePools(org.id);
+    expect(pools).toHaveLength(1);
+    expect(pools[0]!.externalKey).toBe("ext-org-1");
+  });
+
   it("getAccessiblePools returns full Pool objects with externalKey", async () => {
     const p1 = await prisma.pool.create({
       data: { name: "P1", slug: "p1", externalKey: "ext-1" },
@@ -69,6 +107,6 @@ describe("getAccessiblePoolIds / getAccessiblePools", () => {
 
     const pools = await getAccessiblePools(user.id);
     expect(pools).toHaveLength(1);
-    expect(pools[0].externalKey).toBe("ext-1");
+    expect(pools[0]!.externalKey).toBe("ext-1");
   });
 });

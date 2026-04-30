@@ -322,14 +322,25 @@ WHERE "isGlobal" = true;
 
 ### 9.2 Procedura operativa (per CLAUDE.md dev→prod workflow)
 
-1. Apply in dev: `pnpm prisma migrate dev --name pools_and_partitioning`
+1. Apply in dev: `pnpm prisma migrate dev --name pools_and_partitioning` *(in pratica, su questo branch è stato usato `migrate diff --from-migrations ... --script` + `migrate deploy` per via del drift su `20260424_candidate_notes_tags_fk`. La differenza non riguarda prod.)*
 2. Eseguire test (vedi §11)
-3. Backup prod prima del deploy: `pg_dump "$DIRECT_URL" > /tmp/kubri-prod-pre-pools-$(date +%Y%m%d-%H%M%S).sql`
-4. Apply in prod: `set -a && source .env.prod && set +a && pnpm prisma migrate deploy`
-5. Verifica: `pnpm prisma migrate status`
-6. Aggiornare lo scenario Make per inviare `externalKey` al posto di `makeDatastoreId` (valore identico)
-7. Merge PR → Vercel deploya il codice nuovo
-8. Window di rischio: ~10–30s di errori (vecchio codice ancora in esecuzione contro nuovo schema)
+3. **Pre-deploy check orfani**: prima di applicare in prod, verifica che non ci siano `Candidate` con `makeDatastoreId` non agganciato a un'`Organization`:
+   ```sql
+   SELECT DISTINCT "makeDatastoreId" FROM "Candidate"
+   WHERE "makeDatastoreId" NOT IN (SELECT "makeDatastoreId" FROM "Organization");
+   ```
+   Se non vuoto, decidere caso per caso (delete dei record orfani in dev sono stati 3 record di test).
+4. Backup prod prima del deploy: `pg_dump "$DIRECT_URL" > /tmp/kubri-prod-pre-pools-$(date +%Y%m%d-%H%M%S).sql`
+5. Apply in prod: `set -a && source .env.prod && set +a && pnpm prisma migrate deploy`
+   - Sequenza migrazioni applicate: `add_pool_and_organization_pool` → `pool_backfill` → `pool_finalize_schema` → `audit_log_org_nullable`
+6. Verifica: `pnpm prisma migrate status`
+7. Aggiornare lo scenario Make per inviare `externalKey` al posto di `makeDatastoreId` (valore identico)
+8. Merge PR → Vercel deploya il codice nuovo
+9. Window di rischio: ~10–30s di errori (vecchio codice ancora in esecuzione contro nuovo schema)
+
+### 9.2.1 Migrazione aggiuntiva non prevista nello spec originale
+
+Durante il Task 10 è emerso che `AuditLog.organizationId` era `NOT NULL`, ma le operazioni admin sui pool (create/update/delete pool) sono globali e non legate a una org specifica. Una migrazione aggiuntiva (`20260429_audit_log_org_nullable`) rende quella colonna nullable. Va applicata in prod insieme alle altre. Nessun rischio: le righe esistenti restano valide, solo il vincolo NOT NULL viene rimosso.
 
 ### 9.3 Coordinamento Make scenario
 

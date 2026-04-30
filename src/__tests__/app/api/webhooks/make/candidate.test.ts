@@ -8,10 +8,32 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 
+vi.mock("@/lib/pools/resolve", async () => {
+  const actual =
+    await vi.importActual<typeof import("@/lib/pools/resolve")>(
+      "@/lib/pools/resolve",
+    );
+  return {
+    ...actual,
+    resolvePoolByExternalKey: vi.fn(),
+  };
+});
+
 import { prisma } from "@/lib/db";
+import {
+  resolvePoolByExternalKey,
+  UnknownPoolError,
+} from "@/lib/pools/resolve";
 import { POST } from "@/app/api/webhooks/make/candidate/route";
 
 const SECRET = "test-secret-xyz";
+
+const POOL = {
+  id: "00000000-0000-0000-0000-000000000001",
+  name: "Global",
+  externalKey: "global",
+  createdAt: new Date("2026-01-01T00:00:00Z"),
+};
 
 function makeRequest(body: unknown, auth?: string): Request {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -31,7 +53,7 @@ describe("POST /api/webhooks/make/candidate", () => {
 
   it("returns 401 when Authorization header is missing", async () => {
     const res = await POST(
-      makeRequest({ key: "k", makeDatastoreId: "ds", data: {} }),
+      makeRequest({ key: "k", externalKey: "global", data: {} }),
     );
     expect(res.status).toBe(401);
     expect(prisma.candidate.upsert).not.toHaveBeenCalled();
@@ -40,7 +62,7 @@ describe("POST /api/webhooks/make/candidate", () => {
   it("returns 401 when Authorization secret is wrong", async () => {
     const res = await POST(
       makeRequest(
-        { key: "k", makeDatastoreId: "ds", data: {} },
+        { key: "k", externalKey: "global", data: {} },
         "Bearer wrong",
       ),
     );
@@ -57,7 +79,7 @@ describe("POST /api/webhooks/make/candidate", () => {
   it("returns 400 when schema validation fails (missing key)", async () => {
     const res = await POST(
       makeRequest(
-        { makeDatastoreId: "ds", data: {} },
+        { externalKey: "global", data: {} },
         `Bearer ${SECRET}`,
       ),
     );
@@ -67,7 +89,37 @@ describe("POST /api/webhooks/make/candidate", () => {
     expect(prisma.candidate.upsert).not.toHaveBeenCalled();
   });
 
+  it("returns 400 when externalKey is missing", async () => {
+    const res = await POST(
+      makeRequest({ key: "k", data: {} }, `Bearer ${SECRET}`),
+    );
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBe("validation_failed");
+    expect(prisma.candidate.upsert).not.toHaveBeenCalled();
+  });
+
+  it("returns 422 when externalKey does not match any pool", async () => {
+    vi.mocked(resolvePoolByExternalKey).mockRejectedValue(
+      new UnknownPoolError("nope"),
+    );
+
+    const res = await POST(
+      makeRequest(
+        { key: "k", externalKey: "nope", data: {} },
+        `Bearer ${SECRET}`,
+      ),
+    );
+
+    expect(res.status).toBe(422);
+    const json = await res.json();
+    expect(json.error).toBe("unknown_pool");
+    expect(json.externalKey).toBe("nope");
+    expect(prisma.candidate.upsert).not.toHaveBeenCalled();
+  });
+
   it("returns 200 and upserts on happy path", async () => {
+    vi.mocked(resolvePoolByExternalKey).mockResolvedValue(POOL as never);
     vi.mocked(prisma.candidate.upsert).mockResolvedValue({
       id: "11111111-1111-1111-1111-111111111111",
     } as never);
@@ -76,7 +128,7 @@ describe("POST /api/webhooks/make/candidate", () => {
       makeRequest(
         {
           key: "ext_123",
-          makeDatastoreId: "ds_abc",
+          externalKey: "global",
           data: { first_name: "Mario", interview_complete: true },
         },
         `Bearer ${SECRET}`,
@@ -91,21 +143,23 @@ describe("POST /api/webhooks/make/candidate", () => {
     expect(prisma.candidate.upsert).toHaveBeenCalledTimes(1);
     const arg = vi.mocked(prisma.candidate.upsert).mock.calls[0]![0];
     expect(arg.where).toEqual({
-      makeDatastoreId_externalId: {
-        makeDatastoreId: "ds_abc",
+      poolId_externalId: {
+        poolId: POOL.id,
         externalId: "ext_123",
       },
     });
     expect(arg.create.firstName).toBe("Mario");
+    expect(arg.create.poolId).toBe(POOL.id);
     expect(arg.update.firstName).toBe("Mario");
   });
 
   it("returns 500 when prisma throws", async () => {
+    vi.mocked(resolvePoolByExternalKey).mockResolvedValue(POOL as never);
     vi.mocked(prisma.candidate.upsert).mockRejectedValue(new Error("db down"));
 
     const res = await POST(
       makeRequest(
-        { key: "k", makeDatastoreId: "ds", data: {} },
+        { key: "k", externalKey: "global", data: {} },
         `Bearer ${SECRET}`,
       ),
     );

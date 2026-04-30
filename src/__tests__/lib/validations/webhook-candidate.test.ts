@@ -5,7 +5,7 @@ describe("makeCandidateWebhookSchema", () => {
   it("accepts a minimal valid payload", () => {
     const result = makeCandidateWebhookSchema.safeParse({
       key: "abc123",
-      makeDatastoreId: "ds_xyz",
+      externalKey: "global",
       data: {},
     });
     expect(result.success).toBe(true);
@@ -14,7 +14,7 @@ describe("makeCandidateWebhookSchema", () => {
   it("accepts a rich data object", () => {
     const result = makeCandidateWebhookSchema.safeParse({
       key: "abc",
-      makeDatastoreId: "ds",
+      externalKey: "global",
       data: {
         first_name: "Mario",
         last_name: "Rossi",
@@ -28,7 +28,7 @@ describe("makeCandidateWebhookSchema", () => {
 
   it("rejects when key is missing", () => {
     const result = makeCandidateWebhookSchema.safeParse({
-      makeDatastoreId: "ds",
+      externalKey: "global",
       data: {},
     });
     expect(result.success).toBe(false);
@@ -37,15 +37,24 @@ describe("makeCandidateWebhookSchema", () => {
   it("rejects when key is empty string", () => {
     const result = makeCandidateWebhookSchema.safeParse({
       key: "",
-      makeDatastoreId: "ds",
+      externalKey: "global",
       data: {},
     });
     expect(result.success).toBe(false);
   });
 
-  it("rejects when makeDatastoreId is missing", () => {
+  it("rejects when externalKey is missing", () => {
     const result = makeCandidateWebhookSchema.safeParse({
       key: "abc",
+      data: {},
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects when externalKey is empty string", () => {
+    const result = makeCandidateWebhookSchema.safeParse({
+      key: "abc",
+      externalKey: "",
       data: {},
     });
     expect(result.success).toBe(false);
@@ -54,7 +63,7 @@ describe("makeCandidateWebhookSchema", () => {
   it("rejects when data is missing", () => {
     const result = makeCandidateWebhookSchema.safeParse({
       key: "abc",
-      makeDatastoreId: "ds",
+      externalKey: "global",
     });
     expect(result.success).toBe(false);
   });
@@ -62,7 +71,7 @@ describe("makeCandidateWebhookSchema", () => {
   it("rejects when data is not an object", () => {
     const result = makeCandidateWebhookSchema.safeParse({
       key: "abc",
-      makeDatastoreId: "ds",
+      externalKey: "global",
       data: "oops",
     });
     expect(result.success).toBe(false);

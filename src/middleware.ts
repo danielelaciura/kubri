@@ -6,6 +6,8 @@ const PUBLIC_PREFIXES = [
   "/auth/callback",
   "/auth/set-password",
   "/auth/reset-password",
+  // Webhooks authenticate via shared secret (Bearer token), not Supabase session.
+  "/api/webhooks",
 ];
 
 export async function middleware(request: NextRequest) {

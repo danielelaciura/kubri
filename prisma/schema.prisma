@@ -45,28 +45,33 @@ model User {
 
 model CandidateNote {
   id             String   @id @default(uuid()) @db.Uuid
-  makeRecordId   String
+  candidateId    String   @db.Uuid
   organizationId String   @db.Uuid
   userId         String   @db.Uuid
   content        String
   createdAt      DateTime @default(now())
 
+  candidate    Candidate    @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id])
   user         User         @relation(fields: [userId], references: [id])
 
-  @@index([makeRecordId, organizationId])
+  @@index([candidateId])
+  @@index([organizationId])
 }
 
 model CandidateTag {
   id             String   @id @default(uuid()) @db.Uuid
-  makeRecordId   String
+  candidateId    String   @db.Uuid
   organizationId String   @db.Uuid
   tag            String
   createdAt      DateTime @default(now())
 
+  candidate    Candidate    @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id])
 
-  @@index([makeRecordId, organizationId])
+  @@unique([candidateId, organizationId, tag])
+  @@index([candidateId])
+  @@index([organizationId])
 }
 
 model AuditLog {
@@ -108,4 +113,54 @@ model JobDescription {
 
   @@unique([organizationId, name])
   @@index([organizationId, createdAt])
+}
+
+model Candidate {
+  id              String   @id @default(uuid()) @db.Uuid
+
+  externalId      String
+  makeDatastoreId String
+
+  firstName       String?
+  lastName        String?
+  birthday        String?
+  countryOfOrigin String?
+  address         String?
+  phone           String?
+
+  workingPermit   Boolean?
+  meanOfTransport String?
+  drivingLicense  Boolean?
+
+  educationAndTraining String[] @default([])
+  workExperience       String[] @default([])
+  skillsAndCompetences String[] @default([])
+
+  language             String?
+  additionalLanguages  String[] @default([])
+  italianLevel         String?
+
+  desiredJob               String?
+  partTimePreference       Boolean?
+  preferredLocation        String?
+  jobConstraints           String?
+  hasDesiredJobExperience  String?
+
+  interviewLanguage   String?
+  sourceOrganization  String?
+  channel             String?
+
+  rawPayload          Json
+
+  sourceUpdatedAt     DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  notes CandidateNote[]
+  tags  CandidateTag[]
+
+  @@unique([makeDatastoreId, externalId])
+  @@index([makeDatastoreId])
+  @@index([makeDatastoreId, createdAt])
+  @@index([makeDatastoreId, lastName])
 }

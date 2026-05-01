@@ -90,6 +90,15 @@ function nullableBoolean(value: unknown): boolean | null {
   return typeof value === "boolean" ? value : null;
 }
 
+function nullableNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim().length > 0) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
 function parseNullableDate(value: unknown): Date | null {
   if (typeof value !== "string") return null;
   const d = new Date(value);
@@ -120,6 +129,8 @@ export function normalizeForUpsert(
     birthday: nullableString(d["birthday"]),
     countryOfOrigin: nullableString(d["country"]),
     address: nullableString(d["address"]),
+    latitude: nullableNumber(d["lat"]),
+    longitude: nullableNumber(d["lng"]),
     phone: nullableString(d["phone"]),
 
     workingPermit: nullableBoolean(d["working_permit"]),

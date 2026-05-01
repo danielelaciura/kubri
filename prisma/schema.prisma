@@ -149,6 +149,8 @@ model Candidate {
   birthday        String?
   countryOfOrigin String?
   address         String?
+  latitude        Float?
+  longitude       Float?
   phone           String?
 
   workingPermit   Boolean?

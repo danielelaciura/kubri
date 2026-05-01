@@ -32,6 +32,8 @@ export interface MakeRecordData {
   date_of_birth?: string;
   country_of_origin?: string;
   address?: string;
+  lat?: number;
+  lng?: number;
   phone?: string;
   legal_status?: string;
   working_permit?: boolean;

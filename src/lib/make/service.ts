@@ -2,6 +2,10 @@ import { prisma } from "@/lib/db";
 import { MakeApiClient } from "./client";
 import { cachedFetch, invalidateCache, LIST_TTL_MS } from "./cache";
 import { normalizeCandidates } from "./normalize";
+import {
+  getOrgAccessiblePoolIds,
+  getOrgAccessiblePools,
+} from "@/lib/pools/access";
 import type { Candidate, Channel } from "@/types";
 import type { CandidateModel as DbCandidate } from "@/generated/prisma/models/Candidate";
 
@@ -57,9 +61,10 @@ function dbCandidateToApp(c: DbCandidate): Candidate {
 async function getCandidatesFromDb(
   organizationId: string,
 ): Promise<Candidate[]> {
-  const datastoreId = await getOrgDatastoreId(organizationId);
+  const poolIds = await getOrgAccessiblePoolIds(organizationId);
+  if (poolIds.length === 0) return [];
   const rows = await prisma.candidate.findMany({
-    where: { makeDatastoreId: datastoreId },
+    where: { poolId: { in: poolIds } },
     orderBy: { createdAt: "desc" },
   });
   return rows.map(dbCandidateToApp);
@@ -73,22 +78,45 @@ function getApiToken(): string {
   return token;
 }
 
-async function getOrgDatastoreId(organizationId: string): Promise<string> {
-  const org = await prisma.organization.findUniqueOrThrow({
-    where: { id: organizationId },
-    select: { makeDatastoreId: true },
-  });
-  return org.makeDatastoreId;
+/**
+ * Cache key for the list of candidates from a single Make.com Data Store.
+ * Keyed by `externalKey` (the Make.com datastore id) — NOT by org — because
+ * the same pool (e.g. the global pool) can be shared across multiple orgs
+ * and we want them to share the cache entry.
+ */
+function listCacheKey(externalKey: string): string {
+  return `make:${externalKey}:list`;
 }
 
-function listCacheKey(orgId: string, datastoreId: string): string {
-  return `make:${orgId}:${datastoreId}:list`;
-}
+async function getCandidatesFromMake(
+  organizationId: string,
+): Promise<Candidate[]> {
+  const pools = await getOrgAccessiblePools(organizationId);
+  const externalKeys = pools
+    .map((p) => p.externalKey)
+    .filter((k): k is string => Boolean(k));
+  if (externalKeys.length === 0) return [];
 
+  const token = getApiToken();
+  const all = await Promise.all(
+    externalKeys.map(async (extKey) => {
+      const client = new MakeApiClient(extKey, token);
+      const response = await cachedFetch(
+        listCacheKey(extKey),
+        () => client.listAllRecords(),
+        LIST_TTL_MS,
+      );
+      return normalizeCandidates(response.records);
+    }),
+  );
+  return all.flat();
+}
 
 /**
  * Fetch all candidates for an organization from the Make.com Data Store.
- * Results are cached for 60 seconds.
+ * Iterates over every pool attached to the org and merges the results.
+ * Each pool's list is cached for 60 seconds, keyed by its externalKey
+ * (so pools shared across orgs share the cache entry).
  */
 export async function getCandidatesForOrg(
   organizationId: string,
@@ -96,18 +124,7 @@ export async function getCandidatesForOrg(
   if (USE_PG_CANDIDATES) {
     return getCandidatesFromDb(organizationId);
   }
-
-  const datastoreId = await getOrgDatastoreId(organizationId);
-  const client = new MakeApiClient(datastoreId, getApiToken());
-
-  const key = listCacheKey(organizationId, datastoreId);
-  const response = await cachedFetch(
-    key,
-    () => client.listAllRecords(),
-    LIST_TTL_MS,
-  );
-
-  return normalizeCandidates(response.records);
+  return getCandidatesFromMake(organizationId);
 }
 
 /**
@@ -127,9 +144,17 @@ export async function getCandidateForOrg(
 /**
  * Invalidate all cached data for an organization.
  * Called when the user clicks the refresh button.
+ *
+ * Since cache keys are now keyed by externalKey (not orgId), we look up
+ * the org's pools and invalidate each pool's cache prefix. Note that this
+ * also invalidates the cache for OTHER orgs that share the same pool
+ * (e.g. the global pool) — acceptable, since the underlying data is shared.
  */
 export async function invalidateOrgCache(
   organizationId: string,
 ): Promise<void> {
-  invalidateCache(`make:${organizationId}`);
+  const pools = await getOrgAccessiblePools(organizationId);
+  for (const p of pools) {
+    if (p.externalKey) invalidateCache(`make:${p.externalKey}`);
+  }
 }

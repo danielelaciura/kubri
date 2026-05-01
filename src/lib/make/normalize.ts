@@ -1,6 +1,7 @@
 import type { MakeDataStoreRecord } from "./types";
 import type { Candidate, Channel } from "@/types";
 import type { Prisma } from "@/generated/prisma/client";
+import type { PoolModel as Pool } from "@/generated/prisma/models/Pool";
 import type { MakeCandidateWebhookPayload } from "@/lib/validations/webhook-candidate";
 
 function safeString(value: unknown): string {
@@ -105,13 +106,14 @@ function deriveChannelOrNull(source: unknown): string | null {
 
 export function normalizeForUpsert(
   payload: MakeCandidateWebhookPayload,
+  pool: Pool,
 ): Prisma.CandidateUncheckedCreateInput {
   const d = payload.data;
   const jp = (d["job_preferences"] ?? {}) as Record<string, unknown>;
 
   return {
     externalId: payload.key,
-    makeDatastoreId: payload.makeDatastoreId,
+    poolId: pool.id,
 
     firstName: nullableString(d["first_name"]),
     lastName: nullableString(d["last_name"]),

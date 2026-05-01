@@ -2,16 +2,18 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { makeCandidateWebhookSchema } from "@/lib/validations/webhook-candidate";
 import { normalizeForUpsert } from "@/lib/make/normalize";
+import {
+  resolvePoolByExternalKey,
+  UnknownPoolError,
+} from "@/lib/pools/resolve";
 
 export async function POST(req: Request): Promise<Response> {
-  // 1. Auth
   const expected = process.env["MAKE_WEBHOOK_SECRET"];
   const auth = req.headers.get("authorization");
   if (!expected || auth !== `Bearer ${expected}`) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  // 2. Parse JSON (tolerate malformed body)
   let body: unknown;
   try {
     body = await req.json();
@@ -19,7 +21,6 @@ export async function POST(req: Request): Promise<Response> {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
 
-  // 3. Structural validation
   const parsed = makeCandidateWebhookSchema.safeParse(body);
   if (!parsed.success) {
     console.error(
@@ -32,13 +33,28 @@ export async function POST(req: Request): Promise<Response> {
     );
   }
 
-  // 4. Normalize + upsert
-  const upsertInput = normalizeForUpsert(parsed.data);
+  let pool;
+  try {
+    pool = await resolvePoolByExternalKey(parsed.data.externalKey);
+  } catch (e) {
+    if (e instanceof UnknownPoolError) {
+      console.error("[webhook make/candidate] unknown pool", {
+        externalKey: e.externalKey,
+      });
+      return NextResponse.json(
+        { error: "unknown_pool", externalKey: e.externalKey },
+        { status: 422 },
+      );
+    }
+    throw e;
+  }
+
+  const upsertInput = normalizeForUpsert(parsed.data, pool);
   try {
     const candidate = await prisma.candidate.upsert({
       where: {
-        makeDatastoreId_externalId: {
-          makeDatastoreId: parsed.data.makeDatastoreId,
+        poolId_externalId: {
+          poolId: pool.id,
           externalId: parsed.data.key,
         },
       },

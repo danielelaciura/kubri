@@ -8,11 +8,11 @@ import { logAudit } from "@/lib/audit";
 import { getAppOrigin } from "@/lib/origin";
 import {
   updateOrgSettingsSchema,
-  updateOrgDatastoreSchema,
   inviteMemberSchema,
   resendInviteSchema,
 } from "@/lib/validations/organization";
 import { strings } from "@/lib/i18n/strings";
+import { attachOrgToPool, detachOrgFromPool } from "@/lib/pools/actions";
 import { InviteOrgMemberDialog } from "@/components/admin/invite-org-member-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -51,13 +51,27 @@ export default async function OrgDetailPage({ params }: OrgDetailPageProps) {
       id: true,
       name: true,
       slug: true,
-      makeDatastoreId: true,
       createdAt: true,
       settings: true,
+      pools: {
+        select: {
+          pool: {
+            select: { id: true, name: true, slug: true, isGlobal: true },
+          },
+        },
+        orderBy: { createdAt: "asc" },
+      },
     },
   });
 
   if (!org) notFound();
+
+  const allPools = await prisma.pool.findMany({
+    select: { id: true, name: true, slug: true, isGlobal: true },
+    orderBy: [{ isGlobal: "desc" }, { name: "asc" }],
+  });
+  const attachedPoolIds = new Set(org.pools.map((op) => op.pool.id));
+  const attachablePools = allPools.filter((p) => !attachedPoolIds.has(p.id));
 
   type MemberRow = {
     id: string;
@@ -109,36 +123,21 @@ export default async function OrgDetailPage({ params }: OrgDetailPageProps) {
     revalidatePath(`/admin/organizations/${id}`);
   }
 
-  async function updateOrgDatastore(formData: FormData) {
+  async function attachPoolAction(formData: FormData) {
     "use server";
-    const s = await getCurrentUser();
-    if (s.role !== Role.ADMIN_KUBRI) {
-      throw new Error("Permessi insufficienti");
-    }
-
-    const parsed = updateOrgDatastoreSchema.safeParse({
-      makeDatastoreId: formData.get("makeDatastoreId"),
-    });
-    if (!parsed.success) throw new Error("Dati non validi");
-
-    await prisma.organization.update({
-      where: { id },
-      data: { makeDatastoreId: parsed.data.makeDatastoreId },
-    });
-
-    await logAudit({
-      userId: s.id,
-      organizationId: id,
-      action: "update_organization_datastore",
-      resourceType: "Organization",
-      resourceId: id,
-      metadata: { makeDatastoreId: parsed.data.makeDatastoreId },
-    });
-
-    revalidatePath(`/admin/organizations/${id}`);
+    const poolId = String(formData.get("poolId") ?? "");
+    if (!poolId) throw new Error("Pool non valido");
+    await attachOrgToPool(poolId, id);
   }
 
-  async function resendInvite(formData: FormData) {
+  async function detachPoolAction(formData: FormData) {
+    "use server";
+    const poolId = String(formData.get("poolId") ?? "");
+    if (!poolId) throw new Error("Pool non valido");
+    await detachOrgFromPool(poolId, id);
+  }
+
+async function resendInvite(formData: FormData) {
     "use server";
     const s = await getCurrentUser();
     if (s.role !== Role.ADMIN_KUBRI) {
@@ -268,22 +267,70 @@ export default async function OrgDetailPage({ params }: OrgDetailPageProps) {
 
         <Card className="md:col-span-2">
           <CardHeader>
-            <CardTitle>Make.com Data Store</CardTitle>
+            <CardTitle>Pool accessibili ({org.pools.length})</CardTitle>
           </CardHeader>
-          <CardContent>
-            <form action={updateOrgDatastore} className="flex gap-2">
-              <Input
-                name="makeDatastoreId"
-                defaultValue={org.makeDatastoreId}
-                placeholder="Data Store ID"
-                required
-                className="font-mono"
-              />
-              <Button type="submit">{strings.common.save}</Button>
-            </form>
-            <p className="mt-2 text-xs text-muted-foreground">
-              ID del Data Store Make.com per i candidati di questa
-              organizzazione. Il token API è condiviso a livello di piattaforma.
+          <CardContent className="space-y-4">
+            {org.pools.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Nessun pool agganciato a questa organizzazione.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {org.pools.map((op) => (
+                  <li
+                    key={op.pool.id}
+                    className="flex items-center justify-between rounded border p-2"
+                  >
+                    <div className="flex items-center gap-2">
+                      <a
+                        href={`/admin/pools/${op.pool.id}`}
+                        className="font-medium hover:underline"
+                      >
+                        {op.pool.name}
+                      </a>
+                      <span className="font-mono text-xs text-muted-foreground">
+                        {op.pool.slug}
+                      </span>
+                      {op.pool.isGlobal && (
+                        <Badge variant="secondary">Global</Badge>
+                      )}
+                    </div>
+                    <form action={detachPoolAction}>
+                      <input type="hidden" name="poolId" value={op.pool.id} />
+                      <Button type="submit" variant="ghost" size="sm">
+                        Rimuovi
+                      </Button>
+                    </form>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {attachablePools.length > 0 && (
+              <form action={attachPoolAction} className="flex gap-2">
+                <select
+                  name="poolId"
+                  required
+                  className="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                >
+                  {attachablePools.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                      {p.isGlobal ? " (Global)" : ""}
+                    </option>
+                  ))}
+                </select>
+                <Button type="submit">Aggancia</Button>
+              </form>
+            )}
+
+            <p className="text-xs text-muted-foreground">
+              I pool determinano quali candidati questa organizzazione può
+              vedere. La gestione dei pool si fa da{" "}
+              <a className="underline" href="/admin/pools">
+                /admin/pools
+              </a>
+              .
             </p>
           </CardContent>
         </Card>

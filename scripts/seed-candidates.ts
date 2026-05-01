@@ -7,8 +7,8 @@
  *
  * Run: set -a && source .env.local && set +a && pnpm tsx scripts/seed-candidates.ts
  *
- * Idempotent: uses upsert keyed on (makeDatastoreId, externalId).
- * Override target org: TARGET_DATASTORE_ID=159244 pnpm tsx scripts/seed-candidates.ts
+ * Idempotent: uses upsert keyed on (poolId, externalId).
+ * Override target pool: TARGET_POOL_SLUG=159244 pnpm tsx scripts/seed-candidates.ts
  */
 import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -1140,20 +1140,20 @@ function deriveChannel(s: string): "telegram" | "whatsapp" {
 }
 
 async function main() {
-  const targetDatastoreId = process.env["TARGET_DATASTORE_ID"] ?? "159244";
+  const targetPoolSlug = process.env["TARGET_POOL_SLUG"] ?? "159244";
 
-  const org = await prisma.organization.findFirst({
-    where: { makeDatastoreId: targetDatastoreId },
-    select: { id: true, name: true, makeDatastoreId: true },
+  const pool = await prisma.pool.findUnique({
+    where: { slug: targetPoolSlug },
+    select: { id: true, name: true, slug: true },
   });
-  if (!org) {
+  if (!pool) {
     throw new Error(
-      `Nessuna organizzazione trovata con makeDatastoreId=${targetDatastoreId}. ` +
-        `Override con TARGET_DATASTORE_ID=<valore>.`,
+      `Nessun pool trovato con slug=${targetPoolSlug}. ` +
+        `Override con TARGET_POOL_SLUG=<valore>.`,
     );
   }
   console.log(
-    `Seeding ${ALL.length} candidati per org "${org.name}" (datastore ${org.makeDatastoreId})`,
+    `Seeding ${ALL.length} candidati nel pool "${pool.name}" (slug ${pool.slug})`,
   );
 
   for (const s of ALL) {
@@ -1186,13 +1186,13 @@ async function main() {
 
     const rawPayload = {
       key: s.externalId,
-      makeDatastoreId: targetDatastoreId,
+      externalKey: pool.slug,
       data,
     };
 
     const input = {
       externalId: s.externalId,
-      makeDatastoreId: targetDatastoreId,
+      poolId: pool.id,
       firstName: s.firstName,
       lastName: s.lastName,
       birthday: s.birthday,
@@ -1222,8 +1222,8 @@ async function main() {
 
     const c = await prisma.candidate.upsert({
       where: {
-        makeDatastoreId_externalId: {
-          makeDatastoreId: targetDatastoreId,
+        poolId_externalId: {
+          poolId: pool.id,
           externalId: s.externalId,
         },
       },
@@ -1235,9 +1235,9 @@ async function main() {
   }
 
   const total = await prisma.candidate.count({
-    where: { makeDatastoreId: targetDatastoreId },
+    where: { poolId: pool.id },
   });
-  console.log(`\nDone. Totale candidati nell'org: ${total}`);
+  console.log(`\nDone. Totale candidati nel pool: ${total}`);
 }
 
 main()

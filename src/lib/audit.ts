@@ -3,7 +3,7 @@ import type { Prisma } from "@/generated/prisma/client";
 
 interface AuditLogParams {
   userId: string;
-  organizationId: string;
+  organizationId: string | null;
   action: string;
   resourceType: string;
   resourceId: string;

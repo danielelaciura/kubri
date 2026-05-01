@@ -192,10 +192,10 @@ describe("normalizeCandidates", () => {
     ];
     const results = normalizeCandidates(records);
     expect(results).toHaveLength(2);
-    expect(results[0].id).toBe("rec-1");
-    expect(results[0].firstName).toBe("Alice");
-    expect(results[1].id).toBe("rec-2");
-    expect(results[1].firstName).toBe("Bob");
+    expect(results[0]!.id).toBe("rec-1");
+    expect(results[0]!.firstName).toBe("Alice");
+    expect(results[1]!.id).toBe("rec-2");
+    expect(results[1]!.firstName).toBe("Bob");
   });
 
   it("returns empty array for empty input", () => {

@@ -6,7 +6,6 @@ export const createOrgSchema = z.object({
     .string()
     .min(1)
     .regex(/^[a-z0-9-]+$/, "Solo lettere minuscole, numeri e trattini"),
-  makeDatastoreId: z.string().min(1, "Data Store ID obbligatorio"),
   adminEmail: z.email("Email non valida"),
   adminName: z.string().min(1, "Nome obbligatorio"),
   // adminPassword removed — Supabase invite flow handles password
@@ -21,10 +20,6 @@ export const inviteMemberSchema = z.object({
 
 export const updateOrgSettingsSchema = z.object({
   name: z.string().min(1).optional(),
-});
-
-export const updateOrgDatastoreSchema = z.object({
-  makeDatastoreId: z.string().min(1, "Data Store ID obbligatorio"),
 });
 
 export const changeRoleSchema = z.object({

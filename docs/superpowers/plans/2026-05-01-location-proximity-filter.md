@@ -109,7 +109,12 @@ git commit -m "feat(ui): add shadcn Slider primitive"
 
 ## Task 2: Update `build-italy-admin.ts` to emit coordinates
 
-We replace the data source with `matteocontrini/comuni-json`, a public dataset that provides lat/lng for every Italian comune. For provinces and regions, we compute centroids as the unweighted mean of their municipalities — coarse but sufficient for proximity center resolution.
+We join two public datasets:
+
+- **`matteocontrini/comuni-json`** — provides clean canonical names (`nome`, `regione.nome`, `provincia.nome`, `sigla`) keyed on a 6-digit ISTAT code (`codice`, e.g. `"028001"` for Abano Terme = province `028` + comune `001`). No coordinates.
+- **`avalla/coordinate-comuni-italiani`** — provides `lat`/`lng` keyed on `codice_prov_istat` + `codice_comu_istat` (3+3 digits, concatenated = the same 6-digit ISTAT code).
+
+The build script fetches both, joins them, and emits `italy-admin.ts` with the existing fields plus `latitude` and `longitude`.
 
 **Files:**
 - Modify: `scripts/build-italy-admin.ts`
@@ -120,23 +125,33 @@ Replace the entire contents of `scripts/build-italy-admin.ts` with:
 
 ```ts
 /**
- * One-shot builder: downloads the matteocontrini/comuni-json dataset
- * (Italian comuni with lat/lng) and emits src/lib/geo/italy-admin.ts.
+ * One-shot builder: joins matteocontrini/comuni-json (canonical names) with
+ * avalla/coordinate-comuni-italiani (lat/lng) on the 6-digit ISTAT code,
+ * and emits src/lib/geo/italy-admin.ts.
  *
  * Run: pnpm tsx scripts/build-italy-admin.ts
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
-const SOURCE_URL =
+const NAMES_URL =
   "https://raw.githubusercontent.com/matteocontrini/comuni-json/master/comuni.json";
+const COORDS_URL =
+  "https://raw.githubusercontent.com/avalla/coordinate-comuni-italiani/master/comuni.json";
 
-interface SourceRow {
+interface NameRow {
   nome: string;
+  codice: string; // 6 digits, e.g. "028001"
   sigla: string;
   regione: { nome: string };
-  provincia: { nome: string; codice: string };
-  coordinate: { lat: number; lng: number };
+  provincia: { nome: string };
+}
+
+interface CoordRow {
+  codice_prov_istat: string; // 3 digits
+  codice_comu_istat: string; // 3 digits
+  lat: number;
+  lng: number;
 }
 
 interface Row {
@@ -148,24 +163,65 @@ interface Row {
   longitude: number;
 }
 
+function pad3(s: string): string {
+  return s.padStart(3, "0");
+}
+
+async function fetchJson<T>(url: string): Promise<T> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Fetch failed for ${url}: ${res.status}`);
+  return (await res.json()) as T;
+}
+
 async function main() {
-  const res = await fetch(SOURCE_URL);
-  if (!res.ok) throw new Error(`Source fetch failed: ${res.status}`);
-  const raw = (await res.json()) as SourceRow[];
-  if (!Array.isArray(raw) || raw.length < 7000) {
-    throw new Error(`Too few rows: ${raw.length}`);
+  const [names, coords] = await Promise.all([
+    fetchJson<NameRow[]>(NAMES_URL),
+    fetchJson<CoordRow[]>(COORDS_URL),
+  ]);
+  if (!Array.isArray(names) || names.length < 7000) {
+    throw new Error(`Too few name rows: ${names.length}`);
+  }
+  if (!Array.isArray(coords) || coords.length < 7000) {
+    throw new Error(`Too few coord rows: ${coords.length}`);
   }
 
-  const rows: Row[] = raw.map((r) => ({
-    municipality: r.nome,
-    province: r.provincia.nome,
-    provinceCode: r.sigla,
-    region: r.regione.nome,
-    latitude: r.coordinate.lat,
-    longitude: r.coordinate.lng,
-  }));
+  // Index coords by 6-digit ISTAT code: codice_prov_istat (padded to 3) +
+  // codice_comu_istat (padded to 3).
+  const coordIndex = new Map<string, { lat: number; lng: number }>();
+  for (const c of coords) {
+    const key = pad3(c.codice_prov_istat) + pad3(c.codice_comu_istat);
+    coordIndex.set(key, { lat: c.lat, lng: c.lng });
+  }
 
-  // Sanity check: every row has finite coords in valid range.
+  const rows: Row[] = [];
+  const missing: string[] = [];
+  for (const n of names) {
+    const c = coordIndex.get(n.codice);
+    if (!c) {
+      missing.push(`${n.nome} (${n.codice})`);
+      continue;
+    }
+    rows.push({
+      municipality: n.nome,
+      province: n.provincia.nome,
+      provinceCode: n.sigla,
+      region: n.regione.nome,
+      latitude: c.lat,
+      longitude: c.lng,
+    });
+  }
+
+  // Acceptable miss rate: <1% (avalla can lag on recent comune mergers).
+  if (missing.length > names.length * 0.01) {
+    throw new Error(
+      `Too many comuni missing coords (${missing.length}/${names.length}). Sample: ${missing.slice(0, 10).join(", ")}`,
+    );
+  }
+  if (missing.length > 0) {
+    console.warn(`Skipped ${missing.length} comuni without coords: ${missing.slice(0, 5).join(", ")}...`);
+  }
+
+  // Sanity check: every emitted row has finite coords in valid range.
   for (const r of rows) {
     if (
       !Number.isFinite(r.latitude) ||

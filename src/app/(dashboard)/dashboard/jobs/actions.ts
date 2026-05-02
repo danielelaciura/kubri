@@ -40,6 +40,7 @@ export async function createJobAction(formData: FormData): Promise<ActionResult>
     locationRaw: formData.get("locationRaw"),
     description: formData.get("description"),
     skills,
+    searchRadiusKm: formData.get("searchRadiusKm") ?? undefined,
   });
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Dati non validi" };

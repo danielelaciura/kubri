@@ -40,6 +40,7 @@ export async function createJobDescription(params: {
         name: input.name,
         description: input.description,
         skills: input.skills,
+        searchRadiusKm: input.searchRadiusKm,
         ...resolveAndSpread(input.locationRaw),
       },
     });
@@ -76,6 +77,7 @@ export async function updateJobDescription(params: {
         name: input.name,
         description: input.description,
         skills: input.skills,
+        searchRadiusKm: input.searchRadiusKm,
         ...resolveAndSpread(input.locationRaw),
       },
     });

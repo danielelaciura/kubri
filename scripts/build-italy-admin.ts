@@ -59,12 +59,24 @@ async function main() {
     throw new Error(`Too few coord rows: ${coords.length}`);
   }
 
+  // Italy bounding box (rough) — used to discard avalla rows with garbage
+  // values (e.g. lat==lng, swapped fields, sentinel zeros).
+  function isPlausibleItaly(lat: number, lng: number): boolean {
+    return (
+      Number.isFinite(lat) &&
+      Number.isFinite(lng) &&
+      lat >= 35 &&
+      lat <= 48 &&
+      lng >= 6 &&
+      lng <= 19 &&
+      lat !== lng
+    );
+  }
+
   const coordIndex = new Map<string, { lat: number; lng: number }>();
-  // Province centroid index (3-digit province code -> mean lat/lng of all
-  // comuni in that province with known coords). Used as fallback for newly
-  // created/merged comuni absent from the avalla dataset.
   const provAggregate = new Map<string, { latSum: number; lngSum: number; n: number }>();
   for (const c of coords) {
+    if (!isPlausibleItaly(c.lat, c.lng)) continue;
     const provKey = pad3(c.codice_prov_istat);
     const key = provKey + pad3(c.codice_comu_istat);
     coordIndex.set(key, { lat: c.lat, lng: c.lng });

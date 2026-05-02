@@ -1454,8 +1454,8 @@ export const ITALY_ADMIN: readonly ItalyAdminRow[] = [
     "province": "Como",
     "provinceCode": "CO",
     "region": "Lombardia",
-    "latitude": 45.86162938749998,
-    "longitude": 9.409928762500003
+    "latitude": 45.85984213836476,
+    "longitude": 9.178885534591197
   },
   {
     "municipality": "Altamura",
@@ -4790,8 +4790,8 @@ export const ITALY_ADMIN: readonly ItalyAdminRow[] = [
     "province": "Como",
     "provinceCode": "CO",
     "region": "Lombardia",
-    "latitude": 45.86162938749998,
-    "longitude": 9.409928762500003
+    "latitude": 45.85984213836476,
+    "longitude": 9.178885534591197
   },
   {
     "municipality": "Bellano",
@@ -15166,8 +15166,8 @@ export const ITALY_ADMIN: readonly ItalyAdminRow[] = [
     "province": "Como",
     "provinceCode": "CO",
     "region": "Lombardia",
-    "latitude": 45.86162938749998,
-    "longitude": 9.409928762500003
+    "latitude": 45.85984213836476,
+    "longitude": 9.178885534591197
   },
   {
     "municipality": "Centuripe",
@@ -17902,8 +17902,8 @@ export const ITALY_ADMIN: readonly ItalyAdminRow[] = [
     "province": "Como",
     "provinceCode": "CO",
     "region": "Lombardia",
-    "latitude": 45.86162938749998,
-    "longitude": 9.409928762500003
+    "latitude": 45.85984213836476,
+    "longitude": 9.178885534591197
   },
   {
     "municipality": "Colzate",
@@ -25390,8 +25390,8 @@ export const ITALY_ADMIN: readonly ItalyAdminRow[] = [
     "province": "Como",
     "provinceCode": "CO",
     "region": "Lombardia",
-    "latitude": 46.145802,
-    "longitude": 46.145802
+    "latitude": 45.85984213836476,
+    "longitude": 9.178885534591197
   },
   {
     "municipality": "Gravellona Lomellina",
@@ -54310,8 +54310,8 @@ export const ITALY_ADMIN: readonly ItalyAdminRow[] = [
     "province": "Como",
     "provinceCode": "CO",
     "region": "Lombardia",
-    "latitude": 45.86162938749998,
-    "longitude": 9.409928762500003
+    "latitude": 45.85984213836476,
+    "longitude": 9.178885534591197
   },
   {
     "municipality": "Solbiate Olona",
@@ -57990,8 +57990,8 @@ export const ITALY_ADMIN: readonly ItalyAdminRow[] = [
     "province": "Como",
     "provinceCode": "CO",
     "region": "Lombardia",
-    "latitude": 45.86162938749998,
-    "longitude": 9.409928762500003
+    "latitude": 45.85984213836476,
+    "longitude": 9.178885534591197
   },
   {
     "municipality": "Tremosine sul Garda",

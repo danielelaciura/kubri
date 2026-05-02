@@ -53,4 +53,32 @@ describe("jobDescriptionInputSchema", () => {
     const r = jobDescriptionInputSchema.safeParse({ ...valid, name: "x".repeat(121) });
     expect(r.success).toBe(false);
   });
+
+  it("defaults searchRadiusKm to 25 when omitted", () => {
+    const r = jobDescriptionInputSchema.safeParse(valid);
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.searchRadiusKm).toBe(25);
+  });
+
+  it("accepts a custom searchRadiusKm in range", () => {
+    const r = jobDescriptionInputSchema.safeParse({ ...valid, searchRadiusKm: 50 });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.searchRadiusKm).toBe(50);
+  });
+
+  it("coerces searchRadiusKm from string", () => {
+    const r = jobDescriptionInputSchema.safeParse({ ...valid, searchRadiusKm: "75" });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.searchRadiusKm).toBe(75);
+  });
+
+  it("rejects searchRadiusKm below MIN_RADIUS_KM", () => {
+    const r = jobDescriptionInputSchema.safeParse({ ...valid, searchRadiusKm: 0 });
+    expect(r.success).toBe(false);
+  });
+
+  it("rejects searchRadiusKm above MAX_RADIUS_KM", () => {
+    const r = jobDescriptionInputSchema.safeParse({ ...valid, searchRadiusKm: 201 });
+    expect(r.success).toBe(false);
+  });
 });

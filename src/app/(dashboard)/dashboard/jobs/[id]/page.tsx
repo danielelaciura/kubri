@@ -55,6 +55,8 @@ export default async function JobDetailPage({
             {jd.locationRegion && jd.locationRaw !== jd.locationRegion && (
               <> · {jd.locationRegion}</>
             )}
+            {" · "}
+            {jd.searchRadiusKm} km
           </span>
         </div>
         {isAdmin && (

@@ -1,5 +1,10 @@
 import { z } from "zod/v4";
 import type { CandidateFilters, SortConfig } from "@/types";
+import {
+  DEFAULT_SEARCH_RADIUS_KM,
+  MIN_RADIUS_KM,
+  MAX_RADIUS_KM,
+} from "@/lib/geo/constants";
 
 export const candidateFiltersSchema = z.object({
   search: z.string().optional(),
@@ -8,6 +13,8 @@ export const candidateFiltersSchema = z.object({
   city: z.string().optional(),
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),
+  nearPlace: z.string().optional(),
+  radiusKm: z.coerce.number().int().min(MIN_RADIUS_KM).max(MAX_RADIUS_KM).optional(),
   sortField: z.enum(["firstName", "lastName", "createdAt"]).optional(),
   sortDir: z.enum(["asc", "desc"]).optional(),
   page: z.coerce.number().min(1).optional().default(1),
@@ -32,6 +39,10 @@ export function toFiltersAndSort(params: ParsedFilterParams): {
   if (params.city) filters.city = params.city;
   if (params.dateFrom) filters.dateFrom = new Date(params.dateFrom);
   if (params.dateTo) filters.dateTo = new Date(params.dateTo);
+  if (params.nearPlace && params.nearPlace.trim()) {
+    filters.nearPlace = params.nearPlace.trim();
+    filters.radiusKm = params.radiusKm ?? DEFAULT_SEARCH_RADIUS_KM;
+  }
 
   const sort: SortConfig = {
     field: params.sortField ?? "createdAt",

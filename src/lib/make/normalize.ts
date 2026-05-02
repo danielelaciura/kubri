@@ -71,6 +71,8 @@ export function normalizeCandidate(raw: MakeDataStoreRecord): Candidate {
     consent: safeBoolean(d.consent),
     cvPdfLink: safeString(d.cvPdfLink),
     cvDocLink: safeString(d.cvDocLink),
+    latitude: nullableNumber(d["lat"]),
+    longitude: nullableNumber(d["lng"]),
     createdAt: parseDate(d.last_updated),
     updatedAt: parseDate(d.last_updated),
   };

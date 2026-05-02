@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { strings } from "@/lib/i18n/strings";
 import { SkillsInput } from "./skills-input";
-import { LocationCombobox } from "./location-combobox";
+import { LocationCombobox } from "@/components/shared/location-combobox";
 
 type FormState = { ok: true } | { ok: false; error: string } | null;
 

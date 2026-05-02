@@ -1,10 +1,23 @@
 import type { Candidate, CandidateFilters, SortConfig, PaginatedResult } from "@/types";
+import { resolvePlaceCoords, haversineKm } from "@/lib/geo/proximity";
 
 export function filterCandidates(
   candidates: Candidate[],
   filters: CandidateFilters
 ): Candidate[] {
+  const center = filters.nearPlace ? resolvePlaceCoords(filters.nearPlace) : null;
+  const radius = filters.radiusKm;
+
   return candidates.filter((c) => {
+    if (center && radius != null) {
+      if (c.latitude == null || c.longitude == null) return false;
+      const d = haversineKm(
+        { latitude: c.latitude, longitude: c.longitude },
+        center,
+      );
+      if (d > radius) return false;
+    }
+
     if (filters.languages && filters.languages.length > 0) {
       const allLangs = [
         c.languages.language,

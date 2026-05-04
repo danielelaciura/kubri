@@ -33,6 +33,7 @@ export function DashboardShell({
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header
           userName={userName}
+          isAdmin={isAdmin}
           isOrgAdmin={isOrgAdmin}
           onMenuToggle={() => setSidebarOpen((prev) => !prev)}
         />

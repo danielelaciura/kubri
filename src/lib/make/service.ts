@@ -130,6 +130,33 @@ export async function getCandidatesForOrg(
 }
 
 /**
+ * Fetch all candidates of a single pool, ignoring org membership.
+ * Intended for ADMIN_KUBRI views where the admin picks an explicit pool.
+ * Uses the same per-pool cache as getCandidatesForOrg.
+ */
+export async function getCandidatesForPool(
+  poolId: string,
+): Promise<Candidate[]> {
+  if (USE_PG_CANDIDATES) {
+    const rows = await prisma.candidate.findMany({
+      where: { poolId },
+      orderBy: { createdAt: "desc" },
+    });
+    return rows.map(dbCandidateToApp);
+  }
+  const pool = await prisma.pool.findUnique({ where: { id: poolId } });
+  if (!pool?.externalKey) return [];
+  const token = getApiToken();
+  const client = new MakeApiClient(pool.externalKey, token);
+  const response = await cachedFetch(
+    listCacheKey(pool.externalKey),
+    () => client.listAllRecords(),
+    LIST_TTL_MS,
+  );
+  return normalizeCandidates(response.records);
+}
+
+/**
  * Fetch a single candidate for an organization from the Make.com Data Store.
  * Uses the list endpoint and filters by key, since the Make.com Data Store API
  * does not support fetching a single record by key.

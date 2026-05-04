@@ -3,16 +3,18 @@
 import Link from "next/link";
 import { LogOut, Menu, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { strings } from "@/lib/i18n/strings";
 import { logoutAction } from "@/lib/auth-actions";
 
 interface HeaderProps {
   userName: string;
+  isAdmin: boolean;
   isOrgAdmin: boolean;
   onMenuToggle: () => void;
 }
 
-export function Header({ userName, isOrgAdmin, onMenuToggle }: HeaderProps) {
+export function Header({ userName, isAdmin, isOrgAdmin, onMenuToggle }: HeaderProps) {
   return (
     <header className="flex h-16 items-center justify-between border-b border-border bg-card px-4 lg:px-6 shadow-sm">
       <Button
@@ -45,7 +47,17 @@ export function Header({ userName, isOrgAdmin, onMenuToggle }: HeaderProps) {
             {userName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
           </span>
         </div>
-        <span className="text-sm font-medium text-foreground">{userName}</span>
+        <div className="flex flex-col items-start leading-tight">
+          <span className="text-sm font-medium text-foreground">{userName}</span>
+          {isAdmin && (
+            <Badge
+              variant="secondary"
+              className="mt-0.5 h-4 px-1.5 text-[10px] bg-zinc-800 text-zinc-100"
+            >
+              Admin Kubri
+            </Badge>
+          )}
+        </div>
         <form action={logoutAction}>
           <Button
             type="submit"

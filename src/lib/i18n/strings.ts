@@ -6,6 +6,8 @@ export const strings = {
     stats: "Statistiche",
     admin: "Amministrazione",
     organizations: "Organizzazioni",
+    pools: "Pool",
+    adminJobs: "Offerte (admin)",
   },
   common: {
     logout: "Esci",

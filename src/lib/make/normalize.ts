@@ -67,7 +67,7 @@ export function normalizeCandidate(raw: MakeDataStoreRecord): Candidate {
     centroPerImpiego: safeString(d.centro_per_impiego),
     interviewLanguage: safeString(d.interview_language),
     sourceOrganization: safeString(d.source_organization),
-    channel: deriveChannel(d.source_organization),
+    channel: deriveChannel(d.channel),
     consent: safeBoolean(d.consent),
     cvPdfLink: safeString(d.cvPdfLink),
     cvDocLink: safeString(d.cvDocLink),
@@ -153,9 +153,9 @@ export function normalizeForUpsert(
     jobConstraints: nullableString(jp["constraints"]),
     hasDesiredJobExperience: nullableString(jp["has_desired_job_experience"]),
 
-    interviewLanguage: nullableString(d["language"]),
+    interviewLanguage: nullableString(d["interview_language"]),
     sourceOrganization: nullableString(d["source_organization"]),
-    channel: deriveChannelOrNull(d["source_organization"]),
+    channel: deriveChannelOrNull(d["channel"]),
 
     rawPayload: payload as unknown as Prisma.InputJsonValue,
 

@@ -40,6 +40,8 @@ function makeCandidate(overrides: Partial<Candidate> = {}): Candidate {
     consent: true,
     cvPdfLink: "",
     cvDocLink: "",
+    latitude: null,
+    longitude: null,
     createdAt: new Date("2025-01-15"),
     updatedAt: new Date("2025-01-15"),
     ...overrides,
@@ -278,5 +280,33 @@ describe("paginateCandidates", () => {
     expect(result.data).toEqual([]);
     expect(result.total).toBe(0);
     expect(result.totalPages).toBe(0);
+  });
+});
+
+describe("filterCandidates — proximity", () => {
+  const milano = makeCandidate({ id: "milano", latitude: 45.4642, longitude: 9.19 });
+  const torino = makeCandidate({ id: "torino", latitude: 45.07, longitude: 7.69 });
+  const roma = makeCandidate({ id: "roma", latitude: 41.9, longitude: 12.5 });
+  const noCoords = makeCandidate({ id: "nocoords", latitude: null, longitude: null });
+  const all = [milano, torino, roma, noCoords];
+
+  it("filters within radius around a known place", () => {
+    const r = filterCandidates(all, { nearPlace: "Milano", radiusKm: 30 });
+    expect(r.map((c) => c.id)).toEqual(["milano"]);
+  });
+
+  it("includes Torino when radius is 150 km from Milano", () => {
+    const r = filterCandidates(all, { nearPlace: "Milano", radiusKm: 150 });
+    expect(r.map((c) => c.id).sort()).toEqual(["milano", "torino"]);
+  });
+
+  it("excludes candidates with null coords when proximity active", () => {
+    const r = filterCandidates(all, { nearPlace: "Milano", radiusKm: 10000 });
+    expect(r.map((c) => c.id)).not.toContain("nocoords");
+  });
+
+  it("is a no-op when nearPlace cannot be resolved", () => {
+    const r = filterCandidates(all, { nearPlace: "Nowhereville", radiusKm: 50 });
+    expect(r).toHaveLength(all.length);
   });
 });

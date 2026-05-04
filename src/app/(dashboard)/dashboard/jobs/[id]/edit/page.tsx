@@ -45,6 +45,7 @@ export default async function EditJobPage({
           locationRaw: jd.locationRaw,
           description: jd.description,
           skills: jd.skills,
+          searchRadiusKm: jd.searchRadiusKm,
         }}
         action={boundAction}
       />

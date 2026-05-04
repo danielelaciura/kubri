@@ -35,6 +35,8 @@ function makeCandidate(
     consent: true,
     cvPdfLink: "",
     cvDocLink: "",
+    latitude: null,
+    longitude: null,
     createdAt: new Date("2026-03-30T10:00:00Z"),
     updatedAt: new Date("2026-03-30T10:00:00Z"),
     ...overrides,

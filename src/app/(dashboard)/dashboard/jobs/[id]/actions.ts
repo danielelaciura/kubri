@@ -48,6 +48,7 @@ function parseInput(formData: FormData) {
     locationRaw: formData.get("locationRaw"),
     description: formData.get("description"),
     skills,
+    searchRadiusKm: formData.get("searchRadiusKm") ?? undefined,
   });
 }
 

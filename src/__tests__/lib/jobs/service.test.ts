@@ -32,6 +32,7 @@ const baseInput = {
   locationRaw: "Milano",
   description: "Cerchiamo personale per pulizie di uffici.",
   skills: ["pulizie"],
+  searchRadiusKm: 25,
 };
 
 describe("createJobDescription", () => {
@@ -48,8 +49,23 @@ describe("createJobDescription", () => {
           locationMunicipality: "Milano",
           locationProvince: "Milano",
           locationRegion: "Lombardia",
+          searchRadiusKm: 25,
         }),
       })
+    );
+  });
+
+  it("forwards a custom searchRadiusKm", async () => {
+    mockPrisma.jobDescription.create.mockResolvedValue({ id: "jd-1" });
+    await createJobDescription({
+      input: { ...baseInput, searchRadiusKm: 75 },
+      organizationId: "org-1",
+      userId: "user-1",
+    });
+    expect(mockPrisma.jobDescription.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ searchRadiusKm: 75 }),
+      }),
     );
   });
 
@@ -100,6 +116,7 @@ describe("updateJobDescription", () => {
           locationRegion: "Lombardia",
           locationProvince: null,
           locationMunicipality: null,
+          searchRadiusKm: 25,
         }),
       })
     );

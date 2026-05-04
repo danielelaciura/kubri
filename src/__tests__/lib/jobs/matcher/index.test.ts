@@ -33,6 +33,8 @@ function makeCandidate(overrides: Partial<Candidate> = {}): Candidate {
     consent: false,
     cvPdfLink: "",
     cvDocLink: "",
+    latitude: null,
+    longitude: null,
     createdAt: new Date("2026-04-01"),
     updatedAt: new Date("2026-04-01"),
   };

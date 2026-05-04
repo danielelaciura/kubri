@@ -1,5 +1,6 @@
 /**
- * One-shot builder: downloads the ISTAT "Elenco dei comuni italiani" CSV
+ * One-shot builder: joins matteocontrini/comuni-json (canonical names) with
+ * avalla/coordinate-comuni-italiani (lat/lng) on the 6-digit ISTAT code,
  * and emits src/lib/geo/italy-admin.ts.
  *
  * Run: pnpm tsx scripts/build-italy-admin.ts
@@ -7,108 +8,189 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
-const ISTAT_CSV_URL =
-  "https://www.istat.it/storage/codici-unita-amministrative/Elenco-comuni-italiani.csv";
+const NAMES_URL =
+  "https://raw.githubusercontent.com/matteocontrini/comuni-json/master/comuni.json";
+const COORDS_URL =
+  "https://raw.githubusercontent.com/avalla/coordinate-comuni-italiani/master/comuni.json";
+
+interface NameRow {
+  nome: string;
+  codice: string; // 6 digits, e.g. "028001"
+  sigla: string;
+  regione: { nome: string };
+  provincia: { nome: string };
+}
+
+interface CoordRow {
+  codice_prov_istat: string; // 3 digits
+  codice_comu_istat: string; // 3 digits
+  lat: number;
+  lng: number;
+}
 
 interface Row {
   municipality: string;
   province: string;
   provinceCode: string;
   region: string;
+  latitude: number;
+  longitude: number;
 }
 
-/**
- * Minimal RFC 4180-ish CSV parser for `;`-delimited data with quoted fields
- * that can contain embedded newlines. Returns rows as string[] arrays.
- */
-function parseCsvRows(text: string, delimiter = ";"): string[][] {
-  const rows: string[][] = [];
-  let field = "";
-  let row: string[] = [];
-  let inQuotes = false;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (inQuotes) {
-      if (ch === '"') {
-        if (text[i + 1] === '"') {
-          field += '"';
-          i++;
-        } else {
-          inQuotes = false;
-        }
-      } else {
-        field += ch;
-      }
-    } else {
-      if (ch === '"') {
-        inQuotes = true;
-      } else if (ch === delimiter) {
-        row.push(field);
-        field = "";
-      } else if (ch === "\n" || ch === "\r") {
-        // consume \r\n as one line break
-        if (ch === "\r" && text[i + 1] === "\n") i++;
-        row.push(field);
-        field = "";
-        // skip fully-empty lines
-        if (row.length > 1 || row[0] !== "") {
-          rows.push(row);
-        }
-        row = [];
-      } else {
-        field += ch;
-      }
-    }
-  }
-  if (field.length > 0 || row.length > 0) {
-    row.push(field);
-    if (row.length > 1 || row[0] !== "") rows.push(row);
-  }
-  return rows;
+function pad3(s: string): string {
+  return s.padStart(3, "0");
 }
 
-function normalizeHeader(h: string): string {
-  return h.replace(/\s+/g, " ").trim().toLowerCase();
-}
-
-function parseCsv(text: string): Row[] {
-  const rows = parseCsvRows(text, ";");
-  const headerRow = rows[0];
-  if (!headerRow) throw new Error("Empty CSV");
-  const header = headerRow.map(normalizeHeader);
-  const idx = {
-    region: header.findIndex(
-      (h) => h.includes("denominazione regione") || h === "regione",
-    ),
-    province: header.findIndex((h) =>
-      h.startsWith("denominazione dell'unità territoriale"),
-    ),
-    provinceCode: header.findIndex((h) => h.includes("sigla automobilistica")),
-    municipality: header.findIndex((h) => h.startsWith("denominazione in italiano")),
-  };
-  if (Object.values(idx).some((i) => i < 0)) {
-    throw new Error(`Could not locate required columns. Header: ${header.join(" | ")}`);
-  }
-  const out: Row[] = [];
-  for (const cells of rows.slice(1)) {
-    const municipality = cells[idx.municipality]?.trim();
-    const province = cells[idx.province]?.trim();
-    const provinceCode = cells[idx.provinceCode]?.trim() ?? "";
-    const region = cells[idx.region]?.trim();
-    if (municipality && province && region) {
-      out.push({ municipality, province, provinceCode, region });
-    }
-  }
-  return out;
+async function fetchJson<T>(url: string): Promise<T> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Fetch failed for ${url}: ${res.status}`);
+  return (await res.json()) as T;
 }
 
 async function main() {
-  const res = await fetch(ISTAT_CSV_URL);
-  if (!res.ok) throw new Error(`ISTAT fetch failed: ${res.status}`);
-  const buf = await res.arrayBuffer();
-  const text = new TextDecoder("iso-8859-1").decode(buf);
-  const rows = parseCsv(text);
-  if (rows.length < 7000) throw new Error(`Too few rows parsed: ${rows.length}`);
+  const [names, coords] = await Promise.all([
+    fetchJson<NameRow[]>(NAMES_URL),
+    fetchJson<CoordRow[]>(COORDS_URL),
+  ]);
+  if (!Array.isArray(names) || names.length < 7000) {
+    throw new Error(`Too few name rows: ${names.length}`);
+  }
+  if (!Array.isArray(coords) || coords.length < 7000) {
+    throw new Error(`Too few coord rows: ${coords.length}`);
+  }
+
+  // Italy bounding box (rough) — used to discard avalla rows with garbage
+  // values (e.g. lat==lng, swapped fields, sentinel zeros).
+  function isPlausibleItaly(lat: number, lng: number): boolean {
+    return (
+      Number.isFinite(lat) &&
+      Number.isFinite(lng) &&
+      lat >= 35 &&
+      lat <= 48 &&
+      lng >= 6 &&
+      lng <= 19 &&
+      lat !== lng
+    );
+  }
+
+  const coordIndex = new Map<string, { lat: number; lng: number }>();
+  const provAggregate = new Map<string, { latSum: number; lngSum: number; n: number }>();
+  for (const c of coords) {
+    if (!isPlausibleItaly(c.lat, c.lng)) continue;
+    const provKey = pad3(c.codice_prov_istat);
+    const key = provKey + pad3(c.codice_comu_istat);
+    coordIndex.set(key, { lat: c.lat, lng: c.lng });
+    const agg = provAggregate.get(provKey) ?? { latSum: 0, lngSum: 0, n: 0 };
+    agg.latSum += c.lat;
+    agg.lngSum += c.lng;
+    agg.n++;
+    provAggregate.set(provKey, agg);
+  }
+  const provCentroid = new Map<string, { lat: number; lng: number }>();
+  for (const [k, a] of provAggregate) {
+    provCentroid.set(k, { lat: a.latSum / a.n, lng: a.lngSum / a.n });
+  }
+
+  // Pass 1: classify each name row as direct hit, province-centroid hit, or
+  // unresolved. While doing it, accumulate per-region coords (using the
+  // matteocontrini region name) so we can derive a region-level fallback for
+  // anything that province-centroid couldn't help with (e.g. provinces newer
+  // than the avalla dataset, like 111 = Sud Sardegna).
+  type Resolved = {
+    name: NameRow;
+    coord: { lat: number; lng: number } | null;
+    via: "direct" | "province" | "region" | null;
+  };
+  const resolved: Resolved[] = [];
+  const regionAggregate = new Map<string, { latSum: number; lngSum: number; n: number }>();
+  for (const n of names) {
+    const direct = coordIndex.get(n.codice);
+    if (direct) {
+      resolved.push({ name: n, coord: direct, via: "direct" });
+      const r = regionAggregate.get(n.regione.nome) ?? { latSum: 0, lngSum: 0, n: 0 };
+      r.latSum += direct.lat;
+      r.lngSum += direct.lng;
+      r.n++;
+      regionAggregate.set(n.regione.nome, r);
+      continue;
+    }
+    const provKey = n.codice.slice(0, 3);
+    const provFb = provCentroid.get(provKey);
+    if (provFb) {
+      resolved.push({ name: n, coord: provFb, via: "province" });
+      continue;
+    }
+    resolved.push({ name: n, coord: null, via: null });
+  }
+
+  const regionCentroid = new Map<string, { lat: number; lng: number }>();
+  for (const [k, a] of regionAggregate) {
+    regionCentroid.set(k, { lat: a.latSum / a.n, lng: a.lngSum / a.n });
+  }
+
+  const rows: Row[] = [];
+  const fallbackProv: string[] = [];
+  const fallbackReg: string[] = [];
+  const dropped: string[] = [];
+  for (const r of resolved) {
+    let coord = r.coord;
+    let via = r.via;
+    if (!coord) {
+      const reg = regionCentroid.get(r.name.regione.nome);
+      if (reg) {
+        coord = reg;
+        via = "region";
+      }
+    }
+    if (!coord) {
+      dropped.push(`${r.name.nome} (${r.name.codice})`);
+      continue;
+    }
+    if (via === "province") fallbackProv.push(`${r.name.nome} (${r.name.codice})`);
+    if (via === "region") fallbackReg.push(`${r.name.nome} (${r.name.codice})`);
+    rows.push({
+      municipality: r.name.nome,
+      province: r.name.provincia.nome,
+      provinceCode: r.name.sigla,
+      region: r.name.regione.nome,
+      latitude: coord.lat,
+      longitude: coord.lng,
+    });
+  }
+
+  if (dropped.length > names.length * 0.01) {
+    throw new Error(
+      `Too many comuni dropped without coords (${dropped.length}/${names.length}). Sample: ${dropped.slice(0, 10).join(", ")}`,
+    );
+  }
+  if (fallbackProv.length > 0) {
+    console.warn(
+      `Province centroid fallback for ${fallbackProv.length} comuni. Sample: ${fallbackProv.slice(0, 5).join(", ")}...`,
+    );
+  }
+  if (fallbackReg.length > 0) {
+    console.warn(
+      `Region centroid fallback for ${fallbackReg.length} comuni. Sample: ${fallbackReg.slice(0, 5).join(", ")}...`,
+    );
+  }
+  if (dropped.length > 0) {
+    console.warn(
+      `Dropped ${dropped.length} comuni without coords: ${dropped.slice(0, 5).join(", ")}...`,
+    );
+  }
+
+  for (const r of rows) {
+    if (
+      !Number.isFinite(r.latitude) ||
+      !Number.isFinite(r.longitude) ||
+      r.latitude < -90 ||
+      r.latitude > 90 ||
+      r.longitude < -180 ||
+      r.longitude > 180
+    ) {
+      throw new Error(`Invalid coords for ${r.municipality}: ${r.latitude},${r.longitude}`);
+    }
+  }
 
   const file = `// AUTO-GENERATED by scripts/build-italy-admin.ts — do not edit manually.
 export interface ItalyAdminRow {
@@ -116,6 +198,8 @@ export interface ItalyAdminRow {
   province: string;
   provinceCode: string;
   region: string;
+  latitude: number;
+  longitude: number;
 }
 
 export const ITALY_ADMIN: readonly ItalyAdminRow[] = ${JSON.stringify(rows, null, 2)} as const;

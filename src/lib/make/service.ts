@@ -53,6 +53,8 @@ function dbCandidateToApp(c: DbCandidate): Candidate {
     consent: false,
     cvPdfLink: "",
     cvDocLink: "",
+    latitude: c.latitude ?? null,
+    longitude: c.longitude ?? null,
     createdAt: c.sourceUpdatedAt ?? c.createdAt,
     updatedAt: c.updatedAt,
   };

@@ -37,6 +37,8 @@ export interface Candidate {
   consent: boolean;
   cvPdfLink: string;
   cvDocLink: string;
+  latitude: number | null;
+  longitude: number | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -48,6 +50,8 @@ export interface CandidateFilters {
   city?: string;
   dateFrom?: Date;
   dateTo?: Date;
+  nearPlace?: string;
+  radiusKm?: number;
 }
 
 export interface SortConfig {

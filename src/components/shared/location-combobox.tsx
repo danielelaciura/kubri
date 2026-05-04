@@ -9,6 +9,8 @@ interface LocationComboboxProps {
   name: string;
   defaultValue?: string;
   placeholder?: string;
+  value?: string;
+  onChange?: (value: string) => void;
 }
 
 const ALL_LABELS: string[] = (() => {
@@ -21,16 +23,30 @@ const ALL_LABELS: string[] = (() => {
   return [...set].sort();
 })();
 
-export function LocationCombobox({ name, defaultValue = "", placeholder }: LocationComboboxProps) {
-  const [value, setValue] = useState(defaultValue);
+export function LocationCombobox({
+  name,
+  defaultValue = "",
+  placeholder,
+  value,
+  onChange,
+}: LocationComboboxProps) {
+  const isControlled = value !== undefined;
+  const [internal, setInternal] = useState(defaultValue);
+  const current = isControlled ? value : internal;
+
+  const setCurrent = (v: string) => {
+    if (!isControlled) setInternal(v);
+    onChange?.(v);
+  };
+
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
 
   const suggestions = useMemo(() => {
-    const q = normalizePlace(value);
+    const q = normalizePlace(current);
     if (!q) return [];
     return ALL_LABELS.filter((l) => normalizePlace(l).startsWith(q)).slice(0, 8);
-  }, [value]);
+  }, [current]);
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
@@ -44,9 +60,9 @@ export function LocationCombobox({ name, defaultValue = "", placeholder }: Locat
     <div ref={wrapRef} className="relative">
       <Input
         name={name}
-        value={value}
+        value={current}
         onChange={(e) => {
-          setValue(e.target.value);
+          setCurrent(e.target.value);
           setOpen(true);
         }}
         onFocus={() => setOpen(true)}
@@ -62,7 +78,7 @@ export function LocationCombobox({ name, defaultValue = "", placeholder }: Locat
                 type="button"
                 className="w-full px-3 py-1.5 text-left text-sm hover:bg-accent"
                 onClick={() => {
-                  setValue(s);
+                  setCurrent(s);
                   setOpen(false);
                 }}
               >

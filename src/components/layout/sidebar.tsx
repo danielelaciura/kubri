@@ -54,6 +54,11 @@ const adminItems = [
     href: "/admin/pools",
     icon: Layers,
   },
+  {
+    label: strings.nav.adminJobs,
+    href: "/admin/jobs",
+    icon: Briefcase,
+  },
 ];
 
 export function Sidebar({

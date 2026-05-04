@@ -7,6 +7,7 @@ export const strings = {
     admin: "Amministrazione",
     organizations: "Organizzazioni",
     pools: "Pool",
+    adminJobs: "Offerte (admin)",
   },
   common: {
     logout: "Esci",

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, Settings, BarChart3, Shield, Building2, Briefcase, X } from "lucide-react";
+import { Users, Settings, BarChart3, Shield, Building2, Briefcase, Layers, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { strings } from "@/lib/i18n/strings";
 import { Button } from "@/components/ui/button";
@@ -48,6 +48,11 @@ const adminItems = [
     label: strings.nav.organizations,
     href: "/admin/organizations",
     icon: Building2,
+  },
+  {
+    label: strings.nav.pools,
+    href: "/admin/pools",
+    icon: Layers,
   },
 ];
 

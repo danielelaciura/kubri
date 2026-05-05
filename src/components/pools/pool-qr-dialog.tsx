@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { QRCodeSVG } from "qrcode.react";
+import { useRef, useState } from "react";
+import { QRCodeCanvas } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -32,6 +32,26 @@ export function PoolQrDialog({
   disabledReason,
 }: Props) {
   const [copied, setCopied] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  function downloadPng() {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const url = canvas.toDataURL("image/png");
+    const safeName =
+      poolName
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[̀-ͯ]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "") || "pool";
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `kubri-qr-${safeName}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
 
   if (!waLink || !messageText) {
     return (
@@ -80,7 +100,13 @@ export function PoolQrDialog({
         </DialogHeader>
         <div className="flex flex-col items-center gap-4 py-2">
           <div className="rounded-md bg-white p-4">
-            <QRCodeSVG value={waLink} size={240} level="M" />
+            <QRCodeCanvas
+              ref={canvasRef}
+              value={waLink}
+              size={240}
+              level="M"
+              marginSize={2}
+            />
           </div>
           <div className="w-full space-y-2">
             <div className="text-xs text-muted-foreground">Messaggio</div>
@@ -99,9 +125,14 @@ export function PoolQrDialog({
               {waLink}
             </a>
           </div>
-          <Button type="button" variant="secondary" onClick={copy}>
-            {copied ? "Copiato!" : "Copia link"}
-          </Button>
+          <div className="flex gap-2">
+            <Button type="button" variant="secondary" onClick={copy}>
+              {copied ? "Copiato!" : "Copia link"}
+            </Button>
+            <Button type="button" variant="outline" onClick={downloadPng}>
+              Scarica PNG
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

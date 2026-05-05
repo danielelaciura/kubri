@@ -1,10 +1,16 @@
 import { getCurrentUser, requireOrganization } from "@/lib/auth-utils";
 import { redirect } from "next/navigation";
-import { getCandidatesForOrg, invalidateOrgCache } from "@/lib/make/service";
+import {
+  getCandidatesForOrg,
+  getCandidatesForPool,
+  invalidateOrgCache,
+} from "@/lib/make/service";
+import { prisma } from "@/lib/db";
 import { filterCandidates, sortCandidates, paginateCandidates } from "@/lib/candidates/filter";
 import { candidateFiltersSchema, toFiltersAndSort } from "@/lib/validations/candidate-filters";
 import { CandidatesTable } from "@/components/candidates/candidates-table";
 import { CandidateFilters } from "@/components/candidates/candidate-filters";
+import { AdminPoolSelector } from "@/components/candidates/admin-pool-selector";
 import { Button } from "@/components/ui/button";
 import { strings } from "@/lib/i18n/strings";
 import { RefreshCw, Users, AlertCircle, Download } from "lucide-react";
@@ -23,7 +29,6 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
   }
 
   const rawParams = await searchParams;
-  // Flatten array values to strings for Zod parsing
   const flatParams: Record<string, string> = {};
   for (const [key, value] of Object.entries(rawParams)) {
     if (typeof value === "string") flatParams[key] = value;
@@ -35,11 +40,35 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
     ? toFiltersAndSort(parsed.data)
     : toFiltersAndSort({ page: 1, pageSize: 25 });
 
+  // Admin-only pool switching: ADMIN_KUBRI defaults to the global pool but
+  // can pick any pool via ?poolId=. Other roles use the org-scoped path.
+  const isAdmin = user.role === "ADMIN_KUBRI";
+  let adminPools: { id: string; name: string }[] = [];
+  let activePoolId: string | undefined;
+
+  if (isAdmin) {
+    const allPools = await prisma.pool.findMany({
+      orderBy: [{ isGlobal: "desc" }, { name: "asc" }],
+      select: { id: true, name: true, isGlobal: true },
+    });
+    adminPools = allPools.map((p) => ({ id: p.id, name: p.name }));
+
+    const requested = flatParams["poolId"];
+    const requestedPool = requested
+      ? allPools.find((p) => p.id === requested)
+      : undefined;
+    const globalPool = allPools.find((p) => p.isGlobal) ?? allPools[0];
+    activePoolId = requestedPool?.id ?? globalPool?.id;
+  }
+
   let errorMessage: string | null = null;
   let candidates: Awaited<ReturnType<typeof getCandidatesForOrg>> = [];
 
   try {
-    candidates = await getCandidatesForOrg(user.organizationId);
+    candidates =
+      isAdmin && activePoolId
+        ? await getCandidatesForPool(activePoolId)
+        : await getCandidatesForOrg(user.organizationId);
   } catch {
     errorMessage = "Errore nel caricamento dei dati. Riprova più tardi.";
   }
@@ -69,6 +98,9 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
           {strings.pages.candidates}
         </h1>
         <div className="flex items-center gap-2">
+          {isAdmin && adminPools.length > 0 && (
+            <AdminPoolSelector pools={adminPools} activePoolId={activePoolId} />
+          )}
           <a
             href={`/api/candidates/export/csv?${new URLSearchParams(flatParams).toString()}`}
             target="_blank"

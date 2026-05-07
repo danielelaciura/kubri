@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth-utils";
 import { prisma } from "@/lib/db";
 import { Role } from "@/generated/prisma/client";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
+import { TermsAcceptanceModal } from "@/components/auth/terms-acceptance-modal";
 
 export default async function AdminLayout({
   children,
@@ -27,14 +28,19 @@ export default async function AdminLayout({
       })
     : null;
 
+  const needsTerms = user.termsAcceptedAt === null;
+
   return (
-    <DashboardShell
-      userName={user.name ?? "Utente"}
-      organizationName={organization?.name ?? "Kubri"}
-      isAdmin={true}
-      isOrgAdmin={true}
-    >
-      {children}
-    </DashboardShell>
+    <>
+      <DashboardShell
+        userName={user.name ?? "Utente"}
+        organizationName={organization?.name ?? "Kubri"}
+        isAdmin={true}
+        isOrgAdmin={true}
+      >
+        {children}
+      </DashboardShell>
+      {needsTerms && <TermsAcceptanceModal />}
+    </>
   );
 }

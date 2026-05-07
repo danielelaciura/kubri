@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
+import { getCurrentUser } from "@/lib/auth-utils";
 
 export async function logoutAction() {
   const supabase = await createSupabaseServerClient();
@@ -49,4 +50,28 @@ export async function trackLoginAction() {
       resourceId: dbUser.id,
     });
   }
+}
+
+export async function acceptTermsAction() {
+  const user = await getCurrentUser();
+  if (user.termsAcceptedAt) return;
+
+  const now = new Date();
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: user.id },
+      data: { termsAcceptedAt: now },
+    }),
+    prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        organizationId: user.organizationId,
+        action: "terms_accepted",
+        resourceType: "User",
+        resourceId: user.id,
+        metadata: { acceptedAt: now.toISOString() },
+      },
+    }),
+  ]);
+  revalidatePath("/", "layout");
 }

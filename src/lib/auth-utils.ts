@@ -30,6 +30,7 @@ export async function getCurrentUser() {
       name: true,
       role: true,
       organizationId: true,
+      termsAcceptedAt: true,
     },
   });
 

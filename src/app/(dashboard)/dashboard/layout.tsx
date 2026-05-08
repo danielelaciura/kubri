@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { Role } from "@/generated/prisma/client";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { SessionTracker } from "@/components/auth/session-tracker";
+import { TermsAcceptanceModal } from "@/components/auth/terms-acceptance-modal";
 
 export default async function DashboardLayout({
   children,
@@ -21,7 +22,12 @@ export default async function DashboardLayout({
 
   const dbUser = await prisma.user.findUnique({
     where: { id: authUser.id },
-    select: { name: true, role: true, organizationId: true },
+    select: {
+      name: true,
+      role: true,
+      organizationId: true,
+      termsAcceptedAt: true,
+    },
   });
 
   if (!dbUser) {
@@ -34,6 +40,8 @@ export default async function DashboardLayout({
         select: { name: true },
       })
     : null;
+
+  const needsTerms = dbUser.termsAcceptedAt === null;
 
   return (
     <>
@@ -48,6 +56,7 @@ export default async function DashboardLayout({
       >
         {children}
       </DashboardShell>
+      {needsTerms && <TermsAcceptanceModal />}
     </>
   );
 }

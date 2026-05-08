@@ -10,13 +10,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { acceptTermsAction, logoutAction } from "@/lib/auth-actions";
-import { TERMS_TEXT } from "@/lib/terms/text";
+import { TERMS_URL, PRIVACY_URL } from "@/lib/terms/text";
 
 export function TermsAcceptanceModal() {
-  const [accepted, setAccepted] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isAccepting, startAccept] = useTransition();
   const [isLoggingOut, startLogout] = useTransition();
+
+  const bothAccepted = termsAccepted && privacyAccepted;
 
   function onConfirm() {
     setError(null);
@@ -42,21 +45,51 @@ export function TermsAcceptanceModal() {
           <DialogTitle>Termini e Condizioni</DialogTitle>
           <DialogDescription>
             Per accedere alla piattaforma è necessario accettare i Termini e
-            Condizioni.
+            Condizioni e la Privacy Policy.
           </DialogDescription>
         </DialogHeader>
-        <div className="max-h-64 overflow-y-auto rounded border bg-muted/40 p-3 text-sm whitespace-pre-wrap">
-          {TERMS_TEXT}
+        <div className="space-y-3 py-2">
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={termsAccepted}
+              onChange={(e) => setTermsAccepted(e.target.checked)}
+              className="mt-0.5 size-4 rounded border-input accent-primary"
+            />
+            <span>
+              Ho letto e accetto i{" "}
+              <a
+                href={TERMS_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="underline hover:text-foreground"
+              >
+                Termini e Condizioni
+              </a>
+              .
+            </span>
+          </label>
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={privacyAccepted}
+              onChange={(e) => setPrivacyAccepted(e.target.checked)}
+              className="mt-0.5 size-4 rounded border-input accent-primary"
+            />
+            <span>
+              Ho letto e accetto la{" "}
+              <a
+                href={PRIVACY_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="underline hover:text-foreground"
+              >
+                Privacy Policy
+              </a>
+              .
+            </span>
+          </label>
         </div>
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={accepted}
-            onChange={(e) => setAccepted(e.target.checked)}
-            className="size-4 rounded border-input accent-primary"
-          />
-          Ho letto e accetto i Termini e Condizioni
-        </label>
         {error && <p className="text-sm text-destructive">{error}</p>}
         <div className="flex justify-end gap-2 pt-2">
           <Button
@@ -70,7 +103,7 @@ export function TermsAcceptanceModal() {
           <Button
             type="button"
             onClick={onConfirm}
-            disabled={!accepted || isAccepting || isLoggingOut}
+            disabled={!bothAccepted || isAccepting || isLoggingOut}
           >
             {isAccepting ? "Salvataggio..." : "Conferma"}
           </Button>

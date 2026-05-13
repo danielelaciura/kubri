@@ -18,10 +18,19 @@ export interface MatchResult {
   breakdown: { semantic: number; location: number };
 }
 
+export interface LLMEnrichment {
+  score: number;
+  summary: string;
+  matchedSkills: string[];
+  missingSkills: string[];
+  redFlags: string[];
+}
+
 export interface RankedCandidate {
   candidate: Candidate;
   match: MatchResult;
   isFallback: boolean;
+  llm?: LLMEnrichment;
 }
 
 export function computeMatchFromScores(scores: { semantic: number; location: number }): MatchResult {

@@ -1,4 +1,12 @@
-import "dotenv/config";
+/**
+ * Backfill embeddings for existing Candidate and JobDescription rows.
+ *
+ * Run: set -a && source .env.local && set +a && pnpm tsx scripts/backfill-embeddings.ts
+ *   --target=candidates|jobs|all   (default: all)
+ *   --force                        re-embed every row, not just IS NULL
+ *
+ * Idempotent. Safe to re-run.
+ */
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
 import { generateEmbedding, vectorToPgLiteral } from "@/lib/embeddings/client";

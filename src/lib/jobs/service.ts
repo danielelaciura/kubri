@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/db";
 import { resolveLocation } from "@/lib/geo/resolve";
 import type { JobDescriptionInput } from "@/lib/validations/job-description";
+import { generateEmbedding, vectorToPgLiteral } from "@/lib/embeddings/client";
+import { buildJobDescriptionEmbeddingText } from "@/lib/embeddings/text";
 
 export class JobNameAlreadyExistsError extends Error {
   constructor() {
@@ -33,7 +35,7 @@ export async function createJobDescription(params: {
 }) {
   const { input, organizationId, userId } = params;
   try {
-    return await prisma.jobDescription.create({
+    const jd = await prisma.jobDescription.create({
       data: {
         organizationId,
         createdByUserId: userId,
@@ -44,6 +46,12 @@ export async function createJobDescription(params: {
         ...resolveAndSpread(input.locationRaw),
       },
     });
+    await syncJobDescriptionEmbedding(jd.id, {
+      name: input.name,
+      description: input.description,
+      skills: input.skills,
+    });
+    return jd;
   } catch (e: unknown) {
     if (isPrismaCode(e, "P2002")) throw new JobNameAlreadyExistsError();
     throw e;
@@ -123,6 +131,11 @@ export async function updateJobDescription(params: {
       },
     });
     if (result.count === 0) throw new JobNotFoundError();
+    await syncJobDescriptionEmbedding(id, {
+      name: input.name,
+      description: input.description,
+      skills: input.skills,
+    });
     return result;
   } catch (e: unknown) {
     if (e instanceof JobNotFoundError) throw e;
@@ -147,6 +160,27 @@ export async function listAllJobDescriptionsForAdmin() {
       createdBy: { select: { name: true } },
     },
   });
+}
+
+async function syncJobDescriptionEmbedding(id: string, input: {
+  name: string;
+  description: string;
+  skills: string[];
+}): Promise<void> {
+  const text = buildJobDescriptionEmbeddingText(input);
+  if (text.length === 0) return;
+  try {
+    const vector = await generateEmbedding(text);
+    await prisma.$executeRaw`
+      UPDATE "JobDescription"
+      SET "embedding" = ${vectorToPgLiteral(vector)}::vector,
+          "embeddingText" = ${text},
+          "embeddingUpdatedAt" = now()
+      WHERE id = ${id}::uuid
+    `;
+  } catch (e) {
+    console.error("[jobs] embedding failed", { jobDescriptionId: id, error: e });
+  }
 }
 
 function isPrismaCode(e: unknown, code: string): boolean {

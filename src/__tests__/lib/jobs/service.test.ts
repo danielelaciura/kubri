@@ -18,6 +18,7 @@ const { mockPrisma } = vi.hoisted(() => ({
       updateMany: vi.fn(),
       deleteMany: vi.fn(),
     },
+    $queryRaw: vi.fn(),
   },
 }));
 
@@ -90,13 +91,50 @@ describe("listJobDescriptions", () => {
 });
 
 describe("getJobDescription", () => {
-  it("requires matching organizationId", async () => {
-    mockPrisma.jobDescription.findFirst.mockResolvedValue(null);
+  it("returns null when no row is found", async () => {
+    mockPrisma.$queryRaw.mockResolvedValue([]);
     const r = await getJobDescription({ id: "jd-1", organizationId: "org-1" });
     expect(r).toBeNull();
-    expect(mockPrisma.jobDescription.findFirst).toHaveBeenCalledWith({
-      where: { id: "jd-1", organizationId: "org-1" },
-    });
+  });
+
+  it("returns normalized record with embedding as number[] when found", async () => {
+    mockPrisma.$queryRaw.mockResolvedValue([
+      {
+        id: "jd-1",
+        name: "Test",
+        description: "Desc",
+        skills: ["skill1"],
+        locationRaw: "Milano",
+        locationMunicipality: "Milano",
+        locationProvince: "Milano",
+        locationRegion: "Lombardia",
+        searchRadiusKm: 25,
+        embedding: "[0.1,0.2,0.3]",
+      },
+    ]);
+    const r = await getJobDescription({ id: "jd-1", organizationId: "org-1" });
+    expect(r).not.toBeNull();
+    expect(r!.embedding).toEqual([0.1, 0.2, 0.3]);
+    expect(r!.name).toBe("Test");
+  });
+
+  it("returns null embedding when embedding is null in DB", async () => {
+    mockPrisma.$queryRaw.mockResolvedValue([
+      {
+        id: "jd-1",
+        name: "Test",
+        description: "Desc",
+        skills: [],
+        locationRaw: "Roma",
+        locationMunicipality: null,
+        locationProvince: null,
+        locationRegion: null,
+        searchRadiusKm: 10,
+        embedding: null,
+      },
+    ]);
+    const r = await getJobDescription({ id: "jd-1", organizationId: "org-1" });
+    expect(r!.embedding).toBeNull();
   });
 });
 

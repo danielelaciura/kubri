@@ -21,6 +21,7 @@ interface JdForMatchingLocal {
   locationMunicipality: string | null;
   locationProvince: string | null;
   locationRegion: string | null;
+  embedding: number[] | null;
 }
 
 export default async function JobDetailPage({
@@ -118,12 +119,16 @@ export default async function JobDetailPage({
 async function Matches({ jd, orgId }: { jd: JdForMatchingLocal; orgId: string }) {
   try {
     const candidates = await getCandidatesForOrg(orgId);
-    const ranked = rankCandidates(jd, candidates);
+    const ranked = await rankCandidates(jd, candidates);
     return <MatchTable ranked={ranked} />;
-  } catch {
+  } catch (e) {
+    const isUnavailable =
+      e instanceof Error && e.name === "MatchingUnavailableError";
     return (
       <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
-        Impossibile caricare i candidati. Riprova più tardi.
+        {isUnavailable
+          ? "Matching non ancora disponibile: l'embedding di questa offerta è in elaborazione."
+          : "Impossibile caricare i candidati. Riprova più tardi."}
       </div>
     );
   }

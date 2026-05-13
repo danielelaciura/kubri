@@ -58,10 +58,51 @@ export async function listJobDescriptions(params: { organizationId: string }) {
   });
 }
 
-export async function getJobDescription(params: { id: string; organizationId: string }) {
-  return prisma.jobDescription.findFirst({
-    where: { id: params.id, organizationId: params.organizationId },
-  });
+export interface JobDescriptionRecord {
+  id: string;
+  name: string;
+  description: string;
+  skills: string[];
+  locationRaw: string;
+  locationMunicipality: string | null;
+  locationProvince: string | null;
+  locationRegion: string | null;
+  searchRadiusKm: number;
+  embedding: number[] | null;
+}
+
+export async function getJobDescription(params: {
+  id: string;
+  organizationId: string;
+}): Promise<JobDescriptionRecord | null> {
+  const rows = await prisma.$queryRaw<Array<{
+    id: string;
+    name: string;
+    description: string;
+    skills: string[];
+    locationRaw: string;
+    locationMunicipality: string | null;
+    locationProvince: string | null;
+    locationRegion: string | null;
+    searchRadiusKm: number;
+    embedding: string | null;
+  }>>`
+    SELECT id::text, name, description, skills,
+           "locationRaw", "locationMunicipality", "locationProvince", "locationRegion",
+           "searchRadiusKm",
+           CASE WHEN embedding IS NULL THEN NULL
+                ELSE embedding::text END AS embedding
+    FROM "JobDescription"
+    WHERE id = ${params.id}::uuid AND "organizationId" = ${params.organizationId}::uuid
+    LIMIT 1;
+  `;
+  if (rows.length === 0) return null;
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  const r = rows[0]!;
+  return {
+    ...r,
+    embedding: r.embedding == null ? null : (JSON.parse(r.embedding) as number[]),
+  };
 }
 
 export async function updateJobDescription(params: {

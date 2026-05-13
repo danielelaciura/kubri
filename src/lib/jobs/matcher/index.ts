@@ -1,50 +1,19 @@
+import { prisma } from "@/lib/db";
 import type { Candidate } from "@/types";
 import { MATCHER_CONFIG } from "./config";
-import { skillsScore } from "./skills";
-import { descriptionScore } from "./description";
 import { locationScore } from "./location";
+import { MatchingUnavailableError } from "@/lib/embeddings/errors";
 
 export interface JdForMatching {
-  description: string;
-  skills: string[];
-  locationMunicipality?: string | null;
-  locationProvince?: string | null;
-  locationRegion?: string | null;
+  embedding: number[] | null;
+  locationMunicipality: string | null;
+  locationProvince: string | null;
+  locationRegion: string | null;
 }
 
 export interface MatchResult {
   final: number;
-  breakdown: {
-    skills: number;
-    description: number;
-    location: number;
-  };
-}
-
-export function computeMatch(jd: JdForMatching, c: Candidate): MatchResult {
-  const slice = {
-    skillsAndCompetences: c.skillsAndCompetences,
-    workExperience: c.workExperience,
-    desiredJob: c.jobPreferences.desiredJob,
-  };
-  const candidateLoc = c.jobPreferences.preferredLocation || c.address;
-  const breakdown = {
-    skills: skillsScore({ jdSkills: jd.skills, candidate: slice }),
-    description: descriptionScore({ jdDescription: jd.description, candidate: slice }),
-    location: locationScore({
-      jd: {
-        municipality: jd.locationMunicipality,
-        province: jd.locationProvince,
-        region: jd.locationRegion,
-      },
-      candidateLocation: candidateLoc,
-    }),
-  };
-  const w = MATCHER_CONFIG.weights;
-  const final = Math.round(
-    100 * (w.skills * breakdown.skills + w.description * breakdown.description + w.location * breakdown.location)
-  );
-  return { final, breakdown };
+  breakdown: { semantic: number; location: number };
 }
 
 export interface RankedCandidate {
@@ -53,16 +22,53 @@ export interface RankedCandidate {
   isFallback: boolean;
 }
 
-export function rankCandidates(jd: JdForMatching, candidates: Candidate[]): RankedCandidate[] {
-  const scored = candidates
-    .map((c) => ({ candidate: c, match: computeMatch(jd, c) }))
-    .sort((a, b) => b.match.final - a.match.final);
+export function computeMatchFromScores(scores: { semantic: number; location: number }): MatchResult {
+  const w = MATCHER_CONFIG.weights;
+  const final = Math.round(100 * (w.semantic * scores.semantic + w.location * scores.location));
+  return { final, breakdown: { semantic: scores.semantic, location: scores.location } };
+}
 
-  const aboveThreshold = scored.filter((s) => s.match.final >= MATCHER_CONFIG.displayThreshold);
-  if (aboveThreshold.length > 0) {
-    return aboveThreshold
-      .slice(0, MATCHER_CONFIG.maxResults)
-      .map((s) => ({ ...s, isFallback: false }));
+export async function rankCandidates(
+  jd: JdForMatching,
+  candidates: Candidate[],
+): Promise<RankedCandidate[]> {
+  if (!jd.embedding) {
+    throw new MatchingUnavailableError("JD has no embedding yet");
+  }
+  if (candidates.length === 0) return [];
+
+  const vectorLiteral = `[${jd.embedding.join(",")}]`;
+  const ids = candidates.map((c) => c.id);
+
+  type Row = { id: string; semantic: number };
+  const rows = await prisma.$queryRaw<Row[]>`
+    SELECT id::text AS id,
+           1 - (embedding <=> ${vectorLiteral}::vector) AS semantic
+    FROM "Candidate"
+    WHERE id = ANY(${ids}::uuid[])
+      AND embedding IS NOT NULL
+  `;
+  const semanticById = new Map<string, number>(rows.map((r) => [r.id, Number(r.semantic)]));
+
+  const scored = candidates.map((c) => {
+    const semantic = semanticById.get(c.id) ?? 0;
+    const candidateLocation = (c.jobPreferences.preferredLocation || c.address || "").trim();
+    const location = locationScore({
+      jd: {
+        municipality: jd.locationMunicipality,
+        province: jd.locationProvince,
+        region: jd.locationRegion,
+      },
+      candidateLocation,
+    });
+    return { candidate: c, match: computeMatchFromScores({ semantic, location }) };
+  });
+
+  scored.sort((a, b) => b.match.final - a.match.final);
+
+  const above = scored.filter((s) => s.match.final >= MATCHER_CONFIG.displayThreshold);
+  if (above.length > 0) {
+    return above.slice(0, MATCHER_CONFIG.maxResults).map((s) => ({ ...s, isFallback: false }));
   }
   return scored
     .slice(0, MATCHER_CONFIG.fallbackTopN)

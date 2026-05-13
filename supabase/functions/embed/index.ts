@@ -3,7 +3,19 @@
 declare const Deno: any;
 const Supabase: any = (globalThis as any).Supabase;
 
-const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+function isServiceRole(authHeader: string | null): boolean {
+  if (!authHeader || !authHeader.startsWith("Bearer ")) return false;
+  const token = authHeader.slice("Bearer ".length);
+  const parts = token.split(".");
+  if (parts.length !== 3) return false;
+  try {
+    const payloadB64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const payload = JSON.parse(atob(payloadB64));
+    return payload.role === "service_role";
+  } catch {
+    return false;
+  }
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") {
@@ -12,8 +24,7 @@ Deno.serve(async (req: Request) => {
       headers: { "content-type": "application/json" },
     });
   }
-  const auth = req.headers.get("authorization");
-  if (!SERVICE_ROLE || auth !== `Bearer ${SERVICE_ROLE}`) {
+  if (!isServiceRole(req.headers.get("authorization"))) {
     return new Response(JSON.stringify({ error: "unauthorized" }), {
       status: 401,
       headers: { "content-type": "application/json" },

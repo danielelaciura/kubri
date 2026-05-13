@@ -21,6 +21,7 @@ interface JdForMatchingLocal {
   locationMunicipality: string | null;
   locationProvince: string | null;
   locationRegion: string | null;
+  searchRadiusKm: number;
   embedding: number[] | null;
 }
 

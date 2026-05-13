@@ -9,6 +9,7 @@ export interface JdForMatching {
   locationMunicipality: string | null;
   locationProvince: string | null;
   locationRegion: string | null;
+  searchRadiusKm: number;
 }
 
 export interface MatchResult {
@@ -52,14 +53,14 @@ export async function rankCandidates(
 
   const scored = candidates.map((c) => {
     const semantic = semanticById.get(c.id) ?? 0;
-    const candidateLocation = (c.jobPreferences.preferredLocation || c.address || "").trim();
     const location = locationScore({
       jd: {
         municipality: jd.locationMunicipality,
         province: jd.locationProvince,
         region: jd.locationRegion,
+        searchRadiusKm: jd.searchRadiusKm,
       },
-      candidateLocation,
+      candidate: { latitude: c.latitude, longitude: c.longitude },
     });
     return { candidate: c, match: computeMatchFromScores({ semantic, location }) };
   });

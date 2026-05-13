@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
 import { generateEmbedding, vectorToPgLiteral } from "@/lib/embeddings/client";
 import {
@@ -22,33 +23,55 @@ function parseArgs(): { target: Target; force: boolean } {
   return { target, force };
 }
 
-async function backfillCandidates(force: boolean) {
+function buildWhere(force: boolean, cursor: string | null): Prisma.Sql {
+  if (force) {
+    return cursor
+      ? Prisma.sql`WHERE id > ${cursor}::uuid`
+      : Prisma.empty;
+  }
+  return cursor
+    ? Prisma.sql`WHERE embedding IS NULL AND id > ${cursor}::uuid`
+    : Prisma.sql`WHERE embedding IS NULL`;
+}
+
+interface CandidateRow {
+  id: string;
+  skillsAndCompetences: string[];
+  workExperience: string[];
+  educationAndTraining: string[];
+  desiredJob: string | null;
+  jobConstraints: string | null;
+}
+
+interface JobRow {
+  id: string;
+  name: string;
+  description: string;
+  skills: string[];
+}
+
+async function backfillCandidates(force: boolean): Promise<void> {
+  const totalWhere = force ? Prisma.empty : Prisma.sql`WHERE embedding IS NULL`;
   const countResult = await prisma.$queryRaw<[{ count: bigint }]>`
-    SELECT COUNT(*) as count FROM "Candidate" WHERE embedding IS NULL
+    SELECT COUNT(*)::bigint AS count FROM "Candidate" ${totalWhere}
   `;
   const total = Number(countResult[0].count);
   console.log(`[candidates] ${total} records to process`);
+
   let done = 0;
-  let offset = 0;
+  let cursor: string | null = null;
   while (true) {
-    const batch = await prisma.$queryRaw<
-      Array<{
-        id: string;
-        skillsAndCompetences: string[];
-        workExperience: string[];
-        educationAndTraining: string[];
-        desiredJob: string | null;
-        jobConstraints: string | null;
-      }>
-    >`
-      SELECT id, "skillsAndCompetences", "workExperience", "educationAndTraining", "desiredJob", "jobConstraints"
+    const where = buildWhere(force, cursor);
+    const batch = await prisma.$queryRaw<CandidateRow[]>`
+      SELECT id::text AS id, "skillsAndCompetences", "workExperience",
+             "educationAndTraining", "desiredJob", "jobConstraints"
       FROM "Candidate"
-      WHERE embedding IS NULL
-      ORDER BY "createdAt" ASC
+      ${where}
+      ORDER BY id ASC
       LIMIT 50
-      OFFSET ${offset}
     `;
     if (batch.length === 0) break;
+
     for (const c of batch) {
       const text = buildCandidateEmbeddingText(c);
       if (text.length === 0) {
@@ -70,31 +93,39 @@ async function backfillCandidates(force: boolean) {
       done++;
       console.log(`[candidates] ${done}/${total} ${c.id} ok`);
     }
-    offset += batch.length;
-    if (!force) break;
+
+    // With --force the cursor advances across all rows. Without --force the
+    // WHERE filter shrinks as rows get embeddings, so we keep paging from
+    // the start of the residual set.
+    if (force) {
+      const last = batch[batch.length - 1];
+      if (!last) break;
+      cursor = last.id;
+    }
   }
 }
 
-async function backfillJobs(force: boolean) {
+async function backfillJobs(force: boolean): Promise<void> {
+  const totalWhere = force ? Prisma.empty : Prisma.sql`WHERE embedding IS NULL`;
   const countResult = await prisma.$queryRaw<[{ count: bigint }]>`
-    SELECT COUNT(*) as count FROM "JobDescription" WHERE embedding IS NULL
+    SELECT COUNT(*)::bigint AS count FROM "JobDescription" ${totalWhere}
   `;
   const total = Number(countResult[0].count);
   console.log(`[jobs] ${total} records to process`);
+
   let done = 0;
-  let offset = 0;
+  let cursor: string | null = null;
   while (true) {
-    const batch = await prisma.$queryRaw<
-      Array<{ id: string; name: string; description: string; skills: string[] }>
-    >`
-      SELECT id, name, description, skills
+    const where = buildWhere(force, cursor);
+    const batch = await prisma.$queryRaw<JobRow[]>`
+      SELECT id::text AS id, name, description, skills
       FROM "JobDescription"
-      WHERE embedding IS NULL
-      ORDER BY "createdAt" ASC
+      ${where}
+      ORDER BY id ASC
       LIMIT 50
-      OFFSET ${offset}
     `;
     if (batch.length === 0) break;
+
     for (const j of batch) {
       const text = buildJobDescriptionEmbeddingText(j);
       if (text.length === 0) {
@@ -116,12 +147,16 @@ async function backfillJobs(force: boolean) {
       done++;
       console.log(`[jobs] ${done}/${total} ${j.id} ok`);
     }
-    offset += batch.length;
-    if (!force) break;
+
+    if (force) {
+      const last = batch[batch.length - 1];
+      if (!last) break;
+      cursor = last.id;
+    }
   }
 }
 
-async function main() {
+async function main(): Promise<void> {
   const { target, force } = parseArgs();
   if (target === "all" || target === "candidates") await backfillCandidates(force);
   if (target === "all" || target === "jobs") await backfillJobs(force);

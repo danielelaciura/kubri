@@ -6,6 +6,8 @@ import {
   resolvePoolByExternalKey,
   UnknownPoolError,
 } from "@/lib/pools/resolve";
+import { generateEmbedding, vectorToPgLiteral } from "@/lib/embeddings/client";
+import { buildCandidateEmbeddingText } from "@/lib/embeddings/text";
 
 export async function POST(req: Request): Promise<Response> {
   const expected = process.env["MAKE_WEBHOOK_SECRET"];
@@ -60,8 +62,42 @@ export async function POST(req: Request): Promise<Response> {
       },
       create: upsertInput,
       update: upsertInput,
-      select: { id: true },
+      select: {
+        id: true,
+        skillsAndCompetences: true,
+        workExperience: true,
+        educationAndTraining: true,
+        desiredJob: true,
+        jobConstraints: true,
+      },
     });
+
+    const embeddingText = buildCandidateEmbeddingText({
+      skillsAndCompetences: candidate.skillsAndCompetences,
+      workExperience: candidate.workExperience,
+      educationAndTraining: candidate.educationAndTraining,
+      desiredJob: candidate.desiredJob,
+      jobConstraints: candidate.jobConstraints,
+    });
+
+    if (embeddingText.length > 0) {
+      try {
+        const vector = await generateEmbedding(embeddingText);
+        await prisma.$executeRaw`
+          UPDATE "Candidate"
+          SET "embedding" = ${vectorToPgLiteral(vector)}::vector,
+              "embeddingText" = ${embeddingText},
+              "embeddingUpdatedAt" = now()
+          WHERE id = ${candidate.id}::uuid
+        `;
+      } catch (e) {
+        console.error("[webhook make/candidate] embedding failed", {
+          candidateId: candidate.id,
+          error: e,
+        });
+      }
+    }
+
     return NextResponse.json({ ok: true, candidateId: candidate.id });
   } catch (e) {
     console.error("[webhook make/candidate] upsert failed", e);

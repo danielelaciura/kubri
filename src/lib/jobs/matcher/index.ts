@@ -25,8 +25,17 @@ export interface RankedCandidate {
 
 export function computeMatchFromScores(scores: { semantic: number; location: number }): MatchResult {
   const w = MATCHER_CONFIG.weights;
-  const final = Math.round(100 * (w.semantic * scores.semantic + w.location * scores.location));
-  return { final, breakdown: { semantic: scores.semantic, location: scores.location } };
+  const rescaled = rescaleSemantic(scores.semantic);
+  const final = Math.round(100 * (w.semantic * rescaled + w.location * scores.location));
+  return { final, breakdown: { semantic: rescaled, location: scores.location } };
+}
+
+function rescaleSemantic(raw: number): number {
+  const cfg = MATCHER_CONFIG.semanticRescale;
+  if (!cfg.enabled) return raw;
+  const span = 1 - cfg.floor;
+  if (span <= 0) return raw;
+  return Math.max(0, Math.min(1, (raw - cfg.floor) / span));
 }
 
 export async function rankCandidates(

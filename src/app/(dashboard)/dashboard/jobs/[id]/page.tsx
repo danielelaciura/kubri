@@ -125,6 +125,9 @@ async function Matches({ jd, orgId }: { jd: JdForMatchingLocal; orgId: string })
   } catch (e) {
     const isUnavailable =
       e instanceof Error && e.name === "MatchingUnavailableError";
+    if (!isUnavailable) {
+      console.error("[jobs/[id]] rankCandidates failed", e);
+    }
     return (
       <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
         {isUnavailable

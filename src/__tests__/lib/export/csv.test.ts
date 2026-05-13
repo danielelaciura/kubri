@@ -5,6 +5,7 @@ import type { Candidate } from "@/types";
 function makeCandidate(overrides: Partial<Candidate> = {}): Candidate {
   return {
     id: "1",
+    dbId: "00000000-0000-0000-0000-000000000000",
     firstName: "Mario",
     lastName: "Rossi",
     dateOfBirth: "1990-05-15",

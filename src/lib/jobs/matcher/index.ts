@@ -39,20 +39,21 @@ export async function rankCandidates(
   if (candidates.length === 0) return [];
 
   const vectorLiteral = `[${jd.embedding.join(",")}]`;
-  const ids = candidates.map((c) => c.id);
+  const dbIds = candidates.map((c) => c.dbId).filter((id) => id.length > 0);
+  if (dbIds.length === 0) return [];
 
   type Row = { id: string; semantic: number };
   const rows = await prisma.$queryRaw<Row[]>`
     SELECT id::text AS id,
            1 - (embedding <=> ${vectorLiteral}::vector) AS semantic
     FROM "Candidate"
-    WHERE id = ANY(${ids}::uuid[])
+    WHERE id = ANY(${dbIds}::uuid[])
       AND embedding IS NOT NULL
   `;
-  const semanticById = new Map<string, number>(rows.map((r) => [r.id, Number(r.semantic)]));
+  const semanticByDbId = new Map<string, number>(rows.map((r) => [r.id, Number(r.semantic)]));
 
   const scored = candidates.map((c) => {
-    const semantic = semanticById.get(c.id) ?? 0;
+    const semantic = semanticByDbId.get(c.dbId) ?? 0;
     const location = locationScore({
       jd: {
         municipality: jd.locationMunicipality,

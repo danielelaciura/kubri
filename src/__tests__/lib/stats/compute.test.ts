@@ -7,6 +7,7 @@ function makeCandidate(
 ): Candidate {
   return {
     id: "1",
+    dbId: "00000000-0000-0000-0000-000000000000",
     firstName: "Test",
     lastName: "User",
     dateOfBirth: "1990-01-01",

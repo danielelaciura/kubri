@@ -41,6 +41,9 @@ export function normalizeCandidate(raw: MakeDataStoreRecord): Candidate {
 
   return {
     id: raw.key,
+    // Legacy Make-only path: no Postgres UUID available here. The normalizer
+    // is being phased out; consumers that need dbId should not go through it.
+    dbId: "",
     firstName: safeString(d.first_name),
     lastName: safeString(d.last_name),
     dateOfBirth: safeString(d.birthday),

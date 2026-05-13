@@ -1,7 +1,9 @@
-// Supabase Edge Function — runs gte-small via Supabase.ai
+// Supabase Edge Function — Mistral embeddings (mistral-embed, 1024-dim, EU)
 // deno-lint-ignore-file no-explicit-any
 declare const Deno: any;
-const Supabase: any = (globalThis as any).Supabase;
+
+const MISTRAL_API_KEY = Deno.env.get("MISTRAL_API_KEY") ?? "";
+const MISTRAL_URL = "https://api.mistral.ai/v1/embeddings";
 
 function isServiceRole(authHeader: string | null): boolean {
   if (!authHeader || !authHeader.startsWith("Bearer ")) return false;
@@ -30,6 +32,12 @@ Deno.serve(async (req: Request) => {
       headers: { "content-type": "application/json" },
     });
   }
+  if (!MISTRAL_API_KEY) {
+    return new Response(JSON.stringify({ error: "mistral_api_key_missing" }), {
+      status: 500,
+      headers: { "content-type": "application/json" },
+    });
+  }
 
   let body: { text?: unknown };
   try {
@@ -47,11 +55,40 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  const session = new Supabase.ai.Session("gte-small");
-  const embedding = await session.run(body.text, {
-    mean_pool: true,
-    normalize: true,
+  const upstream = await fetch(MISTRAL_URL, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${MISTRAL_API_KEY}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ model: "mistral-embed", input: [body.text] }),
   });
+
+  if (!upstream.ok) {
+    const detail = await upstream.text().catch(() => "");
+    return new Response(
+      JSON.stringify({ error: "mistral_upstream_error", status: upstream.status, detail }),
+      { status: 502, headers: { "content-type": "application/json" } },
+    );
+  }
+
+  let data: any;
+  try {
+    data = await upstream.json();
+  } catch {
+    return new Response(JSON.stringify({ error: "mistral_invalid_json" }), {
+      status: 502,
+      headers: { "content-type": "application/json" },
+    });
+  }
+
+  const embedding = data?.data?.[0]?.embedding;
+  if (!Array.isArray(embedding) || embedding.length === 0) {
+    return new Response(JSON.stringify({ error: "mistral_no_embedding", raw: data }), {
+      status: 502,
+      headers: { "content-type": "application/json" },
+    });
+  }
 
   return new Response(JSON.stringify({ embedding }), {
     status: 200,

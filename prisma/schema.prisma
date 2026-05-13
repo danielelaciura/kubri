@@ -134,7 +134,7 @@ model JobDescription {
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
-  embedding            Unsupported("vector(384)")?
+  embedding            Unsupported("vector(1024)")?
   embeddingText        String?
   embeddingUpdatedAt   DateTime?
 
@@ -187,7 +187,7 @@ model Candidate {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
-  embedding            Unsupported("vector(384)")?
+  embedding            Unsupported("vector(1024)")?
   embeddingText        String?
   embeddingUpdatedAt   DateTime?
 

@@ -15,15 +15,15 @@ describe("generateEmbedding", () => {
     vi.restoreAllMocks();
   });
 
-  it("returns the 384-dim vector on success", async () => {
-    const fakeVector = Array.from({ length: 384 }, (_, i) => i / 1000);
+  it("returns the 1024-dim vector on success", async () => {
+    const fakeVector = Array.from({ length: 1024 }, (_, i) => i / 1000);
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ embedding: fakeVector }),
     }) as unknown as typeof fetch;
 
     const result = await generateEmbedding("hello world");
-    expect(result).toHaveLength(384);
+    expect(result).toHaveLength(1024);
     expect(result[0]).toBe(0);
   });
 
@@ -56,7 +56,7 @@ describe("generateEmbedding", () => {
   });
 
   it("throws EmbeddingError when vector contains non-finite values", async () => {
-    const bad = Array.from({ length: 384 }, () => 0.1);
+    const bad = Array.from({ length: 1024 }, () => 0.1);
     bad[10] = NaN;
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,

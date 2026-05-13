@@ -1,6 +1,6 @@
 import { EmbeddingError } from "./errors";
 
-const EMBEDDING_DIM = 384;
+const EMBEDDING_DIM = 1024;
 
 export async function generateEmbedding(text: string): Promise<number[]> {
   const url = process.env["SUPABASE_EDGE_FUNCTION_URL"];

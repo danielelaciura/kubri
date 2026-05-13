@@ -3,6 +3,7 @@ import type { Candidate, Channel } from "@/types";
 import type { Prisma } from "@/generated/prisma/client";
 import type { PoolModel as Pool } from "@/generated/prisma/models/Pool";
 import type { MakeCandidateWebhookPayload } from "@/lib/validations/webhook-candidate";
+import { geocodeFromAddress } from "@/lib/geo/proximity";
 
 function safeString(value: unknown): string {
   return typeof value === "string" ? value : "";
@@ -122,6 +123,19 @@ export function normalizeForUpsert(
   const d = payload.data;
   const jp = (d["job_preferences"] ?? {}) as Record<string, unknown>;
 
+  // Prefer lat/lng explicitly sent by Make. If Make didn't include them but
+  // we have a parseable address, geocode the comune locally via ISTAT data.
+  const address = nullableString(d["address"]);
+  let latitude = nullableNumber(d["lat"]);
+  let longitude = nullableNumber(d["lng"]);
+  if ((latitude == null || longitude == null) && address) {
+    const fallback = geocodeFromAddress(address);
+    if (fallback) {
+      latitude = fallback.latitude;
+      longitude = fallback.longitude;
+    }
+  }
+
   return {
     externalId: payload.key,
     poolId: pool.id,
@@ -130,9 +144,9 @@ export function normalizeForUpsert(
     lastName: nullableString(d["last_name"]),
     birthday: nullableString(d["birthday"]),
     countryOfOrigin: nullableString(d["country"]),
-    address: nullableString(d["address"]),
-    latitude: nullableNumber(d["lat"]),
-    longitude: nullableNumber(d["lng"]),
+    address,
+    latitude,
+    longitude,
     phone: nullableString(d["phone"]),
 
     workingPermit: nullableBoolean(d["working_permit"]),

@@ -1,15 +1,29 @@
 export const MATCHER_CONFIG = {
+  /**
+   * Location is now a hard pre-filter (see `locationFilter` below): candidates
+   * outside the JD's search radius are excluded, not penalized. The final
+   * score is therefore 100% semantic.
+   */
   weights: {
-    semantic: 0.8,
-    location: 0.2,
+    semantic: 1.0,
+    location: 0.0,
   },
   /**
-   * Cosine similarity from gte-small for related Italian texts typically
-   * clusters in [0.5, 0.9]. Linearly remap that band to [0, 1] so the
-   * effective discrimination range is amplified before weighting.
+   * Pre-filter candidates by Haversine distance against the JD's
+   * `searchRadiusKm`. Candidates without coordinates and JDs whose
+   * municipality can't be resolved fall through (no filter applied).
+   */
+  locationFilter: {
+    enabled: true,
+  },
+  /**
+   * Optional linear remap of semantic scores from [floor, 1] → [0, 1].
+   * Useful with older small models (gte-small) whose cosine values are
+   * compressed; with mistral-embed (1024-dim) values already spread
+   * across [0.7, 0.95], so we keep it off by default.
    */
   semanticRescale: {
-    enabled: true,
+    enabled: false,
     floor: 0.5,
   },
   displayThreshold: 25,

@@ -3,6 +3,7 @@ import type { Candidate } from "@/types";
 import { MATCHER_CONFIG } from "./config";
 import { locationScore } from "./location";
 import { MatchingUnavailableError } from "@/lib/embeddings/errors";
+import { haversineKm, resolvePlaceCoords, type LatLng } from "@/lib/geo/proximity";
 
 export interface JdForMatching {
   embedding: number[] | null;
@@ -47,8 +48,13 @@ export async function rankCandidates(
   }
   if (candidates.length === 0) return [];
 
+  // 1. Hard pre-filter by Haversine radius (when both sides have coordinates).
+  const eligible = applyLocationFilter(jd, candidates);
+  if (eligible.length === 0) return [];
+
+  // 2. Semantic ranking over the survivors.
   const vectorLiteral = `[${jd.embedding.join(",")}]`;
-  const dbIds = candidates.map((c) => c.dbId).filter((id) => id.length > 0);
+  const dbIds = eligible.map((c) => c.dbId).filter((id) => id.length > 0);
   if (dbIds.length === 0) return [];
 
   type Row = { id: string; semantic: number };
@@ -61,8 +67,10 @@ export async function rankCandidates(
   `;
   const semanticByDbId = new Map<string, number>(rows.map((r) => [r.id, Number(r.semantic)]));
 
-  const scored = candidates.map((c) => {
+  const scored = eligible.map((c) => {
     const semantic = semanticByDbId.get(c.dbId) ?? 0;
+    // Location is now a binary pre-filter, not a score component. We still
+    // call locationScore for the breakdown to keep MatchResult.shape stable.
     const location = locationScore({
       jd: {
         municipality: jd.locationMunicipality,
@@ -84,4 +92,23 @@ export async function rankCandidates(
   return scored
     .slice(0, MATCHER_CONFIG.fallbackTopN)
     .map((s) => ({ ...s, isFallback: true }));
+}
+
+function applyLocationFilter(jd: JdForMatching, candidates: Candidate[]): Candidate[] {
+  if (!MATCHER_CONFIG.locationFilter.enabled) return candidates;
+  const jdCoords = resolveJdCoords(jd);
+  if (!jdCoords) return candidates;
+  const radius = Math.max(1, jd.searchRadiusKm);
+
+  return candidates.filter((c) => {
+    if (c.latitude == null || c.longitude == null) return true;
+    const distance = haversineKm(jdCoords, { latitude: c.latitude, longitude: c.longitude });
+    return distance <= radius;
+  });
+}
+
+function resolveJdCoords(jd: JdForMatching): LatLng | null {
+  const label = jd.locationMunicipality ?? jd.locationProvince ?? jd.locationRegion;
+  if (!label) return null;
+  return resolvePlaceCoords(label);
 }

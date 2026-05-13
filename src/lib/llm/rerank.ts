@@ -135,16 +135,36 @@ function parseRerankResponse(content: string): CandidateEnrichment[] {
 }
 
 // In-memory LRU cache: key = JD id + candidate ids signature, value = enrichments.
-// 5 minute TTL covers the typical "open / refresh / open" flow of a recruiter
-// without paying for repeat LLM calls.
+// Default TTL is 1 hour; tunable via LLM_RERANK_CACHE_TTL_MS for ops who want
+// to trade staleness for cost. The "Aggiorna match" button on the JD page
+// invalidates this cache for the specific JD on click.
+function cacheTtlMs(): number {
+  const raw = process.env["LLM_RERANK_CACHE_TTL_MS"];
+  const n = raw ? Number(raw) : NaN;
+  return Number.isFinite(n) && n > 0 ? n : 60 * 60 * 1000;
+}
+
 const cache = new LRUCache<string, CandidateEnrichment[]>({
   max: 200,
-  ttl: 5 * 60 * 1000,
+  ttl: cacheTtlMs(),
 });
 
 function cacheKey(jdId: string, candidates: Candidate[]): string {
   const ids = candidates.map((c) => c.id).sort().join(",");
   return `${jdId}:${ids}`;
+}
+
+/** Drop every cache entry that belongs to the given JD id. */
+export function invalidateRerankCacheForJd(jdId: string): void {
+  const prefix = `${jdId}:`;
+  for (const key of cache.keys()) {
+    if (key.startsWith(prefix)) cache.delete(key);
+  }
+}
+
+/** Drop every cache entry. */
+export function clearRerankCache(): void {
+  cache.clear();
 }
 
 export async function rerankCandidates(

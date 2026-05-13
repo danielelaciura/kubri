@@ -68,6 +68,7 @@ async function backfillCandidates(force: boolean): Promise<void> {
 
   let done = 0;
   let cursor: string | null = null;
+  let prevFirstId: string | null = null;
   while (true) {
     const where = buildWhere(force, cursor);
     const batch = await prisma.$queryRaw<CandidateRow[]>`
@@ -79,6 +80,17 @@ async function backfillCandidates(force: boolean): Promise<void> {
       LIMIT 50
     `;
     if (batch.length === 0) break;
+
+    // Stall guard: if a batch comes back with the same first id and we are not
+    // using a cursor (default mode), every row must have failed to update.
+    // Bail to avoid an infinite loop on a persistent embedding-service error.
+    if (!force && prevFirstId !== null && batch[0]!.id === prevFirstId) {
+      console.error(
+        "[candidates] aborting: same batch returned twice — embedding service is failing for all rows",
+      );
+      break;
+    }
+    prevFirstId = batch[0]!.id;
 
     for (const c of batch) {
       const text = buildCandidateEmbeddingText(c);
@@ -123,6 +135,7 @@ async function backfillJobs(force: boolean): Promise<void> {
 
   let done = 0;
   let cursor: string | null = null;
+  let prevFirstId: string | null = null;
   while (true) {
     const where = buildWhere(force, cursor);
     const batch = await prisma.$queryRaw<JobRow[]>`
@@ -133,6 +146,14 @@ async function backfillJobs(force: boolean): Promise<void> {
       LIMIT 50
     `;
     if (batch.length === 0) break;
+
+    if (!force && prevFirstId !== null && batch[0]!.id === prevFirstId) {
+      console.error(
+        "[jobs] aborting: same batch returned twice — embedding service is failing for all rows",
+      );
+      break;
+    }
+    prevFirstId = batch[0]!.id;
 
     for (const j of batch) {
       const text = buildJobDescriptionEmbeddingText(j);

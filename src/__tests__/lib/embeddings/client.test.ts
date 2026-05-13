@@ -55,6 +55,17 @@ describe("generateEmbedding", () => {
     await expect(generateEmbedding("x")).rejects.toBeInstanceOf(EmbeddingError);
   });
 
+  it("throws EmbeddingError when vector contains non-finite values", async () => {
+    const bad = Array.from({ length: 384 }, () => 0.1);
+    bad[10] = NaN;
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ embedding: bad }),
+    }) as unknown as typeof fetch;
+
+    await expect(generateEmbedding("x")).rejects.toBeInstanceOf(EmbeddingError);
+  });
+
   it("throws EmbeddingError when env is missing", async () => {
     delete process.env["SUPABASE_EDGE_FUNCTION_URL"];
     await expect(generateEmbedding("x")).rejects.toBeInstanceOf(EmbeddingError);

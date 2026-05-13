@@ -8,7 +8,8 @@ export async function generateEmbedding(text: string): Promise<number[]> {
   if (!url || !key) {
     throw new EmbeddingError("Embedding service env vars missing");
   }
-  const timeoutMs = Number(process.env["EMBEDDING_TIMEOUT_MS"] ?? "3000");
+  // Default tuned for Supabase Edge Function cold starts (~1–2s) plus generation.
+  const timeoutMs = Number(process.env["EMBEDDING_TIMEOUT_MS"] ?? "10000");
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -55,6 +56,9 @@ export async function generateEmbedding(text: string): Promise<number[]> {
     throw new EmbeddingError(
       `Embedding has wrong dim: expected ${EMBEDDING_DIM}, got ${vector.length}`,
     );
+  }
+  if (!vector.every((n) => typeof n === "number" && Number.isFinite(n))) {
+    throw new EmbeddingError("Embedding contains non-finite numbers");
   }
   return vector;
 }

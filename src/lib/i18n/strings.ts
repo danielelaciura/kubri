@@ -114,5 +114,11 @@ export const strings = {
     lowMatchTag: "Bassa corrispondenza",
     notFound: "Offerta non trovata",
     uniqueNameError: "Esiste già un'offerta con questo nome.",
+    matchSummaryHeading: "Valutazione AI",
+    matchedSkillsHeading: "Competenze riconosciute",
+    missingSkillsHeading: "Competenze mancanti",
+    redFlagsHeading: "Punti di attenzione",
+    viewCandidateAction: "Apri profilo",
+    preferredLocationLabel: "Preferenza",
   },
 } as const;

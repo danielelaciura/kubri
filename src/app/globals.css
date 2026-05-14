@@ -88,9 +88,10 @@
   --sidebar-foreground: oklch(0.25 0.01 240);
   --sidebar-primary: oklch(0.5647 0.1653 291.4);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.25 0.01 240);
-  --sidebar-accent-foreground: oklch(0.95 0 0);
-  --sidebar-border: oklch(0.3 0.01 240);
+  /* Active nav item: soft kubri-50 background + strong kubri-800 text */
+  --sidebar-accent: oklch(0.95 0.0250 290);
+  --sidebar-accent-foreground: oklch(0.450 0.1300 290);
+  --sidebar-border: oklch(0.92 0.01 290);
   --sidebar-ring: oklch(0.5647 0.1653 291.4);
 }
 

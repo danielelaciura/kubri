@@ -20,11 +20,11 @@ export function DashboardShell({
   return (
     <SidebarProvider>
       <AppSidebar organizationName={organizationName} isAdmin={isAdmin} />
-      <SidebarInset>
+      <SidebarInset className="md:m-2 md:ml-0 md:rounded-xl md:border md:border-border md:shadow-sm overflow-hidden">
         <Header userName={userName} isAdmin={isAdmin} isOrgAdmin={isOrgAdmin} />
-        <main className="flex-1 overflow-y-auto bg-background">
+        <div className="flex-1 overflow-y-auto">
           <div className="mx-auto w-full max-w-7xl p-4 lg:p-6">{children}</div>
-        </main>
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );

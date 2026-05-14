@@ -296,55 +296,61 @@ export default async function MembersPage() {
         )}
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>{strings.common.name}</TableHead>
-            <TableHead>{strings.common.email}</TableHead>
-            <TableHead>{strings.common.role}</TableHead>
-            <TableHead>{strings.members.joinedAt}</TableHead>
-            <TableHead>{strings.members.status}</TableHead>
-            {isAdmin && (
-              <TableHead className="text-right">{strings.common.actions}</TableHead>
-            )}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {members.map((member) => (
-            <TableRow key={member.id}>
-              <TableCell className="font-medium">{member.name}</TableCell>
-              <TableCell>{member.email}</TableCell>
-              <TableCell>
-                <Badge variant="secondary">{roleLabel(member.role)}</Badge>
-              </TableCell>
-              <TableCell>
-                {member.createdAt.toLocaleDateString("it-IT")}
-              </TableCell>
-              <TableCell>
-                {member.isPending ? (
-                  <Badge variant="outline">{strings.members.pending}</Badge>
-                ) : (
-                  <Badge>{strings.members.active}</Badge>
-                )}
-              </TableCell>
+      <div className="rounded-lg border border-border/60 bg-card shadow-sm overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{strings.common.name}</TableHead>
+              <TableHead>{strings.common.email}</TableHead>
+              <TableHead>{strings.common.role}</TableHead>
+              <TableHead>{strings.members.joinedAt}</TableHead>
+              <TableHead>{strings.members.status}</TableHead>
               {isAdmin && (
-                <TableCell className="text-right">
-                  {member.id !== currentUser.id && (
-                    <MemberRowActions
-                      memberId={member.id}
-                      memberRole={member.role}
-                      isPending={member.isPending}
-                      removeAction={removeMember}
-                      changeRoleAction={changeRole}
-                      resendInviteAction={resendInvite}
-                    />
-                  )}
-                </TableCell>
+                <TableHead className="text-right">{strings.common.actions}</TableHead>
               )}
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {members.map((member) => (
+              <TableRow key={member.id}>
+                <TableCell className="font-medium">{member.name}</TableCell>
+                <TableCell className="text-muted-foreground">{member.email}</TableCell>
+                <TableCell>
+                  <Badge variant="secondary">{roleLabel(member.role)}</Badge>
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {member.createdAt.toLocaleDateString("it-IT")}
+                </TableCell>
+                <TableCell>
+                  {member.isPending ? (
+                    <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-900">
+                      {strings.members.pending}
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-emerald-600 hover:bg-emerald-600">
+                      {strings.members.active}
+                    </Badge>
+                  )}
+                </TableCell>
+                {isAdmin && (
+                  <TableCell className="text-right">
+                    {member.id !== currentUser.id && (
+                      <MemberRowActions
+                        memberId={member.id}
+                        memberRole={member.role}
+                        isPending={member.isPending}
+                        removeAction={removeMember}
+                        changeRoleAction={changeRole}
+                        resendInviteAction={resendInvite}
+                      />
+                    )}
+                  </TableCell>
+                )}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }

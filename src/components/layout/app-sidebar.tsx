@@ -10,6 +10,7 @@ import {
   Layers,
   Settings,
   Shield,
+  UserCog,
   Users,
 } from "lucide-react";
 import {
@@ -34,7 +35,8 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 const mainItems = [
   { label: strings.nav.candidates, href: "/dashboard/candidates", icon: Users },
   { label: strings.nav.jobs, href: "/dashboard/jobs", icon: Briefcase },
-  { label: strings.nav.settings, href: "/dashboard/settings", icon: Settings },
+  { label: strings.nav.members, href: "/dashboard/settings/members", icon: UserCog },
+  { label: strings.nav.settings, href: "/dashboard/settings", icon: Settings, exact: true },
   { label: strings.nav.stats, href: "/dashboard/stats", icon: BarChart3 },
 ];
 
@@ -82,7 +84,7 @@ export function AppSidebar({ organizationName, isAdmin, ...props }: AppSidebarPr
             <SidebarMenu>
               {mainItems.map((item) => {
                 const Icon = item.icon;
-                const active = isActiveHref(pathname, item.href);
+                const active = isActiveHref(pathname, item.href, item.exact);
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton

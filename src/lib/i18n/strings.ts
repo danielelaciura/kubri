@@ -2,6 +2,7 @@ export const strings = {
   nav: {
     candidates: "Candidati",
     jobs: "Offerte di lavoro",
+    members: "Membri",
     settings: "Impostazioni",
     stats: "Statistiche",
     admin: "Amministrazione",

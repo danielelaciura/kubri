@@ -1,8 +1,6 @@
-"use client";
-
-import { useState } from "react";
-import { Sidebar } from "@/components/layout/sidebar";
+import { AppSidebar } from "@/components/layout/app-sidebar";
 import { Header } from "@/components/layout/header";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
 interface DashboardShellProps {
   userName: string;
@@ -19,27 +17,15 @@ export function DashboardShell({
   isOrgAdmin,
   children,
 }: DashboardShellProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
   return (
-    <div className="flex h-screen overflow-hidden">
-      <Sidebar
-        organizationName={organizationName}
-        isAdmin={isAdmin}
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
-
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <Header
-          userName={userName}
-          isAdmin={isAdmin}
-          isOrgAdmin={isOrgAdmin}
-          onMenuToggle={() => setSidebarOpen((prev) => !prev)}
-        />
-
-        <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-6">{children}</main>
-      </div>
-    </div>
+    <SidebarProvider>
+      <AppSidebar organizationName={organizationName} isAdmin={isAdmin} />
+      <SidebarInset>
+        <Header userName={userName} isAdmin={isAdmin} isOrgAdmin={isOrgAdmin} />
+        <main className="flex-1 overflow-y-auto bg-background">
+          <div className="mx-auto w-full max-w-7xl p-4 lg:p-6">{children}</div>
+        </main>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

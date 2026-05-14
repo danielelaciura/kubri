@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { LogOut, Menu, Plus } from "lucide-react";
+import { LogOut, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import { strings } from "@/lib/i18n/strings";
 import { logoutAction } from "@/lib/auth-actions";
 
@@ -11,43 +13,40 @@ interface HeaderProps {
   userName: string;
   isAdmin: boolean;
   isOrgAdmin: boolean;
-  onMenuToggle: () => void;
 }
 
-export function Header({ userName, isAdmin, isOrgAdmin, onMenuToggle }: HeaderProps) {
-  return (
-    <header className="flex h-16 items-center justify-between border-b border-border bg-card px-4 lg:px-6 shadow-sm">
-      <Button
-        variant="ghost"
-        size="icon"
-        className="lg:hidden"
-        onClick={onMenuToggle}
-      >
-        <Menu className="h-5 w-5" />
-        <span className="sr-only">Apri menu</span>
-      </Button>
+export function Header({ userName, isAdmin, isOrgAdmin }: HeaderProps) {
+  const initials = userName
+    .split(" ")
+    .map((n) => n[0])
+    .filter(Boolean)
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
-      <div className="lg:hidden" />
+  return (
+    <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b border-border bg-background/80 px-4 backdrop-blur-sm lg:px-6">
+      <SidebarTrigger className="-ml-1" />
+      <Separator orientation="vertical" className="mr-2 h-4" />
+
       {isOrgAdmin && (
-        <Link href="/dashboard/jobs/new" className="hidden lg:block">
+        <Link href="/dashboard/jobs/new">
           <Button
-            size="lg"
-            className="text-kubri-800 bg-white border hover:bg-kubri-50"
+            size="sm"
+            variant="outline"
+            className="text-kubri-800 border-kubri-200 hover:bg-kubri-50"
           >
             <Plus className="mr-1 h-4 w-4" />
             Aggiungi offerta
           </Button>
         </Link>
       )}
-      <div className="hidden lg:block" />
 
-      <div className="flex items-center gap-3">
+      <div className="ml-auto flex items-center gap-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-kubri-100 text-kubri-800">
-          <span className="text-xs font-semibold">
-            {userName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
-          </span>
+          <span className="text-xs font-semibold">{initials}</span>
         </div>
-        <div className="flex flex-col items-start leading-tight">
+        <div className="hidden sm:flex flex-col items-start leading-tight">
           <span className="text-sm font-medium text-foreground">{userName}</span>
           {isAdmin && (
             <Badge
@@ -66,7 +65,7 @@ export function Header({ userName, isAdmin, isOrgAdmin, onMenuToggle }: HeaderPr
             className="text-muted-foreground hover:text-foreground"
           >
             <LogOut className="mr-1.5 h-4 w-4" />
-            {strings.common.logout}
+            <span className="hidden sm:inline">{strings.common.logout}</span>
           </Button>
         </form>
       </div>

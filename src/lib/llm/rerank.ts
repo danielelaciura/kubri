@@ -135,13 +135,14 @@ function parseRerankResponse(content: string): CandidateEnrichment[] {
 }
 
 // In-memory LRU cache: key = JD id + candidate ids signature, value = enrichments.
-// Default TTL is 1 hour; tunable via LLM_RERANK_CACHE_TTL_MS for ops who want
+// Default TTL is 24 hours; tunable via LLM_RERANK_CACHE_TTL_MS for ops who want
 // to trade staleness for cost. The "Aggiorna match" button on the JD page
-// invalidates this cache for the specific JD on click.
+// invalidates this cache for the specific JD on click; JD edits invalidate
+// the cache for that specific JD as well.
 function cacheTtlMs(): number {
   const raw = process.env["LLM_RERANK_CACHE_TTL_MS"];
   const n = raw ? Number(raw) : NaN;
-  return Number.isFinite(n) && n > 0 ? n : 60 * 60 * 1000;
+  return Number.isFinite(n) && n > 0 ? n : 24 * 60 * 60 * 1000;
 }
 
 const cache = new LRUCache<string, CandidateEnrichment[]>({

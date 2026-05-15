@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Deno-runtime code; Next.js ESLint rules don't apply.
+    "supabase/functions/**",
+    // Generated Prisma client; not our code.
+    "src/generated/**",
   ]),
 ]);
 

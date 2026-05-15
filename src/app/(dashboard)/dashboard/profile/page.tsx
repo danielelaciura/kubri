@@ -37,7 +37,7 @@ export default async function ProfilePage() {
       <div>
         <h1 className="text-2xl tracking-tight">{strings.common.profile}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          I tuoi dati personali e l'organizzazione di appartenenza.
+          I tuoi dati personali e l&apos;organizzazione di appartenenza.
         </p>
       </div>
 

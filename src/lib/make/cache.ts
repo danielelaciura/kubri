@@ -1,13 +1,4 @@
-import { LRUCache } from "lru-cache";
-
-/** Wrapper to store any value in the LRU cache (which requires V extends {}). */
-interface CacheEntry {
-  value: NonNullable<object> | string | number | boolean;
-}
-
-const cache = new LRUCache<string, CacheEntry>({
-  max: 1000,
-});
+import { getCacheStore } from "@/lib/cache/store";
 
 /** Default TTL for candidate list queries (60s). */
 export const LIST_TTL_MS = 60_000;
@@ -25,30 +16,21 @@ export async function cachedFetch<T>(
   fetcher: () => Promise<T>,
   ttlMs: number,
 ): Promise<T> {
-  const cached = cache.get(key);
-  if (cached !== undefined) {
-    return cached.value as T;
-  }
+  const store = getCacheStore();
+  const cached = await store.get<T>(key);
+  if (cached !== undefined) return cached;
 
   const result = await fetcher();
-  cache.set(key, { value: result as CacheEntry["value"] }, { ttl: ttlMs });
+  await store.set(key, result, ttlMs);
   return result;
 }
 
-/**
- * Invalidate all cache entries whose key starts with the given pattern.
- */
-export function invalidateCache(pattern: string): void {
-  for (const key of cache.keys()) {
-    if (key.startsWith(pattern)) {
-      cache.delete(key);
-    }
-  }
+/** Invalidate all cache entries whose key starts with the given prefix. */
+export async function invalidateCache(prefix: string): Promise<void> {
+  await getCacheStore().deleteByPrefix(prefix);
 }
 
-/**
- * Clear the entire cache. Primarily used in tests.
- */
-export function clearCache(): void {
-  cache.clear();
+/** Clear the entire cache. Primarily used in tests. */
+export async function clearCache(): Promise<void> {
+  await getCacheStore().clear();
 }

@@ -55,12 +55,12 @@ const baseInput = {
 };
 
 describe("rerankCandidates", () => {
-  beforeEach(() => {
-    _clearRerankCache();
+  beforeEach(async () => {
+    await _clearRerankCache();
     vi.clearAllMocks();
   });
-  afterEach(() => {
-    _clearRerankCache();
+  afterEach(async () => {
+    await _clearRerankCache();
   });
 
   it("returns enrichments parsed from a well-formed Mistral response", async () => {

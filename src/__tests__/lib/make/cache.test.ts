@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { cachedFetch, invalidateCache, clearCache } from "@/lib/make/cache";
 
-beforeEach(() => {
-  clearCache();
+beforeEach(async () => {
+  await clearCache();
 });
 
 describe("cachedFetch", () => {
@@ -48,7 +48,7 @@ describe("cachedFetch", () => {
       .mockResolvedValueOnce({ data: "second" });
 
     await cachedFetch("make:org1:ds1:list:abc", fetcher, 60000);
-    invalidateCache("make:org1");
+    await invalidateCache("make:org1");
     const result = await cachedFetch("make:org1:ds1:list:abc", fetcher, 60000);
 
     expect(fetcher).toHaveBeenCalledTimes(2);
@@ -80,7 +80,7 @@ describe("cachedFetch", () => {
     await cachedFetch("make:org1:ds1:list:x", fetcher1, 60000);
     await cachedFetch("make:org2:ds2:list:y", fetcher2, 60000);
 
-    invalidateCache("make:org1");
+    await invalidateCache("make:org1");
 
     // org1 should be invalidated
     await cachedFetch("make:org1:ds1:list:x", fetcher1, 60000);

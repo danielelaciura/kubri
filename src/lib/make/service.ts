@@ -185,6 +185,6 @@ export async function invalidateOrgCache(
 ): Promise<void> {
   const pools = await getOrgAccessiblePools(organizationId);
   for (const p of pools) {
-    if (p.externalKey) invalidateCache(`make:${p.externalKey}`);
+    if (p.externalKey) await invalidateCache(`make:${p.externalKey}`);
   }
 }

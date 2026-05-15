@@ -1,5 +1,5 @@
-import { LRUCache } from "lru-cache";
 import type { Candidate } from "@/types";
+import { getCacheStore } from "@/lib/cache/store";
 import { chatCompletion } from "./client";
 import { LLMError } from "./errors";
 
@@ -134,38 +134,31 @@ function parseRerankResponse(content: string): CandidateEnrichment[] {
   });
 }
 
-// In-memory LRU cache: key = JD id + candidate ids signature, value = enrichments.
-// Default TTL is 24 hours; tunable via LLM_RERANK_CACHE_TTL_MS for ops who want
-// to trade staleness for cost. The "Aggiorna match" button on the JD page
-// invalidates this cache for the specific JD on click; JD edits invalidate
-// the cache for that specific JD as well.
+// Cache: key = `llm:rerank:{jdId}:{candidate ids signature}`, value =
+// enrichments. Default TTL is 24h, tunable via LLM_RERANK_CACHE_TTL_MS. The
+// "Aggiorna match" button on the JD page invalidates the cache for that JD,
+// and JD edits do the same.
+const KEY_PREFIX = "llm:rerank:";
+
 function cacheTtlMs(): number {
   const raw = process.env["LLM_RERANK_CACHE_TTL_MS"];
   const n = raw ? Number(raw) : NaN;
   return Number.isFinite(n) && n > 0 ? n : 24 * 60 * 60 * 1000;
 }
 
-const cache = new LRUCache<string, CandidateEnrichment[]>({
-  max: 200,
-  ttl: cacheTtlMs(),
-});
-
 function cacheKey(jdId: string, candidates: Candidate[]): string {
   const ids = candidates.map((c) => c.id).sort().join(",");
-  return `${jdId}:${ids}`;
+  return `${KEY_PREFIX}${jdId}:${ids}`;
 }
 
 /** Drop every cache entry that belongs to the given JD id. */
-export function invalidateRerankCacheForJd(jdId: string): void {
-  const prefix = `${jdId}:`;
-  for (const key of cache.keys()) {
-    if (key.startsWith(prefix)) cache.delete(key);
-  }
+export async function invalidateRerankCacheForJd(jdId: string): Promise<void> {
+  await getCacheStore().deleteByPrefix(`${KEY_PREFIX}${jdId}:`);
 }
 
-/** Drop every cache entry. */
-export function clearRerankCache(): void {
-  cache.clear();
+/** Drop every rerank cache entry. */
+export async function clearRerankCache(): Promise<void> {
+  await getCacheStore().deleteByPrefix(KEY_PREFIX);
 }
 
 export async function rerankCandidates(
@@ -174,8 +167,9 @@ export async function rerankCandidates(
 ): Promise<CandidateEnrichment[]> {
   if (input.candidates.length === 0) return [];
 
+  const store = getCacheStore();
   const key = cacheKey(jdId, input.candidates);
-  const cached = cache.get(key);
+  const cached = await store.get<CandidateEnrichment[]>(key);
   if (cached) return cached;
 
   const content = await chatCompletion({
@@ -189,11 +183,11 @@ export async function rerankCandidates(
   });
 
   const enrichments = parseRerankResponse(content);
-  cache.set(key, enrichments);
+  await store.set(key, enrichments, cacheTtlMs());
   return enrichments;
 }
 
-/** Test-only: clear the in-memory cache. */
-export function _clearRerankCache(): void {
-  cache.clear();
+/** Test-only: clear all rerank cache entries. */
+export async function _clearRerankCache(): Promise<void> {
+  await getCacheStore().deleteByPrefix(KEY_PREFIX);
 }

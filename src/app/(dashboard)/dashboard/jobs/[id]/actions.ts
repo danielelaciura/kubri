@@ -68,7 +68,7 @@ export async function updateJobAction(id: string, formData: FormData): Promise<A
       organizationId: ctx.organizationId,
       input: parsed.data,
     });
-    invalidateRerankCacheForJd(id);
+    await invalidateRerankCacheForJd(id);
     await prisma.auditLog.create({
       data: {
         userId: ctx.userId,
@@ -95,7 +95,7 @@ export async function deleteJobAction(id: string): Promise<ActionResult> {
 
   try {
     await deleteJobDescription({ id, organizationId: ctx.organizationId });
-    invalidateRerankCacheForJd(id);
+    await invalidateRerankCacheForJd(id);
     await prisma.auditLog.create({
       data: {
         userId: ctx.userId,
@@ -118,6 +118,6 @@ export async function refreshCandidatesForJob(): Promise<void> {
   const ctx = await requireAdmin();
   if (!ctx) return;
   await invalidateOrgCache(ctx.organizationId);
-  clearRerankCache();
+  await clearRerankCache();
   revalidatePath(`/dashboard/jobs`, "layout");
 }

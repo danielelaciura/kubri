@@ -28,7 +28,8 @@ interface JdForMatchingLocal {
   embedding: number[] | null;
 }
 
-const LLM_RERANK_TOP_N = 10;
+const LLM_RERANK_MIN_EMBEDDING_SCORE = 80;
+const LLM_RERANK_MAX_CANDIDATES = 30;
 
 export default async function JobDetailPage({
   params,
@@ -142,39 +143,49 @@ async function Matches({ jd, orgId }: { jd: JdForMatchingLocal; orgId: string })
     );
   }
 
-  // LLM rerank: refine the top-N from embedding ranking using Mistral Small.
-  // Failures here degrade gracefully — we still show the embedding ranking.
-  const toRerank = ranked.slice(0, LLM_RERANK_TOP_N);
-  if (toRerank.length > 0) {
-    try {
-      const enrichments = await rerankCandidates(jd.id, {
-        jd: {
-          name: jd.name,
-          description: jd.description,
-          skills: jd.skills,
-          locationMunicipality: jd.locationMunicipality,
-        },
-        candidates: toRerank.map((r) => r.candidate),
-      });
-      const byId = new Map(enrichments.map((e) => [e.candidateId, e]));
-      ranked = ranked.map((r) => {
-        const enrichment = byId.get(r.candidate.id);
-        return enrichment ? { ...r, llm: enrichment } : r;
-      });
-      // Re-sort: items with an LLM score sort by it, others fall to the bottom
-      // in their original embedding order.
-      ranked.sort((a, b) => {
-        const sa = a.llm?.score ?? -1;
-        const sb = b.llm?.score ?? -1;
-        if (sa !== sb) return sb - sa;
-        return b.match.final - a.match.final;
-      });
-    } catch (e) {
-      console.error("[jobs/[id]] rerankCandidates failed, falling back to embedding ranking", e);
-    }
+  // LLM rerank: only candidates with embedding score >= threshold are sent to
+  // Mistral, capped to LLM_RERANK_MAX_CANDIDATES. The final UI shows ONLY
+  // candidates that received an LLM evaluation — anything below the embedding
+  // threshold is intentionally hidden.
+  const toRerank = ranked
+    .filter((r) => r.match.final >= LLM_RERANK_MIN_EMBEDDING_SCORE)
+    .slice(0, LLM_RERANK_MAX_CANDIDATES);
+
+  if (toRerank.length === 0) {
+    return (
+      <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+        Nessun candidato sufficientemente affine per la valutazione AI.
+      </div>
+    );
   }
 
-  return <MatchTable ranked={ranked} />;
+  let enriched: RankedCandidate[];
+  try {
+    const enrichments = await rerankCandidates(jd.id, {
+      jd: {
+        name: jd.name,
+        description: jd.description,
+        skills: jd.skills,
+        locationMunicipality: jd.locationMunicipality,
+      },
+      candidates: toRerank.map((r) => r.candidate),
+    });
+    const byId = new Map(enrichments.map((e) => [e.candidateId, e]));
+    enriched = toRerank.flatMap((r) => {
+      const enrichment = byId.get(r.candidate.id);
+      return enrichment ? [{ ...r, llm: enrichment }] : [];
+    });
+    enriched.sort((a, b) => (b.llm?.score ?? -1) - (a.llm?.score ?? -1));
+  } catch (e) {
+    console.error("[jobs/[id]] rerankCandidates failed", e);
+    return (
+      <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+        Valutazione AI temporaneamente non disponibile. Riprova più tardi.
+      </div>
+    );
+  }
+
+  return <MatchTable ranked={enriched} />;
 }
 
 function MatchesLoading() {

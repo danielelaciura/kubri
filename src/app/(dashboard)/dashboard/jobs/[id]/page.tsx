@@ -6,7 +6,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/db";
 import { strings } from "@/lib/i18n/strings";
 import { getJobDescription } from "@/lib/jobs/service";
-import { getCandidatesForOrg } from "@/lib/make/service";
+import { getCandidatesForOrg } from "@/lib/candidates/service";
 import { rankCandidates, type RankedCandidate } from "@/lib/jobs/matcher";
 import { rerankCandidates } from "@/lib/llm/rerank";
 import { Badge } from "@/components/ui/badge";

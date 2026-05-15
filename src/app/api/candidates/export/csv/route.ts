@@ -1,5 +1,5 @@
 import { requireOrganization } from "@/lib/auth-utils";
-import { getCandidatesForOrg } from "@/lib/make/service";
+import { getCandidatesForOrg } from "@/lib/candidates/service";
 import { filterCandidates, sortCandidates } from "@/lib/candidates/filter";
 import { candidateFiltersSchema, toFiltersAndSort } from "@/lib/validations/candidate-filters";
 import { candidatesToCsv } from "@/lib/export/csv";

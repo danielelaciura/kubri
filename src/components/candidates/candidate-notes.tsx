@@ -20,7 +20,7 @@ interface NoteData {
 
 interface CandidateNotesProps {
   notes: NoteData[];
-  makeRecordId: string;
+  candidateId: string;
 }
 
 function formatDateTime(date: Date): string {
@@ -33,7 +33,7 @@ function formatDateTime(date: Date): string {
   });
 }
 
-function AddNoteForm({ makeRecordId }: { makeRecordId: string }) {
+function AddNoteForm({ candidateId }: { candidateId: string }) {
   const [error, formAction, isPending] = useActionState(
     async (_prevState: string | null, formData: FormData) => {
       try {
@@ -48,7 +48,7 @@ function AddNoteForm({ makeRecordId }: { makeRecordId: string }) {
 
   return (
     <form action={formAction} className="space-y-2">
-      <input type="hidden" name="makeRecordId" value={makeRecordId} />
+      <input type="hidden" name="candidateId" value={candidateId} />
       <textarea
         name="content"
         placeholder="Scrivi una nota..."
@@ -68,7 +68,7 @@ function AddNoteForm({ makeRecordId }: { makeRecordId: string }) {
   );
 }
 
-export function CandidateNotes({ notes, makeRecordId }: CandidateNotesProps) {
+export function CandidateNotes({ notes, candidateId }: CandidateNotesProps) {
   const sortedNotes = [...notes].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
@@ -79,7 +79,7 @@ export function CandidateNotes({ notes, makeRecordId }: CandidateNotesProps) {
         <CardTitle>Note</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <AddNoteForm makeRecordId={makeRecordId} />
+        <AddNoteForm candidateId={candidateId} />
 
         {sortedNotes.length === 0 ? (
           <p className="text-sm text-muted-foreground">

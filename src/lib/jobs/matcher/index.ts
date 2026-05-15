@@ -63,21 +63,21 @@ export async function rankCandidates(
 
   // 2. Semantic ranking over the survivors.
   const vectorLiteral = `[${jd.embedding.join(",")}]`;
-  const dbIds = eligible.map((c) => c.dbId).filter((id) => id.length > 0);
-  if (dbIds.length === 0) return [];
+  const ids = eligible.map((c) => c.id).filter((id) => id.length > 0);
+  if (ids.length === 0) return [];
 
   type Row = { id: string; semantic: number };
   const rows = await prisma.$queryRaw<Row[]>`
     SELECT id::text AS id,
            1 - (embedding <=> ${vectorLiteral}::vector) AS semantic
     FROM "Candidate"
-    WHERE id = ANY(${dbIds}::uuid[])
+    WHERE id = ANY(${ids}::uuid[])
       AND embedding IS NOT NULL
   `;
-  const semanticByDbId = new Map<string, number>(rows.map((r) => [r.id, Number(r.semantic)]));
+  const semanticById = new Map<string, number>(rows.map((r) => [r.id, Number(r.semantic)]));
 
   const scored = eligible.map((c) => {
-    const semantic = semanticByDbId.get(c.dbId) ?? 0;
+    const semantic = semanticById.get(c.id) ?? 0;
     // Location is now a binary pre-filter, not a score component. We still
     // call locationScore for the breakdown to keep MatchResult.shape stable.
     const location = locationScore({

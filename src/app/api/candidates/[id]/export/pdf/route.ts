@@ -1,7 +1,6 @@
 import { requireOrganization } from "@/lib/auth-utils";
 import { getCandidateForOrg } from "@/lib/candidates/service";
 import { prisma } from "@/lib/db";
-import { findLocalCandidateId } from "@/lib/candidates/resolve";
 import { logAudit } from "@/lib/audit";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { renderCandidatePdf } from "@/components/export/candidate-pdf";
@@ -21,31 +20,13 @@ export async function GET(
   const { organizationId } = session;
 
   try {
-    // Resolve local Candidate row to fetch notes by FK candidateId.
-    const candidateLocalId = await findLocalCandidateId(organizationId, id);
-
     const [candidate, notes] = await Promise.all([
       getCandidateForOrg(organizationId, id),
-      candidateLocalId
-        ? prisma.candidateNote.findMany({
-            where: {
-              candidateId: candidateLocalId,
-              organizationId,
-            },
-            include: {
-              user: {
-                select: { name: true },
-              },
-            },
-            orderBy: { createdAt: "desc" },
-          })
-        : Promise.resolve(
-            [] as Array<{
-              content: string;
-              user: { name: string };
-              createdAt: Date;
-            }>,
-          ),
+      prisma.candidateNote.findMany({
+        where: { candidateId: id, organizationId },
+        include: { user: { select: { name: true } } },
+        orderBy: { createdAt: "desc" },
+      }),
     ]);
 
     if (!candidate) {

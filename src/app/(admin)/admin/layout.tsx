@@ -34,6 +34,7 @@ export default async function AdminLayout({
     <>
       <DashboardShell
         userName={user.name ?? "Utente"}
+        userEmail={user.email ?? ""}
         organizationName={organization?.name ?? "Kubri"}
         isAdmin={true}
         isOrgAdmin={true}

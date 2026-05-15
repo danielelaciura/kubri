@@ -4,6 +4,7 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
 interface DashboardShellProps {
   userName: string;
+  userEmail: string;
   organizationName: string;
   isAdmin: boolean;
   isOrgAdmin: boolean;
@@ -12,6 +13,7 @@ interface DashboardShellProps {
 
 export function DashboardShell({
   userName,
+  userEmail,
   organizationName,
   isAdmin,
   isOrgAdmin,
@@ -21,7 +23,12 @@ export function DashboardShell({
     <SidebarProvider>
       <AppSidebar organizationName={organizationName} isAdmin={isAdmin} />
       <SidebarInset className="md:m-2 md:ml-0 md:rounded-xl md:border md:border-border md:shadow-sm overflow-hidden">
-        <Header userName={userName} isAdmin={isAdmin} isOrgAdmin={isOrgAdmin} />
+        <Header
+          userName={userName}
+          userEmail={userEmail}
+          isAdmin={isAdmin}
+          isOrgAdmin={isOrgAdmin}
+        />
         <div className="flex-1 overflow-y-auto">
           <div className="mx-auto w-full max-w-7xl p-4 lg:p-6">{children}</div>
         </div>

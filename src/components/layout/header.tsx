@@ -1,21 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import { LogOut, Plus } from "lucide-react";
+import { LogOut, Plus, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { strings } from "@/lib/i18n/strings";
 import { logoutAction } from "@/lib/auth-actions";
 
 interface HeaderProps {
   userName: string;
+  userEmail: string;
   isAdmin: boolean;
   isOrgAdmin: boolean;
 }
 
-export function Header({ userName, isAdmin, isOrgAdmin }: HeaderProps) {
+export function Header({ userName, userEmail, isAdmin, isOrgAdmin }: HeaderProps) {
   const initials = userName
     .split(" ")
     .map((n) => n[0])
@@ -42,32 +51,63 @@ export function Header({ userName, isAdmin, isOrgAdmin }: HeaderProps) {
         </Link>
       )}
 
-      <div className="ml-auto flex items-center gap-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-kubri-100 text-kubri-800">
-          <span className="text-xs font-semibold">{initials}</span>
-        </div>
-        <div className="hidden sm:flex flex-col items-start leading-tight">
-          <span className="text-sm font-medium text-foreground">{userName}</span>
-          {isAdmin && (
-            <Badge
-              variant="secondary"
-              className="mt-0.5 h-4 px-1.5 text-[10px] bg-zinc-800 text-zinc-100"
-            >
-              Admin Kubri
-            </Badge>
-          )}
-        </div>
-        <form action={logoutAction}>
-          <Button
-            type="submit"
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <LogOut className="mr-1.5 h-4 w-4" />
-            <span className="hidden sm:inline">{strings.common.logout}</span>
-          </Button>
-        </form>
+      <div className="ml-auto">
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <button
+                type="button"
+                aria-label="Apri menu utente"
+                className="flex items-center gap-2 rounded-full p-0.5 outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 hover:bg-muted"
+              >
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-kubri-100 text-kubri-800 text-sm font-semibold">
+                  {initials}
+                </span>
+              </button>
+            }
+          />
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel className="flex flex-col gap-0.5 py-2">
+              <span className="text-sm font-medium leading-none text-foreground">{userName}</span>
+              {userEmail && (
+                <span className="text-xs font-normal leading-tight text-muted-foreground truncate">
+                  {userEmail}
+                </span>
+              )}
+              {isAdmin && (
+                <Badge
+                  variant="secondary"
+                  className="mt-1 h-4 w-fit px-1.5 text-[10px] bg-zinc-800 text-zinc-100"
+                >
+                  Admin Kubri
+                </Badge>
+              )}
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              render={
+                <Link href="/dashboard/profile">
+                  <UserRound className="mr-2 h-4 w-4" />
+                  <span>{strings.common.profile}</span>
+                </Link>
+              }
+            />
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              render={
+                <form action={logoutAction} className="contents">
+                  <button
+                    type="submit"
+                    className="flex w-full items-center text-destructive focus:text-destructive"
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>{strings.common.logout}</span>
+                  </button>
+                </form>
+              }
+            />
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

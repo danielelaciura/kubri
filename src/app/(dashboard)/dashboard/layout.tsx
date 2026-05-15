@@ -24,6 +24,7 @@ export default async function DashboardLayout({
     where: { id: authUser.id },
     select: {
       name: true,
+      email: true,
       role: true,
       organizationId: true,
       termsAcceptedAt: true,
@@ -48,6 +49,7 @@ export default async function DashboardLayout({
       <SessionTracker />
       <DashboardShell
         userName={dbUser.name ?? "Utente"}
+        userEmail={dbUser.email ?? ""}
         organizationName={organization?.name ?? "Organizzazione"}
         isAdmin={dbUser.role === Role.ADMIN_KUBRI}
         isOrgAdmin={

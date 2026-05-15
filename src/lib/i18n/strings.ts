@@ -12,6 +12,7 @@ export const strings = {
   },
   common: {
     logout: "Esci",
+    profile: "Profilo",
     loading: "Caricamento...",
     error: "Errore",
     notFound: "Pagina non trovata",

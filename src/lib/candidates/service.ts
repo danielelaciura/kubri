@@ -6,8 +6,8 @@ import type { CandidateModel as DbCandidate } from "@/generated/prisma/models/Ca
 function dbCandidateToApp(c: DbCandidate): Candidate {
   const channel: Channel = c.channel === "whatsapp" ? "whatsapp" : "telegram";
   return {
-    id: c.externalId,
-    dbId: c.id,
+    id: c.id,
+    externalId: c.externalId,
     firstName: c.firstName ?? "",
     lastName: c.lastName ?? "",
     dateOfBirth: c.birthday ?? "",
@@ -70,8 +70,12 @@ export async function getCandidatesForPool(
 
 export async function getCandidateForOrg(
   organizationId: string,
-  recordId: string,
+  candidateId: string,
 ): Promise<Candidate | null> {
-  const candidates = await getCandidatesForOrg(organizationId);
-  return candidates.find((c) => c.id === recordId) ?? null;
+  const poolIds = await getOrgAccessiblePoolIds(organizationId);
+  if (poolIds.length === 0) return null;
+  const row = await prisma.candidate.findFirst({
+    where: { id: candidateId, poolId: { in: poolIds } },
+  });
+  return row ? dbCandidateToApp(row) : null;
 }

@@ -12,7 +12,7 @@ import type { Candidate } from "@/types";
 function makeCandidate(id: string, overrides: Partial<Candidate> = {}): Candidate {
   return {
     id,
-    dbId: "00000000-0000-0000-0000-000000000000",
+    externalId: "ext-test",
     firstName: "Test",
     lastName: id,
     dateOfBirth: "",

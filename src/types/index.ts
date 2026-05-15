@@ -14,10 +14,10 @@ export interface JobPreferences {
 }
 
 export interface Candidate {
-  /** External ID (Make.com record key). Used as the human-facing identifier and in URLs. */
+  /** Postgres primary key (UUID). Used as the candidate identifier across the app and in URLs. */
   id: string;
-  /** Postgres primary key (UUID). Required for queries that hit the Candidate table directly. */
-  dbId: string;
+  /** External ID (Make.com record key). Kept for audit/debug; not used to fetch records. */
+  externalId: string;
   firstName: string;
   lastName: string;
   dateOfBirth: string;

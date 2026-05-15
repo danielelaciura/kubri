@@ -9,7 +9,7 @@ import type { Candidate } from "@/types";
 function makeCandidate(overrides: Partial<Candidate> = {}): Candidate {
   return {
     id: "1",
-    dbId: "00000000-0000-0000-0000-000000000000",
+    externalId: "ext-test",
     firstName: "Mario",
     lastName: "Rossi",
     dateOfBirth: "1990-05-15",
@@ -52,7 +52,7 @@ function makeCandidate(overrides: Partial<Candidate> = {}): Candidate {
 const candidates: Candidate[] = [
   makeCandidate({
     id: "1",
-    dbId: "00000000-0000-0000-0000-000000000000",
+    externalId: "ext-test",
     firstName: "Mario",
     lastName: "Rossi",
     countryOfOrigin: "Italiana",
@@ -64,7 +64,7 @@ const candidates: Candidate[] = [
   }),
   makeCandidate({
     id: "2",
-    dbId: "00000000-0000-0000-0000-000000000000",
+    externalId: "ext-test",
     firstName: "Ahmed",
     lastName: "Hassan",
     countryOfOrigin: "Egiziana",
@@ -76,7 +76,7 @@ const candidates: Candidate[] = [
   }),
   makeCandidate({
     id: "3",
-    dbId: "00000000-0000-0000-0000-000000000000",
+    externalId: "ext-test",
     firstName: "Fatima",
     lastName: "Diallo",
     countryOfOrigin: "Senegalese",
@@ -88,7 +88,7 @@ const candidates: Candidate[] = [
   }),
   makeCandidate({
     id: "4",
-    dbId: "00000000-0000-0000-0000-000000000000",
+    externalId: "ext-test",
     firstName: "Li",
     lastName: "Wei",
     countryOfOrigin: "Cinese",
@@ -100,7 +100,7 @@ const candidates: Candidate[] = [
   }),
   makeCandidate({
     id: "5",
-    dbId: "00000000-0000-0000-0000-000000000000",
+    externalId: "ext-test",
     firstName: "Ana",
     lastName: "Popescu",
     countryOfOrigin: "Rumena",

@@ -23,14 +23,14 @@ interface TagData {
 
 interface CandidateTagsProps {
   tags: TagData[];
-  makeRecordId: string;
+  candidateId: string;
 }
 
 function AddTagForm({
-  makeRecordId,
+  candidateId,
   existingTags,
 }: {
-  makeRecordId: string;
+  candidateId: string;
   existingTags: string[];
 }) {
   const [tagValue, setTagValue] = useState("");
@@ -53,7 +53,7 @@ function AddTagForm({
 
   return (
     <form action={formAction} className="flex items-center gap-2">
-      <input type="hidden" name="makeRecordId" value={makeRecordId} />
+      <input type="hidden" name="candidateId" value={candidateId} />
       <Input
         name="tag"
         placeholder="Nuovo tag..."
@@ -110,7 +110,7 @@ function RemoveTagButton({ tagId }: { tagId: string }) {
   );
 }
 
-export function CandidateTags({ tags, makeRecordId }: CandidateTagsProps) {
+export function CandidateTags({ tags, candidateId }: CandidateTagsProps) {
   const existingTagNames = tags.map((t) => t.tag.toLowerCase());
 
   return (
@@ -120,7 +120,7 @@ export function CandidateTags({ tags, makeRecordId }: CandidateTagsProps) {
       </CardHeader>
       <CardContent className="space-y-3">
         <AddTagForm
-          makeRecordId={makeRecordId}
+          candidateId={candidateId}
           existingTags={existingTagNames}
         />
 

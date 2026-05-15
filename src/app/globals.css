@@ -84,17 +84,18 @@
   --chart-4: oklch(0.55 0.1 170);
   --chart-5: oklch(0.45 0.12 155);
   --radius: 0.625rem;
-  /* Sidebar surround is pure white; the inset main 'floats' via
-     border + shadow instead of background contrast. */
-  --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.25 0.01 240);
+  /* Inverted scheme: dark kubri sidebar against a white main inset.
+     The rounded-xl inset main now stands out as a bright surface
+     floating on the deep purple surround. */
+  --sidebar: oklch(0.32 0.090 290);
+  --sidebar-foreground: oklch(0.92 0.020 290);
   --sidebar-primary: oklch(0.5647 0.1653 291.4);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  /* Active nav item: soft kubri pill + strong kubri text */
-  --sidebar-accent: oklch(0.94 0.030 290);
-  --sidebar-accent-foreground: oklch(0.450 0.1300 290);
-  --sidebar-border: oklch(0.90 0.005 290);
-  --sidebar-ring: oklch(0.5647 0.1653 291.4);
+  /* Active nav item: lighter kubri pill, near-white text */
+  --sidebar-accent: oklch(0.42 0.110 290);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(0.28 0.080 290);
+  --sidebar-ring: oklch(0.7 0.150 291.4);
 }
 
 .dark {

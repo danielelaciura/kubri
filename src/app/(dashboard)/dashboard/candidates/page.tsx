@@ -1,10 +1,9 @@
-import { getCurrentUser, requireOrganization } from "@/lib/auth-utils";
+import { requireOrganization } from "@/lib/auth-utils";
 import { redirect } from "next/navigation";
 import {
   getCandidatesForOrg,
   getCandidatesForPool,
-  invalidateOrgCache,
-} from "@/lib/make/service";
+} from "@/lib/candidates/service";
 import { prisma } from "@/lib/db";
 import { filterCandidates, sortCandidates, paginateCandidates } from "@/lib/candidates/filter";
 import { candidateFiltersSchema, toFiltersAndSort } from "@/lib/validations/candidate-filters";
@@ -80,14 +79,6 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
 
   async function refreshCandidates() {
     "use server";
-    try {
-      const s = await getCurrentUser();
-      if (s.organizationId) {
-        await invalidateOrgCache(s.organizationId);
-      }
-    } catch {
-      // user not authenticated; nothing to invalidate
-    }
     revalidatePath("/dashboard/candidates");
   }
 

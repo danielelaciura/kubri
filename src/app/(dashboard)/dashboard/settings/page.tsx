@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { getCurrentUser, requireOrganization } from "@/lib/auth-utils";
 import { prisma } from "@/lib/db";
 import { Role } from "@/generated/prisma/client";
-import { getCandidatesForOrg } from "@/lib/make/service";
+import { getCandidatesForOrg } from "@/lib/candidates/service";
 import { updateOrgSettingsSchema } from "@/lib/validations/organization";
 import { logAudit } from "@/lib/audit";
 import { strings } from "@/lib/i18n/strings";

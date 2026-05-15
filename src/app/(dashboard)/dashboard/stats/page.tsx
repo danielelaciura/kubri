@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { Users } from "lucide-react";
 import { requireOrganization } from "@/lib/auth-utils";
 import { strings } from "@/lib/i18n/strings";
-import { getCandidatesForOrg } from "@/lib/make/service";
+import { getCandidatesForOrg } from "@/lib/candidates/service";
 import { computeStats } from "@/lib/stats/compute";
 import { StatCard } from "@/components/stats/stat-card";
 import { WeeklyChart } from "@/components/stats/weekly-chart";

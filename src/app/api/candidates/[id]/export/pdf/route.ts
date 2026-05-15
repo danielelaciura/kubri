@@ -1,5 +1,5 @@
 import { requireOrganization } from "@/lib/auth-utils";
-import { getCandidateForOrg } from "@/lib/make/service";
+import { getCandidateForOrg } from "@/lib/candidates/service";
 import { prisma } from "@/lib/db";
 import { findLocalCandidateId } from "@/lib/candidates/resolve";
 import { logAudit } from "@/lib/audit";

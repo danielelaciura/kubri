@@ -2,7 +2,7 @@ import { requireOrganization } from "@/lib/auth-utils";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { findLocalCandidateId } from "@/lib/candidates/resolve";
-import { getCandidateForOrg } from "@/lib/make/service";
+import { getCandidateForOrg } from "@/lib/candidates/service";
 import { CandidateProfile } from "@/components/candidates/candidate-profile";
 import { CandidateNotes } from "@/components/candidates/candidate-notes";
 import { CandidateTags } from "@/components/candidates/candidate-tags";

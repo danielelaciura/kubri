@@ -11,7 +11,6 @@ import {
   JobNameAlreadyExistsError,
   JobNotFoundError,
 } from "@/lib/jobs/service";
-import { invalidateOrgCache } from "@/lib/make/service";
 import { clearRerankCache, invalidateRerankCacheForJd } from "@/lib/llm/rerank";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
@@ -117,7 +116,6 @@ export async function deleteJobAction(id: string): Promise<ActionResult> {
 export async function refreshCandidatesForJob(): Promise<void> {
   const ctx = await requireAdmin();
   if (!ctx) return;
-  await invalidateOrgCache(ctx.organizationId);
   await clearRerankCache();
   revalidatePath(`/dashboard/jobs`, "layout");
 }

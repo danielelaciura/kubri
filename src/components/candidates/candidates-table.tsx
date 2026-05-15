@@ -59,7 +59,7 @@ export function CandidatesTable({ result, sort }: CandidatesTableProps) {
   const SortButton = ({ field, label }: { field: SortConfig["field"]; label: string }) => (
     <button
       onClick={() => handleSort(field)}
-      className="flex items-center gap-1 hover:text-foreground"
+      className="flex items-center gap-1 hover:text-foreground uppercase"
     >
       {label}
       <ArrowUpDown className="h-3 w-3" />

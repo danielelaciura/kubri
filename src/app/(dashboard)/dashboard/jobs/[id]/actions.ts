@@ -12,6 +12,7 @@ import {
   JobNotFoundError,
 } from "@/lib/jobs/service";
 import { invalidateOrgCache } from "@/lib/make/service";
+import { clearRerankCache, invalidateRerankCacheForJd } from "@/lib/llm/rerank";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -67,6 +68,7 @@ export async function updateJobAction(id: string, formData: FormData): Promise<A
       organizationId: ctx.organizationId,
       input: parsed.data,
     });
+    invalidateRerankCacheForJd(id);
     await prisma.auditLog.create({
       data: {
         userId: ctx.userId,
@@ -93,6 +95,7 @@ export async function deleteJobAction(id: string): Promise<ActionResult> {
 
   try {
     await deleteJobDescription({ id, organizationId: ctx.organizationId });
+    invalidateRerankCacheForJd(id);
     await prisma.auditLog.create({
       data: {
         userId: ctx.userId,
@@ -115,5 +118,6 @@ export async function refreshCandidatesForJob(): Promise<void> {
   const ctx = await requireAdmin();
   if (!ctx) return;
   await invalidateOrgCache(ctx.organizationId);
+  clearRerankCache();
   revalidatePath(`/dashboard/jobs`, "layout");
 }

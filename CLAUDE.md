@@ -6,27 +6,27 @@ Kubri Dashboard is the web app that Kubri's client organizations (social coopera
 
 Kubri S.r.l. is an Italian Benefit Corporation (Società Benefit). The product targets the Italian market with future EU expansion.
 
-## Critical Architectural Decision: Hybrid Data Architecture
+## Critical Architectural Decision: Webhook-driven Data Sync
 
-This project uses a **hybrid data architecture**. Understanding this is essential before writing any code.
+The chatbot runs on Make.com but **all dashboard data, including candidate profiles, lives in PostgreSQL**. Make is upstream of Postgres, not a parallel source of truth.
 
-| Data | Where it lives | Who writes | Who reads |
-|------|----------------|-----------|-----------|
-| Users, organizations, roles, invites | **PostgreSQL** (our DB) | Dashboard app | Dashboard app |
-| Notes, tags, audit logs | **PostgreSQL** (our DB) | Dashboard app | Dashboard app |
-| Candidate profiles, interviews, transcripts | **Make.com Data Store** | Chatbot (via Make scenarios) | Dashboard app (via Make.com API) |
+| Data | Where it lives | How it gets there |
+|------|----------------|-------------------|
+| Users, organizations, pools, roles, invites | PostgreSQL | Dashboard app writes directly |
+| Notes, tags, audit logs, job descriptions | PostgreSQL | Dashboard app writes directly |
+| **Candidate profiles** | PostgreSQL (`Candidate` table) | **Webhook from Make** → `/api/webhooks/make/candidate` upserts the row |
 
-**The Make.com Data Store is the single source of truth for candidate data.** The dashboard NEVER writes candidate profile data. It only reads it via the Make.com API. Dashboard-specific metadata (notes, tags) lives in PostgreSQL and references Make records by `make_record_id`.
+The Make scenario produces a candidate and POSTs to the webhook. The webhook persists the candidate (including the raw payload in `Candidate.rawPayload` for traceability). From that moment on, **the dashboard reads and queries candidates from Postgres only**.
 
-This is a temporary architecture. Phase 2 will migrate candidate data to PostgreSQL.
+The historical "Make.com Data Store as source of truth" design has been superseded. If you see references to a Make-backed integration layer (`src/lib/make/`), that is the legacy path — new features target Postgres directly.
 
 ### What this means in practice
 
-- To list candidates → call Make.com Data Store API, NOT a PostgreSQL query
-- To show candidate detail → call Make.com API for profile + PostgreSQL for notes/tags
-- To filter candidates → fetch from Make.com API (limited filters) + application-level filtering
-- To add a note to a candidate → write to PostgreSQL with `make_record_id` as foreign reference
-- Caching is mandatory — every Make.com API call must go through the cache layer
+- To list candidates → query `Candidate` via Prisma, scoped by `poolId`
+- To show candidate detail → query `Candidate` + join `CandidateNote` / `CandidateTag`
+- To filter candidates → Prisma `where` clause; semantic search runs in Postgres via `pgvector`
+- New candidate from chatbot → arrives via webhook, validate and upsert (write the embedding in the same handler)
+- Manual updates → the webhook is the canonical write path; never call Make's API to mutate a candidate
 
 ## Stack
 
@@ -34,11 +34,11 @@ This is a temporary architecture. Phase 2 will migrate candidate data to Postgre
 - **Language:** TypeScript (strict mode)
 - **Styling:** Tailwind CSS
 - **UI Components:** shadcn/ui
-- **Database:** PostgreSQL (Supabase or Neon) — business logic only
-- **ORM:** Prisma — for PostgreSQL only
-- **Candidate data:** Make.com Data Store API
-- **Caching:** Redis (Upstash) or in-memory LRU
-- **Auth:** NextAuth.js (Auth.js v5) or Supabase Auth
+- **Database:** Supabase Postgres (with `pgvector` extension for semantic search)
+- **ORM:** Prisma
+- **Candidate ingestion:** webhook from Make → upsert in `Candidate` table
+- **Embeddings:** Supabase Edge Functions with `gte-small` (384-dim, multilingual, EU-hosted, free tier)
+- **Auth:** Supabase Auth
 - **PDF generation:** @react-pdf/renderer
 - **Hosting:** Vercel
 - **Package manager:** pnpm
@@ -102,86 +102,42 @@ kubri-dashboard/
 └── CLAUDE.md
 ```
 
-## The Make.com Integration Layer (`src/lib/make/`)
+## Make → Postgres Webhook (`src/app/api/webhooks/make/candidate/`)
 
-This is the most critical module in the codebase. All candidate data flows through here.
+This is the ingestion path. The Make scenario POSTs a candidate payload here whenever a new profile is completed. The handler:
 
-### `client.ts` — Make.com API Client
+1. Validates the payload with Zod
+2. Resolves the `Pool` based on the source organization / channel
+3. Upserts the `Candidate` row (`@@unique([poolId, externalId])`)
+4. Stores the raw payload verbatim in `Candidate.rawPayload`
+5. Generates the embedding via the Supabase Edge Function and writes `embedding` / `embeddingText` / `embeddingUpdatedAt`
+6. Returns 200
 
-- Wraps the Make.com Data Store REST API
-- Handles authentication (API token per organization, stored encrypted in PostgreSQL)
-- Handles pagination, rate limiting, retries
-- NEVER called directly from components — always through the cache layer
+The webhook is the **only** sanctioned write path for candidate data. The dashboard's UI is read-only on candidate profile fields (notes and tags are separate models).
 
-### `cache.ts` — Caching Layer
+### Legacy `src/lib/make/` module
 
-- Every Make.com API call goes through cache
-- Cache key format: `make:{org_id}:{datastore_id}:{endpoint}:{params_hash}`
-- Default TTL: 60s for lists, 30s for single records
-- Manual invalidation via refresh button in UI
-- If cache backend is down, fall through to direct API call
-
-### `types.ts` — Make.com Data Store Types
-
-- TypeScript types that mirror the exact structure of records in Make.com Data Store
-- Field names here must match the Make.com Data Store field names exactly
-- This file is the single place where Make.com field names are defined
-
-### `normalize.ts` — Data Normalization
-
-- Transforms raw Make.com records into the app's `Candidate` type
-- Handles missing fields, malformed data, type coercion
-- This is where the mapping between Make.com field names and app field names happens
-- Must be defensive — Make.com data can be inconsistent
+This directory contains the original Make.com API client (used when candidate data still lived in Make's Data Store). It is being phased out. **Do not add new features that depend on it.** Treat any code that still uses it as a migration target.
 
 ## Database Schema (PostgreSQL)
 
-PostgreSQL contains ONLY business logic data. No candidate profiles.
+PostgreSQL is the canonical store for all dashboard data, including candidate profiles. The authoritative schema lives in `prisma/schema.prisma` — the list below is a high-level map, not a substitute.
 
-```
-Organization
-  ├── id (uuid, PK)
-  ├── name
-  ├── slug (unique)
-  ├── make_datastore_id (string)
-  ├── make_api_token (encrypted string)
-  ├── created_at
-  └── settings (jsonb)
+Models (see `prisma/schema.prisma` for full field lists):
 
-User
-  ├── id (uuid, PK)
-  ├── email (unique)
-  ├── name
-  ├── role (enum: admin_kubri, org_admin, org_member)
-  ├── organization_id (FK → Organization)
-  ├── created_at
-  └── last_login_at
+- **Organization** — tenants
+- **Pool** — a candidate collection (one or more per organization, joined via `OrganizationPool`)
+- **User** — dashboard accounts, scoped to an organization, with a role
+- **JobDescription** — JD per organization, with `description`, `skills[]`, location fields and (after the semantic matching feature) an `embedding` vector
+- **Candidate** — full candidate profile, scoped by `poolId`, identified externally by `externalId`. Holds the raw Make payload (`rawPayload`) and the embedding columns
+- **CandidateNote**, **CandidateTag** — dashboard-side metadata linked to `Candidate` via FK
+- **AuditLog** — append-only log of user actions
 
-CandidateNote
-  ├── id (uuid, PK)
-  ├── make_record_id (string)       ← NOT a FK, references Make.com record
-  ├── organization_id (FK → Organization)
-  ├── user_id (FK → User)
-  ├── content (text)
-  └── created_at
+Conventions:
 
-CandidateTag
-  ├── id (uuid, PK)
-  ├── make_record_id (string)       ← NOT a FK, references Make.com record
-  ├── organization_id (FK → Organization)
-  ├── tag (string)
-  └── created_at
-
-AuditLog
-  ├── id (uuid, PK)
-  ├── user_id (FK → User)
-  ├── organization_id (FK → Organization)
-  ├── action (string)
-  ├── resource_type (string)
-  ├── resource_id (string)
-  ├── metadata (jsonb)
-  └── created_at
-```
+- All IDs are UUIDs
+- Every query that touches notes, tags, candidates, JDs **must** scope by `organizationId` (or the `poolId` chain that resolves to it)
+- Candidate `externalId` is unique only within a pool (`@@unique([poolId, externalId])`)
 
 ## Code Conventions
 
@@ -207,11 +163,16 @@ AuditLog
 - Every query on notes/tags MUST include `where: { organizationId }` — no exceptions
 - Use Prisma transactions for multi-step operations
 
-### Make.com API
-- Never call the Make.com API directly from components
-- Always go through `src/lib/make/client.ts` → `cache.ts`
-- Always normalize responses through `normalize.ts`
-- Handle API errors gracefully — the UI must never crash because Make.com is down
+### Candidate ingestion
+- The Make webhook is the canonical write path for `Candidate` rows. Do not write to `Candidate` from anywhere else (except backfill scripts under `scripts/`)
+- The webhook handler is responsible for upserting **and** for regenerating the embedding (sync). If embedding fails, log and leave `embedding = null`; a nightly cron will retry
+- Never expose write endpoints for candidate profile fields to the dashboard UI
+
+### Semantic search (embeddings)
+- Embeddings are generated via a Supabase Edge Function running `gte-small` (multilingual, 384-dim, free, EU-hosted). Never send candidate text to an external embedding provider
+- Embedding columns (`embedding`, `embeddingText`, `embeddingUpdatedAt`) live directly on `Candidate` and `JobDescription`
+- The text used to generate the embedding is built by helpers in `src/lib/embeddings/text.ts`. Changing the composition logic requires a backfill
+- Similarity queries use `prisma.$queryRaw` with the pgvector `<=>` operator. Always scope by `poolId`/`organizationId`
 
 ### Styling and UI
 - Use shadcn/ui for all base components (Button, Input, Table, Dialog, etc.)
@@ -333,25 +294,13 @@ in both `postinstall` and `build` so Vercel produces it on every deploy.
 
 ## Environment Variables
 
-```env
-# Database (PostgreSQL — business logic only)
-DATABASE_URL=postgresql://...
+See `.env.example` for the current authoritative list. The categories in use today:
 
-# Auth
-NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=...
-
-# Make.com API (global — org-specific tokens are in the Organization table)
-MAKE_API_BASE_URL=https://eu2.make.com/api/v2
-
-# Cache (if using Redis)
-UPSTASH_REDIS_REST_URL=...
-UPSTASH_REDIS_REST_TOKEN=...
-
-# Supabase (if used for auth/storage)
-NEXT_PUBLIC_SUPABASE_URL=...
-SUPABASE_SERVICE_ROLE_KEY=...
-```
+- **Postgres**: `DATABASE_URL` (port 6543, pooler) and `DIRECT_URL` (port 5432, for Prisma migrate)
+- **Supabase**: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+- **Supabase Edge Functions** (semantic matching): `SUPABASE_EDGE_FUNCTION_URL`, `EMBEDDING_TIMEOUT_MS`
+- **Make webhook**: shared secret for the candidate ingestion endpoint
+- **Cron**: `CRON_SECRET` for protected scheduled jobs
 
 ## Domain Context
 
@@ -363,16 +312,10 @@ Social cooperatives, employment agencies (APL), public employment centers. They 
 
 ### Current data flow
 1. The candidate chats with the Telegram bot
-2. The Make scenario manages the conversation and saves data to the Make.com Data Store ("test agent DB V4")
-3. The `flow_control` field (JSON) tracks interview state
-4. A scheduled scenario handles incomplete interviews
-5. Completed profiles are exported to Google Drive as Excel/PDF
-
-### Data flow with the dashboard (Phase 1)
-1. The chatbot (via Make) writes candidate data to Make.com Data Store (as it does today — no changes)
-2. The dashboard reads candidate data from Make.com Data Store via API
-3. The dashboard writes notes, tags, and metadata to its own PostgreSQL database
-4. The operator views, filters, and manages profiles from the dashboard
+2. The Make scenario manages the conversation
+3. When the profile is complete, the scenario POSTs the candidate to `/api/webhooks/make/candidate`
+4. The dashboard upserts the `Candidate` row in Postgres and generates the embedding
+5. The operator views, filters, matches and manages profiles entirely from Postgres data
 
 ### Competitors
 - **Klaaryo** — direct competitor
@@ -381,31 +324,39 @@ Social cooperatives, employment agencies (APL), public employment centers. They 
 
 ## Things NOT To Do
 
-- Do NOT store candidate profile data in PostgreSQL — it stays in Make.com Data Store for Phase 1
+- Do NOT bypass the Make webhook to write `Candidate` rows from the UI or from server actions — backfill scripts are the only exception
 - Do NOT build the chatbot — it is out of scope, it stays on Make
-- Do NOT implement AI candidate-position matching — that is Phase 3
 - Do NOT integrate WhatsApp Business API — that is Phase 2
 - Do NOT build an interview question editor — that is Phase 2
-- Do NOT use MongoDB or any NoSQL database — the project uses PostgreSQL for business logic
-- Do NOT call the Make.com API directly from React components — always go through the integration layer
+- Do NOT use MongoDB or any NoSQL database — the project uses PostgreSQL
+- Do NOT add new features on top of `src/lib/make/` (legacy Make Data Store client) — that path is deprecated
+- Do NOT send candidate text to external embedding providers — embeddings are generated inside Supabase
 - Do NOT add unnecessary dependencies — keep the bundle lightweight
 
 ## Development Priorities
 
-1. **Auth + multi-tenancy** — nothing works without this
-2. **PostgreSQL schema + Prisma** — the foundation
-3. **Make.com API integration layer** (client, cache, normalize) — the bridge to candidate data
-4. **Candidates table with filters** — the core feature
-5. **Candidate detail** — to make the product usable
-6. **CSV/PDF export** — for operators' workflow
-7. **Organization management** — invites, roles
-8. **Basic statistics** — nice-to-have for launch
+Done or in progress:
+
+1. Auth + multi-tenancy (Supabase Auth, role-scoped access)
+2. Prisma schema with Organization / Pool / User / Candidate / JD / Notes / Tags
+3. Make webhook for candidate ingestion
+4. Candidates table with filters
+5. Candidate detail
+6. CSV / PDF export
+7. Organization management (invites, roles, pools)
+8. JD creation and basic matching (location filter live, semantic matching in design)
+9. Terms acceptance modal
+
+Next:
+
+- Semantic matching V1 (pgvector + Supabase Edge Function with `gte-small`) — see `docs/superpowers/specs/2026-05-13-jd-semantic-matching-design.md`
+- LLM-driven candidate detail narrative (Haiku) — follow-up to semantic matching
 
 ## Security — Non-Negotiable Rules
 
-1. Every PostgreSQL query on notes/tags filters by `organizationId` of the logged-in user
-2. Every Make.com API call uses the organization's own `make_datastore_id` and `make_api_token`
+1. Every Postgres query on notes, tags, candidates, JDs filters by `organizationId` (directly or through `poolId`) of the logged-in user
+2. The Make webhook is authenticated with a shared secret in `Authorization`; reject any request without it
 3. Roles are enforced server-side, never client-side only
 4. Candidate data is personal sensitive data (GDPR) — audit log access, no data leaks between orgs
-5. Make.com API tokens stored in PostgreSQL must be encrypted at rest
-6. `make_api_token` is never exposed to the client — all Make.com calls happen server-side
+5. Embedding text and vectors never leave the Supabase infrastructure (Edge Function with `gte-small`)
+6. The Supabase service role key is server-side only, never shipped to the client

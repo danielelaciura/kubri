@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/db";
 import { resolveLocation } from "@/lib/geo/resolve";
 import type { JobDescriptionInput } from "@/lib/validations/job-description";
+import { generateEmbedding, vectorToPgLiteral } from "@/lib/embeddings/client";
+import { buildJobDescriptionEmbeddingText } from "@/lib/embeddings/text";
 
 export class JobNameAlreadyExistsError extends Error {
   constructor() {
@@ -33,7 +35,7 @@ export async function createJobDescription(params: {
 }) {
   const { input, organizationId, userId } = params;
   try {
-    return await prisma.jobDescription.create({
+    const jd = await prisma.jobDescription.create({
       data: {
         organizationId,
         createdByUserId: userId,
@@ -44,6 +46,12 @@ export async function createJobDescription(params: {
         ...resolveAndSpread(input.locationRaw),
       },
     });
+    await syncJobDescriptionEmbedding(jd.id, {
+      name: input.name,
+      description: input.description,
+      skills: input.skills,
+    });
+    return jd;
   } catch (e: unknown) {
     if (isPrismaCode(e, "P2002")) throw new JobNameAlreadyExistsError();
     throw e;
@@ -58,10 +66,51 @@ export async function listJobDescriptions(params: { organizationId: string }) {
   });
 }
 
-export async function getJobDescription(params: { id: string; organizationId: string }) {
-  return prisma.jobDescription.findFirst({
-    where: { id: params.id, organizationId: params.organizationId },
-  });
+export interface JobDescriptionRecord {
+  id: string;
+  name: string;
+  description: string;
+  skills: string[];
+  locationRaw: string;
+  locationMunicipality: string | null;
+  locationProvince: string | null;
+  locationRegion: string | null;
+  searchRadiusKm: number;
+  embedding: number[] | null;
+}
+
+export async function getJobDescription(params: {
+  id: string;
+  organizationId: string;
+}): Promise<JobDescriptionRecord | null> {
+  const rows = await prisma.$queryRaw<Array<{
+    id: string;
+    name: string;
+    description: string;
+    skills: string[];
+    locationRaw: string;
+    locationMunicipality: string | null;
+    locationProvince: string | null;
+    locationRegion: string | null;
+    searchRadiusKm: number;
+    embedding: string | null;
+  }>>`
+    SELECT id::text, name, description, skills,
+           "locationRaw", "locationMunicipality", "locationProvince", "locationRegion",
+           "searchRadiusKm",
+           CASE WHEN embedding IS NULL THEN NULL
+                ELSE embedding::text END AS embedding
+    FROM "JobDescription"
+    WHERE id = ${params.id}::uuid AND "organizationId" = ${params.organizationId}::uuid
+    LIMIT 1;
+  `;
+  if (rows.length === 0) return null;
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  const r = rows[0]!;
+  return {
+    ...r,
+    embedding: r.embedding == null ? null : (JSON.parse(r.embedding) as number[]),
+  };
 }
 
 export async function updateJobDescription(params: {
@@ -82,6 +131,11 @@ export async function updateJobDescription(params: {
       },
     });
     if (result.count === 0) throw new JobNotFoundError();
+    await syncJobDescriptionEmbedding(id, {
+      name: input.name,
+      description: input.description,
+      skills: input.skills,
+    });
     return result;
   } catch (e: unknown) {
     if (e instanceof JobNotFoundError) throw e;
@@ -106,6 +160,27 @@ export async function listAllJobDescriptionsForAdmin() {
       createdBy: { select: { name: true } },
     },
   });
+}
+
+async function syncJobDescriptionEmbedding(id: string, input: {
+  name: string;
+  description: string;
+  skills: string[];
+}): Promise<void> {
+  const text = buildJobDescriptionEmbeddingText(input);
+  if (text.length === 0) return;
+  try {
+    const vector = await generateEmbedding(text);
+    await prisma.$executeRaw`
+      UPDATE "JobDescription"
+      SET "embedding" = ${vectorToPgLiteral(vector)}::vector,
+          "embeddingText" = ${text},
+          "embeddingUpdatedAt" = now()
+      WHERE id = ${id}::uuid
+    `;
+  } catch (e) {
+    console.error("[jobs] embedding failed", { jobDescriptionId: id, error: e });
+  }
 }
 
 function isPrismaCode(e: unknown, code: string): boolean {

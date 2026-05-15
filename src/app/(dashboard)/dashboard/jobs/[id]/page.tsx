@@ -7,7 +7,8 @@ import { prisma } from "@/lib/db";
 import { strings } from "@/lib/i18n/strings";
 import { getJobDescription } from "@/lib/jobs/service";
 import { getCandidatesForOrg } from "@/lib/make/service";
-import { rankCandidates } from "@/lib/jobs/matcher";
+import { rankCandidates, type RankedCandidate } from "@/lib/jobs/matcher";
+import { rerankCandidates } from "@/lib/llm/rerank";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,12 +17,18 @@ import { DeleteJobButton } from "@/components/jobs/delete-job-button";
 import { refreshCandidatesForJob } from "./actions";
 
 interface JdForMatchingLocal {
+  id: string;
+  name: string;
   description: string;
   skills: string[];
   locationMunicipality: string | null;
   locationProvince: string | null;
   locationRegion: string | null;
+  searchRadiusKm: number;
+  embedding: number[] | null;
 }
+
+const LLM_RERANK_TOP_N = 10;
 
 export default async function JobDetailPage({
   params,
@@ -116,17 +123,58 @@ export default async function JobDetailPage({
 }
 
 async function Matches({ jd, orgId }: { jd: JdForMatchingLocal; orgId: string }) {
+  let ranked: RankedCandidate[];
   try {
     const candidates = await getCandidatesForOrg(orgId);
-    const ranked = rankCandidates(jd, candidates);
-    return <MatchTable ranked={ranked} />;
-  } catch {
+    ranked = await rankCandidates(jd, candidates);
+  } catch (e) {
+    const isUnavailable =
+      e instanceof Error && e.name === "MatchingUnavailableError";
+    if (!isUnavailable) {
+      console.error("[jobs/[id]] rankCandidates failed", e);
+    }
     return (
       <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
-        Impossibile caricare i candidati. Riprova più tardi.
+        {isUnavailable
+          ? "Matching non ancora disponibile: l'embedding di questa offerta è in elaborazione."
+          : "Impossibile caricare i candidati. Riprova più tardi."}
       </div>
     );
   }
+
+  // LLM rerank: refine the top-N from embedding ranking using Mistral Small.
+  // Failures here degrade gracefully — we still show the embedding ranking.
+  const toRerank = ranked.slice(0, LLM_RERANK_TOP_N);
+  if (toRerank.length > 0) {
+    try {
+      const enrichments = await rerankCandidates(jd.id, {
+        jd: {
+          name: jd.name,
+          description: jd.description,
+          skills: jd.skills,
+          locationMunicipality: jd.locationMunicipality,
+        },
+        candidates: toRerank.map((r) => r.candidate),
+      });
+      const byId = new Map(enrichments.map((e) => [e.candidateId, e]));
+      ranked = ranked.map((r) => {
+        const enrichment = byId.get(r.candidate.id);
+        return enrichment ? { ...r, llm: enrichment } : r;
+      });
+      // Re-sort: items with an LLM score sort by it, others fall to the bottom
+      // in their original embedding order.
+      ranked.sort((a, b) => {
+        const sa = a.llm?.score ?? -1;
+        const sb = b.llm?.score ?? -1;
+        if (sa !== sb) return sb - sa;
+        return b.match.final - a.match.final;
+      });
+    } catch (e) {
+      console.error("[jobs/[id]] rerankCandidates failed, falling back to embedding ranking", e);
+    }
+  }
+
+  return <MatchTable ranked={ranked} />;
 }
 
 function MatchesLoading() {

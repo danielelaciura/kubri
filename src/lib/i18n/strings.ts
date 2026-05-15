@@ -2,6 +2,7 @@ export const strings = {
   nav: {
     candidates: "Candidati",
     jobs: "Offerte di lavoro",
+    users: "Utenti",
     settings: "Impostazioni",
     stats: "Statistiche",
     admin: "Amministrazione",
@@ -11,6 +12,7 @@ export const strings = {
   },
   common: {
     logout: "Esci",
+    profile: "Profilo",
     loading: "Caricamento...",
     error: "Errore",
     notFound: "Pagina non trovata",
@@ -114,5 +116,11 @@ export const strings = {
     lowMatchTag: "Bassa corrispondenza",
     notFound: "Offerta non trovata",
     uniqueNameError: "Esiste già un'offerta con questo nome.",
+    matchSummaryHeading: "Valutazione AI",
+    matchedSkillsHeading: "Competenze riconosciute",
+    missingSkillsHeading: "Competenze mancanti",
+    redFlagsHeading: "Punti di attenzione",
+    viewCandidateAction: "Apri profilo",
+    preferredLocationLabel: "Preferenza",
   },
 } as const;

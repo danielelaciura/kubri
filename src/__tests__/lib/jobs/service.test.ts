@@ -1,3 +1,8 @@
+vi.mock("@/lib/embeddings/client", () => ({
+  generateEmbedding: vi.fn().mockResolvedValue(Array.from({ length: 384 }, () => 0.1)),
+  vectorToPgLiteral: (v: number[]) => `[${v.join(",")}]`,
+}));
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   createJobDescription,
@@ -8,6 +13,7 @@ import {
   JobNameAlreadyExistsError,
   JobNotFoundError,
 } from "@/lib/jobs/service";
+import { generateEmbedding } from "@/lib/embeddings/client";
 
 const { mockPrisma } = vi.hoisted(() => ({
   mockPrisma: {
@@ -18,6 +24,8 @@ const { mockPrisma } = vi.hoisted(() => ({
       updateMany: vi.fn(),
       deleteMany: vi.fn(),
     },
+    $queryRaw: vi.fn(),
+    $executeRaw: vi.fn(),
   },
 }));
 
@@ -37,7 +45,13 @@ const baseInput = {
 
 describe("createJobDescription", () => {
   it("resolves location and forwards to Prisma with org scoping", async () => {
-    mockPrisma.jobDescription.create.mockResolvedValue({ id: "jd-1" });
+    mockPrisma.jobDescription.create.mockResolvedValue({
+      id: "jd-1",
+      name: baseInput.name,
+      description: baseInput.description,
+      skills: baseInput.skills,
+    });
+    mockPrisma.$executeRaw.mockResolvedValue(1);
     await createJobDescription({ input: baseInput, organizationId: "org-1", userId: "user-1" });
     expect(mockPrisma.jobDescription.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -56,7 +70,13 @@ describe("createJobDescription", () => {
   });
 
   it("forwards a custom searchRadiusKm", async () => {
-    mockPrisma.jobDescription.create.mockResolvedValue({ id: "jd-1" });
+    mockPrisma.jobDescription.create.mockResolvedValue({
+      id: "jd-1",
+      name: baseInput.name,
+      description: baseInput.description,
+      skills: baseInput.skills,
+    });
+    mockPrisma.$executeRaw.mockResolvedValue(1);
     await createJobDescription({
       input: { ...baseInput, searchRadiusKm: 75 },
       organizationId: "org-1",
@@ -75,6 +95,21 @@ describe("createJobDescription", () => {
       createJobDescription({ input: baseInput, organizationId: "org-1", userId: "user-1" })
     ).rejects.toBeInstanceOf(JobNameAlreadyExistsError);
   });
+
+  it("generates an embedding after creating a JD", async () => {
+    mockPrisma.jobDescription.create.mockResolvedValue({
+      id: "jd-1",
+      name: baseInput.name,
+      description: baseInput.description,
+      skills: baseInput.skills,
+    });
+    mockPrisma.$executeRaw.mockResolvedValue(1);
+    await createJobDescription({ input: baseInput, organizationId: "org-1", userId: "user-1" });
+    expect(generateEmbedding).toHaveBeenCalledTimes(1);
+    const text = vi.mocked(generateEmbedding).mock.calls[0]![0];
+    expect(text).toContain(baseInput.name);
+    expect(mockPrisma.$executeRaw).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("listJobDescriptions", () => {
@@ -90,19 +125,57 @@ describe("listJobDescriptions", () => {
 });
 
 describe("getJobDescription", () => {
-  it("requires matching organizationId", async () => {
-    mockPrisma.jobDescription.findFirst.mockResolvedValue(null);
+  it("returns null when no row is found", async () => {
+    mockPrisma.$queryRaw.mockResolvedValue([]);
     const r = await getJobDescription({ id: "jd-1", organizationId: "org-1" });
     expect(r).toBeNull();
-    expect(mockPrisma.jobDescription.findFirst).toHaveBeenCalledWith({
-      where: { id: "jd-1", organizationId: "org-1" },
-    });
+  });
+
+  it("returns normalized record with embedding as number[] when found", async () => {
+    mockPrisma.$queryRaw.mockResolvedValue([
+      {
+        id: "jd-1",
+        name: "Test",
+        description: "Desc",
+        skills: ["skill1"],
+        locationRaw: "Milano",
+        locationMunicipality: "Milano",
+        locationProvince: "Milano",
+        locationRegion: "Lombardia",
+        searchRadiusKm: 25,
+        embedding: "[0.1,0.2,0.3]",
+      },
+    ]);
+    const r = await getJobDescription({ id: "jd-1", organizationId: "org-1" });
+    expect(r).not.toBeNull();
+    expect(r!.embedding).toEqual([0.1, 0.2, 0.3]);
+    expect(r!.name).toBe("Test");
+  });
+
+  it("returns null embedding when embedding is null in DB", async () => {
+    mockPrisma.$queryRaw.mockResolvedValue([
+      {
+        id: "jd-1",
+        name: "Test",
+        description: "Desc",
+        skills: [],
+        locationRaw: "Roma",
+        locationMunicipality: null,
+        locationProvince: null,
+        locationRegion: null,
+        searchRadiusKm: 10,
+        embedding: null,
+      },
+    ]);
+    const r = await getJobDescription({ id: "jd-1", organizationId: "org-1" });
+    expect(r!.embedding).toBeNull();
   });
 });
 
 describe("updateJobDescription", () => {
   it("re-resolves location and scopes update by org", async () => {
     mockPrisma.jobDescription.updateMany.mockResolvedValue({ count: 1 });
+    mockPrisma.$executeRaw.mockResolvedValue(1);
     await updateJobDescription({
       id: "jd-1",
       organizationId: "org-1",
@@ -127,6 +200,28 @@ describe("updateJobDescription", () => {
     await expect(
       updateJobDescription({ id: "jd-1", organizationId: "org-1", input: baseInput })
     ).rejects.toBeInstanceOf(JobNotFoundError);
+  });
+
+  it("regenerates the embedding after updating a JD", async () => {
+    mockPrisma.jobDescription.updateMany.mockResolvedValue({ count: 1 });
+    mockPrisma.$executeRaw.mockResolvedValue(1);
+    await updateJobDescription({
+      id: "jd-1",
+      organizationId: "org-1",
+      input: { ...baseInput, name: "Updated", description: "New description" },
+    });
+    expect(generateEmbedding).toHaveBeenCalledTimes(1);
+    const text = vi.mocked(generateEmbedding).mock.calls[0]![0];
+    expect(text).toContain("Updated");
+    expect(mockPrisma.$executeRaw).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not regenerate embedding when update affects no rows", async () => {
+    mockPrisma.jobDescription.updateMany.mockResolvedValue({ count: 0 });
+    await expect(
+      updateJobDescription({ id: "jd-1", organizationId: "org-1", input: baseInput })
+    ).rejects.toBeInstanceOf(JobNotFoundError);
+    expect(generateEmbedding).not.toHaveBeenCalled();
   });
 });
 

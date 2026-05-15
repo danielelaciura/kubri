@@ -134,6 +134,10 @@ model JobDescription {
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
+  embedding            Unsupported("vector(1024)")?
+  embeddingText        String?
+  embeddingUpdatedAt   DateTime?
+
   organization Organization @relation(fields: [organizationId], references: [id])
   createdBy    User         @relation(fields: [createdByUserId], references: [id])
 
@@ -182,6 +186,10 @@ model Candidate {
   sourceUpdatedAt     DateTime?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
+
+  embedding            Unsupported("vector(1024)")?
+  embeddingText        String?
+  embeddingUpdatedAt   DateTime?
 
   poolId String @db.Uuid
   pool   Pool   @relation(fields: [poolId], references: [id], onDelete: Restrict)

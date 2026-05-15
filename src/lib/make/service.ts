@@ -22,6 +22,7 @@ function dbCandidateToApp(c: DbCandidate): Candidate {
   const channel: Channel = c.channel === "whatsapp" ? "whatsapp" : "telegram";
   return {
     id: c.externalId,
+    dbId: c.id,
     firstName: c.firstName ?? "",
     lastName: c.lastName ?? "",
     dateOfBirth: c.birthday ?? "",

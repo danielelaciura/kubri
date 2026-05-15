@@ -1,16 +1,12 @@
 import type { Metadata } from "next";
-import { Nunito_Sans, Jost } from "next/font/google";
+import { Jost } from "next/font/google";
+import { GeistSans } from "geist/font/sans";
+import { GeistMono } from "geist/font/mono";
 import "./globals.css";
-
-const nunitoSans = Nunito_Sans({
-  variable: "--font-nunito-sans",
-  weight: ['400', '500', '600', '700', '800'],
-  subsets: ["latin"],
-});
 
 const jost = Jost({
   variable: "--font-jost",
-  weight: ['500'],
+  weight: ["500", "600", "700"],
   subsets: ["latin"],
 });
 
@@ -27,7 +23,7 @@ export default function RootLayout({
   return (
     <html
       lang="it"
-      className={`${nunitoSans.variable} ${jost.variable} h-full antialiased`}
+      className={`${GeistSans.variable} ${GeistMono.variable} ${jost.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

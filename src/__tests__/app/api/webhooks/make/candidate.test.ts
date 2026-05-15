@@ -5,6 +5,7 @@ vi.mock("@/lib/db", () => ({
     candidate: {
       upsert: vi.fn(),
     },
+    $executeRaw: vi.fn(),
   },
 }));
 
@@ -19,11 +20,17 @@ vi.mock("@/lib/pools/resolve", async () => {
   };
 });
 
+vi.mock("@/lib/embeddings/client", () => ({
+  generateEmbedding: vi.fn(),
+  vectorToPgLiteral: (v: number[]) => `[${v.join(",")}]`,
+}));
+
 import { prisma } from "@/lib/db";
 import {
   resolvePoolByExternalKey,
   UnknownPoolError,
 } from "@/lib/pools/resolve";
+import { generateEmbedding } from "@/lib/embeddings/client";
 import { POST } from "@/app/api/webhooks/make/candidate/route";
 
 const SECRET = "test-secret-xyz";
@@ -122,7 +129,16 @@ describe("POST /api/webhooks/make/candidate", () => {
     vi.mocked(resolvePoolByExternalKey).mockResolvedValue(POOL as never);
     vi.mocked(prisma.candidate.upsert).mockResolvedValue({
       id: "11111111-1111-1111-1111-111111111111",
+      skillsAndCompetences: ["sala"],
+      workExperience: ["cameriere 2 anni"],
+      educationAndTraining: [],
+      desiredJob: "cameriere",
+      jobConstraints: null,
     } as never);
+    vi.mocked(generateEmbedding).mockResolvedValue(
+      Array.from({ length: 384 }, () => 0.1),
+    );
+    vi.mocked(prisma.$executeRaw).mockResolvedValue(1 as never);
 
     const res = await POST(
       makeRequest(
@@ -151,6 +167,83 @@ describe("POST /api/webhooks/make/candidate", () => {
     expect(arg.create.firstName).toBe("Mario");
     expect(arg.create.poolId).toBe(POOL.id);
     expect(arg.update.firstName).toBe("Mario");
+  });
+
+  it("generates and stores the embedding after upsert", async () => {
+    vi.mocked(resolvePoolByExternalKey).mockResolvedValue(POOL as never);
+    vi.mocked(prisma.candidate.upsert).mockResolvedValue({
+      id: "11111111-1111-1111-1111-111111111111",
+      skillsAndCompetences: ["sala", "haccp"],
+      workExperience: ["pizzeria"],
+      educationAndTraining: [],
+      desiredJob: "cameriere",
+      jobConstraints: null,
+    } as never);
+    vi.mocked(generateEmbedding).mockResolvedValue(
+      Array.from({ length: 384 }, () => 0.1),
+    );
+    vi.mocked(prisma.$executeRaw).mockResolvedValue(1 as never);
+
+    const res = await POST(
+      makeRequest(
+        { key: "k", externalKey: "global", data: { first_name: "Mario", interview_complete: true } },
+        `Bearer ${SECRET}`,
+      ),
+    );
+
+    expect(res.status).toBe(200);
+    expect(generateEmbedding).toHaveBeenCalledTimes(1);
+    const text = vi.mocked(generateEmbedding).mock.calls[0]![0];
+    expect(typeof text).toBe("string");
+    expect(text.length).toBeGreaterThan(0);
+    expect(text).toContain("sala");
+    expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns 200 even if embedding generation fails", async () => {
+    vi.mocked(resolvePoolByExternalKey).mockResolvedValue(POOL as never);
+    vi.mocked(prisma.candidate.upsert).mockResolvedValue({
+      id: "11111111-1111-1111-1111-111111111111",
+      skillsAndCompetences: ["sala"],
+      workExperience: [],
+      educationAndTraining: [],
+      desiredJob: null,
+      jobConstraints: null,
+    } as never);
+    vi.mocked(generateEmbedding).mockRejectedValue(new Error("edge down"));
+
+    const res = await POST(
+      makeRequest(
+        { key: "k", externalKey: "global", data: { first_name: "Mario", interview_complete: true } },
+        `Bearer ${SECRET}`,
+      ),
+    );
+
+    expect(res.status).toBe(200);
+    expect(prisma.$executeRaw).not.toHaveBeenCalled();
+  });
+
+  it("skips embedding when text is empty", async () => {
+    vi.mocked(resolvePoolByExternalKey).mockResolvedValue(POOL as never);
+    vi.mocked(prisma.candidate.upsert).mockResolvedValue({
+      id: "11111111-1111-1111-1111-111111111111",
+      skillsAndCompetences: [],
+      workExperience: [],
+      educationAndTraining: [],
+      desiredJob: null,
+      jobConstraints: null,
+    } as never);
+
+    const res = await POST(
+      makeRequest(
+        { key: "k", externalKey: "global", data: { first_name: "Mario", interview_complete: true } },
+        `Bearer ${SECRET}`,
+      ),
+    );
+
+    expect(res.status).toBe(200);
+    expect(generateEmbedding).not.toHaveBeenCalled();
+    expect(prisma.$executeRaw).not.toHaveBeenCalled();
   });
 
   it("returns 500 when prisma throws", async () => {

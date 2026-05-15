@@ -7,9 +7,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-nunito-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: ui-monospace, monospace;
-  --font-heading: var(--font-jost), Georgia, serif;
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-heading: var(--font-jost), var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --color-kubri-50: oklch(0.850 0.0400 290);
   --color-kubri-100: oklch(0.800 0.0500 290);
   --color-kubri-200: oklch(0.750 0.0600 290);
@@ -84,13 +84,16 @@
   --chart-4: oklch(0.55 0.1 170);
   --chart-5: oklch(0.45 0.12 155);
   --radius: 0.625rem;
-  --sidebar: oklch(1 0 0);
+  /* Surround / nav background — slightly tinted neutral gray
+     (similar to shadcn admin demo). Inset main stays pure white. */
+  --sidebar: oklch(0.95 0.004 290);
   --sidebar-foreground: oklch(0.25 0.01 240);
   --sidebar-primary: oklch(0.5647 0.1653 291.4);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.25 0.01 240);
-  --sidebar-accent-foreground: oklch(0.95 0 0);
-  --sidebar-border: oklch(0.3 0.01 240);
+  /* Active nav item: kubri pill + strong kubri text */
+  --sidebar-accent: oklch(0.90 0.045 290);
+  --sidebar-accent-foreground: oklch(0.450 0.1300 290);
+  --sidebar-border: oklch(0.88 0.010 290);
   --sidebar-ring: oklch(0.5647 0.1653 291.4);
 }
 

@@ -38,6 +38,9 @@ importers:
       dotenv:
         specifier: ^17.4.0
         version: 17.4.0
+      geist:
+        specifier: ^1.7.0
+        version: 1.7.0(next@16.2.2(@babel/core@7.29.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))
       lru-cache:
         specifier: ^11.2.7
         version: 11.2.7
@@ -65,9 +68,6 @@ importers:
       shadcn:
         specifier: ^4.1.2
         version: 4.1.2(@types/node@20.19.38)(typescript@5.9.3)
-      snowball-stemmers:
-        specifier: ^0.6.0
-        version: 0.6.0
       tailwind-merge:
         specifier: ^3.5.0
         version: 3.5.0
@@ -99,9 +99,6 @@ importers:
       '@types/react-dom':
         specifier: ^19
         version: 19.2.3(@types/react@19.2.14)
-      '@types/snowball-stemmers':
-        specifier: ^0.6.2
-        version: 0.6.2
       '@vitejs/plugin-react':
         specifier: ^6.0.1
         version: 6.0.1(vite@8.0.3(@emnapi/core@1.9.2)(@emnapi/runtime@1.9.2)(@types/node@20.19.38)(esbuild@0.27.7)(jiti@2.6.1)(tsx@4.21.0))
@@ -1545,9 +1542,6 @@ packages:
   '@types/react@19.2.14':
     resolution: {integrity: sha512-ilcTH/UniCkMdtexkoCN0bI7pMcJDvmQFPvuPvmEaYA/NSfFTAgdUSLAoVjaRJm7+6PvcM+q1zYOwS4wTYMF9w==}
 
-  '@types/snowball-stemmers@0.6.2':
-    resolution: {integrity: sha512-ihEXPKPKfIP/Ht8FN+UPqqg1kPNrV+Uo+eQtqB+K4sLmTBll3OM1bKj7OlsN4v12qk4O7D0MjczJG7NPAxgpyQ==}
-
   '@types/statuses@2.0.6':
     resolution: {integrity: sha512-xMAgYwceFhRA2zY+XbEA7mxYbA093wdiW8Vu6gZPGWy9cmOyU9XesH1tNcEWsKFd5Vzrqx5T3D38PWx1FIIXkA==}
 
@@ -2689,6 +2683,11 @@ packages:
 
   fuzzysort@3.1.0:
     resolution: {integrity: sha512-sR9BNCjBg6LNgwvxlBd0sBABvQitkLzoVY9MYYROQVX/FvfJ4Mai9LsGhDgd8qYdds0bY77VzYd5iuB+v5rwQQ==}
+
+  geist@1.7.0:
+    resolution: {integrity: sha512-ZaoiZwkSf0DwwB1ncdLKp+ggAldqxl5L1+SXaNIBGkPAqcu+xjVJLxlf3/S8vLt9UHx1xu5fz3lbzKCj5iOVdQ==}
+    peerDependencies:
+      next: '>=13.2.0'
 
   generate-function@2.3.1:
     resolution: {integrity: sha512-eeB5GfMNeevm/GRYq20ShmsaGcmI81kIX2K9XQx5miC8KdHaC6Jm0qQ8ZNeGOi7wYB8OsdxKs+Y2oVuTFuVwKQ==}
@@ -4008,9 +4007,6 @@ packages:
 
   sisteransi@1.0.5:
     resolution: {integrity: sha512-bLGGlR1QxBcynn2d5YmDX4MGjlZvy2MRBDRNHLJ8VI6l6+9FUiyTFNJ0IveOSP0bcXgVDPRcfGqA0pjaqUpfVg==}
-
-  snowball-stemmers@0.6.0:
-    resolution: {integrity: sha512-47VTJvsZzEme3VxhbUFc9wR0CX8fYKNMgL7AiBdJcHUrwbmN7htFroeX+8ESIAaoNgwEgwI2wnv1HIcqQqAdcA==}
 
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
@@ -5913,8 +5909,6 @@ snapshots:
     dependencies:
       csstype: 3.2.3
 
-  '@types/snowball-stemmers@0.6.2': {}
-
   '@types/statuses@2.0.6': {}
 
   '@types/use-sync-external-store@0.0.6': {}
@@ -7224,6 +7218,10 @@ snapshots:
   functions-have-names@1.2.3: {}
 
   fuzzysort@3.1.0: {}
+
+  geist@1.7.0(next@16.2.2(@babel/core@7.29.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)):
+    dependencies:
+      next: 16.2.2(@babel/core@7.29.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
 
   generate-function@2.3.1:
     dependencies:
@@ -8609,8 +8607,6 @@ snapshots:
       is-arrayish: 0.3.4
 
   sisteransi@1.0.5: {}
-
-  snowball-stemmers@0.6.0: {}
 
   source-map-js@1.2.1: {}
 

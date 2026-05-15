@@ -75,6 +75,22 @@ export function resolvePlaceCoords(label: string): LatLng | null {
   return null;
 }
 
+/**
+ * Best-effort geocoding from a free-form Italian street address.
+ *
+ * The convention used by Make payloads and seed data is
+ * "Via/Viale/Piazza X NN, <Comune>" — the last comma-separated token is the
+ * municipality. We trim and pass it to resolvePlaceCoords. Returns null if
+ * the address is missing or the comune is unknown to ITALY_ADMIN.
+ */
+export function geocodeFromAddress(address: string | null | undefined): LatLng | null {
+  if (!address) return null;
+  const parts = address.split(",").map((s) => s.trim()).filter((s) => s.length > 0);
+  if (parts.length === 0) return null;
+  const last = parts[parts.length - 1]!;
+  return resolvePlaceCoords(last);
+}
+
 export function filterByRadius<
   T extends { latitude: number | null; longitude: number | null },
 >(items: T[], center: LatLng, radiusKm: number): T[] {

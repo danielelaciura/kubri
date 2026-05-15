@@ -1,74 +1,114 @@
 "use client";
 
 import Link from "next/link";
-import { LogOut, Menu, Plus } from "lucide-react";
+import { LogOut, Plus, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { strings } from "@/lib/i18n/strings";
 import { logoutAction } from "@/lib/auth-actions";
 
 interface HeaderProps {
   userName: string;
+  userEmail: string;
   isAdmin: boolean;
   isOrgAdmin: boolean;
-  onMenuToggle: () => void;
 }
 
-export function Header({ userName, isAdmin, isOrgAdmin, onMenuToggle }: HeaderProps) {
-  return (
-    <header className="flex h-16 items-center justify-between border-b border-border bg-card px-4 lg:px-6 shadow-sm">
-      <Button
-        variant="ghost"
-        size="icon"
-        className="lg:hidden"
-        onClick={onMenuToggle}
-      >
-        <Menu className="h-5 w-5" />
-        <span className="sr-only">Apri menu</span>
-      </Button>
+export function Header({ userName, userEmail, isAdmin, isOrgAdmin }: HeaderProps) {
+  const initials = userName
+    .split(" ")
+    .map((n) => n[0])
+    .filter(Boolean)
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
-      <div className="lg:hidden" />
+  return (
+    <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b border-border bg-background/80 px-4 backdrop-blur-sm lg:px-6">
+      <SidebarTrigger className="-ml-1" />
+      <Separator orientation="vertical" className="mr-2 h-4 self-center!" />
+
       {isOrgAdmin && (
-        <Link href="/dashboard/jobs/new" className="hidden lg:block">
+        <Link href="/dashboard/jobs/new">
           <Button
-            size="lg"
-            className="text-kubri-800 bg-white border hover:bg-kubri-50"
+            size="sm"
+            variant="outline"
+            className="text-kubri-800 border-kubri-200 hover:bg-kubri-50"
           >
             <Plus className="mr-1 h-4 w-4" />
             Aggiungi offerta
           </Button>
         </Link>
       )}
-      <div className="hidden lg:block" />
 
-      <div className="flex items-center gap-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-kubri-100 text-kubri-800">
-          <span className="text-xs font-semibold">
-            {userName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
-          </span>
-        </div>
-        <div className="flex flex-col items-start leading-tight">
-          <span className="text-sm font-medium text-foreground">{userName}</span>
-          {isAdmin && (
-            <Badge
-              variant="secondary"
-              className="mt-0.5 h-4 px-1.5 text-[10px] bg-zinc-800 text-zinc-100"
-            >
-              Admin Kubri
-            </Badge>
-          )}
-        </div>
-        <form action={logoutAction}>
-          <Button
-            type="submit"
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <LogOut className="mr-1.5 h-4 w-4" />
-            {strings.common.logout}
-          </Button>
-        </form>
+      <div className="ml-auto">
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <button
+                type="button"
+                aria-label="Apri menu utente"
+                className="flex items-center gap-2 rounded-full p-0.5 outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 hover:bg-muted"
+              >
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-kubri-100 text-kubri-800 text-sm font-semibold">
+                  {initials}
+                </span>
+              </button>
+            }
+          />
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="flex flex-col gap-0.5 py-2">
+                <span className="text-sm font-medium leading-none text-foreground">{userName}</span>
+                {userEmail && (
+                  <span className="text-xs font-normal leading-tight text-muted-foreground truncate">
+                    {userEmail}
+                  </span>
+                )}
+                {isAdmin && (
+                  <Badge
+                    variant="secondary"
+                    className="mt-1 h-4 w-fit px-1.5 text-[10px] bg-zinc-800 text-zinc-100"
+                  >
+                    Admin Kubri
+                  </Badge>
+                )}
+              </DropdownMenuLabel>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              render={
+                <Link href="/dashboard/profile">
+                  <UserRound className="mr-2 h-4 w-4" />
+                  <span>{strings.common.profile}</span>
+                </Link>
+              }
+            />
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              variant="destructive"
+              render={
+                <form action={logoutAction} className="contents">
+                  <button type="submit" className="flex w-full items-center">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>{strings.common.logout}</span>
+                  </button>
+                </form>
+              }
+            />
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

@@ -9,6 +9,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -67,22 +68,24 @@ export function Header({ userName, userEmail, isAdmin, isOrgAdmin }: HeaderProps
             }
           />
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel className="flex flex-col gap-0.5 py-2">
-              <span className="text-sm font-medium leading-none text-foreground">{userName}</span>
-              {userEmail && (
-                <span className="text-xs font-normal leading-tight text-muted-foreground truncate">
-                  {userEmail}
-                </span>
-              )}
-              {isAdmin && (
-                <Badge
-                  variant="secondary"
-                  className="mt-1 h-4 w-fit px-1.5 text-[10px] bg-zinc-800 text-zinc-100"
-                >
-                  Admin Kubri
-                </Badge>
-              )}
-            </DropdownMenuLabel>
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="flex flex-col gap-0.5 py-2">
+                <span className="text-sm font-medium leading-none text-foreground">{userName}</span>
+                {userEmail && (
+                  <span className="text-xs font-normal leading-tight text-muted-foreground truncate">
+                    {userEmail}
+                  </span>
+                )}
+                {isAdmin && (
+                  <Badge
+                    variant="secondary"
+                    className="mt-1 h-4 w-fit px-1.5 text-[10px] bg-zinc-800 text-zinc-100"
+                  >
+                    Admin Kubri
+                  </Badge>
+                )}
+              </DropdownMenuLabel>
+            </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               render={
@@ -94,12 +97,10 @@ export function Header({ userName, userEmail, isAdmin, isOrgAdmin }: HeaderProps
             />
             <DropdownMenuSeparator />
             <DropdownMenuItem
+              variant="destructive"
               render={
                 <form action={logoutAction} className="contents">
-                  <button
-                    type="submit"
-                    className="flex w-full items-center text-destructive focus:text-destructive"
-                  >
+                  <button type="submit" className="flex w-full items-center">
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>{strings.common.logout}</span>
                   </button>

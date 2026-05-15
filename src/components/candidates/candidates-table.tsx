@@ -101,16 +101,14 @@ export function CandidatesTable({ result, sort }: CandidatesTableProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="font-bold w-40">
-                <SortButton field="lastName" label="Cognome " />
+              <TableHead className="w-40">
+                <SortButton field="lastName" label="Cognome" />
               </TableHead>
-              <TableHead className="font-bold w-40">
-                 Nome
-              </TableHead>
-              <TableHead className="font-bold">Zona di lavoro</TableHead>
-              <TableHead className="font-bold">Paese di origine</TableHead>
+              <TableHead className="w-40">Nome</TableHead>
+              <TableHead>Zona di lavoro</TableHead>
+              <TableHead>Paese di origine</TableHead>
               {/* <TableHead>Lingue</TableHead> */}
-              <TableHead className="font-bold">Competenze</TableHead>
+              <TableHead>Competenze</TableHead>
               {/* <TableHead>Indirizzo</TableHead> */}
               {/* <TableHead>
                 <SortButton field="createdAt" label="Data" />

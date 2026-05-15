@@ -3,22 +3,39 @@
 import { getCurrentUser } from "@/lib/auth-utils";
 import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
-import { requireLocalCandidateId } from "@/lib/candidates/resolve";
+import { getOrgAccessiblePoolIds } from "@/lib/pools/access";
 import { z } from "zod/v4";
 import { revalidatePath } from "next/cache";
 
 const noteSchema = z.object({
-  makeRecordId: z.string().min(1),
+  candidateId: z.string().uuid(),
   content: z.string().min(1, "Il contenuto della nota non può essere vuoto"),
 });
 
 const tagSchema = z.object({
-  makeRecordId: z.string().min(1),
+  candidateId: z.string().uuid(),
   tag: z
     .string()
     .transform((v) => v.trim())
     .pipe(z.string().min(1, "Il tag non può essere vuoto")),
 });
+
+async function requireCandidateAccess(
+  organizationId: string,
+  candidateId: string,
+): Promise<void> {
+  const poolIds = await getOrgAccessiblePoolIds(organizationId);
+  if (poolIds.length === 0) {
+    throw new Error("Candidato non accessibile");
+  }
+  const exists = await prisma.candidate.findFirst({
+    where: { id: candidateId, poolId: { in: poolIds } },
+    select: { id: true },
+  });
+  if (!exists) {
+    throw new Error("Candidato non accessibile");
+  }
+}
 
 export async function addNote(formData: FormData) {
   const session = await getCurrentUser();
@@ -27,7 +44,7 @@ export async function addNote(formData: FormData) {
   }
 
   const parsed = noteSchema.safeParse({
-    makeRecordId: formData.get("makeRecordId"),
+    candidateId: formData.get("candidateId"),
     content: formData.get("content"),
   });
 
@@ -35,12 +52,9 @@ export async function addNote(formData: FormData) {
     throw new Error(parsed.error.issues[0]?.message ?? "Dati non validi");
   }
 
-  const { makeRecordId, content } = parsed.data;
+  const { candidateId, content } = parsed.data;
   const { id: userId, organizationId } = session;
-  const candidateId = await requireLocalCandidateId(
-    organizationId,
-    makeRecordId,
-  );
+  await requireCandidateAccess(organizationId, candidateId);
 
   const note = await prisma.candidateNote.create({
     data: {
@@ -57,10 +71,10 @@ export async function addNote(formData: FormData) {
     action: "note.create",
     resourceType: "candidate_note",
     resourceId: note.id,
-    metadata: { makeRecordId, candidateId },
+    metadata: { candidateId },
   });
 
-  revalidatePath(`/dashboard/candidates/${makeRecordId}`);
+  revalidatePath(`/dashboard/candidates/${candidateId}`);
 }
 
 export async function addTag(formData: FormData) {
@@ -70,7 +84,7 @@ export async function addTag(formData: FormData) {
   }
 
   const parsed = tagSchema.safeParse({
-    makeRecordId: formData.get("makeRecordId"),
+    candidateId: formData.get("candidateId"),
     tag: formData.get("tag"),
   });
 
@@ -78,12 +92,9 @@ export async function addTag(formData: FormData) {
     throw new Error(parsed.error.issues[0]?.message ?? "Dati non validi");
   }
 
-  const { makeRecordId, tag } = parsed.data;
+  const { candidateId, tag } = parsed.data;
   const { id: userId, organizationId } = session;
-  const candidateId = await requireLocalCandidateId(
-    organizationId,
-    makeRecordId,
-  );
+  await requireCandidateAccess(organizationId, candidateId);
 
   // Check for duplicate tag within same candidate and organization
   const existing = await prisma.candidateTag.findFirst({
@@ -112,10 +123,10 @@ export async function addTag(formData: FormData) {
     action: "tag.create",
     resourceType: "candidate_tag",
     resourceId: candidateTag.id,
-    metadata: { makeRecordId, candidateId, tag },
+    metadata: { candidateId, tag },
   });
 
-  revalidatePath(`/dashboard/candidates/${makeRecordId}`);
+  revalidatePath(`/dashboard/candidates/${candidateId}`);
 }
 
 export async function removeTag(tagId: string) {
@@ -126,15 +137,10 @@ export async function removeTag(tagId: string) {
 
   const { id: userId, organizationId } = session;
 
-  // Find the tag ensuring it belongs to the user's organization,
-  // and pull along the candidate's externalId so we can revalidate.
   const tag = await prisma.candidateTag.findFirst({
     where: {
       id: tagId,
       organizationId,
-    },
-    include: {
-      candidate: { select: { externalId: true } },
     },
   });
 
@@ -155,5 +161,5 @@ export async function removeTag(tagId: string) {
     metadata: { candidateId: tag.candidateId, tag: tag.tag },
   });
 
-  revalidatePath(`/dashboard/candidates/${tag.candidate.externalId}`);
+  revalidatePath(`/dashboard/candidates/${tag.candidateId}`);
 }

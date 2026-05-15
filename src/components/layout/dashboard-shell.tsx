@@ -1,5 +1,6 @@
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { Header } from "@/components/layout/header";
+import { RouteProgress } from "@/components/layout/route-progress";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
 interface DashboardShellProps {
@@ -21,6 +22,7 @@ export function DashboardShell({
 }: DashboardShellProps) {
   return (
     <SidebarProvider>
+      <RouteProgress />
       <AppSidebar organizationName={organizationName} isAdmin={isAdmin} />
       <SidebarInset className="md:m-2 md:ml-0 md:rounded-xl md:border md:border-border md:shadow-sm overflow-hidden">
         <Header

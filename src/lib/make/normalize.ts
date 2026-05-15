@@ -97,7 +97,7 @@ export function normalizeForUpsert(
 
     interviewLanguage: nullableString(d["interview_language"]),
     sourceOrganization: nullableString(d["source_organization"]),
-    channel: deriveChannelOrNull(d["channel"]),
+    channel: deriveChannelOrNull(d["source_organization"]),
 
     rawPayload: payload as unknown as Prisma.InputJsonValue,
 

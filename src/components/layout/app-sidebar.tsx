@@ -68,10 +68,10 @@ export function AppSidebar({ organizationName, isAdmin, ...props }: AppSidebarPr
             priority
           />
           <div className="min-w-0 group-data-[collapsible=icon]:hidden">
-            <span className="block text-sm font-semibold leading-none text-sidebar-foreground">
+            <span className="block text-sm font-semibold leading-none text-foreground">
               Kubri
             </span>
-            <span className="block text-xs text-sidebar-foreground/70 truncate mt-0.5">
+            <span className="block text-xs text-muted-foreground truncate mt-0.5">
               {organizationName}
             </span>
           </div>

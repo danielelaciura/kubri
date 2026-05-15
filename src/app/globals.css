@@ -84,16 +84,16 @@
   --chart-4: oklch(0.55 0.1 170);
   --chart-5: oklch(0.45 0.12 155);
   --radius: 0.625rem;
-  /* Surround / nav background is a soft gray; the inset main is
-     pure white and floats above with border + shadow. */
-  --sidebar: oklch(0.965 0.003 290);
+  /* Surround / nav background — slightly tinted neutral gray
+     (similar to shadcn admin demo). Inset main stays pure white. */
+  --sidebar: oklch(0.95 0.004 290);
   --sidebar-foreground: oklch(0.25 0.01 240);
   --sidebar-primary: oklch(0.5647 0.1653 291.4);
   --sidebar-primary-foreground: oklch(0.985 0 0);
   /* Active nav item: kubri pill + strong kubri text */
-  --sidebar-accent: oklch(0.92 0.040 290);
+  --sidebar-accent: oklch(0.90 0.045 290);
   --sidebar-accent-foreground: oklch(0.450 0.1300 290);
-  --sidebar-border: oklch(0.90 0.008 290);
+  --sidebar-border: oklch(0.88 0.010 290);
   --sidebar-ring: oklch(0.5647 0.1653 291.4);
 }
 

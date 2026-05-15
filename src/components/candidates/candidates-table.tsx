@@ -75,12 +75,19 @@ export function CandidatesTable({ result, sort }: CandidatesTableProps) {
     return (
       <div className="flex flex-wrap gap-1">
         {visible.map((item) => (
-          <Badge key={item} variant="secondary" className="text-xs bg-kubri-50">
+          <Badge
+            key={item}
+            variant="outline"
+            className="text-xs font-normal border-border/70 text-muted-foreground bg-transparent"
+          >
             {item}
           </Badge>
         ))}
         {overflow > 0 && (
-          <Badge variant="outline" className="text-xs">
+          <Badge
+            variant="outline"
+            className="text-xs font-normal border-border/70 text-muted-foreground bg-transparent"
+          >
             +{overflow}
           </Badge>
         )}

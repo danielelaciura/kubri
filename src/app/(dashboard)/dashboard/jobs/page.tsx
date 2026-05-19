@@ -15,6 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { JobTableRow } from "@/components/jobs/job-table-row";
 
 export default async function JobsPage() {
   const supabase = await createSupabaseServerClient();
@@ -67,12 +68,8 @@ export default async function JobsPage() {
             </TableHeader>
             <TableBody>
               {jobs.map((j) => (
-                <TableRow key={j.id} className="cursor-pointer hover:bg-muted/50">
-                  <TableCell className="font-medium">
-                    <Link href={`/dashboard/jobs/${j.id}`} className="block">
-                      {j.name}
-                    </Link>
-                  </TableCell>
+                <JobTableRow key={j.id} href={`/dashboard/jobs/${j.id}`}>
+                  <TableCell className="font-medium">{j.name}</TableCell>
                   <TableCell>{j.locationRaw}</TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
@@ -95,7 +92,7 @@ export default async function JobsPage() {
                       year: "numeric",
                     })}
                   </TableCell>
-                </TableRow>
+                </JobTableRow>
               ))}
             </TableBody>
           </Table>

@@ -11,6 +11,10 @@ function RouteProgressInner() {
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const trickleRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const mountedRef = useRef(false);
+  const startedAtRef = useRef(0);
+  const activeRef = useRef(false);
+
+  const MIN_VISIBLE_MS = 400;
 
   const clearTimers = () => {
     if (trickleRef.current) {
@@ -25,6 +29,8 @@ function RouteProgressInner() {
 
   const start = () => {
     clearTimers();
+    activeRef.current = true;
+    startedAtRef.current = Date.now();
     setVisible(true);
     setProgress(12);
     trickleRef.current = setInterval(() => {
@@ -32,13 +38,29 @@ function RouteProgressInner() {
     }, 200);
   };
 
-  const done = () => {
-    clearTimers();
+  const finish = () => {
+    activeRef.current = false;
+    if (trickleRef.current) {
+      clearInterval(trickleRef.current);
+      trickleRef.current = null;
+    }
     setProgress(100);
     hideTimerRef.current = setTimeout(() => {
       setVisible(false);
       setProgress(0);
-    }, 250);
+    }, 300);
+  };
+
+  const done = () => {
+    if (!activeRef.current) return;
+    const elapsed = Date.now() - startedAtRef.current;
+    const remaining = MIN_VISIBLE_MS - elapsed;
+    if (remaining > 0) {
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = setTimeout(finish, remaining);
+    } else {
+      finish();
+    }
   };
 
   useEffect(() => {
@@ -46,7 +68,9 @@ function RouteProgressInner() {
       mountedRef.current = true;
       return;
     }
-    done();
+    const id = setTimeout(done, 0);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname, searchParams]);
 
   useEffect(() => {
@@ -81,20 +105,24 @@ function RouteProgressInner() {
       document.removeEventListener("click", onClick);
       clearTimers();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <div
       aria-hidden
-      className="pointer-events-none fixed left-0 top-0 z-[9999] h-0.5 w-full"
-      style={{ opacity: visible ? 1 : 0 }}
+      className="pointer-events-none fixed left-0 top-0 z-[9999] h-1 w-full"
+      style={{
+        opacity: visible ? 1 : 0,
+        transition: "opacity 300ms ease-out",
+      }}
     >
       <div
-        className="h-full bg-primary transition-[width,opacity] duration-200 ease-out"
+        className="h-full bg-primary"
         style={{
           width: `${progress}%`,
-          opacity: progress === 100 ? 0 : 1,
-          boxShadow: "0 0 8px var(--color-primary)",
+          transition: "width 200ms ease-out",
+          boxShadow: "0 0 10px var(--color-primary), 0 0 4px var(--color-primary)",
         }}
       />
     </div>

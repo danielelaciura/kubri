@@ -90,10 +90,11 @@ function RouteProgressInner() {
       style={{ opacity: visible ? 1 : 0 }}
     >
       <div
-        className="h-full bg-primary shadow-[0_0_8px_color-mix(in_oklab,var(--color-primary)_60%,transparent)] transition-[width,opacity] duration-200 ease-out"
+        className="h-full bg-primary transition-[width,opacity] duration-200 ease-out"
         style={{
           width: `${progress}%`,
           opacity: progress === 100 ? 0 : 1,
+          boxShadow: "0 0 8px var(--color-primary)",
         }}
       />
     </div>

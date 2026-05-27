@@ -104,7 +104,7 @@ export default async function OrganizationsPage() {
           role: "ORG_ADMIN",
           organization_id: organization.id,
         },
-        redirectTo: `${origin}/auth/callback?next=/auth/set-password`,
+        redirectTo: `${origin}/auth/accept-invite`,
       },
     );
     if (inviteError) {

@@ -96,7 +96,7 @@ export default async function MembersPage() {
         role: parsed.data.role,
         organization_id: me.organizationId,
       },
-      redirectTo: `${origin}/auth/callback?next=/auth/set-password`,
+      redirectTo: `${origin}/auth/accept-invite`,
     });
     if (error) throw new Error(error.message);
 
@@ -145,7 +145,7 @@ export default async function MembersPage() {
         role: target.role,
         organization_id: me.organizationId,
       },
-      redirectTo: `${origin}/auth/callback?next=/auth/set-password`,
+      redirectTo: `${origin}/auth/accept-invite`,
     });
     if (error) throw new Error(error.message);
 

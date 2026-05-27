@@ -337,6 +337,8 @@ export default async function MembersPage() {
                     {member.id !== currentUser.id && (
                       <MemberRowActions
                         memberId={member.id}
+                        memberName={member.name}
+                        memberEmail={member.email}
                         memberRole={member.role}
                         isPending={member.isPending}
                         removeAction={removeMember}

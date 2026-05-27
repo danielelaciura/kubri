@@ -10,10 +10,12 @@ import {
   updateOrgSettingsSchema,
   inviteMemberSchema,
   resendInviteSchema,
+  removeMemberSchema,
 } from "@/lib/validations/organization";
 import { strings } from "@/lib/i18n/strings";
 import { attachOrgToPool, detachOrgFromPool } from "@/lib/pools/actions";
 import { InviteOrgMemberDialog } from "@/components/admin/invite-org-member-dialog";
+import { DeleteMemberButton } from "@/components/settings/delete-member-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -224,6 +226,43 @@ async function resendInvite(formData: FormData) {
     revalidatePath(`/admin/organizations/${id}`);
   }
 
+  async function removeOrgMember(formData: FormData) {
+    "use server";
+    const s = await getCurrentUser();
+    if (s.role !== Role.ADMIN_KUBRI) {
+      throw new Error("Permessi insufficienti");
+    }
+
+    const parsed = removeMemberSchema.safeParse({
+      userId: formData.get("userId"),
+    });
+    if (!parsed.success) throw new Error("Dati non validi");
+    if (parsed.data.userId === s.id) {
+      throw new Error("Non puoi rimuovere te stesso");
+    }
+
+    const target = await prisma.user.findFirst({
+      where: { id: parsed.data.userId, organizationId: id },
+      select: { id: true, email: true },
+    });
+    if (!target) throw new Error("Utente non trovato");
+
+    const admin = createSupabaseAdminClient();
+    const { error } = await admin.auth.admin.deleteUser(target.id);
+    if (error) throw new Error(error.message);
+
+    await logAudit({
+      userId: s.id,
+      organizationId: id,
+      action: "remove_member",
+      resourceType: "User",
+      resourceId: target.id,
+      metadata: { email: target.email },
+    });
+
+    revalidatePath(`/admin/organizations/${id}`);
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -379,19 +418,29 @@ async function resendInvite(formData: FormData) {
                     : "Mai"}
                 </TableCell>
                 <TableCell className="text-right">
-                  {user.isPending && (
-                    <form action={resendInvite} className="inline">
-                      <input type="hidden" name="userId" value={user.id} />
-                      <Button
-                        type="submit"
-                        variant="ghost"
-                        size="sm"
-                        className="text-xs"
-                      >
-                        {strings.members.resendInvite}
-                      </Button>
-                    </form>
-                  )}
+                  <div className="flex items-center justify-end gap-1">
+                    {user.isPending && (
+                      <form action={resendInvite} className="inline">
+                        <input type="hidden" name="userId" value={user.id} />
+                        <Button
+                          type="submit"
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs"
+                        >
+                          {strings.members.resendInvite}
+                        </Button>
+                      </form>
+                    )}
+                    {user.role !== Role.ADMIN_KUBRI && (
+                      <DeleteMemberButton
+                        memberId={user.id}
+                        memberName={user.name}
+                        memberEmail={user.email}
+                        removeAction={removeOrgMember}
+                      />
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

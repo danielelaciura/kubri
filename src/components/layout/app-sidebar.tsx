@@ -93,6 +93,7 @@ export function AppSidebar({ organizationName, isAdmin, ...props }: AppSidebarPr
                     <SidebarMenuButton
                       isActive={active}
                       tooltip={item.label}
+                      className="data-[active=true]:font-semibold data-[active=true]:shadow-sm data-[active=true]:relative data-[active=true]:before:absolute data-[active=true]:before:left-0 data-[active=true]:before:top-1.5 data-[active=true]:before:bottom-1.5 data-[active=true]:before:w-[3px] data-[active=true]:before:rounded-full data-[active=true]:before:bg-kubri-700"
                       render={
                         <Link href={item.href}>
                           <Icon />

@@ -68,15 +68,15 @@
   --popover-foreground: oklch(0.145 0 0);
   --primary: oklch(0.5647 0.1653 291.4);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0.004 240);
+  --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.965 0.004 240);
-  --muted-foreground: oklch(0.5 0 0);
-  --accent: oklch(0.965 0.004 240);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.915 0.006 240);
-  --input: oklch(0.915 0.006 240);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
   --ring: oklch(0.5647 0.1653 291.4);
   --chart-1: oklch(0.518 0.148 163);
   --chart-2: oklch(0.65 0.15 160);
@@ -84,16 +84,16 @@
   --chart-4: oklch(0.55 0.1 170);
   --chart-5: oklch(0.45 0.12 155);
   --radius: 0.625rem;
-  /* Surround / nav background — slightly tinted neutral gray
-     (similar to shadcn admin demo). Inset main stays pure white. */
-  --sidebar: oklch(1 0 360);
-  --sidebar-foreground: oklch(0.25 0.01 240);
+  /* Sidebar tokens aligned to next-shadcn-admin-dashboard reference.
+     Brand --sidebar-primary / --sidebar-ring kept on kubri purple. */
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.5647 0.1653 291.4);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  /* Active nav item: kubri pill + strong kubri text */
-  --sidebar-accent:  oklch(0.922 0 0);
+  /* Active item: neutral soft gray pill + kubri text + kubri side bar (in app-sidebar.tsx) */
+  --sidebar-accent: oklch(0.955 0 0);
   --sidebar-accent-foreground: oklch(0.450 0.1300 290);
-  --sidebar-border: oklch(0.88 0.010 290);
+  --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.5647 0.1653 291.4);
 }
 

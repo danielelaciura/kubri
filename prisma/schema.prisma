@@ -72,13 +72,13 @@ model CandidateNote {
   id             String   @id @default(uuid()) @db.Uuid
   candidateId    String   @db.Uuid
   organizationId String   @db.Uuid
-  userId         String   @db.Uuid
+  userId         String?  @db.Uuid
   content        String
   createdAt      DateTime @default(now())
 
   candidate    Candidate    @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id])
-  user         User         @relation(fields: [userId], references: [id])
+  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([candidateId])
   @@index([organizationId])
@@ -101,7 +101,7 @@ model CandidateTag {
 
 model AuditLog {
   id             String   @id @default(uuid()) @db.Uuid
-  userId         String   @db.Uuid
+  userId         String?  @db.Uuid
   organizationId String?  @db.Uuid
   action         String
   resourceType   String
@@ -109,7 +109,7 @@ model AuditLog {
   metadata       Json?
   createdAt      DateTime @default(now())
 
-  user         User          @relation(fields: [userId], references: [id])
+  user         User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
   organization Organization? @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId, createdAt])
@@ -122,7 +122,7 @@ model AuditLog {
 model JobDescription {
   id                   String   @id @default(uuid()) @db.Uuid
   organizationId       String   @db.Uuid
-  createdByUserId      String   @db.Uuid
+  createdByUserId      String?  @db.Uuid
   name                 String
   locationRaw          String
   locationMunicipality String?
@@ -139,7 +139,7 @@ model JobDescription {
   embeddingUpdatedAt   DateTime?
 
   organization Organization @relation(fields: [organizationId], references: [id])
-  createdBy    User         @relation(fields: [createdByUserId], references: [id])
+  createdBy    User?        @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
 
   @@unique([organizationId, name])
   @@index([organizationId, createdAt])

@@ -35,7 +35,7 @@ export async function GET(
 
     const formattedNotes = notes.map((n) => ({
       content: n.content,
-      userName: n.user.name,
+      userName: n.user?.name ?? "Utente eliminato",
       createdAt: n.createdAt,
     }));
 

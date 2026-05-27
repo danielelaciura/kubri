@@ -75,7 +75,7 @@ export default async function CandidateDetailPage({
   const formattedNotes = notes.map((n) => ({
     id: n.id,
     content: n.content,
-    userName: n.user.name,
+    userName: n.user?.name ?? "Utente eliminato",
     createdAt: n.createdAt,
   }));
 

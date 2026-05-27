@@ -10,6 +10,7 @@ import {
   updateOrgSettingsSchema,
   inviteMemberSchema,
   resendInviteSchema,
+  removeMemberSchema,
 } from "@/lib/validations/organization";
 import { strings } from "@/lib/i18n/strings";
 import { attachOrgToPool, detachOrgFromPool } from "@/lib/pools/actions";
@@ -219,6 +220,43 @@ async function resendInvite(formData: FormData) {
       resourceType: "User",
       resourceId: parsed.data.email,
       metadata: { email: parsed.data.email, role: parsed.data.role },
+    });
+
+    revalidatePath(`/admin/organizations/${id}`);
+  }
+
+  async function removeOrgMember(formData: FormData) {
+    "use server";
+    const s = await getCurrentUser();
+    if (s.role !== Role.ADMIN_KUBRI) {
+      throw new Error("Permessi insufficienti");
+    }
+
+    const parsed = removeMemberSchema.safeParse({
+      userId: formData.get("userId"),
+    });
+    if (!parsed.success) throw new Error("Dati non validi");
+    if (parsed.data.userId === s.id) {
+      throw new Error("Non puoi rimuovere te stesso");
+    }
+
+    const target = await prisma.user.findFirst({
+      where: { id: parsed.data.userId, organizationId: id },
+      select: { id: true, email: true },
+    });
+    if (!target) throw new Error("Utente non trovato");
+
+    const admin = createSupabaseAdminClient();
+    const { error } = await admin.auth.admin.deleteUser(target.id);
+    if (error) throw new Error(error.message);
+
+    await logAudit({
+      userId: s.id,
+      organizationId: id,
+      action: "remove_member",
+      resourceType: "User",
+      resourceId: target.id,
+      metadata: { email: target.email },
     });
 
     revalidatePath(`/admin/organizations/${id}`);

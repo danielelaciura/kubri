@@ -3,9 +3,12 @@
 import { useTransition } from "react";
 import type { Role } from "@/generated/prisma/client";
 import { strings } from "@/lib/i18n/strings";
+import { DeleteMemberButton } from "@/components/settings/delete-member-button";
 
 interface Props {
   memberId: string;
+  memberName: string;
+  memberEmail: string;
   memberRole: Role;
   isPending: boolean;
   removeAction: (formData: FormData) => Promise<void>;
@@ -15,6 +18,8 @@ interface Props {
 
 export function MemberRowActions({
   memberId,
+  memberName,
+  memberEmail,
   memberRole,
   isPending,
   removeAction,
@@ -43,9 +48,7 @@ export function MemberRowActions({
         </form>
       )}
       {memberRole !== ("ADMIN_KUBRI" as Role) && (
-        <form
-          action={(fd) => startTransition(() => changeRoleAction(fd))}
-        >
+        <form action={(fd) => startTransition(() => changeRoleAction(fd))}>
           <input type="hidden" name="userId" value={memberId} />
           <input type="hidden" name="role" value={newRole} />
           <button
@@ -56,15 +59,12 @@ export function MemberRowActions({
           </button>
         </form>
       )}
-      <form action={removeAction}>
-        <input type="hidden" name="userId" value={memberId} />
-        <button
-          type="submit"
-          className="rounded px-2 py-1 text-xs text-destructive hover:bg-destructive/10"
-        >
-          {strings.members.remove}
-        </button>
-      </form>
+      <DeleteMemberButton
+        memberId={memberId}
+        memberName={memberName}
+        memberEmail={memberEmail}
+        removeAction={removeAction}
+      />
     </div>
   );
 }

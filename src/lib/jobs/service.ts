@@ -6,14 +6,14 @@ import { buildJobDescriptionEmbeddingText } from "@/lib/embeddings/text";
 
 export class JobNameAlreadyExistsError extends Error {
   constructor() {
-    super("Esiste già un'offerta di lavoro con questo nome");
+    super("Esiste già un'analisi con questo nome");
     this.name = "JobNameAlreadyExistsError";
   }
 }
 
 export class JobNotFoundError extends Error {
   constructor() {
-    super("Offerta di lavoro non trovata");
+    super("Analisi non trovata");
     this.name = "JobNotFoundError";
   }
 }

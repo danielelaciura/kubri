@@ -47,7 +47,7 @@ export function Header({ userName, userEmail, isAdmin, isOrgAdmin }: HeaderProps
             className="text-kubri-800 border-kubri-200 hover:bg-kubri-50"
           >
             <Plus className="mr-1 h-4 w-4" />
-            Aggiungi offerta
+            Crea analisi
           </Button>
         </Link>
       )}

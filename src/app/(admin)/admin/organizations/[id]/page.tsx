@@ -162,7 +162,7 @@ async function resendInvite(formData: FormData) {
         role: target.role,
         organization_id: id,
       },
-      redirectTo: `${origin}/auth/callback?next=/auth/set-password`,
+      redirectTo: `${origin}/auth/accept-invite`,
     });
     if (error) throw new Error(error.message);
 
@@ -207,7 +207,7 @@ async function resendInvite(formData: FormData) {
           role: parsed.data.role,
           organization_id: id,
         },
-        redirectTo: `${origin}/auth/callback?next=/auth/set-password`,
+        redirectTo: `${origin}/auth/accept-invite`,
       },
     );
     if (error) throw new Error(error.message);

@@ -137,7 +137,7 @@ async function Matches({ jd, orgId }: { jd: JdForMatchingLocal; orgId: string })
     return (
       <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
         {isUnavailable
-          ? "Matching non ancora disponibile: l'embedding di questa offerta è in elaborazione."
+          ? "Matching non ancora disponibile: l'embedding di questa analisi è in elaborazione."
           : "Impossibile caricare i candidati. Riprova più tardi."}
       </div>
     );

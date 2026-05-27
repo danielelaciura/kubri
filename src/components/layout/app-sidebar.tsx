@@ -8,6 +8,8 @@ import {
   Briefcase,
   Building2,
   Layers,
+  QrCode,
+  ScanSearch,
   Settings,
   Shield,
   UserCog,
@@ -34,9 +36,10 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 
 const mainItems = [
   { label: strings.nav.candidates, href: "/dashboard/candidates", icon: Users },
-  { label: strings.nav.jobs, href: "/dashboard/jobs", icon: Briefcase },
+  { label: strings.nav.jobs, href: "/dashboard/jobs", icon: ScanSearch },
   { label: strings.nav.users, href: "/dashboard/users", icon: UserCog },
   { label: strings.nav.settings, href: "/dashboard/settings", icon: Settings, exact: true },
+  { label: strings.nav.qrCodes, href: "/dashboard/qr-codes", icon: QrCode },
   { label: strings.nav.stats, href: "/dashboard/stats", icon: BarChart3 },
 ];
 

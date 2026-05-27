@@ -15,6 +15,7 @@ import {
 import { strings } from "@/lib/i18n/strings";
 import { attachOrgToPool, detachOrgFromPool } from "@/lib/pools/actions";
 import { InviteOrgMemberDialog } from "@/components/admin/invite-org-member-dialog";
+import { DeleteMemberButton } from "@/components/settings/delete-member-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -417,19 +418,29 @@ async function resendInvite(formData: FormData) {
                     : "Mai"}
                 </TableCell>
                 <TableCell className="text-right">
-                  {user.isPending && (
-                    <form action={resendInvite} className="inline">
-                      <input type="hidden" name="userId" value={user.id} />
-                      <Button
-                        type="submit"
-                        variant="ghost"
-                        size="sm"
-                        className="text-xs"
-                      >
-                        {strings.members.resendInvite}
-                      </Button>
-                    </form>
-                  )}
+                  <div className="flex items-center justify-end gap-1">
+                    {user.isPending && (
+                      <form action={resendInvite} className="inline">
+                        <input type="hidden" name="userId" value={user.id} />
+                        <Button
+                          type="submit"
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs"
+                        >
+                          {strings.members.resendInvite}
+                        </Button>
+                      </form>
+                    )}
+                    {user.role !== Role.ADMIN_KUBRI && (
+                      <DeleteMemberButton
+                        memberId={user.id}
+                        memberName={user.name}
+                        memberEmail={user.email}
+                        removeAction={removeOrgMember}
+                      />
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

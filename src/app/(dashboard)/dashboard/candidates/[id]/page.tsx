@@ -1,7 +1,10 @@
 import { requireOrganization } from "@/lib/auth-utils";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { getCandidateForOrg } from "@/lib/candidates/service";
+import {
+  getCandidateForOrg,
+  getCandidateByIdUnscoped,
+} from "@/lib/candidates/service";
 import { CandidateProfile } from "@/components/candidates/candidate-profile";
 import { CandidateNotes } from "@/components/candidates/candidate-notes";
 import { CandidateTags } from "@/components/candidates/candidate-tags";
@@ -19,9 +22,11 @@ export default async function CandidateDetailPage({
   searchParams,
 }: CandidateDetailPageProps) {
   let organizationId: string;
+  let isKubriAdmin = false;
   try {
     const user = await requireOrganization();
     organizationId = user.organizationId;
+    isKubriAdmin = user.role === "ADMIN_KUBRI";
   } catch {
     redirect("/login");
   }
@@ -33,17 +38,28 @@ export default async function CandidateDetailPage({
       ? rawSearchParams["returnParams"]
       : "";
 
-  // `id` is the Candidate UUID. Notes/tags FK directly to it. The org-scoped
-  // candidate fetch verifies access via accessible pools.
+  // `id` is the Candidate UUID. Notes/tags FK directly to it.
+  // ADMIN_KUBRI bypasses the pool scoping and sees notes/tags across orgs;
+  // other roles are limited to candidates whose pool is attached to their org.
+  const notesWhere = isKubriAdmin
+    ? { candidateId: id }
+    : { candidateId: id, organizationId };
+  const tagsWhere = isKubriAdmin
+    ? { candidateId: id }
+    : { candidateId: id, organizationId };
+
   const [candidate, notes, tags] = await Promise.all([
-    getCandidateForOrg(organizationId, id).catch(() => null),
+    (isKubriAdmin
+      ? getCandidateByIdUnscoped(id)
+      : getCandidateForOrg(organizationId, id)
+    ).catch(() => null),
     prisma.candidateNote.findMany({
-      where: { candidateId: id, organizationId },
+      where: notesWhere,
       include: { user: { select: { name: true } } },
       orderBy: { createdAt: "desc" },
     }),
     prisma.candidateTag.findMany({
-      where: { candidateId: id, organizationId },
+      where: tagsWhere,
       orderBy: { createdAt: "desc" },
     }),
   ]);

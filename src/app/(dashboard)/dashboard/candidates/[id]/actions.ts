@@ -23,7 +23,18 @@ const tagSchema = z.object({
 async function requireCandidateAccess(
   organizationId: string,
   candidateId: string,
+  role: string,
 ): Promise<void> {
+  if (role === "ADMIN_KUBRI") {
+    const exists = await prisma.candidate.findUnique({
+      where: { id: candidateId },
+      select: { id: true },
+    });
+    if (!exists) {
+      throw new Error("Candidato non accessibile");
+    }
+    return;
+  }
   const poolIds = await getOrgAccessiblePoolIds(organizationId);
   if (poolIds.length === 0) {
     throw new Error("Candidato non accessibile");
@@ -54,7 +65,7 @@ export async function addNote(formData: FormData) {
 
   const { candidateId, content } = parsed.data;
   const { id: userId, organizationId } = session;
-  await requireCandidateAccess(organizationId, candidateId);
+  await requireCandidateAccess(organizationId, candidateId, session.role);
 
   const note = await prisma.candidateNote.create({
     data: {
@@ -94,7 +105,7 @@ export async function addTag(formData: FormData) {
 
   const { candidateId, tag } = parsed.data;
   const { id: userId, organizationId } = session;
-  await requireCandidateAccess(organizationId, candidateId);
+  await requireCandidateAccess(organizationId, candidateId, session.role);
 
   // Check for duplicate tag within same candidate and organization
   const existing = await prisma.candidateTag.findFirst({

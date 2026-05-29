@@ -196,29 +196,36 @@ export function CandidateProfile({ candidate }: CandidateProfileProps) {
       )}
 
       {/* Preferenze lavorative */}
-      {c.jobPreferences.desiredJob && (
+      {(c.jobPreferences.desiredJob ||
+        c.jobPreferences.preferredLocation ||
+        c.jobPreferences.constraints ||
+        c.jobPreferences.hasDesiredJobExperience) && (
         <Card className="shadow-sm border-border/60">
           <CardHeader>
             <CardTitle>Preferenze lavorative</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <span className="text-sm font-medium">Lavoro desiderato: </span>
-                <span className="text-sm">{c.jobPreferences.desiredJob}</span>
-              </div>
+              {c.jobPreferences.desiredJob && (
+                <div>
+                  <span className="text-sm font-medium">Lavoro desiderato: </span>
+                  <span className="text-sm">{c.jobPreferences.desiredJob}</span>
+                </div>
+              )}
               {c.jobPreferences.preferredLocation && (
                 <div>
                   <span className="text-sm font-medium">Zona preferita: </span>
                   <span className="text-sm">{c.jobPreferences.preferredLocation}</span>
                 </div>
               )}
-              <div>
-                <span className="text-sm font-medium">Preferenza orario: </span>
-                <span className="text-sm">
-                  {c.jobPreferences.partTimePreference ? "Part-time" : "Full-time"}
-                </span>
-              </div>
+              {c.jobPreferences.desiredJob && (
+                <div>
+                  <span className="text-sm font-medium">Preferenza orario: </span>
+                  <span className="text-sm">
+                    {c.jobPreferences.partTimePreference ? "Part-time" : "Full-time"}
+                  </span>
+                </div>
+              )}
               {c.jobPreferences.hasDesiredJobExperience && (
                 <div>
                   <span className="text-sm font-medium">Esperienza nel ruolo: </span>

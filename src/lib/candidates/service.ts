@@ -79,3 +79,12 @@ export async function getCandidateForOrg(
   });
   return row ? dbCandidateToApp(row) : null;
 }
+
+export async function getCandidateByIdUnscoped(
+  candidateId: string,
+): Promise<Candidate | null> {
+  const row = await prisma.candidate.findUnique({
+    where: { id: candidateId },
+  });
+  return row ? dbCandidateToApp(row) : null;
+}

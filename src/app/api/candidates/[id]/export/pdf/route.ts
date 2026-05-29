@@ -1,5 +1,8 @@
 import { requireOrganization } from "@/lib/auth-utils";
-import { getCandidateForOrg } from "@/lib/candidates/service";
+import {
+  getCandidateForOrg,
+  getCandidateByIdUnscoped,
+} from "@/lib/candidates/service";
 import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 import { renderToBuffer } from "@react-pdf/renderer";
@@ -18,12 +21,17 @@ export async function GET(
 
   const { id } = await params;
   const { organizationId } = session;
+  const isKubriAdmin = session.role === "ADMIN_KUBRI";
 
   try {
     const [candidate, notes] = await Promise.all([
-      getCandidateForOrg(organizationId, id),
+      isKubriAdmin
+        ? getCandidateByIdUnscoped(id)
+        : getCandidateForOrg(organizationId, id),
       prisma.candidateNote.findMany({
-        where: { candidateId: id, organizationId },
+        where: isKubriAdmin
+          ? { candidateId: id }
+          : { candidateId: id, organizationId },
         include: { user: { select: { name: true } } },
         orderBy: { createdAt: "desc" },
       }),

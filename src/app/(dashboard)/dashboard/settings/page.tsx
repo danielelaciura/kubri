@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser, requireOrganization } from "@/lib/auth-utils";
 import { prisma } from "@/lib/db";
-import { Role, NotifyFrequency } from "@/generated/prisma/client";
+import { Role } from "@/generated/prisma/client";
 import { getCandidatesForOrg } from "@/lib/candidates/service";
 import { updateOrgSettingsSchema } from "@/lib/validations/organization";
 import { logAudit } from "@/lib/audit";
@@ -10,8 +10,6 @@ import { strings } from "@/lib/i18n/strings";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { OrgNameForm } from "@/components/settings/org-name-form";
-import { NotificationForm } from "@/components/settings/notification-form";
-import { notificationPrefsSchema } from "@/lib/validations/notification";
 
 export default async function SettingsPage() {
   let user;
@@ -24,11 +22,6 @@ export default async function SettingsPage() {
   const org = await prisma.organization.findUniqueOrThrow({
     where: { id: user.organizationId },
     select: { id: true, name: true, slug: true },
-  });
-
-  const prefs = await prisma.user.findUniqueOrThrow({
-    where: { id: user.id },
-    select: { notifyEnabled: true, notifyFrequency: true },
   });
 
   const isAdmin =
@@ -75,36 +68,6 @@ export default async function SettingsPage() {
         metadata: { name: parsed.data.name },
       });
     }
-
-    revalidatePath("/dashboard/settings");
-  }
-
-  async function updateNotificationPrefs(formData: FormData) {
-    "use server";
-    const s = await getCurrentUser();
-
-    const parsed = notificationPrefsSchema.safeParse({
-      notifyEnabled: formData.get("notifyEnabled") === "on",
-      notifyFrequency: formData.get("notifyFrequency"),
-    });
-    if (!parsed.success) {
-      throw new Error("Dati non validi");
-    }
-
-    const current = await prisma.user.findUnique({
-      where: { id: s.id },
-      select: { notifyEnabled: true },
-    });
-    const enabling = parsed.data.notifyEnabled && !current?.notifyEnabled;
-
-    await prisma.user.update({
-      where: { id: s.id },
-      data: {
-        notifyEnabled: parsed.data.notifyEnabled,
-        notifyFrequency: parsed.data.notifyFrequency as NotifyFrequency,
-        ...(enabling ? { lastNotifiedAt: new Date() } : {}),
-      },
-    });
 
     revalidatePath("/dashboard/settings");
   }
@@ -156,22 +119,6 @@ export default async function SettingsPage() {
                 {strings.settings.connectionError}
               </Badge>
             )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{strings.settings.notifications}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="mb-4 text-sm text-muted-foreground">
-              {strings.settings.notificationsDescription}
-            </p>
-            <NotificationForm
-              defaultEnabled={prefs.notifyEnabled}
-              defaultFrequency={prefs.notifyFrequency}
-              action={updateNotificationPrefs}
-            />
           </CardContent>
         </Card>
       </div>

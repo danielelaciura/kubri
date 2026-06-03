@@ -60,6 +60,13 @@ export const strings = {
     connectionError: "Errore di connessione",
     editName: "Modifica nome",
     readOnly: "Solo lettura",
+    notifications: "Notifiche email",
+    notificationsDescription:
+      "Ricevi un riepilogo dei nuovi candidati entrati in piattaforma.",
+    notificationsEnable: "Attiva le notifiche email",
+    frequency: "Frequenza",
+    frequencyDaily: "Giornaliera",
+    frequencyWeekly: "Settimanale",
   },
   members: {
     title: "Membri",

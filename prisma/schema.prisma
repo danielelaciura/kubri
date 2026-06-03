@@ -13,6 +13,11 @@ enum Role {
   ORG_MEMBER
 }
 
+enum NotifyFrequency {
+  DAILY
+  WEEKLY
+}
+
 model Organization {
   id              String   @id @default(uuid()) @db.Uuid
   name            String
@@ -61,6 +66,9 @@ model User {
   createdAt       DateTime  @default(now())
   lastLoginAt     DateTime?
   termsAcceptedAt DateTime?
+  notifyEnabled   Boolean         @default(false)
+  notifyFrequency NotifyFrequency @default(WEEKLY)
+  lastNotifiedAt  DateTime?
 
   organization    Organization?    @relation(fields: [organizationId], references: [id])
   candidateNotes  CandidateNote[]

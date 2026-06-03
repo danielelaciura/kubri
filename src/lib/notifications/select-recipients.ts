@@ -40,7 +40,7 @@ export async function getDueRecipients(now: Date): Promise<Recipient[]> {
     id: u.id,
     email: u.email,
     organizationId: u.organizationId as string,
-    organizationName: u.organization?.name ?? "",
+    organizationName: u.organization?.name ?? "La tua organizzazione",
     lastNotifiedAt: u.lastNotifiedAt,
     createdAt: u.createdAt,
   }));

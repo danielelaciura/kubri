@@ -19,4 +19,17 @@ describe("CandidateDigestEmail", () => {
     expect(html).toContain("Sala");
     expect(html).toContain("https://app.example/dashboard/candidates");
   });
+
+  it("uses singular Italian copy when there is exactly one new candidate", async () => {
+    const html = await render(
+      CandidateDigestEmail({
+        orgName: "Coop X",
+        total: 1,
+        byPool: [{ poolId: "p1", poolName: "Magazzino", count: 1 }],
+        dashboardUrl: "https://app.example/dashboard/candidates",
+      }),
+    );
+    expect(html).toContain("è entrato 1 nuovo candidato");
+    expect(html).not.toContain("nuovi candidati");
+  });
 });

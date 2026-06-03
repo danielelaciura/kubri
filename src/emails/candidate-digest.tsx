@@ -9,6 +9,7 @@ import {
   Section,
   Text,
 } from "@react-email/components";
+import { candidatesLabel } from "@/lib/notifications/config";
 import type { PoolBreakdown } from "@/lib/notifications/types";
 
 export interface CandidateDigestEmailProps {
@@ -27,7 +28,7 @@ export function CandidateDigestEmail({
   return (
     <Html lang="it">
       <Head />
-      <Preview>{`${total} nuovi candidati su Kubri`}</Preview>
+      <Preview>{`${candidatesLabel(total)} su Kubri`}</Preview>
       <Body
         style={{
           fontFamily: "Arial, sans-serif",
@@ -46,7 +47,9 @@ export function CandidateDigestEmail({
             Nuovi candidati su Kubri
           </Heading>
           <Text style={{ margin: "0 0 16px" }}>
-            {orgName}: sono entrati {total} nuovi candidati in piattaforma.
+            {`${orgName}: ${total === 1 ? "è entrato" : "sono entrati"} ${candidatesLabel(
+              total,
+            )} in piattaforma.`}
           </Text>
           <Section>
             {byPool.map((p) => (

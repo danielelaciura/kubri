@@ -2,6 +2,7 @@ import { render } from "@react-email/components";
 import { prisma } from "@/lib/db";
 import { resend, EMAIL_FROM } from "@/lib/email/client";
 import { CandidateDigestEmail } from "@/emails/candidate-digest";
+import { candidatesLabel } from "./config";
 import type { PoolBreakdown } from "./types";
 
 const APP_URL = process.env["NEXT_PUBLIC_APP_URL"] ?? "http://localhost:3000";
@@ -21,7 +22,7 @@ export async function sendDigest(
   const { error } = await resend.emails.send({
     from: EMAIL_FROM,
     to: user.email,
-    subject: `${total} nuovi candidati su Kubri`,
+    subject: `${candidatesLabel(total)} su Kubri`,
     html,
   });
 

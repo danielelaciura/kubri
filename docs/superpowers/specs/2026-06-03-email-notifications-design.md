@@ -170,6 +170,21 @@ names are resolved for the email breakdown.
 - Unit tests for `select-recipients` — DAILY vs WEEKLY-on-day logic.
 - The email template render and Resend client are mocked; no real sends in tests.
 
+### Local template preview
+
+For iterating on the email template, use the React Email dev server (the only
+local-testing mechanism in scope for V1 — send/E2E mechanics are deferred):
+
+```jsonc
+// package.json
+"email": "react-email dev --dir src/emails --port 3001"
+```
+
+`pnpm email` serves the templates at `localhost:3001` with hot reload (port 3001
+to avoid clashing with `next dev` on 3000). Sample data is declared on the
+component via `CandidateDigestEmail.PreviewProps = { … }`, so the preview always
+renders realistic content with no DB access and no sending.
+
 ## Environment Variables
 
 - `RESEND_API_KEY` — server-side only.

@@ -1,9 +1,13 @@
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth-utils";
 import { prisma } from "@/lib/db";
-import { Role } from "@/generated/prisma/client";
+import { Role, NotifyFrequency } from "@/generated/prisma/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { NotificationForm } from "@/components/settings/notification-form";
+import { notificationPrefsSchema } from "@/lib/validations/notification";
 import { strings } from "@/lib/i18n/strings";
 
 const ROLE_LABEL: Record<Role, string> = {
@@ -27,10 +31,42 @@ export default async function ProfilePage() {
       role: true,
       createdAt: true,
       lastLoginAt: true,
+      notifyEnabled: true,
+      notifyFrequency: true,
       organization: { select: { name: true } },
     },
   });
   if (!user) redirect("/login");
+
+  async function updateNotificationPrefs(formData: FormData) {
+    "use server";
+    const s = await getCurrentUser();
+
+    const parsed = notificationPrefsSchema.safeParse({
+      notifyEnabled: formData.get("notifyEnabled") === "on",
+      notifyFrequency: formData.get("notifyFrequency"),
+    });
+    if (!parsed.success) {
+      throw new Error("Dati non validi");
+    }
+
+    const current = await prisma.user.findUnique({
+      where: { id: s.id },
+      select: { notifyEnabled: true },
+    });
+    const enabling = parsed.data.notifyEnabled && !current?.notifyEnabled;
+
+    await prisma.user.update({
+      where: { id: s.id },
+      data: {
+        notifyEnabled: parsed.data.notifyEnabled,
+        notifyFrequency: parsed.data.notifyFrequency as NotifyFrequency,
+        ...(enabling ? { lastNotifiedAt: new Date() } : {}),
+      },
+    });
+
+    revalidatePath("/dashboard/profile");
+  }
 
   return (
     <div className="space-y-6">
@@ -80,6 +116,22 @@ export default async function ProfilePage() {
               }
             />
           </dl>
+        </CardContent>
+      </Card>
+
+      <Card className="shadow-sm border-border/60">
+        <CardHeader>
+          <CardTitle>{strings.settings.notifications}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="mb-4 text-sm text-muted-foreground">
+            {strings.settings.notificationsDescription}
+          </p>
+          <NotificationForm
+            defaultEnabled={user.notifyEnabled}
+            defaultFrequency={user.notifyFrequency}
+            action={updateNotificationPrefs}
+          />
         </CardContent>
       </Card>
     </div>

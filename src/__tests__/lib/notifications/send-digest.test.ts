@@ -21,7 +21,7 @@ describe("sendDigest", () => {
     ]);
 
     expect(resend.emails.send).toHaveBeenCalledOnce();
-    const arg = (resend.emails.send as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    const arg = (resend.emails.send as ReturnType<typeof vi.fn>).mock.calls[0]![0];
     expect(arg.to).toBe("a@b.c");
     expect(arg.from).toBe("Kubri <test@resend.dev>");
     expect(prisma.user.update).toHaveBeenCalledWith({

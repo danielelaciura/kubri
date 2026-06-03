@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { strings } from "@/lib/i18n/strings";
 
@@ -15,6 +15,14 @@ export function NotificationForm({
   defaultFrequency,
   action,
 }: NotificationFormProps) {
+  // Controlled inputs: React 19 resets a form after its action runs, which would
+  // otherwise revert uncontrolled fields to a stale defaultValue before the
+  // revalidated props arrive. State-backed values stay in sync after saving.
+  const [enabled, setEnabled] = useState(defaultEnabled);
+  const [frequency, setFrequency] = useState<"DAILY" | "WEEKLY">(
+    defaultFrequency,
+  );
+
   const [_state, formAction, isPending] = useActionState(
     async (_prev: unknown, formData: FormData) => {
       await action(formData);
@@ -29,7 +37,8 @@ export function NotificationForm({
         <input
           type="checkbox"
           name="notifyEnabled"
-          defaultChecked={defaultEnabled}
+          checked={enabled}
+          onChange={(e) => setEnabled(e.target.checked)}
           className="h-4 w-4"
         />
         {strings.settings.notificationsEnable}
@@ -41,7 +50,8 @@ export function NotificationForm({
         </label>
         <select
           name="notifyFrequency"
-          defaultValue={defaultFrequency}
+          value={frequency}
+          onChange={(e) => setFrequency(e.target.value as "DAILY" | "WEEKLY")}
           className="block w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
         >
           <option value="DAILY">{strings.settings.frequencyDaily}</option>

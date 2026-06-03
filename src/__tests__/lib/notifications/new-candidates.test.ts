@@ -30,7 +30,7 @@ describe("getNewCandidatesForUser", () => {
 
     expect(res).toEqual([{ poolId: "p1", poolName: "Magazzino", count: 2 }]);
     const where = (prisma.candidate.groupBy as ReturnType<typeof vi.fn>).mock
-      .calls[0][0].where;
+      .calls[0]![0].where;
     expect(where.createdAt.gt).toEqual(new Date("2026-05-01T00:00:00Z"));
     expect(where.pool.isGlobal).toBe(false);
   });

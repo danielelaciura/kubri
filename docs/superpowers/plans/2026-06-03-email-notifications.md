@@ -471,7 +471,7 @@ export const EMAIL_FROM =
 `src/__tests__/emails/candidate-digest.test.ts`:
 ```ts
 import { describe, it, expect } from "vitest";
-import { render } from "@react-email/render";
+import { render } from "@react-email/components";
 import { CandidateDigestEmail } from "@/emails/candidate-digest";
 
 describe("CandidateDigestEmail", () => {
@@ -664,7 +664,7 @@ Expected: FAIL — module not found.
 
 `src/lib/notifications/send-digest.ts`:
 ```ts
-import { render } from "@react-email/render";
+import { render } from "@react-email/components";
 import { prisma } from "@/lib/db";
 import { resend, EMAIL_FROM } from "@/lib/email/client";
 import { CandidateDigestEmail } from "@/emails/candidate-digest";

@@ -8,6 +8,8 @@ const PUBLIC_PREFIXES = [
   "/auth/reset-password",
   // Webhooks authenticate via shared secret (Bearer token), not Supabase session.
   "/api/webhooks",
+  // Cron jobs authenticate via CRON_SECRET (Bearer token), not Supabase session.
+  "/api/cron",
 ];
 
 export async function middleware(request: NextRequest) {

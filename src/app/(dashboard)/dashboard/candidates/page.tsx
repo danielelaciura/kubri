@@ -9,7 +9,7 @@ import { filterCandidates, sortCandidates, paginateCandidates } from "@/lib/cand
 import { candidateFiltersSchema, toFiltersAndSort } from "@/lib/validations/candidate-filters";
 import { CandidatesTable } from "@/components/candidates/candidates-table";
 import { CandidateFilters } from "@/components/candidates/candidate-filters";
-import { getListOptionsForOrg, getListIdsByCandidateForOrg } from "@/lib/lists/service";
+import { getListOptionsForOrg, getListIdsByCandidateForOrg, getMemberCandidateIdSet } from "@/lib/lists/service";
 import { AdminPoolSelector } from "@/components/candidates/admin-pool-selector";
 import { Button } from "@/components/ui/button";
 import { strings } from "@/lib/i18n/strings";
@@ -81,6 +81,16 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
     ? await getListIdsByCandidateForOrg(user.organizationId)
     : {};
 
+  if (filters.listId && user.organizationId) {
+    const memberSet = await getMemberCandidateIdSet(
+      user.organizationId,
+      filters.listId,
+    );
+    candidates = memberSet
+      ? candidates.filter((c) => memberSet.has(c.id))
+      : [];
+  }
+
   const filtered = filterCandidates(candidates, filters);
   const sorted = sortCandidates(filtered, sort);
   const result = paginateCandidates(sorted, page, pageSize);
@@ -119,7 +129,7 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
         </div>
       </div>
 
-      <CandidateFilters initialFilters={flatParams} />
+      <CandidateFilters initialFilters={flatParams} lists={lists} />
 
       {errorMessage ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-destructive/50 p-12 text-center">

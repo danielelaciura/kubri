@@ -24,10 +24,12 @@ interface CandidateFiltersProps {
     dateTo?: string;
     nearPlace?: string;
     radiusKm?: string;
+    listId?: string;
   };
+  lists: { id: string; name: string }[];
 }
 
-export function CandidateFilters({ initialFilters }: CandidateFiltersProps) {
+export function CandidateFilters({ initialFilters, lists }: CandidateFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -39,6 +41,7 @@ export function CandidateFilters({ initialFilters }: CandidateFiltersProps) {
   const [radiusKm, setRadiusKm] = useState<number>(
     initialFilters.radiusKm ? Number(initialFilters.radiusKm) : DEFAULT_SEARCH_RADIUS_KM,
   );
+  const [listId, setListId] = useState(initialFilters.listId ?? "");
 
   const applyFilters = useCallback(() => {
     const params = new URLSearchParams(searchParams.toString());
@@ -56,6 +59,7 @@ export function CandidateFilters({ initialFilters }: CandidateFiltersProps) {
     setOrDelete("nearPlace", nearPlace.trim());
     if (nearPlace.trim()) params.set("radiusKm", String(radiusKm));
     else params.delete("radiusKm");
+    setOrDelete("listId", listId);
 
     router.push(`/dashboard/candidates?${params.toString()}`);
   }, [
@@ -67,6 +71,7 @@ export function CandidateFilters({ initialFilters }: CandidateFiltersProps) {
     dateTo,
     nearPlace,
     radiusKm,
+    listId,
   ]);
 
   const resetFilters = useCallback(() => {
@@ -76,6 +81,7 @@ export function CandidateFilters({ initialFilters }: CandidateFiltersProps) {
     setDateTo("");
     setNearPlace("");
     setRadiusKm(DEFAULT_SEARCH_RADIUS_KM);
+    setListId("");
     router.push("/dashboard/candidates");
   }, [router]);
 
@@ -130,6 +136,24 @@ export function CandidateFilters({ initialFilters }: CandidateFiltersProps) {
           )}
         </div>
       </div>
+
+      {lists.length > 0 && (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div>
+            <label className="mb-2 block text-sm font-medium">Lista</label>
+            <select
+              value={listId}
+              onChange={(e) => setListId(e.target.value)}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
+              <option value="">Tutte</option>
+              {lists.map((l) => (
+                <option key={l.id} value={l.id}>{l.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
 
       <div className="flex gap-2">
         <Button onClick={applyFilters}>{strings.common.search}</Button>

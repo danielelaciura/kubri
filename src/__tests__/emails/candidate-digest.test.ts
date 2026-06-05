@@ -3,7 +3,7 @@ import { render } from "@react-email/components";
 import { CandidateDigestEmail } from "@/emails/candidate-digest";
 
 describe("CandidateDigestEmail", () => {
-  it("renders total, per-pool breakdown and dashboard link", async () => {
+  it("renders the logo, org name, total and dashboard link", async () => {
     const html = await render(
       CandidateDigestEmail({
         orgName: "Coop X",
@@ -13,10 +13,13 @@ describe("CandidateDigestEmail", () => {
           { poolId: "p2", poolName: "Sala", count: 1 },
         ],
         dashboardUrl: "https://app.example/dashboard/candidates",
+        logoUrl: "https://app.example/kubri-logo.png",
       }),
     );
-    expect(html).toContain("Magazzino");
-    expect(html).toContain("Sala");
+    expect(html).toContain("https://app.example/kubri-logo.png");
+    expect(html).toContain('alt="Kubri"');
+    expect(html).toContain("Coop X");
+    expect(html).toContain("3 nuovi candidati");
     expect(html).toContain("https://app.example/dashboard/candidates");
   });
 
@@ -27,9 +30,11 @@ describe("CandidateDigestEmail", () => {
         total: 1,
         byPool: [{ poolId: "p1", poolName: "Magazzino", count: 1 }],
         dashboardUrl: "https://app.example/dashboard/candidates",
+        logoUrl: "https://app.example/kubri-logo.png",
       }),
     );
-    expect(html).toContain("è entrato 1 nuovo candidato");
-    expect(html).not.toContain("nuovi candidati");
+    expect(html).toContain("1 nuovo candidato");
+    expect(html).toContain("è entrato");
+    expect(html).not.toContain("sono entrati");
   });
 });

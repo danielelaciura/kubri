@@ -40,10 +40,7 @@ export function CreateListMenu() {
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger
         render={
-          <Button
-            size="sm"
-            className="gap-2 bg-kubri-700 text-white hover:bg-kubri-800"
-          >
+          <Button size="sm" className="gap-2">
             <Plus className="h-4 w-4" />
             Crea lista
           </Button>

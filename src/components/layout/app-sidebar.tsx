@@ -37,8 +37,8 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 
 const mainItems = [
   { label: strings.nav.candidates, href: "/dashboard/candidates", icon: Users },
-  { label: strings.nav.lists, href: "/dashboard/lists", icon: ListChecks },
   { label: strings.nav.jobs, href: "/dashboard/jobs", icon: ScanSearch },
+  { label: strings.nav.lists, href: "/dashboard/lists", icon: ListChecks },
   { label: strings.nav.users, href: "/dashboard/users", icon: UserCog },
   { label: strings.nav.settings, href: "/dashboard/settings", icon: Settings, exact: true },
   { label: strings.nav.qrCodes, href: "/dashboard/qr-codes", icon: QrCode },

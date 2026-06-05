@@ -11,7 +11,7 @@ import {
   DropdownMenuGroup,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuCheckboxItem,
+  DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import {
   addCandidateToList,
@@ -126,16 +126,23 @@ export function AddToListMenu({
               Nessuna lista. Creane una qui sotto.
             </p>
           ) : (
-            options.map((l) => (
-              <DropdownMenuCheckboxItem
-                key={l.id}
-                checked={members.has(l.id)}
-                onCheckedChange={(c) => toggle(l.id, c)}
-                closeOnClick={false}
-              >
-                {l.name}
-              </DropdownMenuCheckboxItem>
-            ))
+            options.map((l) => {
+              const isMember = members.has(l.id);
+              return (
+                <DropdownMenuItem
+                  key={l.id}
+                  closeOnClick={false}
+                  onClick={() => toggle(l.id, !isMember)}
+                >
+                  <span className="flex-1 truncate">{l.name}</span>
+                  {isMember && (
+                    <span className="ml-auto shrink-0 text-xs font-medium text-muted-foreground">
+                      Aggiunto
+                    </span>
+                  )}
+                </DropdownMenuItem>
+              );
+            })
           )}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />

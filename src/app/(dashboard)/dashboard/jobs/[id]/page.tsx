@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MatchTable } from "@/components/jobs/match-table";
+import { getListOptionsForOrg, getListIdsByCandidateForOrg } from "@/lib/lists/service";
 import { DeleteJobButton } from "@/components/jobs/delete-job-button";
 import { refreshCandidatesForJob } from "./actions";
 
@@ -124,6 +125,11 @@ export default async function JobDetailPage({
 }
 
 async function Matches({ jd, orgId }: { jd: JdForMatchingLocal; orgId: string }) {
+  const [lists, membershipByCandidate] = await Promise.all([
+    getListOptionsForOrg(orgId),
+    getListIdsByCandidateForOrg(orgId),
+  ]);
+
   let ranked: RankedCandidate[];
   try {
     const candidates = await getCandidatesForOrg(orgId);
@@ -185,7 +191,7 @@ async function Matches({ jd, orgId }: { jd: JdForMatchingLocal; orgId: string })
     );
   }
 
-  return <MatchTable ranked={enriched} />;
+  return <MatchTable ranked={enriched} lists={lists} membershipByCandidate={membershipByCandidate} />;
 }
 
 function MatchesLoading() {

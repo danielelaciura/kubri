@@ -13,13 +13,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
 import type { Candidate, PaginatedResult, SortConfig } from "@/types";
+import { AddToListMenu } from "@/components/lists/add-to-list-menu";
 
 interface CandidatesTableProps {
   result: PaginatedResult<Candidate>;
   sort: SortConfig;
+  lists: { id: string; name: string }[];
+  membershipByCandidate: Record<string, string[]>;
 }
 
-export function CandidatesTable({ result, sort }: CandidatesTableProps) {
+export function CandidatesTable({ result, sort, lists, membershipByCandidate }: CandidatesTableProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -113,6 +116,7 @@ export function CandidatesTable({ result, sort }: CandidatesTableProps) {
               {/* <TableHead>
                 <SortButton field="createdAt" label="Data" />
               </TableHead> */}
+              <TableHead className="w-12" />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -142,6 +146,13 @@ export function CandidatesTable({ result, sort }: CandidatesTableProps) {
                 <TableCell>{renderTags(candidate.skillsAndCompetences, 3)}</TableCell>
                 {/* <TableCell className="max-w-[140px] truncate">{candidate.address}</TableCell> */}
                 {/* <TableCell>{formatDate(candidate.createdAt)}</TableCell> */}
+                <TableCell className="w-12" onClick={(e) => e.stopPropagation()}>
+                  <AddToListMenu
+                    candidateId={candidate.id}
+                    lists={lists}
+                    memberOf={membershipByCandidate[candidate.id] ?? []}
+                  />
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

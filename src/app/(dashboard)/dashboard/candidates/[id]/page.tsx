@@ -5,8 +5,10 @@ import {
   getCandidateForOrg,
   getCandidateByIdUnscoped,
 } from "@/lib/candidates/service";
+import { getListOptionsForOrg, getListIdsByCandidateForOrg } from "@/lib/lists/service";
 import { CandidateProfile } from "@/components/candidates/candidate-profile";
 import { CandidateNotes } from "@/components/candidates/candidate-notes";
+import { AddToListMenu } from "@/components/lists/add-to-list-menu";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, AlertCircle, FileDown } from "lucide-react";
 import Link from "next/link";
@@ -44,7 +46,7 @@ export default async function CandidateDetailPage({
     ? { candidateId: id }
     : { candidateId: id, organizationId };
 
-  const [candidate, notes] = await Promise.all([
+  const [candidate, notes, lists, membershipByCandidate] = await Promise.all([
     (isKubriAdmin
       ? getCandidateByIdUnscoped(id)
       : getCandidateForOrg(organizationId, id)
@@ -54,7 +56,11 @@ export default async function CandidateDetailPage({
       include: { user: { select: { name: true } } },
       orderBy: { createdAt: "desc" },
     }),
+    getListOptionsForOrg(organizationId),
+    getListIdsByCandidateForOrg(organizationId),
   ]);
+
+  const memberOf = membershipByCandidate[id] ?? [];
 
   const backUrl = `/dashboard/candidates${returnParams}`;
 
@@ -114,8 +120,32 @@ export default async function CandidateDetailPage({
           <CandidateProfile candidate={candidate} />
         </div>
 
-        {/* Sidebar: notes */}
+        {/* Sidebar: lists + notes */}
         <div className="space-y-6">
+          <div className="rounded-lg border border-border/60 bg-card p-4 shadow-sm">
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-sm font-medium">Liste</span>
+              <AddToListMenu
+                candidateId={id}
+                lists={lists}
+                memberOf={memberOf}
+                variant="button"
+              />
+            </div>
+            {memberOf.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Non in nessuna lista</p>
+            ) : (
+              <div className="flex flex-wrap gap-1">
+                {lists
+                  .filter((l) => memberOf.includes(l.id))
+                  .map((l) => (
+                    <span key={l.id} className="rounded-full bg-muted px-2 py-0.5 text-xs">
+                      {l.name}
+                    </span>
+                  ))}
+              </div>
+            )}
+          </div>
           <CandidateNotes notes={formattedNotes} candidateId={id} />
         </div>
       </div>

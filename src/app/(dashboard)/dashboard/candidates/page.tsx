@@ -9,6 +9,7 @@ import { filterCandidates, sortCandidates, paginateCandidates } from "@/lib/cand
 import { candidateFiltersSchema, toFiltersAndSort } from "@/lib/validations/candidate-filters";
 import { CandidatesTable } from "@/components/candidates/candidates-table";
 import { CandidateFilters } from "@/components/candidates/candidate-filters";
+import { getListOptionsForOrg, getListIdsByCandidateForOrg } from "@/lib/lists/service";
 import { AdminPoolSelector } from "@/components/candidates/admin-pool-selector";
 import { Button } from "@/components/ui/button";
 import { strings } from "@/lib/i18n/strings";
@@ -73,6 +74,13 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
   }
   candidates = candidates.filter((c) => c.lastName.trim() !== "");
 
+  const lists = user.organizationId
+    ? await getListOptionsForOrg(user.organizationId)
+    : [];
+  const membershipByCandidate = user.organizationId
+    ? await getListIdsByCandidateForOrg(user.organizationId)
+    : {};
+
   const filtered = filterCandidates(candidates, filters);
   const sorted = sortCandidates(filtered, sort);
   const result = paginateCandidates(sorted, page, pageSize);
@@ -136,7 +144,7 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
           </p>
         </div>
       ) : (
-        <CandidatesTable result={result} sort={sort} />
+        <CandidatesTable result={result} sort={sort} lists={lists} membershipByCandidate={membershipByCandidate} />
       )}
     </div>
   );

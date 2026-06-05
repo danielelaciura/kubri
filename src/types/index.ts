@@ -55,6 +55,7 @@ export interface CandidateFilters {
   dateTo?: Date;
   nearPlace?: string;
   radiusKm?: number;
+  listId?: string;
 }
 
 export interface SortConfig {

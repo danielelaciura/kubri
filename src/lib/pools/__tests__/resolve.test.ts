@@ -7,7 +7,6 @@ describe.skip("resolvePoolByExternalKey", () => {
   beforeEach(async () => {
     // Delete in FK-safe order: rows that reference Pool first.
     await prisma.candidateNote.deleteMany({});
-    await prisma.candidateTag.deleteMany({});
     await prisma.candidate.deleteMany({});
     await prisma.organizationPool.deleteMany({});
     await prisma.pool.deleteMany({});

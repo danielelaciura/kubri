@@ -29,7 +29,6 @@ import {
 
 async function cleanup() {
   await prisma.candidateNote.deleteMany({});
-  await prisma.candidateTag.deleteMany({});
   await prisma.candidate.deleteMany({});
   await prisma.auditLog.deleteMany({});
   await prisma.jobDescription.deleteMany({});

@@ -7,7 +7,6 @@ import {
 } from "@/lib/candidates/service";
 import { CandidateProfile } from "@/components/candidates/candidate-profile";
 import { CandidateNotes } from "@/components/candidates/candidate-notes";
-import { CandidateTags } from "@/components/candidates/candidate-tags";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, AlertCircle, FileDown } from "lucide-react";
 import Link from "next/link";
@@ -38,17 +37,14 @@ export default async function CandidateDetailPage({
       ? rawSearchParams["returnParams"]
       : "";
 
-  // `id` is the Candidate UUID. Notes/tags FK directly to it.
-  // ADMIN_KUBRI bypasses the pool scoping and sees notes/tags across orgs;
+  // `id` is the Candidate UUID. Notes FK directly to it.
+  // ADMIN_KUBRI bypasses the pool scoping and sees notes across orgs;
   // other roles are limited to candidates whose pool is attached to their org.
   const notesWhere = isKubriAdmin
     ? { candidateId: id }
     : { candidateId: id, organizationId };
-  const tagsWhere = isKubriAdmin
-    ? { candidateId: id }
-    : { candidateId: id, organizationId };
 
-  const [candidate, notes, tags] = await Promise.all([
+  const [candidate, notes] = await Promise.all([
     (isKubriAdmin
       ? getCandidateByIdUnscoped(id)
       : getCandidateForOrg(organizationId, id)
@@ -56,10 +52,6 @@ export default async function CandidateDetailPage({
     prisma.candidateNote.findMany({
       where: notesWhere,
       include: { user: { select: { name: true } } },
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.candidateTag.findMany({
-      where: tagsWhere,
       orderBy: { createdAt: "desc" },
     }),
   ]);
@@ -95,11 +87,6 @@ export default async function CandidateDetailPage({
     createdAt: n.createdAt,
   }));
 
-  const formattedTags = tags.map((t) => ({
-    id: t.id,
-    tag: t.tag,
-  }));
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -127,9 +114,8 @@ export default async function CandidateDetailPage({
           <CandidateProfile candidate={candidate} />
         </div>
 
-        {/* Sidebar: tags + notes */}
+        {/* Sidebar: notes */}
         <div className="space-y-6">
-          <CandidateTags tags={formattedTags} candidateId={id} />
           <CandidateNotes notes={formattedNotes} candidateId={id} />
         </div>
       </div>

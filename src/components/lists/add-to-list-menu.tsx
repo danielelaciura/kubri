@@ -8,6 +8,7 @@ import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuCheckboxItem,
@@ -118,23 +119,25 @@ export function AddToListMenu({
         className="w-60"
         onClick={(e) => e.stopPropagation()}
       >
-        <DropdownMenuLabel>Liste</DropdownMenuLabel>
-        {options.length === 0 ? (
-          <p className="px-2 py-1.5 text-sm text-muted-foreground">
-            Nessuna lista. Creane una qui sotto.
-          </p>
-        ) : (
-          options.map((l) => (
-            <DropdownMenuCheckboxItem
-              key={l.id}
-              checked={members.has(l.id)}
-              onCheckedChange={(c) => toggle(l.id, c)}
-              closeOnClick={false}
-            >
-              {l.name}
-            </DropdownMenuCheckboxItem>
-          ))
-        )}
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Liste</DropdownMenuLabel>
+          {options.length === 0 ? (
+            <p className="px-2 py-1.5 text-sm text-muted-foreground">
+              Nessuna lista. Creane una qui sotto.
+            </p>
+          ) : (
+            options.map((l) => (
+              <DropdownMenuCheckboxItem
+                key={l.id}
+                checked={members.has(l.id)}
+                onCheckedChange={(c) => toggle(l.id, c)}
+                closeOnClick={false}
+              >
+                {l.name}
+              </DropdownMenuCheckboxItem>
+            ))
+          )}
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <div className="flex items-center gap-1 p-1">
           <Input

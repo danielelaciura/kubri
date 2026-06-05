@@ -42,6 +42,7 @@ export function AddToListMenu({
   const [options, setOptions] = useState<ListOption[]>(lists);
   const [newName, setNewName] = useState("");
   const [isPending, startTransition] = useTransition();
+  const [createError, setCreateError] = useState<string | null>(null);
 
   const toggle = (listId: string, checked: boolean) => {
     setMembers((prev) => {
@@ -69,6 +70,7 @@ export function AddToListMenu({
   const handleCreate = () => {
     const name = newName.trim();
     if (!name) return;
+    setCreateError(null);
     startTransition(async () => {
       try {
         const fd = new FormData();
@@ -80,8 +82,8 @@ export function AddToListMenu({
         setNewName("");
         await addCandidateToList(created.id, candidateId);
         setMembers((prev) => new Set(prev).add(created.id));
-      } catch {
-        // no-op: l'utente può riprovare
+      } catch (e) {
+        setCreateError(e instanceof Error ? e.message : "Errore nella creazione");
       }
     });
   };
@@ -156,6 +158,9 @@ export function AddToListMenu({
             <Plus className="h-4 w-4" />
           </Button>
         </div>
+        {createError && (
+          <p className="px-2 pb-1 text-xs text-destructive">{createError}</p>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

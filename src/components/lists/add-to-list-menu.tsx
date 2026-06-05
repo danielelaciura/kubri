@@ -5,14 +5,10 @@ import { ListPlus, Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover";
 import {
   addCandidateToList,
   removeCandidateFromList,
@@ -90,8 +86,8 @@ export function AddToListMenu({
   };
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
+    <Popover>
+      <PopoverTrigger
         render={
           variant === "button" ? (
             <Button variant="outline" size="sm" className="gap-2">
@@ -114,39 +110,42 @@ export function AddToListMenu({
           )
         }
       />
-      <DropdownMenuContent
+      <PopoverContent
         align="end"
         className="w-60"
         onClick={(e) => e.stopPropagation()}
       >
-        <DropdownMenuGroup>
-          <DropdownMenuLabel>Liste</DropdownMenuLabel>
-          {options.length === 0 ? (
-            <p className="px-2 py-1.5 text-sm text-muted-foreground">
-              Nessuna lista. Creane una qui sotto.
-            </p>
-          ) : (
-            options.map((l) => {
+        <p className="px-1 pb-1 text-xs font-medium text-muted-foreground">
+          Liste
+        </p>
+        {options.length === 0 ? (
+          <p className="px-1 py-1 text-sm text-muted-foreground">
+            Nessuna lista. Creane una qui sotto.
+          </p>
+        ) : (
+          <div className="max-h-56 overflow-y-auto">
+            {options.map((l) => {
               const isMember = members.has(l.id);
               return (
-                <DropdownMenuItem
+                <button
                   key={l.id}
-                  closeOnClick={false}
+                  type="button"
                   onClick={() => toggle(l.id, !isMember)}
+                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
                 >
-                  <span className="flex-1 truncate">{l.name}</span>
+                  <span className="flex-1 truncate text-left">{l.name}</span>
                   {isMember && (
                     <span className="ml-auto shrink-0 text-xs font-medium text-muted-foreground">
                       Aggiunto
                     </span>
                   )}
-                </DropdownMenuItem>
+                </button>
               );
-            })
-          )}
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <div className="flex items-center gap-1 p-1">
+            })}
+          </div>
+        )}
+        <div className="my-1 h-px bg-border" />
+        <div className="flex items-center gap-1">
           <Input
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
@@ -169,9 +168,9 @@ export function AddToListMenu({
           </Button>
         </div>
         {createError && (
-          <p className="px-2 pb-1 text-xs text-destructive">{createError}</p>
+          <p className="px-1 pt-1 text-xs text-destructive">{createError}</p>
         )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+      </PopoverContent>
+    </Popover>
   );
 }

@@ -16,6 +16,7 @@ const HEADERS = [
   "Competenze",
   "Esperienze lavorative",
   "Lavoro desiderato",
+  "Liste",
   "Data",
   "Canale",
 ];
@@ -27,7 +28,10 @@ function escapeCell(value: string): string {
   return value;
 }
 
-export function candidatesToCsv(candidates: Candidate[]): string {
+export function candidatesToCsv(
+  candidates: Candidate[],
+  listsByCandidateId: Record<string, string[]> = {},
+): string {
   const rows = candidates.map((c) =>
     [
       c.firstName,
@@ -43,6 +47,7 @@ export function candidatesToCsv(candidates: Candidate[]): string {
       c.skillsAndCompetences.join("; "),
       c.workExperience.join("; "),
       c.jobPreferences.desiredJob,
+      (listsByCandidateId[c.id] ?? []).join("; "),
       c.createdAt.toLocaleDateString("it-IT"),
       c.channel,
     ]

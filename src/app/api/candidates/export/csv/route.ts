@@ -3,6 +3,10 @@ import { getCandidatesForOrg } from "@/lib/candidates/service";
 import { filterCandidates, sortCandidates } from "@/lib/candidates/filter";
 import { candidateFiltersSchema, toFiltersAndSort } from "@/lib/validations/candidate-filters";
 import { candidatesToCsv } from "@/lib/export/csv";
+import {
+  getListNamesByCandidateForOrg,
+  getMemberCandidateIdSet,
+} from "@/lib/lists/service";
 import { logAudit } from "@/lib/audit";
 
 export async function GET(request: Request) {
@@ -28,11 +32,21 @@ export async function GET(request: Request) {
     : toFiltersAndSort({ page: 1, pageSize: 25 });
 
   try {
-    const candidates = await getCandidatesForOrg(organizationId);
+    let candidates = await getCandidatesForOrg(organizationId);
+    if (filters.listId) {
+      const memberSet = await getMemberCandidateIdSet(
+        organizationId,
+        filters.listId,
+      );
+      candidates = memberSet
+        ? candidates.filter((c) => memberSet.has(c.id))
+        : [];
+    }
     const filtered = filterCandidates(candidates, filters);
     const sorted = sortCandidates(filtered, sort);
 
-    const csv = candidatesToCsv(sorted);
+    const listNames = await getListNamesByCandidateForOrg(organizationId);
+    const csv = candidatesToCsv(sorted, listNames);
 
     const today = new Date().toISOString().slice(0, 10);
 

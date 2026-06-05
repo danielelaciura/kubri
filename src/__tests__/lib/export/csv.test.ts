@@ -55,8 +55,22 @@ describe("candidatesToCsv", () => {
     const csv = candidatesToCsv([]);
     const firstLine = csv.replace("\uFEFF", "").split("\n")[0];
     expect(firstLine).toBe(
-      "Nome,Cognome,Data di nascita,Paese di origine,Indirizzo,Telefono,Stato legale,Permesso di lavoro,Lingua madre,Altre lingue,Competenze,Esperienze lavorative,Lavoro desiderato,Data,Canale",
+      "Nome,Cognome,Data di nascita,Paese di origine,Indirizzo,Telefono,Stato legale,Permesso di lavoro,Lingua madre,Altre lingue,Competenze,Esperienze lavorative,Lavoro desiderato,Liste,Data,Canale",
     );
+  });
+
+  it("includes the candidate's list names in the Liste column", () => {
+    const c = makeCandidate({ id: "c1" });
+    const csv = candidatesToCsv([c], { c1: ["Camerieri", "Palermo"] });
+    expect(csv).toContain("Camerieri; Palermo");
+  });
+
+  it("leaves the Liste column empty when the candidate has no lists", () => {
+    const c = makeCandidate({ id: "c1" });
+    const csv = candidatesToCsv([c]);
+    const dataLine = csv.replace("\uFEFF", "").split("\n")[1];
+    // Liste column empty between "Cameriere" (desiredJob) and the date
+    expect(dataLine).toContain("Cameriere,,");
   });
 
   it("produces a correct row for a single candidate", () => {
@@ -135,7 +149,7 @@ describe("candidatesToCsv", () => {
     expect(lines).toHaveLength(2);
     // Should not throw and should produce a valid row with the expected number of columns
     const cells = lines[1]!.split(",");
-    expect(cells.length).toBe(15);
+    expect(cells.length).toBe(16);
   });
 
   it("produces correct rows for multiple candidates", () => {

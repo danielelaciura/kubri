@@ -1,6 +1,7 @@
 export const strings = {
   nav: {
     candidates: "Candidati",
+    lists: "Liste",
     jobs: "Analisi candidati",
     users: "Utenti",
     settings: "Impostazioni",
@@ -37,6 +38,7 @@ export const strings = {
   },
   pages: {
     candidates: "Candidati",
+    lists: "Liste",
     candidateDetail: "Dettaglio candidato",
     jobs: "Analisi candidati",
     jobNew: "Nuova analisi",

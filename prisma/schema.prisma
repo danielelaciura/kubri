@@ -27,10 +27,10 @@ model Organization {
 
   users           User[]
   candidateNotes  CandidateNote[]
-  candidateTags   CandidateTag[]
   auditLogs       AuditLog[]
   jobDescriptions JobDescription[]
   pools           OrganizationPool[]
+  candidateLists  CandidateList[]
 }
 
 model Pool {
@@ -74,6 +74,8 @@ model User {
   candidateNotes  CandidateNote[]
   auditLogs       AuditLog[]
   jobDescriptions JobDescription[]
+  candidateLists       CandidateList[]
+  listMembershipsAdded CandidateListMembership[]
 }
 
 model CandidateNote {
@@ -92,20 +94,6 @@ model CandidateNote {
   @@index([organizationId])
 }
 
-model CandidateTag {
-  id             String   @id @default(uuid()) @db.Uuid
-  candidateId    String   @db.Uuid
-  organizationId String   @db.Uuid
-  tag            String
-  createdAt      DateTime @default(now())
-
-  candidate    Candidate    @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  organization Organization @relation(fields: [organizationId], references: [id])
-
-  @@unique([candidateId, organizationId, tag])
-  @@index([candidateId])
-  @@index([organizationId])
-}
 
 model AuditLog {
   id             String   @id @default(uuid()) @db.Uuid
@@ -202,11 +190,41 @@ model Candidate {
   poolId String @db.Uuid
   pool   Pool   @relation(fields: [poolId], references: [id], onDelete: Restrict)
 
-  notes CandidateNote[]
-  tags  CandidateTag[]
+  notes           CandidateNote[]
+  listMemberships CandidateListMembership[]
 
   @@unique([poolId, externalId])
   @@index([poolId])
   @@index([poolId, createdAt])
   @@index([poolId, lastName])
+}
+
+model CandidateList {
+  id              String   @id @default(uuid()) @db.Uuid
+  organizationId  String   @db.Uuid
+  name            String
+  createdByUserId String?  @db.Uuid
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization Organization              @relation(fields: [organizationId], references: [id])
+  createdBy    User?                     @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+  members      CandidateListMembership[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+}
+
+model CandidateListMembership {
+  listId        String   @db.Uuid
+  candidateId   String   @db.Uuid
+  addedByUserId String?  @db.Uuid
+  createdAt     DateTime @default(now())
+
+  list      CandidateList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  candidate Candidate     @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  addedBy   User?         @relation(fields: [addedByUserId], references: [id], onDelete: SetNull)
+
+  @@id([listId, candidateId])
+  @@index([candidateId])
 }

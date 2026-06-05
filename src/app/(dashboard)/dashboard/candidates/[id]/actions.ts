@@ -12,14 +12,6 @@ const noteSchema = z.object({
   content: z.string().min(1, "Il contenuto della nota non può essere vuoto"),
 });
 
-const tagSchema = z.object({
-  candidateId: z.string().uuid(),
-  tag: z
-    .string()
-    .transform((v) => v.trim())
-    .pipe(z.string().min(1, "Il tag non può essere vuoto")),
-});
-
 async function requireCandidateAccess(
   organizationId: string,
   candidateId: string,
@@ -88,89 +80,3 @@ export async function addNote(formData: FormData) {
   revalidatePath(`/dashboard/candidates/${candidateId}`);
 }
 
-export async function addTag(formData: FormData) {
-  const session = await getCurrentUser();
-  if (!session.organizationId) {
-    throw new Error("Non autenticato");
-  }
-
-  const parsed = tagSchema.safeParse({
-    candidateId: formData.get("candidateId"),
-    tag: formData.get("tag"),
-  });
-
-  if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Dati non validi");
-  }
-
-  const { candidateId, tag } = parsed.data;
-  const { id: userId, organizationId } = session;
-  await requireCandidateAccess(organizationId, candidateId, session.role);
-
-  // Check for duplicate tag within same candidate and organization
-  const existing = await prisma.candidateTag.findFirst({
-    where: {
-      candidateId,
-      organizationId,
-      tag,
-    },
-  });
-
-  if (existing) {
-    throw new Error("Questo tag esiste già per questo candidato");
-  }
-
-  const candidateTag = await prisma.candidateTag.create({
-    data: {
-      candidateId,
-      organizationId,
-      tag,
-    },
-  });
-
-  await logAudit({
-    userId,
-    organizationId,
-    action: "tag.create",
-    resourceType: "candidate_tag",
-    resourceId: candidateTag.id,
-    metadata: { candidateId, tag },
-  });
-
-  revalidatePath(`/dashboard/candidates/${candidateId}`);
-}
-
-export async function removeTag(tagId: string) {
-  const session = await getCurrentUser();
-  if (!session.organizationId) {
-    throw new Error("Non autenticato");
-  }
-
-  const { id: userId, organizationId } = session;
-
-  const tag = await prisma.candidateTag.findFirst({
-    where: {
-      id: tagId,
-      organizationId,
-    },
-  });
-
-  if (!tag) {
-    throw new Error("Tag non trovato");
-  }
-
-  await prisma.candidateTag.delete({
-    where: { id: tagId },
-  });
-
-  await logAudit({
-    userId,
-    organizationId,
-    action: "tag.delete",
-    resourceType: "candidate_tag",
-    resourceId: tagId,
-    metadata: { candidateId: tag.candidateId, tag: tag.tag },
-  });
-
-  revalidatePath(`/dashboard/candidates/${tag.candidateId}`);
-}

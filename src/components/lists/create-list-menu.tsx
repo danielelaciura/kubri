@@ -5,12 +5,10 @@ import { Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuLabel,
-} from "@/components/ui/dropdown-menu";
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover";
 import { createList } from "@/app/(dashboard)/dashboard/lists/actions";
 
 export function CreateListMenu() {
@@ -37,8 +35,8 @@ export function CreateListMenu() {
   };
 
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
         render={
           <Button size="sm" className="gap-2">
             <Plus className="h-4 w-4" />
@@ -46,11 +44,11 @@ export function CreateListMenu() {
           </Button>
         }
       />
-      <DropdownMenuContent align="end" className="w-64">
-        <DropdownMenuGroup>
-          <DropdownMenuLabel>Nuova lista</DropdownMenuLabel>
-        </DropdownMenuGroup>
-        <div className="flex items-center gap-1 p-1">
+      <PopoverContent align="end">
+        <p className="px-1 pb-2 text-xs font-medium text-muted-foreground">
+          Nuova lista
+        </p>
+        <div className="flex items-center gap-1">
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -78,9 +76,9 @@ export function CreateListMenu() {
           </Button>
         </div>
         {error && (
-          <p className="px-2 pb-1 text-xs text-destructive">{error}</p>
+          <p className="px-1 pt-2 text-xs text-destructive">{error}</p>
         )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+      </PopoverContent>
+    </Popover>
   );
 }

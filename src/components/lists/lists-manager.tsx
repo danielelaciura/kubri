@@ -6,6 +6,15 @@ import { Loader2, Trash2, Download, Pencil, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { strings } from "@/lib/i18n/strings";
+import {
   deleteList,
   renameList,
 } from "@/app/(dashboard)/dashboard/lists/actions";
@@ -70,99 +79,115 @@ export function ListsManager({ lists }: { lists: ListRow[] }) {
   return (
     <div className="space-y-2">
       {error && <p className="text-sm text-destructive">{error}</p>}
-      <div className="divide-y divide-border/60 rounded-lg border border-border/60 bg-card shadow-sm">
-        {lists.map((l) => {
-          const isEditing = editingId === l.id;
-          return (
-            <div
-              key={l.id}
-              className="flex items-center justify-between gap-2 px-4 py-3"
-            >
-              {isEditing ? (
-                <Input
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleRenameConfirm(l.id);
-                    if (e.key === "Escape") handleRenameCancel();
-                  }}
-                  className="min-w-0 flex-1"
-                  autoFocus
-                />
-              ) : (
-                <Link
-                  href={`/dashboard/lists/${l.id}`}
-                  className="flex min-w-0 flex-1 items-baseline gap-2"
-                >
-                  <span className="truncate font-medium hover:underline">
-                    {l.name}
-                  </span>
-                  <span className="shrink-0 text-sm text-muted-foreground">
-                    {l.memberCount} candidati
-                  </span>
-                </Link>
-              )}
-              <div className="flex shrink-0 items-center gap-1">
-                {isEditing ? (
-                  <>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Conferma rinomina"
-                      disabled={isPending || !editName.trim()}
-                      onClick={() => handleRenameConfirm(l.id)}
-                    >
-                      {isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
+      <div className="overflow-hidden rounded-lg border border-border/60 bg-card shadow-sm">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{strings.common.name}</TableHead>
+              <TableHead>Candidati</TableHead>
+              <TableHead className="text-right">
+                {strings.common.actions}
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {lists.map((l) => {
+              const isEditing = editingId === l.id;
+              return (
+                <TableRow key={l.id}>
+                  <TableCell className="font-medium">
+                    {isEditing ? (
+                      <Input
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleRenameConfirm(l.id);
+                          if (e.key === "Escape") handleRenameCancel();
+                        }}
+                        className="max-w-xs"
+                        autoFocus
+                      />
+                    ) : (
+                      <Link
+                        href={`/dashboard/lists/${l.id}`}
+                        className="hover:underline"
+                      >
+                        {l.name}
+                      </Link>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {l.memberCount}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      {isEditing ? (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label="Conferma rinomina"
+                            disabled={isPending || !editName.trim()}
+                            onClick={() => handleRenameConfirm(l.id)}
+                          >
+                            {isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Check className="h-4 w-4" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label="Annulla rinomina"
+                            disabled={isPending}
+                            onClick={handleRenameCancel}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </>
                       ) : (
-                        <Check className="h-4 w-4" />
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label="Rinomina lista"
+                            disabled={isPending}
+                            onClick={() => handleRenameStart(l)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <a
+                            href={`/api/candidates/lists/${l.id}/export/csv`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label="Esporta CSV"
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          </a>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label="Elimina lista"
+                            disabled={isPending}
+                            onClick={() => handleDelete(l.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </>
                       )}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Annulla rinomina"
-                      disabled={isPending}
-                      onClick={handleRenameCancel}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Rinomina lista"
-                      disabled={isPending}
-                      onClick={() => handleRenameStart(l)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <a
-                      href={`/api/candidates/lists/${l.id}/export/csv`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <Button variant="ghost" size="icon" aria-label="Esporta CSV">
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </a>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Elimina lista"
-                      disabled={isPending}
-                      onClick={() => handleDelete(l.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </>
-                )}
-              </div>
-            </div>
-          );
-        })}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
       </div>
     </div>
   );

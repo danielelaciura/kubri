@@ -20,7 +20,12 @@ export default async function ListsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl tracking-tight">{strings.pages.lists}</h1>
+        <div>
+          <h1 className="text-2xl tracking-tight">{strings.pages.lists}</h1>
+          <p className="mt-1 text-muted-foreground">
+            Organizza i candidati in liste condivise con la tua organizzazione.
+          </p>
+        </div>
         <CreateListMenu />
       </div>
       <ListsManager lists={lists} />

@@ -9,7 +9,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "email": "react-email dev --dir src/emails --port 3001",
+    "email": "email dev --dir src/emails --port 3001",
     "postinstall": "prisma generate"
   },
   "dependencies": {
@@ -45,6 +45,7 @@
     "seed": "npx tsx prisma/seed.ts"
   },
   "devDependencies": {
+    "@react-email/ui": "^6.5.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

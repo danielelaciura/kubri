@@ -14,9 +14,16 @@ export async function sendDigest(
 ): Promise<void> {
   const total = breakdown.reduce((sum, b) => sum + b.count, 0);
   const dashboardUrl = `${APP_URL}/dashboard/candidates`;
+  const logoUrl = `${APP_URL}/kubri-logo.png`;
 
   const html = await render(
-    CandidateDigestEmail({ orgName, total, byPool: breakdown, dashboardUrl }),
+    CandidateDigestEmail({
+      orgName,
+      total,
+      byPool: breakdown,
+      dashboardUrl,
+      logoUrl,
+    }),
   );
 
   const { error } = await resend.emails.send({

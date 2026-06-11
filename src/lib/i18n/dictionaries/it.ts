@@ -17,6 +17,8 @@ export const it = {
     profile: "Profilo",
     loading: "Caricamento...",
     error: "Errore",
+    errorMessage: "Si è verificato un errore. Riprova.",
+    retry: "Riprova",
     notFound: "Pagina non trovata",
     goBack: "Torna indietro",
     save: "Salva",
@@ -35,6 +37,11 @@ export const it = {
     role: "Ruolo",
     actions: "Azioni",
     createdAt: "Data creazione",
+  },
+  header: {
+    createAnalysis: "Crea analisi",
+    openUserMenu: "Apri menu utente",
+    adminBadge: "Admin Kubri",
   },
   pages: {
     candidates: "Candidati",

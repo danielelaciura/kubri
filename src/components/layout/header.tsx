@@ -15,7 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { strings } from "@/lib/i18n/strings";
+import { useT } from "@/lib/i18n/provider";
 import { logoutAction } from "@/lib/auth-actions";
 
 interface HeaderProps {
@@ -26,6 +26,7 @@ interface HeaderProps {
 }
 
 export function Header({ userName, userEmail, isAdmin, isOrgAdmin }: HeaderProps) {
+  const t = useT();
   const initials = userName
     .split(" ")
     .map((n) => n[0])
@@ -47,7 +48,7 @@ export function Header({ userName, userEmail, isAdmin, isOrgAdmin }: HeaderProps
             className="text-kubri-800 border-kubri-200 hover:bg-kubri-50"
           >
             <Plus className="mr-1 h-4 w-4" />
-            Crea analisi
+            {t.header.createAnalysis}
           </Button>
         </Link>
       )}
@@ -58,7 +59,7 @@ export function Header({ userName, userEmail, isAdmin, isOrgAdmin }: HeaderProps
             render={
               <button
                 type="button"
-                aria-label="Apri menu utente"
+                aria-label={t.header.openUserMenu}
                 className="flex items-center gap-2 rounded-full p-0.5 outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 hover:bg-muted"
               >
                 <span className="flex h-9 w-9 items-center justify-center rounded-full bg-kubri-100 text-kubri-800 text-sm font-semibold">
@@ -81,7 +82,7 @@ export function Header({ userName, userEmail, isAdmin, isOrgAdmin }: HeaderProps
                     variant="secondary"
                     className="mt-1 h-4 w-fit px-1.5 text-[10px] bg-zinc-800 text-zinc-100"
                   >
-                    Admin Kubri
+                    {t.header.adminBadge}
                   </Badge>
                 )}
               </DropdownMenuLabel>
@@ -91,7 +92,7 @@ export function Header({ userName, userEmail, isAdmin, isOrgAdmin }: HeaderProps
               render={
                 <Link href="/dashboard/profile">
                   <UserRound className="mr-2 h-4 w-4" />
-                  <span>{strings.common.profile}</span>
+                  <span>{t.common.profile}</span>
                 </Link>
               }
             />
@@ -102,7 +103,7 @@ export function Header({ userName, userEmail, isAdmin, isOrgAdmin }: HeaderProps
                 <form action={logoutAction} className="contents">
                   <button type="submit" className="flex w-full items-center">
                     <LogOut className="mr-2 h-4 w-4" />
-                    <span>{strings.common.logout}</span>
+                    <span>{t.common.logout}</span>
                   </button>
                 </form>
               }

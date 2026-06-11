@@ -28,29 +28,19 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { strings } from "@/lib/i18n/strings";
+import { useT } from "@/lib/i18n/provider";
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   organizationName: string;
   isAdmin: boolean;
 }
 
-const mainItems = [
-  { label: strings.nav.candidates, href: "/dashboard/candidates", icon: Users },
-  { label: strings.nav.jobs, href: "/dashboard/jobs", icon: ScanSearch },
-  { label: strings.nav.lists, href: "/dashboard/lists", icon: ListChecks },
-  { label: strings.nav.users, href: "/dashboard/users", icon: UserCog },
-  { label: strings.nav.settings, href: "/dashboard/settings", icon: Settings, exact: true },
-  { label: strings.nav.qrCodes, href: "/dashboard/qr-codes", icon: QrCode },
-  { label: strings.nav.stats, href: "/dashboard/stats", icon: BarChart3 },
-];
-
-const adminItems = [
-  { label: strings.nav.admin, href: "/admin", icon: Shield, exact: true },
-  { label: strings.nav.organizations, href: "/admin/organizations", icon: Building2 },
-  { label: strings.nav.pools, href: "/admin/pools", icon: Layers },
-  { label: strings.nav.adminJobs, href: "/admin/jobs", icon: Briefcase },
-];
+type NavItem = {
+  label: string;
+  href: string;
+  icon: React.ElementType;
+  exact?: boolean;
+};
 
 function isActiveHref(pathname: string, href: string, exact = false): boolean {
   if (exact) return pathname === href;
@@ -58,7 +48,25 @@ function isActiveHref(pathname: string, href: string, exact = false): boolean {
 }
 
 export function AppSidebar({ organizationName, isAdmin, ...props }: AppSidebarProps) {
+  const t = useT();
   const pathname = usePathname();
+
+  const mainItems: NavItem[] = [
+    { label: t.nav.candidates, href: "/dashboard/candidates", icon: Users },
+    { label: t.nav.jobs, href: "/dashboard/jobs", icon: ScanSearch },
+    { label: t.nav.lists, href: "/dashboard/lists", icon: ListChecks },
+    { label: t.nav.users, href: "/dashboard/users", icon: UserCog },
+    { label: t.nav.settings, href: "/dashboard/settings", icon: Settings, exact: true },
+    { label: t.nav.qrCodes, href: "/dashboard/qr-codes", icon: QrCode },
+    { label: t.nav.stats, href: "/dashboard/stats", icon: BarChart3 },
+  ];
+
+  const adminItems: NavItem[] = [
+    { label: t.nav.admin, href: "/admin", icon: Shield, exact: true },
+    { label: t.nav.organizations, href: "/admin/organizations", icon: Building2 },
+    { label: t.nav.pools, href: "/admin/pools", icon: Layers },
+    { label: t.nav.adminJobs, href: "/admin/jobs", icon: Briefcase },
+  ];
 
   return (
     <Sidebar variant="inset" collapsible="icon" {...props}>
@@ -112,7 +120,7 @@ export function AppSidebar({ organizationName, isAdmin, ...props }: AppSidebarPr
 
         {isAdmin && (
           <SidebarGroup>
-            <SidebarGroupLabel>{strings.nav.admin}</SidebarGroupLabel>
+            <SidebarGroupLabel>{t.nav.admin}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {adminItems.map((item) => {

@@ -19,6 +19,8 @@ export const en = {
     profile: "Profile",
     loading: "Loading...",
     error: "Error",
+    errorMessage: "An error occurred. Please try again.",
+    retry: "Try again",
     notFound: "Page not found",
     goBack: "Go back",
     save: "Save",
@@ -37,6 +39,11 @@ export const en = {
     role: "Role",
     actions: "Actions",
     createdAt: "Created at",
+  },
+  header: {
+    createAnalysis: "Create analysis",
+    openUserMenu: "Open user menu",
+    adminBadge: "Kubri Admin",
   },
   pages: {
     candidates: "Candidates",

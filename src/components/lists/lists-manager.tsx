@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { strings } from "@/lib/i18n/strings";
+import { useT } from "@/lib/i18n/provider";
 import {
   deleteList,
   renameList,
@@ -26,6 +26,7 @@ interface ListRow {
 }
 
 export function ListsManager({ lists }: { lists: ListRow[] }) {
+  const t = useT();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -55,7 +56,7 @@ export function ListsManager({ lists }: { lists: ListRow[] }) {
         setEditingId(null);
         setEditName("");
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Errore nella rinomina");
+        setError(e instanceof Error ? e.message : t.lists.renameError);
       }
     });
   };
@@ -72,7 +73,7 @@ export function ListsManager({ lists }: { lists: ListRow[] }) {
 
   if (lists.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">Nessuna lista creata.</p>
+      <p className="text-sm text-muted-foreground">{t.lists.empty}</p>
     );
   }
 
@@ -83,10 +84,10 @@ export function ListsManager({ lists }: { lists: ListRow[] }) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>{strings.common.name}</TableHead>
-              <TableHead>Candidati</TableHead>
+              <TableHead>{t.common.name}</TableHead>
+              <TableHead>{t.lists.candidatesColumn}</TableHead>
               <TableHead className="text-right">
-                {strings.common.actions}
+                {t.common.actions}
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -126,7 +127,7 @@ export function ListsManager({ lists }: { lists: ListRow[] }) {
                           <Button
                             variant="ghost"
                             size="icon"
-                            aria-label="Conferma rinomina"
+                            aria-label={t.lists.confirmRename}
                             disabled={isPending || !editName.trim()}
                             onClick={() => handleRenameConfirm(l.id)}
                           >
@@ -139,7 +140,7 @@ export function ListsManager({ lists }: { lists: ListRow[] }) {
                           <Button
                             variant="ghost"
                             size="icon"
-                            aria-label="Annulla rinomina"
+                            aria-label={t.lists.cancelRename}
                             disabled={isPending}
                             onClick={handleRenameCancel}
                           >
@@ -151,7 +152,7 @@ export function ListsManager({ lists }: { lists: ListRow[] }) {
                           <Button
                             variant="ghost"
                             size="icon"
-                            aria-label="Rinomina lista"
+                            aria-label={t.lists.renameList}
                             disabled={isPending}
                             onClick={() => handleRenameStart(l)}
                           >
@@ -165,7 +166,7 @@ export function ListsManager({ lists }: { lists: ListRow[] }) {
                             <Button
                               variant="ghost"
                               size="icon"
-                              aria-label="Esporta CSV"
+                              aria-label={t.candidates.exportCsv}
                             >
                               <Download className="h-4 w-4" />
                             </Button>
@@ -173,7 +174,7 @@ export function ListsManager({ lists }: { lists: ListRow[] }) {
                           <Button
                             variant="ghost"
                             size="icon"
-                            aria-label="Elimina lista"
+                            aria-label={t.lists.deleteList}
                             disabled={isPending}
                             onClick={() => handleDelete(l.id)}
                           >

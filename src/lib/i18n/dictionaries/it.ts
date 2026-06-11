@@ -233,6 +233,32 @@ export const it = {
     cannotDeleteHasCandidates: "Impossibile eliminare: il pool contiene {count} candidati.",
     cannotDeleteHasOrgs: "Impossibile eliminare: il pool è agganciato a {count} organizzazioni. Rimuovi prima gli agganci.",
   },
+  stats: {
+    loadError: "Impossibile caricare le statistiche. Riprova più tardi.",
+    totalCandidates: "Totale candidati",
+  },
+  auth: {
+    open: "Apri",
+    readAndAccept: "Ho letto e accetto",
+    termsDialogTitle: "Termini e Condizioni / Privacy Policy",
+    termsDialogDescription:
+      "Per accedere alla piattaforma è necessario leggere e accettare entrambi i documenti.",
+    termsTitle: "Termini e Condizioni",
+    termsDescription: "Le regole d'uso della piattaforma Kubri.",
+    privacyTitle: "Privacy Policy",
+    privacyDescription: "Come trattiamo i tuoi dati personali.",
+    termsSaveError: "Impossibile salvare l'accettazione. Riprova.",
+    loggingOut: "Esco...",
+    saving: "Salvataggio...",
+    inviteLinkInvalid: "Link di invito non valido o già utilizzato. Chiedi un nuovo invito.",
+    inviteLinkExpired:
+      "Il link di invito è scaduto o già utilizzato. Contatta il tuo amministratore per ricevere un nuovo invito.",
+    welcomeTitle: "Benvenuto su Kubri",
+    inviteDescription:
+      "Sei stato invitato ad accedere alla piattaforma. Clicca il pulsante per accettare l'invito e impostare la tua password.",
+    verifying: "Verifica in corso...",
+    acceptInvite: "Accetta invito",
+  },
   candidates: {
     exportCsv: "Esporta CSV",
     loadError: "Errore nel caricamento dei dati. Riprova più tardi.",

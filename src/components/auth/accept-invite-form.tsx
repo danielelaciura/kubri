@@ -11,6 +11,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { getDictionary, DEFAULT_LOCALE } from "@/lib/i18n";
+
+// AcceptInviteForm is rendered on the unauthenticated /auth/accept-invite route,
+// outside <DashboardShell> and therefore outside <I18nProvider>. The invitee
+// has no stored locale yet, so we use the default locale dictionary directly.
+const t = getDictionary(DEFAULT_LOCALE);
 
 export function AcceptInviteForm() {
   const searchParams = useSearchParams();
@@ -22,7 +28,7 @@ export function AcceptInviteForm() {
 
   async function handleAccept() {
     if (!code) {
-      setError("Link di invito non valido o già utilizzato. Chiedi un nuovo invito.");
+      setError(t.auth.inviteLinkInvalid);
       return;
     }
 
@@ -33,9 +39,7 @@ export function AcceptInviteForm() {
     const { error: authError } = await supabase.auth.exchangeCodeForSession(code);
 
     if (authError) {
-      setError(
-        "Il link di invito è scaduto o già utilizzato. Contatta il tuo amministratore per ricevere un nuovo invito."
-      );
+      setError(t.auth.inviteLinkExpired);
       setIsLoading(false);
       return;
     }
@@ -46,10 +50,9 @@ export function AcceptInviteForm() {
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="text-center">
-        <CardTitle className="text-2xl">Benvenuto su Kubri</CardTitle>
+        <CardTitle className="text-2xl">{t.auth.welcomeTitle}</CardTitle>
         <CardDescription>
-          Sei stato invitato ad accedere alla piattaforma. Clicca il pulsante per
-          accettare l&apos;invito e impostare la tua password.
+          {t.auth.inviteDescription}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -59,7 +62,7 @@ export function AcceptInviteForm() {
           disabled={isLoading || !code}
           className="w-full"
         >
-          {isLoading ? "Verifica in corso..." : "Accetta invito"}
+          {isLoading ? t.auth.verifying : t.auth.acceptInvite}
         </Button>
       </CardContent>
     </Card>

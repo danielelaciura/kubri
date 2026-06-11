@@ -235,6 +235,32 @@ export const en = {
     cannotDeleteHasCandidates: "Cannot delete: the pool contains {count} candidates.",
     cannotDeleteHasOrgs: "Cannot delete: the pool is attached to {count} organizations. Remove the attachments first.",
   },
+  stats: {
+    loadError: "Unable to load statistics. Please try again later.",
+    totalCandidates: "Total candidates",
+  },
+  auth: {
+    open: "Open",
+    readAndAccept: "I have read and accept",
+    termsDialogTitle: "Terms and Conditions / Privacy Policy",
+    termsDialogDescription:
+      "To access the platform you must read and accept both documents.",
+    termsTitle: "Terms and Conditions",
+    termsDescription: "The rules for using the Kubri platform.",
+    privacyTitle: "Privacy Policy",
+    privacyDescription: "How we handle your personal data.",
+    termsSaveError: "Unable to save acceptance. Please try again.",
+    loggingOut: "Logging out...",
+    saving: "Saving...",
+    inviteLinkInvalid: "Invite link is invalid or has already been used. Please request a new invite.",
+    inviteLinkExpired:
+      "The invite link has expired or has already been used. Contact your administrator to receive a new invite.",
+    welcomeTitle: "Welcome to Kubri",
+    inviteDescription:
+      "You have been invited to access the platform. Click the button to accept the invite and set your password.",
+    verifying: "Verifying...",
+    acceptInvite: "Accept invite",
+  },
   candidates: {
     exportCsv: "Export CSV",
     loadError: "Error loading data. Please try again later.",

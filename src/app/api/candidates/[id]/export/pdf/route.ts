@@ -42,12 +42,12 @@ export async function GET(
     ]);
 
     if (!candidate) {
-      return new Response("Candidato non trovato", { status: 404 });
+      return new Response(dictionary.candidates.notFoundTitle, { status: 404 });
     }
 
     const formattedNotes = notes.map((n) => ({
       content: n.content,
-      userName: n.user?.name ?? "Utente eliminato",
+      userName: n.user?.name ?? dictionary.candidates.deletedUser,
       createdAt: n.createdAt,
     }));
 

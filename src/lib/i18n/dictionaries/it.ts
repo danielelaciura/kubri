@@ -133,4 +133,10 @@ export const it = {
     viewCandidateAction: "Apri profilo",
     preferredLocationLabel: "Preferenza",
   },
+  profile: {
+    language: "Lingua",
+    languageDescription: "Scegli la lingua dell'interfaccia.",
+    italian: "Italiano",
+    english: "Inglese",
+  },
 } as const;

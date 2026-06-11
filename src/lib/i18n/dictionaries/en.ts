@@ -135,4 +135,10 @@ export const en = {
     viewCandidateAction: "Open profile",
     preferredLocationLabel: "Preference",
   },
+  profile: {
+    language: "Language",
+    languageDescription: "Choose the interface language.",
+    italian: "Italian",
+    english: "English",
+  },
 } satisfies Dictionary;

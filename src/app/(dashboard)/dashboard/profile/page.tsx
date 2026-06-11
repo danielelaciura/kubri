@@ -9,6 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { NotificationForm } from "@/components/settings/notification-form";
 import { notificationPrefsSchema } from "@/lib/validations/notification";
 import { strings } from "@/lib/i18n/strings";
+import { getServerLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n";
+import { setLanguage } from "@/lib/i18n/actions";
+import { LanguageForm } from "@/components/settings/language-form";
 
 const ROLE_LABEL: Record<Role, string> = {
   ADMIN_KUBRI: "Admin Kubri",
@@ -33,10 +37,14 @@ export default async function ProfilePage() {
       lastLoginAt: true,
       notifyEnabled: true,
       notifyFrequency: true,
+      language: true,
       organization: { select: { name: true } },
     },
   });
   if (!user) redirect("/login");
+
+  const locale = await getServerLocale();
+  const t = getDictionary(locale);
 
   async function updateNotificationPrefs(formData: FormData) {
     "use server";
@@ -132,6 +140,18 @@ export default async function ProfilePage() {
             defaultFrequency={user.notifyFrequency}
             action={updateNotificationPrefs}
           />
+        </CardContent>
+      </Card>
+
+      <Card className="shadow-sm border-border/60">
+        <CardHeader>
+          <CardTitle>{t.profile.language}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="mb-4 text-sm text-muted-foreground">
+            {t.profile.languageDescription}
+          </p>
+          <LanguageForm defaultLanguage={locale} action={setLanguage} />
         </CardContent>
       </Card>
     </div>

@@ -22,12 +22,11 @@ describe("i18n index", () => {
   });
 
   test("it and en have identical key sets (deep)", () => {
-    const keysOf = (obj: object): string[] =>
-      Object.entries(obj).flatMap(([k, v]) =>
-        v && typeof v === "object"
-          ? Object.keys(v).map((sub) => `${k}.${sub}`)
-          : [k],
-      );
+    const keysOf = (obj: object, prefix = ""): string[] =>
+      Object.entries(obj).flatMap(([k, v]) => {
+        const path = prefix ? `${prefix}.${k}` : k;
+        return v && typeof v === "object" ? keysOf(v as object, path) : [path];
+      });
     expect(keysOf(en).sort()).toEqual(keysOf(it).sort());
   });
 

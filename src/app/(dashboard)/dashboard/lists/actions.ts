@@ -10,6 +10,8 @@ import {
   listMembershipSchema,
 } from "@/lib/validations/list";
 import { revalidatePath } from "next/cache";
+import { getDictionary } from "@/lib/i18n";
+import { getServerLocale } from "@/lib/i18n/locale";
 
 async function requireSession() {
   const session = await getCurrentUser();
@@ -50,9 +52,10 @@ async function requireListInOrg(organizationId: string, listId: string) {
 
 export async function createList(formData: FormData) {
   const session = await requireSession();
+  const t = getDictionary(await getServerLocale());
   const parsed = createListSchema.safeParse({ name: formData.get("name") });
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Dati non validi");
+    throw new Error(parsed.error.issues[0]?.message ?? t.common.invalidData);
   }
   const { name } = parsed.data;
   const { id: userId, organizationId } = session;
@@ -61,7 +64,7 @@ export async function createList(formData: FormData) {
     where: { organizationId, name },
     select: { id: true },
   });
-  if (dup) throw new Error("Esiste già una lista con questo nome");
+  if (dup) throw new Error(t.lists.duplicateName);
 
   const list = await prisma.candidateList.create({
     data: { organizationId, name, createdByUserId: userId },
@@ -80,12 +83,13 @@ export async function createList(formData: FormData) {
 
 export async function renameList(formData: FormData) {
   const session = await requireSession();
+  const t = getDictionary(await getServerLocale());
   const parsed = renameListSchema.safeParse({
     listId: formData.get("listId"),
     name: formData.get("name"),
   });
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Dati non validi");
+    throw new Error(parsed.error.issues[0]?.message ?? t.common.invalidData);
   }
   const { listId, name } = parsed.data;
   const { id: userId, organizationId } = session;
@@ -95,7 +99,7 @@ export async function renameList(formData: FormData) {
     where: { organizationId, name, id: { not: listId } },
     select: { id: true },
   });
-  if (dup) throw new Error("Esiste già una lista con questo nome");
+  if (dup) throw new Error(t.lists.duplicateName);
 
   await prisma.candidateList.update({ where: { id: listId }, data: { name } });
   await logAudit({
@@ -128,8 +132,9 @@ export async function deleteList(listId: string) {
 
 export async function addCandidateToList(listId: string, candidateId: string) {
   const session = await requireSession();
+  const t = getDictionary(await getServerLocale());
   const parsed = listMembershipSchema.safeParse({ listId, candidateId });
-  if (!parsed.success) throw new Error("Dati non validi");
+  if (!parsed.success) throw new Error(t.common.invalidData);
   const { id: userId, organizationId, role } = session;
 
   await requireListInOrg(organizationId, listId);
@@ -157,8 +162,9 @@ export async function removeCandidateFromList(
   candidateId: string,
 ) {
   const session = await requireSession();
+  const t = getDictionary(await getServerLocale());
   const parsed = listMembershipSchema.safeParse({ listId, candidateId });
-  if (!parsed.success) throw new Error("Dati non validi");
+  if (!parsed.success) throw new Error(t.common.invalidData);
   const { id: userId, organizationId } = session;
 
   await requireListInOrg(organizationId, listId);

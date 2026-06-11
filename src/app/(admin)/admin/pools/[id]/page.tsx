@@ -15,7 +15,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft } from "lucide-react";
-import { strings } from "@/lib/i18n/strings";
+import { getServerLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n";
 
 interface PoolDetailPageProps {
   params: Promise<{ id: string }>;
@@ -30,6 +31,7 @@ export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
   }
   if (me.role !== Role.ADMIN_KUBRI) redirect("/dashboard");
 
+  const t = getDictionary(await getServerLocale());
   const { id } = await params;
   const pool = await getPoolDetail(id);
   if (!pool) notFound();
@@ -66,14 +68,14 @@ export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
   async function attachAction(formData: FormData) {
     "use server";
     const organizationId = String(formData.get("organizationId") ?? "");
-    if (!organizationId) throw new Error("Organizzazione non valida");
+    if (!organizationId) throw new Error(t.admin.invalidOrg);
     await attachOrgToPool(id, organizationId);
   }
 
   async function detachAction(formData: FormData) {
     "use server";
     const organizationId = String(formData.get("organizationId") ?? "");
-    if (!organizationId) throw new Error("Organizzazione non valida");
+    if (!organizationId) throw new Error(t.admin.invalidOrg);
     await detachOrgFromPool(id, organizationId);
   }
 
@@ -83,7 +85,7 @@ export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
         <a href="/admin/pools">
           <Button variant="ghost" size="sm">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Pool
+            {t.nav.pools}
           </Button>
         </a>
       </div>
@@ -96,12 +98,12 @@ export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Dettagli</CardTitle>
+            <CardTitle>{t.pools.details}</CardTitle>
           </CardHeader>
           <CardContent>
             <form action={updateAction} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Nome</Label>
+                <Label htmlFor="name">{t.common.name}</Label>
                 <Input
                   id="name"
                   name="name"
@@ -111,7 +113,7 @@ export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="slug">Slug</Label>
+                <Label htmlFor="slug">{t.organizations.slug}</Label>
                 <Input
                   id="slug"
                   name="slug"
@@ -122,7 +124,7 @@ export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="externalKey">External key</Label>
+                <Label htmlFor="externalKey">{t.pools.externalKey}</Label>
                 <Input
                   id="externalKey"
                   name="externalKey"
@@ -130,21 +132,21 @@ export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
                   maxLength={255}
                 />
               </div>
-              <Button type="submit">{strings.common.save}</Button>
+              <Button type="submit">{t.common.save}</Button>
             </form>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Candidati</CardTitle>
+            <CardTitle>{t.pools.candidates}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm">
               <span className="text-2xl font-semibold">
                 {pool._count.candidates}
               </span>{" "}
-              candidati in questo pool.
+              {t.pools.candidatesInPool}
             </p>
           </CardContent>
         </Card>
@@ -152,13 +154,13 @@ export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
         <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle>
-              Organizations agganciate ({pool.organizations.length})
+              {t.admin.attachedOrgs} ({pool.organizations.length})
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {pool.organizations.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                Nessuna organizzazione agganciata a questo pool.
+                {t.admin.noOrgsAttached}
               </p>
             ) : (
               <ul className="space-y-2">
@@ -175,7 +177,7 @@ export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
                         value={op.organizationId}
                       />
                       <Button type="submit" variant="ghost" size="sm">
-                        Rimuovi
+                        {t.common.remove}
                       </Button>
                     </form>
                   </li>
@@ -196,7 +198,7 @@ export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
                     </option>
                   ))}
                 </select>
-                <Button type="submit">Aggancia</Button>
+                <Button type="submit">{t.admin.attach}</Button>
               </form>
             )}
           </CardContent>
@@ -204,7 +206,7 @@ export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
 
         <Card className="md:col-span-2">
           <CardHeader>
-            <CardTitle>Eliminazione</CardTitle>
+            <CardTitle>{t.pools.deleteSection}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             <form action={deleteAction}>
@@ -213,16 +215,16 @@ export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
                 variant="destructive"
                 disabled={!canDelete}
               >
-                Elimina pool
+                {t.pools.deletePool}
               </Button>
             </form>
             {!canDelete && (
               <p className="text-xs text-muted-foreground">
                 {pool.isGlobal
-                  ? "Il pool 'Global' non può essere eliminato."
+                  ? t.pools.cannotDeleteGlobal
                   : pool._count.candidates > 0
-                    ? `Impossibile eliminare: il pool contiene ${pool._count.candidates} candidati.`
-                    : `Impossibile eliminare: il pool è agganciato a ${pool.organizations.length} organizzazioni. Rimuovi prima gli agganci.`}
+                    ? t.pools.cannotDeleteHasCandidates.replace("{count}", String(pool._count.candidates))
+                    : t.pools.cannotDeleteHasOrgs.replace("{count}", String(pool.organizations.length))}
               </p>
             )}
           </CardContent>

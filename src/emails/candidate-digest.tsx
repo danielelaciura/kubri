@@ -10,8 +10,8 @@ import {
   Section,
   Text,
 } from "@react-email/components";
-import { candidatesLabel } from "@/lib/notifications/config";
 import type { PoolBreakdown } from "@/lib/notifications/types";
+import type { Dictionary } from "@/lib/i18n";
 
 export interface CandidateDigestEmailProps {
   orgName: string;
@@ -19,19 +19,28 @@ export interface CandidateDigestEmailProps {
   byPool: PoolBreakdown[];
   dashboardUrl: string;
   logoUrl: string;
+  dictionary: Dictionary;
+}
+
+function candidatesLabel(total: number, d: Dictionary): string {
+  return total === 1
+    ? d.email.digestLabelSingular
+    : `${total} ${d.email.digestLabelPlural}`;
 }
 
 export function CandidateDigestEmail({
   orgName,
   total,
-  byPool,
+  byPool: _byPool,
   dashboardUrl,
   logoUrl,
+  dictionary,
 }: CandidateDigestEmailProps) {
+  const d = dictionary;
   return (
     <Html lang="it">
       <Head />
-      <Preview>{`${candidatesLabel(total)} su Kubri`}</Preview>
+      <Preview>{`${candidatesLabel(total, d)} ${d.email.digestSubject}`}</Preview>
       <Body
         style={{
           fontFamily: "Arial, sans-serif",
@@ -56,17 +65,15 @@ export function CandidateDigestEmail({
             />
           </Section>
           <Heading as="h1" style={{ textAlign: "center", fontSize: "20px", margin: "0 0px 30px" }}>
-            Nuovi candidati su Kubri per <span style={{ color: "#7c4fe0" }}>{`${orgName}`}</span>
+            {d.email.digestHeading} <span style={{ color: "#7c4fe0" }}>{`${orgName}`}</span>
           </Heading>
-          <Text style={{ textAlign: "center", margin: "0 0 0" }}> Ciao, ti informiamo che nelle ultime ore {`${total === 1 ? "è entrato" : "sono entrati"}`}
+          <Text style={{ textAlign: "center", margin: "0 0 0" }}> {d.email.digestIntro} {`${total === 1 ? d.email.digestEntered : d.email.digestEnteredPlural}`}
           </Text>
           <Text style={{ textAlign: "center", fontWeight: "bold", fontSize: "18px", margin: "5px 0" }}>
-            {candidatesLabel(
-              total,
-            )}
+            {candidatesLabel(total, d)}
           </Text>
           <Text style={{ textAlign: "center", margin: "0 0 16px" }}>
-            {" all'interno della nostra piattaforma. "}
+            {` ${d.email.digestPlatform} `}
           </Text>
           <Text style={{ textAlign: "center", margin: "25px 0 0" }}>
             <Link
@@ -81,19 +88,21 @@ export function CandidateDigestEmail({
                 textDecoration: "none",
               }}
             >
-              Vedi i candidati
+              {d.email.digestCta}
             </Link>
 
           </Text>
 
           <Section style={{ textAlign: "center", margin: "16px 0", fontSize: "10px", color: "#666666" }}>
-            Se non desideri più ricevere queste notifiche, puoi disabilitarle dalle tue impostazioni.
+            {d.email.digestUnsubscribe}
           </Section>
         </Container>
       </Body>
     </Html>
   );
 }
+
+import { it } from "@/lib/i18n/dictionaries/it";
 
 CandidateDigestEmail.PreviewProps = {
   orgName: "Coop Esempio",
@@ -106,6 +115,7 @@ CandidateDigestEmail.PreviewProps = {
   // Served by the react-email dev server from src/emails/static/. In production
   // sendDigest passes an absolute URL to the public asset instead.
   logoUrl: "/static/kubri-logo.png",
+  dictionary: it,
 } satisfies CandidateDigestEmailProps;
 
 export default CandidateDigestEmail;

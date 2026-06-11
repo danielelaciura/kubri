@@ -12,6 +12,7 @@ import {
   DialogTrigger,
   DialogClose,
 } from "@/components/ui/dialog";
+import { useT } from "@/lib/i18n/provider";
 
 interface Props {
   memberId: string;
@@ -26,6 +27,7 @@ export function DeleteMemberButton({
   memberEmail,
   removeAction,
 }: Props) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -43,31 +45,31 @@ export function DeleteMemberButton({
       <DialogTrigger
         render={
           <button className="rounded px-2 py-1 text-xs text-destructive hover:bg-destructive/10">
-            Rimuovi
+            {t.members.remove}
           </button>
         }
       />
       <DialogContent showCloseButton={false}>
         <DialogHeader>
-          <DialogTitle>Rimuovere il membro?</DialogTitle>
+          <DialogTitle>{t.members.removeMemberTitle}</DialogTitle>
           <DialogDescription>
-            Stai per rimuovere <strong>{memberName}</strong> ({memberEmail})
-            dall&apos;organizzazione. Questa azione è irreversibile: l&apos;utente
-            dovrà essere reinvitato per riacquisire l&apos;accesso.
+            {t.members.removeMemberDescription
+              .replace("{name}", memberName)
+              .replace("{email}", memberEmail)}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <DialogClose
             render={<Button variant="outline" disabled={isPending} />}
           >
-            Annulla
+            {t.common.cancel}
           </DialogClose>
           <Button
             variant="destructive"
             onClick={handleConfirm}
             disabled={isPending}
           >
-            {isPending ? "Rimozione..." : "Rimuovi"}
+            {isPending ? t.members.removing : t.members.remove}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -6,6 +6,8 @@ import {
 } from "@/lib/lists/service";
 import { candidatesToCsv } from "@/lib/export/csv";
 import { logAudit } from "@/lib/audit";
+import { getDictionary } from "@/lib/i18n";
+import { getServerLocale } from "@/lib/i18n/locale";
 
 export async function GET(
   _request: Request,
@@ -17,6 +19,7 @@ export async function GET(
   } catch {
     return new Response("Non autorizzato", { status: 401 });
   }
+  const dictionary = getDictionary(await getServerLocale());
   const { organizationId } = session;
   const { listId } = await params;
 
@@ -29,7 +32,7 @@ export async function GET(
     const candidates = all.filter((c) => memberSet.has(c.id));
 
     const listNames = await getListNamesByCandidateForOrg(organizationId);
-    const csv = candidatesToCsv(candidates, listNames);
+    const csv = candidatesToCsv(candidates, listNames, dictionary);
 
     const slug = list.name
       .toLowerCase()

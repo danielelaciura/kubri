@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { Role } from "@/generated/prisma/client";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { TermsAcceptanceModal } from "@/components/auth/terms-acceptance-modal";
+import { getServerLocale } from "@/lib/i18n/locale";
 
 export default async function AdminLayout({
   children,
@@ -29,6 +30,7 @@ export default async function AdminLayout({
     : null;
 
   const needsTerms = user.termsAcceptedAt === null;
+  const locale = await getServerLocale();
 
   return (
     <>
@@ -38,6 +40,7 @@ export default async function AdminLayout({
         organizationName={organization?.name ?? "Kubri"}
         isAdmin={true}
         isOrgAdmin={true}
+        locale={locale}
       >
         {children}
       </DashboardShell>

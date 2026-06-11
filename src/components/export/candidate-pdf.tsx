@@ -7,6 +7,7 @@ import {
   StyleSheet,
 } from "@react-pdf/renderer";
 import type { Candidate } from "@/types";
+import type { Dictionary } from "@/lib/i18n";
 
 const BLUE = "#1e40af";
 const GRAY = "#6b7280";
@@ -106,162 +107,168 @@ interface NoteData {
 interface CandidatePdfProps {
   candidate: Candidate;
   notes: NoteData[];
+  dictionary: Dictionary;
 }
 
-export function renderCandidatePdf({ candidate, notes }: CandidatePdfProps) {
+export function renderCandidatePdf({ candidate, notes, dictionary }: CandidatePdfProps) {
   const c = candidate;
-  const exportDate = new Date().toLocaleDateString("it-IT");
+  const d = dictionary;
+  const locale = "it-IT";
+  const exportDate = new Date().toLocaleDateString(locale);
+
+  // Strip trailing colon/space from reused candidates.* labels (they carry ":" for the detail view)
+  const strip = (s: string) => s.replace(/:\s*$/, "");
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
           <Text style={styles.brand}>Kubri</Text>
-          <Text style={styles.dateText}>Esportato il {exportDate}</Text>
+          <Text style={styles.dateText}>{d.pdf.exportedOn} {exportDate}</Text>
         </View>
 
         <Text style={styles.candidateName}>
           {c.firstName} {c.lastName}
         </Text>
 
-        {/* Informazioni personali */}
+        {/* Personal information */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Informazioni personali</Text>
+          <Text style={styles.sectionTitle}>{d.candidates.personalInfo}</Text>
           {c.dateOfBirth && (
             <View style={styles.row}>
-              <Text style={styles.label}>Data di nascita</Text>
+              <Text style={styles.label}>{strip(d.candidates.dateOfBirth)}</Text>
               <Text style={styles.value}>{c.dateOfBirth}</Text>
             </View>
           )}
           <View style={styles.row}>
-            <Text style={styles.label}>Paese di origine</Text>
+            <Text style={styles.label}>{strip(d.candidates.countryOfOrigin)}</Text>
             <Text style={styles.value}>{c.countryOfOrigin || "—"}</Text>
           </View>
           <View style={styles.row}>
-            <Text style={styles.label}>Indirizzo</Text>
+            <Text style={styles.label}>{strip(d.candidates.address)}</Text>
             <Text style={styles.value}>{c.address || "—"}</Text>
           </View>
           {c.phone && (
             <View style={styles.row}>
-              <Text style={styles.label}>Telefono</Text>
+              <Text style={styles.label}>{strip(d.candidates.phone)}</Text>
               <Text style={styles.value}>{c.phone}</Text>
             </View>
           )}
           {c.legalStatus && (
             <View style={styles.row}>
-              <Text style={styles.label}>Stato legale</Text>
+              <Text style={styles.label}>{strip(d.candidates.legalStatus)}</Text>
               <Text style={styles.value}>{c.legalStatus}</Text>
             </View>
           )}
           <View style={styles.row}>
-            <Text style={styles.label}>Permesso di lavoro</Text>
-            <Text style={styles.value}>{c.workingPermit ? "Sì" : "No"}</Text>
+            <Text style={styles.label}>{strip(d.candidates.workingPermit)}</Text>
+            <Text style={styles.value}>{c.workingPermit ? d.candidates.workingPermitYes : d.candidates.workingPermitNo}</Text>
           </View>
           <View style={styles.row}>
-            <Text style={styles.label}>Patente</Text>
-            <Text style={styles.value}>{c.drivingLicense ? "Sì" : "No"}</Text>
+            <Text style={styles.label}>{strip(d.candidates.drivingLicense)}</Text>
+            <Text style={styles.value}>{c.drivingLicense ? d.candidates.drivingLicenseYes : d.candidates.drivingLicenseNo}</Text>
           </View>
           <View style={styles.row}>
-            <Text style={styles.label}>Canale</Text>
+            <Text style={styles.label}>{strip(d.candidates.channel)}</Text>
             <Text style={styles.value}>{c.channel}</Text>
           </View>
           <View style={styles.row}>
-            <Text style={styles.label}>Data registrazione</Text>
+            <Text style={styles.label}>{d.pdf.registeredOn}</Text>
             <Text style={styles.value}>
-              {c.createdAt.toLocaleDateString("it-IT")}
+              {c.createdAt.toLocaleDateString(locale)}
             </Text>
           </View>
         </View>
 
-        {/* Lingue */}
+        {/* Languages */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Lingue</Text>
+          <Text style={styles.sectionTitle}>{d.candidates.languages}</Text>
           {c.languages.language ? (
             <Text style={styles.listItem}>
-              {"\u2022"} Lingua madre: {c.languages.language}
+              {"•"} {strip(d.candidates.motherTongue)} {c.languages.language}
             </Text>
           ) : (
-            <Text style={styles.listItem}>Nessuna lingua indicata</Text>
+            <Text style={styles.listItem}>{d.pdf.noLanguages}</Text>
           )}
           {c.languages.additionalLanguages && (
             <Text style={styles.listItem}>
-              {"\u2022"} Altre: {c.languages.additionalLanguages}
+              {"•"} {d.pdf.otherLanguages}{c.languages.additionalLanguages}
             </Text>
           )}
         </View>
 
-        {/* Formazione */}
+        {/* Education */}
         {c.educationAndTraining.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Formazione</Text>
+            <Text style={styles.sectionTitle}>{d.candidates.education}</Text>
             {c.educationAndTraining.map((item, i) => (
               <Text key={i} style={styles.listItem}>
-                {"\u2022"} {item}
+                {"•"} {item}
               </Text>
             ))}
           </View>
         )}
 
-        {/* Competenze */}
+        {/* Skills */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Competenze</Text>
+          <Text style={styles.sectionTitle}>{d.candidates.skills}</Text>
           {c.skillsAndCompetences.length > 0 ? (
             c.skillsAndCompetences.map((skill, i) => (
               <Text key={i} style={styles.listItem}>
-                {"\u2022"} {skill}
+                {"•"} {skill}
               </Text>
             ))
           ) : (
-            <Text style={styles.listItem}>Nessuna competenza indicata</Text>
+            <Text style={styles.listItem}>{d.pdf.noSkills}</Text>
           )}
         </View>
 
-        {/* Esperienze lavorative */}
+        {/* Work experience */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Esperienze lavorative</Text>
+          <Text style={styles.sectionTitle}>{d.candidates.workExperience}</Text>
           {c.workExperience.length > 0 ? (
             c.workExperience.map((exp, i) => (
               <Text key={i} style={styles.listItem}>
-                {"\u2022"} {exp}
+                {"•"} {exp}
               </Text>
             ))
           ) : (
-            <Text style={styles.listItem}>Nessuna esperienza indicata</Text>
+            <Text style={styles.listItem}>{d.pdf.noExperience}</Text>
           )}
         </View>
 
-        {/* Preferenze lavorative */}
+        {/* Job preferences */}
         {c.jobPreferences.desiredJob && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Preferenze lavorative</Text>
+            <Text style={styles.sectionTitle}>{d.candidates.jobPreferences}</Text>
             <View style={styles.row}>
-              <Text style={styles.label}>Lavoro desiderato</Text>
+              <Text style={styles.label}>{strip(d.candidates.desiredJob)}</Text>
               <Text style={styles.value}>{c.jobPreferences.desiredJob}</Text>
             </View>
             {c.jobPreferences.preferredLocation && (
               <View style={styles.row}>
-                <Text style={styles.label}>Zona preferita</Text>
+                <Text style={styles.label}>{strip(d.candidates.preferredLocation)}</Text>
                 <Text style={styles.value}>{c.jobPreferences.preferredLocation}</Text>
               </View>
             )}
             <View style={styles.row}>
-              <Text style={styles.label}>Orario</Text>
+              <Text style={styles.label}>{d.pdf.schedule}</Text>
               <Text style={styles.value}>
-                {c.jobPreferences.partTimePreference ? "Part-time" : "Full-time"}
+                {c.jobPreferences.partTimePreference ? d.candidates.partTime : d.candidates.fullTime}
               </Text>
             </View>
           </View>
         )}
 
-        {/* Note */}
+        {/* Notes */}
         {notes.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Note</Text>
+            <Text style={styles.sectionTitle}>{d.pdf.notes}</Text>
             {notes.map((note, i) => (
               <View key={i} style={styles.noteBlock}>
                 <Text style={styles.noteAuthor}>
                   {note.userName} -{" "}
-                  {note.createdAt.toLocaleDateString("it-IT")}
+                  {note.createdAt.toLocaleDateString(locale)}
                 </Text>
                 <Text style={styles.noteContent}>{note.content}</Text>
               </View>
@@ -270,7 +277,7 @@ export function renderCandidatePdf({ candidate, notes }: CandidatePdfProps) {
         )}
 
         <Text style={styles.footer}>
-          Kubri S.r.l. - Documento generato automaticamente
+          {d.pdf.footerText}
         </Text>
       </Page>
     </Document>

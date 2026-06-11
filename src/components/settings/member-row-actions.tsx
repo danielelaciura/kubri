@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import type { Role } from "@/generated/prisma/client";
-import { strings } from "@/lib/i18n/strings";
+import { useT } from "@/lib/i18n/provider";
 import { DeleteMemberButton } from "@/components/settings/delete-member-button";
 
 interface Props {
@@ -26,12 +26,13 @@ export function MemberRowActions({
   changeRoleAction,
   resendInviteAction,
 }: Props) {
+  const t = useT();
   const [transitionPending, startTransition] = useTransition();
   const newRole = memberRole === ("ORG_ADMIN" as Role) ? "ORG_MEMBER" : "ORG_ADMIN";
   const newRoleLabel =
     memberRole === ("ORG_ADMIN" as Role)
-      ? strings.roles.ORG_MEMBER
-      : strings.roles.ORG_ADMIN;
+      ? t.roles.ORG_MEMBER
+      : t.roles.ORG_ADMIN;
 
   return (
     <div className="flex items-center justify-end gap-1">
@@ -43,7 +44,7 @@ export function MemberRowActions({
             disabled={transitionPending}
             className="rounded px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
           >
-            {strings.members.resendInvite}
+            {t.members.resendInvite}
           </button>
         </form>
       )}

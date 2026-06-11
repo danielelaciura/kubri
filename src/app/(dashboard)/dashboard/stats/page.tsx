@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { Users } from "lucide-react";
 import { requireOrganization } from "@/lib/auth-utils";
-import { strings } from "@/lib/i18n/strings";
+import { getDictionary } from "@/lib/i18n";
+import { getServerLocale } from "@/lib/i18n/locale";
 import { getCandidatesForOrg } from "@/lib/candidates/service";
 import { computeStats } from "@/lib/stats/compute";
 import { StatCard } from "@/components/stats/stat-card";
@@ -15,6 +16,8 @@ export default async function StatsPage() {
   } catch {
     redirect("/login");
   }
+
+  const t = getDictionary(await getServerLocale());
 
   let stats;
   let error = false;
@@ -30,10 +33,10 @@ export default async function StatsPage() {
     return (
       <div>
         <h1 className="text-2xl tracking-tight">
-          {strings.pages.stats}
+          {t.pages.stats}
         </h1>
         <p className="mt-2 text-destructive">
-          Impossibile caricare le statistiche. Riprova pi&ugrave; tardi.
+          {t.stats.loadError}
         </p>
       </div>
     );
@@ -42,12 +45,12 @@ export default async function StatsPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl tracking-tight">
-        {strings.pages.stats}
+        {t.pages.stats}
       </h1>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="Totale candidati"
+          title={t.stats.totalCandidates}
           value={stats.total}
           icon={Users}
           iconClassName="bg-kubri-100 text-kubri-800"

@@ -6,6 +6,8 @@ import { logAudit } from "@/lib/audit";
 import { getOrgAccessiblePoolIds } from "@/lib/pools/access";
 import { z } from "zod/v4";
 import { revalidatePath } from "next/cache";
+import { getDictionary } from "@/lib/i18n";
+import { getServerLocale } from "@/lib/i18n/locale";
 
 const noteSchema = z.object({
   candidateId: z.string().uuid(),
@@ -46,13 +48,15 @@ export async function addNote(formData: FormData) {
     throw new Error("Non autenticato");
   }
 
+  const t = getDictionary(await getServerLocale());
+
   const parsed = noteSchema.safeParse({
     candidateId: formData.get("candidateId"),
     content: formData.get("content"),
   });
 
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Dati non validi");
+    throw new Error(parsed.error.issues[0]?.message ?? t.common.invalidData);
   }
 
   const { candidateId, content } = parsed.data;

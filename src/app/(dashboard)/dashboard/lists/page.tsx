@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 import { getListsForOrg } from "@/lib/lists/service";
 import { ListsManager } from "@/components/lists/lists-manager";
 import { CreateListMenu } from "@/components/lists/create-list-menu";
-import { strings } from "@/lib/i18n/strings";
+import { getServerLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n";
 
 export default async function ListsPage() {
   let user;
@@ -13,6 +14,8 @@ export default async function ListsPage() {
     redirect("/login");
   }
 
+  const t = getDictionary(await getServerLocale());
+
   const lists = user.organizationId
     ? await getListsForOrg(user.organizationId)
     : [];
@@ -21,9 +24,9 @@ export default async function ListsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl tracking-tight">{strings.pages.lists}</h1>
+          <h1 className="text-2xl tracking-tight">{t.pages.lists}</h1>
           <p className="mt-1 text-muted-foreground">
-            Organizza i candidati in liste condivise con la tua organizzazione.
+            {t.lists.pageSubtitle}
           </p>
         </div>
         <CreateListMenu />

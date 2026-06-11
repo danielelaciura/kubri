@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { strings } from "@/lib/i18n/strings";
+import { useT } from "@/lib/i18n/provider";
 
 interface NotificationFormProps {
   defaultEnabled: boolean;
@@ -18,6 +18,7 @@ export function NotificationForm({
   // Controlled inputs: React 19 resets a form after its action runs, which would
   // otherwise revert uncontrolled fields to a stale defaultValue before the
   // revalidated props arrive. State-backed values stay in sync after saving.
+  const t = useT();
   const [enabled, setEnabled] = useState(defaultEnabled);
   const [frequency, setFrequency] = useState<"DAILY" | "WEEKLY">(
     defaultFrequency,
@@ -41,12 +42,12 @@ export function NotificationForm({
           onChange={(e) => setEnabled(e.target.checked)}
           className="h-4 w-4"
         />
-        {strings.settings.notificationsEnable}
+        {t.settings.notificationsEnable}
       </label>
 
       <div className="space-y-1">
         <label className="text-sm text-muted-foreground">
-          {strings.settings.frequency}
+          {t.settings.frequency}
         </label>
         <select
           name="notifyFrequency"
@@ -54,13 +55,13 @@ export function NotificationForm({
           onChange={(e) => setFrequency(e.target.value as "DAILY" | "WEEKLY")}
           className="block w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
         >
-          <option value="DAILY">{strings.settings.frequencyDaily}</option>
-          <option value="WEEKLY">{strings.settings.frequencyWeekly}</option>
+          <option value="DAILY">{t.settings.frequencyDaily}</option>
+          <option value="WEEKLY">{t.settings.frequencyWeekly}</option>
         </select>
       </div>
 
       <Button type="submit" size="sm" disabled={isPending}>
-        {strings.common.save}
+        {t.common.save}
       </Button>
     </form>
   );

@@ -12,7 +12,8 @@ import { CandidateFilters } from "@/components/candidates/candidate-filters";
 import { getListOptionsForOrg, getListIdsByCandidateForOrg, getMemberCandidateIdSet } from "@/lib/lists/service";
 import { AdminPoolSelector } from "@/components/candidates/admin-pool-selector";
 import { Button } from "@/components/ui/button";
-import { strings } from "@/lib/i18n/strings";
+import { getServerLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n";
 import { RefreshCw, Users, AlertCircle, Download } from "lucide-react";
 import { revalidatePath } from "next/cache";
 
@@ -61,6 +62,8 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
     activePoolId = requestedPool?.id ?? globalPool?.id;
   }
 
+  const t = getDictionary(await getServerLocale());
+
   let errorMessage: string | null = null;
   let candidates: Awaited<ReturnType<typeof getCandidatesForOrg>> = [];
 
@@ -70,7 +73,7 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
         ? await getCandidatesForPool(activePoolId)
         : await getCandidatesForOrg(user.organizationId);
   } catch {
-    errorMessage = "Errore nel caricamento dei dati. Riprova più tardi.";
+    errorMessage = t.candidates.loadError;
   }
   candidates = candidates.filter((c) => c.lastName.trim() !== "");
 
@@ -104,7 +107,7 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl tracking-tight">
-          {strings.pages.candidates}
+          {t.pages.candidates}
         </h1>
         <div className="flex items-center gap-2">
           {isAdmin && adminPools.length > 0 && (
@@ -117,13 +120,13 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
           >
             <Button variant="outline" size="sm" className="gap-2" type="button">
               <Download className="h-4 w-4" />
-              Esporta CSV
+              {t.candidates.exportCsv}
             </Button>
           </a>
           <form action={refreshCandidates}>
             <Button variant="outline" size="sm" className="gap-2" type="submit">
               <RefreshCw className="h-4 w-4" />
-              {strings.common.refresh}
+              {t.common.refresh}
             </Button>
           </form>
         </div>
@@ -138,19 +141,19 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
             {errorMessage}
           </h2>
           <form action={refreshCandidates} className="mt-4">
-            <Button variant="outline" type="submit">Riprova</Button>
+            <Button variant="outline" type="submit">{t.candidates.retryButton}</Button>
           </form>
         </div>
       ) : result.total === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border p-12 text-center">
           <Users className="h-12 w-12 text-muted-foreground/50" />
           <h2 className="mt-4 text-lg font-medium text-muted-foreground">
-            Nessun candidato trovato
+            {t.candidates.emptyTitle}
           </h2>
           <p className="mt-1 text-sm text-muted-foreground/75">
             {Object.keys(filters).length > 0
-              ? "Prova a modificare i filtri di ricerca."
-              : "I candidati appariranno qui quando il chatbot raccoglierà i profili."}
+              ? t.candidates.emptyWithFilters
+              : t.candidates.emptyNoFilters}
           </p>
         </div>
       ) : (

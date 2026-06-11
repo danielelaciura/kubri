@@ -178,8 +178,38 @@ Conventions:
 - Use shadcn/ui for all base components (Button, Input, Table, Dialog, etc.)
 - Tailwind for layout and spacing. No custom CSS unless strictly necessary
 - Color palette: defined in `tailwind.config.ts`, based on Kubri brand
-- The UI is in Italian. UI text strings go in separate files to prepare for future i18n
+- The UI is bilingual (Italian default / English). All UI strings go through the dictionary system — see the Internationalization (i18n) section
 - Mobile-first, but priority is desktop/tablet (operators use laptops or tablets)
+
+### Internationalization (i18n)
+
+The dashboard is bilingual (Italian default + English). **Every user-visible string
+— text, label, placeholder, button, toast, thrown error message, PDF/email copy —
+MUST go through the dictionary system.** Never hardcode user-facing text in JSX or
+server actions.
+
+- Dictionaries live in `src/lib/i18n/dictionaries/it.ts` and `en.ts`. They must stay
+  key-for-key identical: `en` is typed `satisfies Dictionary`, so a missing
+  translation fails the build, and a vitest deep-parity test backs it up. Add every
+  new key to BOTH files.
+- **Server Components:** `const t = getDictionary(await getServerLocale());` then
+  `t.group.key`.
+- **Client Components:** `const t = useT();` (must render under `<I18nProvider>`, which
+  the dashboard/admin shell provides). Never call `useT()` at module scope.
+- **Outside the provider** (`error.tsx`, `not-found.tsx`, unauthenticated pages such as
+  the invite/terms flows, and anything rendered as a sibling of `DashboardShell`): the
+  hook is unavailable, so use `getDictionary(DEFAULT_LOCALE)` and add a short comment
+  noting why.
+- **Outputs rendered outside React** (PDF export, email digest): pass a `dictionary:
+  Dictionary` prop resolved at the call site — request locale for the PDF
+  (`getServerLocale()`), per-recipient locale for the email
+  (`getDictionary(isLocale(user.language) ? user.language : DEFAULT_LOCALE)`).
+- The active locale is the per-user `User.language` field (default `it`), changed from
+  the profile page via the `setLanguage` server action (which `revalidatePath("/")` so
+  Server Components re-read it). `getServerLocale()` is `cache()`-wrapped (one DB read
+  per request).
+- Locale-dependent date/number formatting must honour the resolved locale (e.g.
+  `toLocaleDateString(locale === "it" ? "it-IT" : "en-GB", …)`).
 
 ### Naming
 - Files and folders: `kebab-case`

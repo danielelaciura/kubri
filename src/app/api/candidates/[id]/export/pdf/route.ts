@@ -7,6 +7,8 @@ import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { renderCandidatePdf } from "@/components/export/candidate-pdf";
+import { getDictionary } from "@/lib/i18n";
+import { getServerLocale } from "@/lib/i18n/locale";
 
 export async function GET(
   _request: Request,
@@ -23,6 +25,8 @@ export async function GET(
   const { organizationId } = session;
   const isKubriAdmin = session.role === "ADMIN_KUBRI";
 
+  const dictionary = getDictionary(await getServerLocale());
+
   try {
     const [candidate, notes] = await Promise.all([
       isKubriAdmin
@@ -38,18 +42,19 @@ export async function GET(
     ]);
 
     if (!candidate) {
-      return new Response("Candidato non trovato", { status: 404 });
+      return new Response(dictionary.candidates.notFoundTitle, { status: 404 });
     }
 
     const formattedNotes = notes.map((n) => ({
       content: n.content,
-      userName: n.user?.name ?? "Utente eliminato",
+      userName: n.user?.name ?? dictionary.candidates.deletedUser,
       createdAt: n.createdAt,
     }));
 
     const pdfDocument = renderCandidatePdf({
       candidate,
       notes: formattedNotes,
+      dictionary,
     });
 
     const buffer = await renderToBuffer(pdfDocument);

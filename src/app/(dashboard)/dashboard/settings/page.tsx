@@ -6,7 +6,8 @@ import { Role } from "@/generated/prisma/client";
 import { getCandidatesForOrg } from "@/lib/candidates/service";
 import { updateOrgSettingsSchema } from "@/lib/validations/organization";
 import { logAudit } from "@/lib/audit";
-import { strings } from "@/lib/i18n/strings";
+import { getServerLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { OrgNameForm } from "@/components/settings/org-name-form";
@@ -36,13 +37,18 @@ export default async function SettingsPage() {
     makeConnected = false;
   }
 
+  const locale = await getServerLocale();
+  const t = getDictionary(locale);
+
   async function updateOrgName(formData: FormData) {
     "use server";
     const s = await getCurrentUser();
-    if (!s.organizationId) throw new Error("Non autenticato");
+    const locale = await getServerLocale();
+    const dict = getDictionary(locale);
+    if (!s.organizationId) throw new Error(dict.common.notAuthenticated);
 
     if (s.role !== Role.ADMIN_KUBRI && s.role !== Role.ORG_ADMIN) {
-      throw new Error("Permessi insufficienti");
+      throw new Error(dict.common.insufficientPermissions);
     }
 
     const parsed = updateOrgSettingsSchema.safeParse({
@@ -50,7 +56,7 @@ export default async function SettingsPage() {
     });
 
     if (!parsed.success) {
-      throw new Error("Dati non validi");
+      throw new Error(dict.common.invalidData);
     }
 
     if (parsed.data.name) {
@@ -75,16 +81,16 @@ export default async function SettingsPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl tracking-tight">
-        {strings.pages.settings}
+        {t.pages.settings}
       </h1>
       <p className="text-muted-foreground">
-        Gestisci le impostazioni della tua organizzazione.
+        {t.settings.orgIntro}
       </p>
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>{strings.settings.orgName}</CardTitle>
+            <CardTitle>{t.settings.orgName}</CardTitle>
           </CardHeader>
           <CardContent>
             {isAdmin ? (
@@ -97,26 +103,26 @@ export default async function SettingsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>{strings.settings.orgSlug}</CardTitle>
+            <CardTitle>{t.settings.orgSlug}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm font-mono">{org.slug}</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              {strings.settings.readOnly}
+              {t.settings.readOnly}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>{strings.settings.makeConnection}</CardTitle>
+            <CardTitle>{t.settings.makeConnection}</CardTitle>
           </CardHeader>
           <CardContent>
             {makeConnected ? (
-              <Badge variant="default">{strings.settings.connectionOk}</Badge>
+              <Badge variant="default">{t.settings.connectionOk}</Badge>
             ) : (
               <Badge variant="destructive">
-                {strings.settings.connectionError}
+                {t.settings.connectionError}
               </Badge>
             )}
           </CardContent>

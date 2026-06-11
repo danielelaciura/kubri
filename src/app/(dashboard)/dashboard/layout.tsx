@@ -5,6 +5,7 @@ import { Role } from "@/generated/prisma/client";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { SessionTracker } from "@/components/auth/session-tracker";
 import { TermsAcceptanceModal } from "@/components/auth/terms-acceptance-modal";
+import { getServerLocale } from "@/lib/i18n/locale";
 
 export default async function DashboardLayout({
   children,
@@ -43,6 +44,7 @@ export default async function DashboardLayout({
     : null;
 
   const needsTerms = dbUser.termsAcceptedAt === null;
+  const locale = await getServerLocale();
 
   return (
     <>
@@ -55,6 +57,7 @@ export default async function DashboardLayout({
         isOrgAdmin={
           dbUser.role === Role.ORG_ADMIN || dbUser.role === Role.ADMIN_KUBRI
         }
+        locale={locale}
       >
         {children}
       </DashboardShell>

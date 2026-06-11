@@ -4,7 +4,7 @@ import { useState, type KeyboardEvent } from "react";
 import { X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { strings } from "@/lib/i18n/strings";
+import { useT } from "@/lib/i18n/provider";
 
 interface SkillsInputProps {
   value: string[];
@@ -13,6 +13,7 @@ interface SkillsInputProps {
 }
 
 export function SkillsInput({ value, onChange, name }: SkillsInputProps) {
+  const t = useT();
   const [draft, setDraft] = useState("");
 
   const commit = () => {
@@ -47,7 +48,7 @@ export function SkillsInput({ value, onChange, name }: SkillsInputProps) {
               type="button"
               onClick={() => remove(skill)}
               className="rounded-full p-0.5 hover:bg-muted"
-              aria-label={`Rimuovi ${skill}`}
+              aria-label={`${t.jobs.removeSkill} ${skill}`}
             >
               <X className="h-3 w-3" />
             </button>
@@ -59,7 +60,7 @@ export function SkillsInput({ value, onChange, name }: SkillsInputProps) {
         onChange={(e) => setDraft(e.target.value)}
         onKeyDown={onKey}
         onBlur={commit}
-        placeholder={strings.jobs.skillPlaceholder}
+        placeholder={t.jobs.skillPlaceholder}
         className="bg-white"
       />
       {name && <input type="hidden" name={name} value={JSON.stringify(value)} />}

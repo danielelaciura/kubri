@@ -8,6 +8,7 @@ export function isWeeklyDue(now: Date): boolean {
 export interface Recipient {
   id: string;
   email: string;
+  language: string | null;
   organizationId: string;
   organizationName: string;
   lastNotifiedAt: Date | null;
@@ -29,6 +30,7 @@ export async function getDueRecipients(now: Date): Promise<Recipient[]> {
     select: {
       id: true,
       email: true,
+      language: true,
       organizationId: true,
       lastNotifiedAt: true,
       createdAt: true,
@@ -39,6 +41,7 @@ export async function getDueRecipients(now: Date): Promise<Recipient[]> {
   return users.map((u) => ({
     id: u.id,
     email: u.email,
+    language: u.language,
     organizationId: u.organizationId as string,
     organizationName: u.organization?.name ?? "La tua organizzazione",
     lastNotifiedAt: u.lastNotifiedAt,

@@ -11,6 +11,13 @@ import {
 import { acceptTermsAction, logoutAction } from "@/lib/auth-actions";
 import { TERMS_URL, PRIVACY_URL } from "@/lib/terms/text";
 import { ExternalLink } from "lucide-react";
+import { getDictionary, DEFAULT_LOCALE } from "@/lib/i18n";
+
+// TermsAcceptanceModal is rendered outside <DashboardShell> (and thus outside
+// <I18nProvider>), so useT() is not available here. We fall back to the default
+// locale dictionary directly — the user has not yet completed the flow that
+// persists their locale preference.
+const t = getDictionary(DEFAULT_LOCALE);
 
 type DocumentCardProps = {
   title: string;
@@ -40,7 +47,7 @@ function DocumentCard({
           rel="noreferrer"
           className="inline-flex shrink-0 items-center gap-1 text-sm font-medium underline-offset-4 hover:underline"
         >
-          Apri
+          {t.auth.open}
           <ExternalLink className="size-3.5" />
         </a>
       </div>
@@ -51,7 +58,7 @@ function DocumentCard({
           onChange={(e) => onCheckedChange(e.target.checked)}
           className="size-4 rounded border-input accent-primary"
         />
-        Ho letto e accetto
+        {t.auth.readAndAccept}
       </label>
     </div>
   );
@@ -72,7 +79,7 @@ export function TermsAcceptanceModal() {
       try {
         await acceptTermsAction();
       } catch {
-        setError("Impossibile salvare l'accettazione. Riprova.");
+        setError(t.auth.termsSaveError);
       }
     });
   }
@@ -87,23 +94,22 @@ export function TermsAcceptanceModal() {
     <Dialog open onOpenChange={() => {}}>
       <DialogContent showCloseButton={false} className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Termini e Condizioni / Privacy Policy</DialogTitle>
+          <DialogTitle>{t.auth.termsDialogTitle}</DialogTitle>
         </DialogHeader>
         <p className="text-sm text-muted-foreground">
-          Per accedere alla piattaforma è necessario leggere e accettare
-          entrambi i documenti.
+          {t.auth.termsDialogDescription}
         </p>
         <div className="space-y-3 py-2">
           <DocumentCard
-            title="Termini e Condizioni"
-            description="Le regole d'uso della piattaforma Kubri."
+            title={t.auth.termsTitle}
+            description={t.auth.termsDescription}
             href={TERMS_URL}
             checked={termsAccepted}
             onCheckedChange={setTermsAccepted}
           />
           <DocumentCard
-            title="Privacy Policy"
-            description="Come trattiamo i tuoi dati personali."
+            title={t.auth.privacyTitle}
+            description={t.auth.privacyDescription}
             href={PRIVACY_URL}
             checked={privacyAccepted}
             onCheckedChange={setPrivacyAccepted}
@@ -117,14 +123,14 @@ export function TermsAcceptanceModal() {
             onClick={onLogout}
             disabled={isLoggingOut || isAccepting}
           >
-            {isLoggingOut ? "Esco..." : "Esci"}
+            {isLoggingOut ? t.auth.loggingOut : t.common.logout}
           </Button>
           <Button
             type="button"
             onClick={onConfirm}
             disabled={!bothAccepted || isAccepting || isLoggingOut}
           >
-            {isAccepting ? "Salvataggio..." : "Conferma"}
+            {isAccepting ? t.auth.saving : t.common.confirm}
           </Button>
         </div>
       </DialogContent>

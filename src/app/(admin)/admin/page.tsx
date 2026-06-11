@@ -3,7 +3,8 @@ import { Building2, Users } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth-utils";
 import { Role } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
-import { strings } from "@/lib/i18n/strings";
+import { getServerLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n";
 import { StatCard } from "@/components/stats/stat-card";
 import {
   Card,
@@ -30,6 +31,8 @@ export default async function AdminPage() {
     redirect("/login");
   }
 
+  const t = getDictionary(await getServerLocale());
+
   const organizations = await prisma.organization.findMany({
     select: {
       id: true,
@@ -50,17 +53,17 @@ export default async function AdminPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl tracking-tight">
-        {strings.pages.admin}
+        {t.pages.admin}
       </h1>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="Organizzazioni"
+          title={t.organizations.title}
           value={organizations.length}
           icon={Building2}
         />
         <StatCard
-          title="Utenti totali"
+          title={t.admin.totalUsers}
           value={totalUsers}
           icon={Users}
         />
@@ -68,15 +71,15 @@ export default async function AdminPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Riepilogo organizzazioni</CardTitle>
+          <CardTitle>{t.admin.orgSummary}</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>{strings.common.name}</TableHead>
-                <TableHead>{strings.organizations.slug}</TableHead>
-                <TableHead>{strings.organizations.memberCount}</TableHead>
+                <TableHead>{t.common.name}</TableHead>
+                <TableHead>{t.organizations.slug}</TableHead>
+                <TableHead>{t.organizations.memberCount}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -90,7 +93,7 @@ export default async function AdminPage() {
               {organizations.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={3} className="text-center text-muted-foreground">
-                    Nessuna organizzazione presente.
+                    {t.admin.noOrganizations}
                   </TableCell>
                 </TableRow>
               )}

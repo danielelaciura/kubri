@@ -8,6 +8,8 @@ import {
   getMemberCandidateIdSet,
 } from "@/lib/lists/service";
 import { logAudit } from "@/lib/audit";
+import { getDictionary } from "@/lib/i18n";
+import { getServerLocale } from "@/lib/i18n/locale";
 
 export async function GET(request: Request) {
   let session;
@@ -17,6 +19,7 @@ export async function GET(request: Request) {
     return new Response("Non autorizzato", { status: 401 });
   }
 
+  const dictionary = getDictionary(await getServerLocale());
   const { organizationId } = session;
   const url = new URL(request.url);
 
@@ -46,7 +49,7 @@ export async function GET(request: Request) {
     const sorted = sortCandidates(filtered, sort);
 
     const listNames = await getListNamesByCandidateForOrg(organizationId);
-    const csv = candidatesToCsv(sorted, listNames);
+    const csv = candidatesToCsv(sorted, listNames, dictionary);
 
     const today = new Date().toISOString().slice(0, 10);
 

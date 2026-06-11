@@ -1,11 +1,13 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/db";
-import { strings } from "@/lib/i18n/strings";
+import { getDictionary } from "@/lib/i18n";
+import { getServerLocale } from "@/lib/i18n/locale";
 import { JobForm } from "@/components/jobs/job-form";
 import { createJobAction } from "../actions";
 
 export default async function NewJobPage() {
+  const t = getDictionary(await getServerLocale());
   const supabase = await createSupabaseServerClient();
   const {
     data: { user: authUser },
@@ -23,7 +25,7 @@ export default async function NewJobPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl tracking-tight">{strings.pages.jobNew}</h1>
+      <h1 className="text-2xl tracking-tight">{t.pages.jobNew}</h1>
       <JobForm mode="create" action={createJobAction} />
     </div>
   );

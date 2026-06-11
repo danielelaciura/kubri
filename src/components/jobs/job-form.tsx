@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { strings } from "@/lib/i18n/strings";
+import { useT } from "@/lib/i18n/provider";
 import { SkillsInput } from "./skills-input";
 import { LocationCombobox } from "@/components/shared/location-combobox";
 import {
@@ -32,6 +32,7 @@ interface JobFormProps {
 }
 
 export function JobForm({ mode, initial, action }: JobFormProps) {
+  const t = useT();
   const [skills, setSkills] = useState<string[]>(initial?.skills ?? []);
   const [radius, setRadius] = useState<number>(
     initial?.searchRadiusKm ?? DEFAULT_SEARCH_RADIUS_KM,
@@ -59,7 +60,7 @@ export function JobForm({ mode, initial, action }: JobFormProps) {
   return (
     <form onSubmit={onSubmit} className="space-y-6 max-w-2xl">
       <div className="space-y-2">
-        <Label htmlFor="name">{strings.jobs.fieldName}</Label>
+        <Label htmlFor="name">{t.jobs.fieldName}</Label>
         <Input
           id="name"
           name="name"
@@ -71,7 +72,7 @@ export function JobForm({ mode, initial, action }: JobFormProps) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="locationRaw">{strings.jobs.fieldLocation}</Label>
+        <Label htmlFor="locationRaw">{t.jobs.fieldLocation}</Label>
         <LocationCombobox
           name="locationRaw"
           defaultValue={initial?.locationRaw ?? ""}
@@ -81,7 +82,7 @@ export function JobForm({ mode, initial, action }: JobFormProps) {
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label htmlFor="searchRadiusKm">Raggio di ricerca default</Label>
+          <Label htmlFor="searchRadiusKm">{t.jobs.searchRadiusLabel}</Label>
           <span className="text-sm text-muted-foreground">{radius} km</span>
         </div>
         <Slider
@@ -95,7 +96,7 @@ export function JobForm({ mode, initial, action }: JobFormProps) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="description">{strings.jobs.fieldDescription}</Label>
+        <Label htmlFor="description">{t.jobs.fieldDescription}</Label>
         <Textarea
           id="description"
           name="description"
@@ -109,7 +110,7 @@ export function JobForm({ mode, initial, action }: JobFormProps) {
       </div>
 
       <div className="space-y-2">
-        <Label>{strings.jobs.fieldSkills}</Label>
+        <Label>{t.jobs.fieldSkills}</Label>
         <SkillsInput value={skills} onChange={setSkills} />
       </div>
 
@@ -121,10 +122,10 @@ export function JobForm({ mode, initial, action }: JobFormProps) {
 
       <div className="flex gap-2">
         <Button type="submit" disabled={isPending}>
-          {mode === "create" ? strings.jobs.createButton : strings.jobs.updateButton}
+          {mode === "create" ? t.jobs.createButton : t.jobs.updateButton}
         </Button>
         <Button type="button" variant="outline" onClick={() => router.back()}>
-          {strings.common.cancel}
+          {t.common.cancel}
         </Button>
       </div>
     </form>

@@ -3,7 +3,8 @@ import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/db";
 import { Role } from "@/generated/prisma/client";
-import { strings } from "@/lib/i18n/strings";
+import { getServerLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n";
 import { listAllJobDescriptionsForAdmin } from "@/lib/jobs/service";
 import {
   Table,
@@ -28,21 +29,22 @@ export default async function AdminJobsPage() {
   });
   if (!currentUser || currentUser.role !== Role.ADMIN_KUBRI) redirect("/dashboard");
 
+  const t = getDictionary(await getServerLocale());
   const jobs = await listAllJobDescriptionsForAdmin();
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl tracking-tight">{strings.pages.jobs}</h1>
+      <h1 className="text-2xl tracking-tight">{t.pages.jobs}</h1>
 
       <div className="rounded-lg border border-border/60 bg-card shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Organizzazione</TableHead>
-              <TableHead>Nome</TableHead>
-              <TableHead>Località</TableHead>
-              <TableHead>Competenze</TableHead>
-              <TableHead>Creata il</TableHead>
+              <TableHead>{t.common.organization}</TableHead>
+              <TableHead>{t.common.name}</TableHead>
+              <TableHead>{t.common.location}</TableHead>
+              <TableHead>{t.common.skills}</TableHead>
+              <TableHead>{t.jobs.createdAt}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

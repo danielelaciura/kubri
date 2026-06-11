@@ -3,18 +3,15 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth-utils";
 import { prisma } from "@/lib/db";
-import { Role, NotifyFrequency } from "@/generated/prisma/client";
+import { NotifyFrequency } from "@/generated/prisma/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { NotificationForm } from "@/components/settings/notification-form";
 import { notificationPrefsSchema } from "@/lib/validations/notification";
-import { strings } from "@/lib/i18n/strings";
-
-const ROLE_LABEL: Record<Role, string> = {
-  ADMIN_KUBRI: "Admin Kubri",
-  ORG_ADMIN: "Admin organizzazione",
-  ORG_MEMBER: "Membro",
-};
+import { getServerLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n";
+import { setLanguage } from "@/lib/i18n/actions";
+import { LanguageForm } from "@/components/settings/language-form";
 
 export default async function ProfilePage() {
   const supabase = await createSupabaseServerClient();
@@ -33,10 +30,15 @@ export default async function ProfilePage() {
       lastLoginAt: true,
       notifyEnabled: true,
       notifyFrequency: true,
+      language: true,
       organization: { select: { name: true } },
     },
   });
   if (!user) redirect("/login");
+
+  const locale = await getServerLocale();
+  const t = getDictionary(locale);
+  const dateLocale = locale === "it" ? "it-IT" : "en-GB";
 
   async function updateNotificationPrefs(formData: FormData) {
     "use server";
@@ -47,7 +49,8 @@ export default async function ProfilePage() {
       notifyFrequency: formData.get("notifyFrequency"),
     });
     if (!parsed.success) {
-      throw new Error("Dati non validi");
+      const dict = getDictionary(await getServerLocale());
+      throw new Error(dict.common.invalidData);
     }
 
     const current = await prisma.user.findUnique({
@@ -71,41 +74,41 @@ export default async function ProfilePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl tracking-tight">{strings.common.profile}</h1>
+        <h1 className="text-2xl tracking-tight">{t.common.profile}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          I tuoi dati personali e l&apos;organizzazione di appartenenza.
+          {t.profile.accountIntro}
         </p>
       </div>
 
       <Card className="shadow-sm border-border/60">
         <CardHeader>
-          <CardTitle>Dati account</CardTitle>
+          <CardTitle>{t.profile.accountData}</CardTitle>
         </CardHeader>
         <CardContent>
           <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label="Nome" value={user.name} />
-            <Field label="Email" value={user.email} />
+            <Field label={t.profile.fieldName} value={user.name} />
+            <Field label={t.profile.fieldEmail} value={user.email} />
             <Field
-              label="Ruolo"
-              value={<Badge variant="secondary">{ROLE_LABEL[user.role]}</Badge>}
+              label={t.profile.fieldRole}
+              value={<Badge variant="secondary">{t.roles[user.role]}</Badge>}
             />
             <Field
-              label="Organizzazione"
+              label={t.profile.fieldOrganization}
               value={user.organization?.name ?? "—"}
             />
             <Field
-              label="Account creato il"
-              value={user.createdAt.toLocaleDateString("it-IT", {
+              label={t.profile.fieldCreatedAt}
+              value={user.createdAt.toLocaleDateString(dateLocale, {
                 day: "2-digit",
                 month: "long",
                 year: "numeric",
               })}
             />
             <Field
-              label="Ultimo accesso"
+              label={t.profile.fieldLastLogin}
               value={
                 user.lastLoginAt
-                  ? user.lastLoginAt.toLocaleDateString("it-IT", {
+                  ? user.lastLoginAt.toLocaleDateString(dateLocale, {
                       day: "2-digit",
                       month: "long",
                       year: "numeric",
@@ -121,17 +124,29 @@ export default async function ProfilePage() {
 
       <Card className="shadow-sm border-border/60">
         <CardHeader>
-          <CardTitle>{strings.settings.notifications}</CardTitle>
+          <CardTitle>{t.settings.notifications}</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="mb-4 text-sm text-muted-foreground">
-            {strings.settings.notificationsDescription}
+            {t.settings.notificationsDescription}
           </p>
           <NotificationForm
             defaultEnabled={user.notifyEnabled}
             defaultFrequency={user.notifyFrequency}
             action={updateNotificationPrefs}
           />
+        </CardContent>
+      </Card>
+
+      <Card className="shadow-sm border-border/60">
+        <CardHeader>
+          <CardTitle>{t.profile.language}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="mb-4 text-sm text-muted-foreground">
+            {t.profile.languageDescription}
+          </p>
+          <LanguageForm defaultLanguage={locale} action={setLanguage} />
         </CardContent>
       </Card>
     </div>

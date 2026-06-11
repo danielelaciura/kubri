@@ -11,6 +11,8 @@ import {
 import { sortCandidates, paginateCandidates } from "@/lib/candidates/filter";
 import { CandidatesTable } from "@/components/candidates/candidates-table";
 import { Button } from "@/components/ui/button";
+import { getServerLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n";
 
 export default async function ListDetailPage({
   params,
@@ -23,6 +25,7 @@ export default async function ListDetailPage({
   } catch {
     redirect("/login");
   }
+  const t = getDictionary(await getServerLocale());
   const { id } = await params;
   if (!user.organizationId) redirect("/login");
 
@@ -49,7 +52,7 @@ export default async function ListDetailPage({
             href="/dashboard/lists"
             className="text-sm text-muted-foreground hover:underline"
           >
-            ← Liste
+            {t.lists.backToLists}
           </Link>
           <h1 className="text-2xl tracking-tight">{list.name}</h1>
         </div>
@@ -60,14 +63,14 @@ export default async function ListDetailPage({
         >
           <Button variant="outline" size="sm" className="gap-2">
             <Download className="h-4 w-4" />
-            Esporta CSV
+            {t.candidates.exportCsv}
           </Button>
         </a>
       </div>
 
       {result.total === 0 ? (
         <p className="text-sm text-muted-foreground">
-          Nessun candidato in questa lista.
+          {t.lists.emptyDetail}
         </p>
       ) : (
         <CandidatesTable

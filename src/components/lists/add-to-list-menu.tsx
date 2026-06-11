@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { ListPlus, Loader2, Plus } from "lucide-react";
+import { useT } from "@/lib/i18n/provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -35,6 +36,7 @@ export function AddToListMenu({
   memberOf,
   variant = "icon",
 }: AddToListMenuProps) {
+  const t = useT();
   const [members, setMembers] = useState<Set<string>>(new Set(memberOf));
   const [options, setOptions] = useState<ListOption[]>(lists);
   const [newName, setNewName] = useState("");
@@ -80,7 +82,7 @@ export function AddToListMenu({
         await addCandidateToList(created.id, candidateId);
         setMembers((prev) => new Set(prev).add(created.id));
       } catch (e) {
-        setCreateError(e instanceof Error ? e.message : "Errore nella creazione");
+        setCreateError(e instanceof Error ? e.message : t.lists.createError);
       }
     });
   };
@@ -92,13 +94,13 @@ export function AddToListMenu({
           variant === "button" ? (
             <Button variant="outline" size="sm" className="gap-2">
               <ListPlus className="h-4 w-4" />
-              Aggiungi a lista
+              {t.lists.addToList}
             </Button>
           ) : (
             <Button
               variant="ghost"
               size="icon"
-              aria-label="Aggiungi a lista"
+              aria-label={t.lists.addToList}
               onClick={(e) => e.stopPropagation()}
             >
               {isPending ? (
@@ -116,11 +118,11 @@ export function AddToListMenu({
         onClick={(e) => e.stopPropagation()}
       >
         <p className="px-1 pb-1 text-xs font-medium text-muted-foreground">
-          Liste
+          {t.lists.listsHeading}
         </p>
         {options.length === 0 ? (
           <p className="px-1 py-1 text-sm text-muted-foreground">
-            Nessuna lista. Creane una qui sotto.
+            {t.lists.emptyInMenu}
           </p>
         ) : (
           <div className="max-h-56 overflow-y-auto">
@@ -136,7 +138,7 @@ export function AddToListMenu({
                   <span className="flex-1 truncate text-left">{l.name}</span>
                   {isMember && (
                     <span className="ml-auto shrink-0 text-xs font-medium text-muted-foreground">
-                      Aggiunto
+                      {t.lists.added}
                     </span>
                   )}
                 </button>
@@ -155,7 +157,7 @@ export function AddToListMenu({
                 handleCreate();
               }
             }}
-            placeholder="Nuova lista..."
+            placeholder={t.lists.newListPlaceholder}
             className="h-8 flex-1"
           />
           <Button

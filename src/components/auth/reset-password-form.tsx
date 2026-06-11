@@ -4,6 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { mapSupabaseError } from "@/lib/supabase/errors";
+import { getDictionary, DEFAULT_LOCALE } from "@/lib/i18n";
+
+// Auth pages render pre-login and have no user locale — use the default locale.
+const authDictionary = getDictionary(DEFAULT_LOCALE);
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -41,7 +45,7 @@ export function ResetPasswordForm() {
     const { error: authError } = await supabase.auth.updateUser({ password });
 
     if (authError) {
-      setError(mapSupabaseError(authError));
+      setError(mapSupabaseError(authError, authDictionary));
       setIsLoading(false);
       return;
     }

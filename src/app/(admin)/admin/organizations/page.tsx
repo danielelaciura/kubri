@@ -1,11 +1,9 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { prisma } from "@/lib/db";
 import { Role } from "@/generated/prisma/client";
 import { logAudit } from "@/lib/audit";
-import { getAppOrigin } from "@/lib/origin";
 import { createOrgSchema } from "@/lib/validations/organization";
 import { getServerLocale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n";
@@ -71,8 +69,6 @@ export default async function OrganizationsPage() {
     const parsed = createOrgSchema.safeParse({
       name: formData.get("name"),
       slug: formData.get("slug"),
-      adminEmail: formData.get("adminEmail"),
-      adminName: formData.get("adminName"),
     });
     if (!parsed.success) {
       throw new Error(t.common.invalidData);
@@ -80,6 +76,8 @@ export default async function OrganizationsPage() {
 
     // Create the org and auto-attach the Global pool (Q2 = B: rimovibile dall'admin
     // Kubri in seguito, ma di default ogni nuova org vede il pool condiviso).
+    // No admin user is created here — members are invited afterwards from the
+    // org detail page.
     const organization = await prisma.$transaction(async (tx) => {
       const org = await tx.organization.create({
         data: { name: parsed.data.name, slug: parsed.data.slug },
@@ -96,26 +94,6 @@ export default async function OrganizationsPage() {
       return org;
     });
 
-    const admin = createSupabaseAdminClient();
-    const origin = await getAppOrigin();
-
-    const { error: inviteError } = await admin.auth.admin.inviteUserByEmail(
-      parsed.data.adminEmail,
-      {
-        data: {
-          name: parsed.data.adminName,
-          role: "ORG_ADMIN",
-          organization_id: organization.id,
-        },
-        redirectTo: `${origin}/auth/accept-invite`,
-      },
-    );
-    if (inviteError) {
-      // Roll back org creation so admin can retry without a unique-slug conflict.
-      await prisma.organization.delete({ where: { id: organization.id } });
-      throw new Error(inviteError.message);
-    }
-
     await logAudit({
       userId: me.id,
       organizationId: organization.id,
@@ -125,7 +103,6 @@ export default async function OrganizationsPage() {
       metadata: {
         name: parsed.data.name,
         slug: parsed.data.slug,
-        adminEmail: parsed.data.adminEmail,
       },
     });
 

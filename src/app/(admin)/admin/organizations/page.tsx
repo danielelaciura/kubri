@@ -7,7 +7,8 @@ import { Role } from "@/generated/prisma/client";
 import { logAudit } from "@/lib/audit";
 import { getAppOrigin } from "@/lib/origin";
 import { createOrgSchema } from "@/lib/validations/organization";
-import { strings } from "@/lib/i18n/strings";
+import { getServerLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n";
 import {
   Table,
   TableBody,
@@ -33,6 +34,8 @@ export default async function OrganizationsPage() {
     redirect("/dashboard");
   }
 
+  const t = getDictionary(await getServerLocale());
+
   const organizations = await prisma.organization.findMany({
     select: {
       id: true,
@@ -55,14 +58,14 @@ export default async function OrganizationsPage() {
     const {
       data: { user: aUser },
     } = await sbRead.auth.getUser();
-    if (!aUser) throw new Error("Non autenticato");
+    if (!aUser) throw new Error(t.common.notAuthenticated);
 
     const me = await prisma.user.findUnique({
       where: { id: aUser.id },
       select: { id: true, role: true },
     });
     if (!me || me.role !== Role.ADMIN_KUBRI) {
-      throw new Error("Permessi insufficienti");
+      throw new Error(t.common.insufficientPermissions);
     }
 
     const parsed = createOrgSchema.safeParse({
@@ -72,7 +75,7 @@ export default async function OrganizationsPage() {
       adminName: formData.get("adminName"),
     });
     if (!parsed.success) {
-      throw new Error("Dati non validi");
+      throw new Error(t.common.invalidData);
     }
 
     // Create the org and auto-attach the Global pool (Q2 = B: rimovibile dall'admin
@@ -134,10 +137,10 @@ export default async function OrganizationsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl tracking-tight">
-            {strings.pages.organizations}
+            {t.pages.organizations}
           </h1>
           <p className="mt-1 text-muted-foreground">
-            Gestisci le organizzazioni sulla piattaforma.
+            {t.admin.manageOrgsIntro}
           </p>
         </div>
         <CreateOrgDialog action={createOrg} />
@@ -146,10 +149,10 @@ export default async function OrganizationsPage() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Nome</TableHead>
-            <TableHead>Slug</TableHead>
-            <TableHead>Membri</TableHead>
-            <TableHead>Data creazione</TableHead>
+            <TableHead>{t.common.name}</TableHead>
+            <TableHead>{t.organizations.slug}</TableHead>
+            <TableHead>{t.organizations.memberCount}</TableHead>
+            <TableHead>{t.common.createdAt}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

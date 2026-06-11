@@ -12,7 +12,8 @@ import {
   resendInviteSchema,
   removeMemberSchema,
 } from "@/lib/validations/organization";
-import { strings } from "@/lib/i18n/strings";
+import { getServerLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n";
 import { attachOrgToPool, detachOrgFromPool } from "@/lib/pools/actions";
 import { InviteOrgMemberDialog } from "@/components/admin/invite-org-member-dialog";
 import { DeleteMemberButton } from "@/components/settings/delete-member-button";
@@ -45,6 +46,7 @@ export default async function OrgDetailPage({ params }: OrgDetailPageProps) {
     redirect("/dashboard");
   }
 
+  const t = getDictionary(await getServerLocale());
   const { id } = await params;
 
   const org = await prisma.organization.findUnique({
@@ -97,7 +99,7 @@ export default async function OrgDetailPage({ params }: OrgDetailPageProps) {
     "use server";
     const s = await getCurrentUser();
     if (s.role !== Role.ADMIN_KUBRI) {
-      throw new Error("Permessi insufficienti");
+      throw new Error(t.common.insufficientPermissions);
     }
 
     const parsed = updateOrgSettingsSchema.safeParse({
@@ -105,7 +107,7 @@ export default async function OrgDetailPage({ params }: OrgDetailPageProps) {
     });
 
     if (!parsed.success || !parsed.data.name) {
-      throw new Error("Dati non validi");
+      throw new Error(t.common.invalidData);
     }
 
     await prisma.organization.update({
@@ -128,14 +130,14 @@ export default async function OrgDetailPage({ params }: OrgDetailPageProps) {
   async function attachPoolAction(formData: FormData) {
     "use server";
     const poolId = String(formData.get("poolId") ?? "");
-    if (!poolId) throw new Error("Pool non valido");
+    if (!poolId) throw new Error(t.admin.invalidPool);
     await attachOrgToPool(poolId, id);
   }
 
   async function detachPoolAction(formData: FormData) {
     "use server";
     const poolId = String(formData.get("poolId") ?? "");
-    if (!poolId) throw new Error("Pool non valido");
+    if (!poolId) throw new Error(t.admin.invalidPool);
     await detachOrgFromPool(poolId, id);
   }
 
@@ -143,18 +145,18 @@ async function resendInvite(formData: FormData) {
     "use server";
     const s = await getCurrentUser();
     if (s.role !== Role.ADMIN_KUBRI) {
-      throw new Error("Permessi insufficienti");
+      throw new Error(t.common.insufficientPermissions);
     }
 
     const parsed = resendInviteSchema.safeParse({
       userId: formData.get("userId"),
     });
-    if (!parsed.success) throw new Error("Dati non validi");
+    if (!parsed.success) throw new Error(t.common.invalidData);
 
     const target = await prisma.user.findFirst({
       where: { id: parsed.data.userId, organizationId: id },
     });
-    if (!target) throw new Error("Utente non trovato");
+    if (!target) throw new Error(t.common.userNotFound);
 
     const admin = createSupabaseAdminClient();
     const origin = await getAppOrigin();
@@ -184,7 +186,7 @@ async function resendInvite(formData: FormData) {
     "use server";
     const s = await getCurrentUser();
     if (s.role !== Role.ADMIN_KUBRI) {
-      throw new Error("Permessi insufficienti");
+      throw new Error(t.common.insufficientPermissions);
     }
 
     const parsed = inviteMemberSchema.safeParse({
@@ -192,12 +194,12 @@ async function resendInvite(formData: FormData) {
       name: formData.get("name"),
       role: formData.get("role"),
     });
-    if (!parsed.success) throw new Error("Dati non validi");
+    if (!parsed.success) throw new Error(t.common.invalidData);
 
     const existing = await prisma.user.findUnique({
       where: { email: parsed.data.email },
     });
-    if (existing) throw new Error(strings.members.emailExists);
+    if (existing) throw new Error(t.members.emailExists);
 
     const admin = createSupabaseAdminClient();
     const origin = await getAppOrigin();
@@ -230,22 +232,22 @@ async function resendInvite(formData: FormData) {
     "use server";
     const s = await getCurrentUser();
     if (s.role !== Role.ADMIN_KUBRI) {
-      throw new Error("Permessi insufficienti");
+      throw new Error(t.common.insufficientPermissions);
     }
 
     const parsed = removeMemberSchema.safeParse({
       userId: formData.get("userId"),
     });
-    if (!parsed.success) throw new Error("Dati non validi");
+    if (!parsed.success) throw new Error(t.common.invalidData);
     if (parsed.data.userId === s.id) {
-      throw new Error("Non puoi rimuovere te stesso");
+      throw new Error(t.members.cannotRemoveSelf);
     }
 
     const target = await prisma.user.findFirst({
       where: { id: parsed.data.userId, organizationId: id },
       select: { id: true, email: true },
     });
-    if (!target) throw new Error("Utente non trovato");
+    if (!target) throw new Error(t.common.userNotFound);
 
     const admin = createSupabaseAdminClient();
     const { error } = await admin.auth.admin.deleteUser(target.id);
@@ -269,7 +271,7 @@ async function resendInvite(formData: FormData) {
         <a href="/admin/organizations">
           <Button variant="ghost" size="sm">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Organizzazioni
+            {t.pages.organizations}
           </Button>
         </a>
       </div>
@@ -282,11 +284,11 @@ async function resendInvite(formData: FormData) {
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Informazioni</CardTitle>
+            <CardTitle>{t.common.info}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div>
-              <p className="text-sm text-muted-foreground">Data creazione</p>
+              <p className="text-sm text-muted-foreground">{t.common.createdAt}</p>
               <p className="text-sm">{org.createdAt.toLocaleDateString("it-IT")}</p>
             </div>
           </CardContent>
@@ -294,24 +296,24 @@ async function resendInvite(formData: FormData) {
 
         <Card>
           <CardHeader>
-            <CardTitle>Modifica nome</CardTitle>
+            <CardTitle>{t.settings.editName}</CardTitle>
           </CardHeader>
           <CardContent>
             <form action={updateOrgName} className="flex gap-2">
               <Input name="name" defaultValue={org.name} required />
-              <Button type="submit">{strings.common.save}</Button>
+              <Button type="submit">{t.common.save}</Button>
             </form>
           </CardContent>
         </Card>
 
         <Card className="md:col-span-2">
           <CardHeader>
-            <CardTitle>Pool accessibili ({org.pools.length})</CardTitle>
+            <CardTitle>{t.admin.accessiblePools} ({org.pools.length})</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {org.pools.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                Nessun pool agganciato a questa organizzazione.
+                {t.admin.noPoolsAttached}
               </p>
             ) : (
               <ul className="space-y-2">
@@ -337,7 +339,7 @@ async function resendInvite(formData: FormData) {
                     <form action={detachPoolAction}>
                       <input type="hidden" name="poolId" value={op.pool.id} />
                       <Button type="submit" variant="ghost" size="sm">
-                        Rimuovi
+                        {t.common.remove}
                       </Button>
                     </form>
                   </li>
@@ -359,13 +361,12 @@ async function resendInvite(formData: FormData) {
                     </option>
                   ))}
                 </select>
-                <Button type="submit">Aggancia</Button>
+                <Button type="submit">{t.admin.attach}</Button>
               </form>
             )}
 
             <p className="text-xs text-muted-foreground">
-              I pool determinano quali candidati questa organizzazione può
-              vedere. La gestione dei pool si fa da{" "}
+              {t.admin.poolsDescription}{" "}
               <a className="underline" href="/admin/pools">
                 /admin/pools
               </a>
@@ -377,19 +378,19 @@ async function resendInvite(formData: FormData) {
 
       <div>
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg">Membri ({members.length})</h2>
+          <h2 className="text-lg">{t.admin.membersCount} ({members.length})</h2>
           <InviteOrgMemberDialog action={inviteOrgMember} />
         </div>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Ruolo</TableHead>
-              <TableHead>Stato</TableHead>
-              <TableHead>Iscrizione</TableHead>
-              <TableHead>Ultimo accesso</TableHead>
-              <TableHead className="text-right">Azioni</TableHead>
+              <TableHead>{t.common.name}</TableHead>
+              <TableHead>{t.common.email}</TableHead>
+              <TableHead>{t.common.role}</TableHead>
+              <TableHead>{t.members.status}</TableHead>
+              <TableHead>{t.members.subscription}</TableHead>
+              <TableHead>{t.members.lastLogin}</TableHead>
+              <TableHead className="text-right">{t.common.actions}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -399,14 +400,14 @@ async function resendInvite(formData: FormData) {
                 <TableCell>{user.email}</TableCell>
                 <TableCell>
                   <Badge variant="secondary">
-                    {strings.roles[user.role] ?? user.role}
+                    {t.roles[user.role] ?? user.role}
                   </Badge>
                 </TableCell>
                 <TableCell>
                   {user.isPending ? (
-                    <Badge variant="outline">In attesa</Badge>
+                    <Badge variant="outline">{t.members.pending}</Badge>
                   ) : (
-                    <Badge>Attivo</Badge>
+                    <Badge>{t.members.active}</Badge>
                   )}
                 </TableCell>
                 <TableCell>
@@ -415,7 +416,7 @@ async function resendInvite(formData: FormData) {
                 <TableCell>
                   {user.lastLoginAt
                     ? user.lastLoginAt.toLocaleDateString("it-IT")
-                    : "Mai"}
+                    : t.common.never}
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
@@ -428,7 +429,7 @@ async function resendInvite(formData: FormData) {
                           size="sm"
                           className="text-xs"
                         >
-                          {strings.members.resendInvite}
+                          {t.members.resendInvite}
                         </Button>
                       </form>
                     )}

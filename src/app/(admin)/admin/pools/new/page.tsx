@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft } from "lucide-react";
-import { strings } from "@/lib/i18n/strings";
+import { getServerLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n";
 
 export default async function NewPoolPage() {
   let me;
@@ -17,6 +18,8 @@ export default async function NewPoolPage() {
     redirect("/login");
   }
   if (me.role !== Role.ADMIN_KUBRI) redirect("/dashboard");
+
+  const t = getDictionary(await getServerLocale());
 
   async function createAction(formData: FormData) {
     "use server";
@@ -35,30 +38,30 @@ export default async function NewPoolPage() {
         <a href="/admin/pools">
           <Button variant="ghost" size="sm">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Pool
+            {t.nav.pools}
           </Button>
         </a>
       </div>
 
       <div>
-        <h1 className="text-2xl tracking-tight">Nuovo pool</h1>
+        <h1 className="text-2xl tracking-tight">{t.pools.newPool}</h1>
         <p className="mt-1 text-muted-foreground">
-          Crea un nuovo pool di candidati.
+          {t.pools.newPoolDescription}
         </p>
       </div>
 
       <Card className="max-w-xl">
         <CardHeader>
-          <CardTitle>Dettagli</CardTitle>
+          <CardTitle>{t.pools.details}</CardTitle>
         </CardHeader>
         <CardContent>
           <form action={createAction} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Nome</Label>
+              <Label htmlFor="name">{t.common.name}</Label>
               <Input id="name" name="name" required maxLength={100} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="slug">Slug</Label>
+              <Label htmlFor="slug">{t.organizations.slug}</Label>
               <Input
                 id="slug"
                 name="slug"
@@ -68,22 +71,21 @@ export default async function NewPoolPage() {
                 placeholder="es. nord-ovest"
               />
               <p className="text-xs text-muted-foreground">
-                Solo lettere minuscole, numeri e trattini.
+                {t.pools.slugHint}
               </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="externalKey">External key (opzionale)</Label>
+              <Label htmlFor="externalKey">{t.pools.externalKeyOptional}</Label>
               <Input id="externalKey" name="externalKey" maxLength={255} />
               <p className="text-xs text-muted-foreground">
-                Chiave usata dal webhook per assegnare i candidati a questo
-                pool.
+                {t.pools.externalKeyHint}
               </p>
             </div>
             <div className="flex gap-2">
-              <Button type="submit">{strings.common.save}</Button>
+              <Button type="submit">{t.common.save}</Button>
               <a href="/admin/pools">
                 <Button type="button" variant="ghost">
-                  {strings.common.cancel}
+                  {t.common.cancel}
                 </Button>
               </a>
             </div>

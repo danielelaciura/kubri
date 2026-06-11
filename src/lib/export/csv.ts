@@ -1,25 +1,7 @@
 import type { Candidate } from "@/types";
+import type { Dictionary } from "@/lib/i18n";
 
-const BOM = "\uFEFF";
-
-const HEADERS = [
-  "Nome",
-  "Cognome",
-  "Data di nascita",
-  "Paese di origine",
-  "Indirizzo",
-  "Telefono",
-  "Stato legale",
-  "Permesso di lavoro",
-  "Lingua madre",
-  "Altre lingue",
-  "Competenze",
-  "Esperienze lavorative",
-  "Lavoro desiderato",
-  "Liste",
-  "Data",
-  "Canale",
-];
+const BOM = "﻿";
 
 function escapeCell(value: string): string {
   if (value.includes(",") || value.includes('"') || value.includes("\n")) {
@@ -31,7 +13,29 @@ function escapeCell(value: string): string {
 export function candidatesToCsv(
   candidates: Candidate[],
   listsByCandidateId: Record<string, string[]> = {},
+  dictionary: Dictionary,
 ): string {
+  const csv = dictionary.csv;
+
+  const HEADERS = [
+    csv.headerFirstName,
+    csv.headerLastName,
+    csv.headerDateOfBirth,
+    csv.headerCountryOfOrigin,
+    csv.headerAddress,
+    csv.headerPhone,
+    csv.headerLegalStatus,
+    csv.headerWorkingPermit,
+    csv.headerMotherTongue,
+    csv.headerOtherLanguages,
+    csv.headerSkills,
+    csv.headerWorkExperience,
+    csv.headerDesiredJob,
+    csv.headerLists,
+    csv.headerDate,
+    csv.headerChannel,
+  ];
+
   const rows = candidates.map((c) =>
     [
       c.firstName,
@@ -41,7 +45,7 @@ export function candidatesToCsv(
       c.address,
       c.phone,
       c.legalStatus,
-      c.workingPermit ? "Sì" : "No",
+      c.workingPermit ? csv.yes : csv.no,
       c.languages.language,
       c.languages.additionalLanguages.join("; "),
       c.skillsAndCompetences.join("; "),

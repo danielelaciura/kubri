@@ -1,6 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { candidatesToCsv } from "@/lib/export/csv";
 import type { Candidate } from "@/types";
+import { getDictionary, DEFAULT_LOCALE } from "@/lib/i18n";
+
+const dict = getDictionary(DEFAULT_LOCALE);
 
 function makeCandidate(overrides: Partial<Candidate> = {}): Candidate {
   return {
@@ -47,13 +50,13 @@ function makeCandidate(overrides: Partial<Candidate> = {}): Candidate {
 
 describe("candidatesToCsv", () => {
   it("includes UTF-8 BOM at start of output", () => {
-    const csv = candidatesToCsv([]);
+    const csv = candidatesToCsv([], {}, dict);
     expect(csv.charCodeAt(0)).toBe(0xfeff);
   });
 
   it("produces correct Italian column headers", () => {
-    const csv = candidatesToCsv([]);
-    const firstLine = csv.replace("\uFEFF", "").split("\n")[0];
+    const csv = candidatesToCsv([], {}, dict);
+    const firstLine = csv.replace("﻿", "").split("\n")[0];
     expect(firstLine).toBe(
       "Nome,Cognome,Data di nascita,Paese di origine,Indirizzo,Telefono,Stato legale,Permesso di lavoro,Lingua madre,Altre lingue,Competenze,Esperienze lavorative,Lavoro desiderato,Liste,Data,Canale",
     );
@@ -61,21 +64,21 @@ describe("candidatesToCsv", () => {
 
   it("includes the candidate's list names in the Liste column", () => {
     const c = makeCandidate({ id: "c1" });
-    const csv = candidatesToCsv([c], { c1: ["Camerieri", "Palermo"] });
+    const csv = candidatesToCsv([c], { c1: ["Camerieri", "Palermo"] }, dict);
     expect(csv).toContain("Camerieri; Palermo");
   });
 
   it("leaves the Liste column empty when the candidate has no lists", () => {
     const c = makeCandidate({ id: "c1" });
-    const csv = candidatesToCsv([c]);
-    const dataLine = csv.replace("\uFEFF", "").split("\n")[1];
+    const csv = candidatesToCsv([c], {}, dict);
+    const dataLine = csv.replace("﻿", "").split("\n")[1];
     // Liste column empty between "Cameriere" (desiredJob) and the date
     expect(dataLine).toContain("Cameriere,,");
   });
 
   it("produces a correct row for a single candidate", () => {
-    const csv = candidatesToCsv([makeCandidate()]);
-    const lines = csv.replace("\uFEFF", "").split("\n");
+    const csv = candidatesToCsv([makeCandidate()], {}, dict);
+    const lines = csv.replace("﻿", "").split("\n");
     expect(lines).toHaveLength(2);
     const row = lines[1];
     expect(row).toContain("Mario");
@@ -88,33 +91,33 @@ describe("candidatesToCsv", () => {
     expect(row).toContain("telegram");
   });
 
-  it("renders workingPermit boolean as 'Sì' / 'No'", () => {
-    const yes = candidatesToCsv([makeCandidate({ workingPermit: true })]);
-    expect(yes).toContain("Sì");
+  it("renders workingPermit boolean as dict yes/no values", () => {
+    const yes = candidatesToCsv([makeCandidate({ workingPermit: true })], {}, dict);
+    expect(yes).toContain(dict.csv.yes);
 
-    const no = candidatesToCsv([makeCandidate({ workingPermit: false })]);
-    const lines = no.replace("\uFEFF", "").split("\n");
-    expect(lines[1]).toContain(",No,");
+    const no = candidatesToCsv([makeCandidate({ workingPermit: false })], {}, dict);
+    const lines = no.replace("﻿", "").split("\n");
+    expect(lines[1]).toContain(`,${dict.csv.no},`);
   });
 
   it("escapes cells containing commas", () => {
     const csv = candidatesToCsv([
       makeCandidate({ address: "Via Roma 1, Milano" }),
-    ]);
+    ], {}, dict);
     expect(csv).toContain('"Via Roma 1, Milano"');
   });
 
   it("escapes cells containing double quotes", () => {
     const csv = candidatesToCsv([
       makeCandidate({ firstName: 'Mario "Il Grande"' }),
-    ]);
+    ], {}, dict);
     expect(csv).toContain('"Mario ""Il Grande"""');
   });
 
   it("escapes cells containing newlines", () => {
     const csv = candidatesToCsv([
       makeCandidate({ address: "Milano\nLombardia" }),
-    ]);
+    ], {}, dict);
     expect(csv).toContain('"Milano\nLombardia"');
   });
 
@@ -126,7 +129,7 @@ describe("candidatesToCsv", () => {
         countryOfOrigin: "Côte d'Ivoire",
         address: "São Paulo",
       }),
-    ]);
+    ], {}, dict);
     expect(csv).toContain("François");
     expect(csv).toContain("Müller");
     expect(csv).toContain("Côte d'Ivoire");
@@ -144,8 +147,8 @@ describe("candidatesToCsv", () => {
         workExperience: [],
         address: "",
       }),
-    ]);
-    const lines = csv.replace("\uFEFF", "").split("\n");
+    ], {}, dict);
+    const lines = csv.replace("﻿", "").split("\n");
     expect(lines).toHaveLength(2);
     // Should not throw and should produce a valid row with the expected number of columns
     const cells = lines[1]!.split(",");
@@ -158,8 +161,8 @@ describe("candidatesToCsv", () => {
       makeCandidate({ id: "2", firstName: "Anna", lastName: "Bianchi", address: "Roma" }),
       makeCandidate({ id: "3", firstName: "Luca", lastName: "Verdi" }),
     ];
-    const csv = candidatesToCsv(candidates);
-    const lines = csv.replace("\uFEFF", "").split("\n");
+    const csv = candidatesToCsv(candidates, {}, dict);
+    const lines = csv.replace("﻿", "").split("\n");
     expect(lines).toHaveLength(4);
     expect(lines[1]).toContain("Mario");
     expect(lines[1]).toContain("Rossi");
@@ -173,7 +176,7 @@ describe("candidatesToCsv", () => {
   it("formats dates in Italian locale", () => {
     const csv = candidatesToCsv([
       makeCandidate({ createdAt: new Date("2025-12-25T12:00:00Z") }),
-    ]);
+    ], {}, dict);
     // Italian date format: DD/MM/YYYY
     expect(csv).toMatch(/25\/12\/2025/);
   });

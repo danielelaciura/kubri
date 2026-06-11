@@ -12,6 +12,8 @@ import {
   JobNotFoundError,
 } from "@/lib/jobs/service";
 import { clearRerankCache, invalidateRerankCacheForJd } from "@/lib/llm/rerank";
+import { getDictionary } from "@/lib/i18n";
+import { getServerLocale } from "@/lib/i18n/locale";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -56,9 +58,11 @@ export async function updateJobAction(id: string, formData: FormData): Promise<A
   const ctx = await requireAdmin();
   if (!ctx) return { ok: false, error: "Non autorizzato" };
 
+  const t = getDictionary(await getServerLocale());
+
   const parsed = parseInput(formData);
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Dati non validi" };
+    return { ok: false, error: parsed.error.issues[0]?.message ?? t.common.invalidData };
   }
 
   try {
@@ -78,8 +82,8 @@ export async function updateJobAction(id: string, formData: FormData): Promise<A
       },
     });
   } catch (e) {
-    if (e instanceof JobNameAlreadyExistsError) return { ok: false, error: e.message };
-    if (e instanceof JobNotFoundError) return { ok: false, error: e.message };
+    if (e instanceof JobNameAlreadyExistsError) return { ok: false, error: t.jobs.uniqueNameError };
+    if (e instanceof JobNotFoundError) return { ok: false, error: t.jobs.notFound };
     throw e;
   }
 
@@ -91,6 +95,8 @@ export async function updateJobAction(id: string, formData: FormData): Promise<A
 export async function deleteJobAction(id: string): Promise<ActionResult> {
   const ctx = await requireAdmin();
   if (!ctx) return { ok: false, error: "Non autorizzato" };
+
+  const t = getDictionary(await getServerLocale());
 
   try {
     await deleteJobDescription({ id, organizationId: ctx.organizationId });
@@ -105,7 +111,7 @@ export async function deleteJobAction(id: string): Promise<ActionResult> {
       },
     });
   } catch (e) {
-    if (e instanceof JobNotFoundError) return { ok: false, error: e.message };
+    if (e instanceof JobNotFoundError) return { ok: false, error: t.jobs.notFound };
     throw e;
   }
 

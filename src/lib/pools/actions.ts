@@ -10,6 +10,8 @@ import {
   type PoolCreateInput,
   type PoolUpdateInput,
 } from "@/lib/validations/pool";
+import { getDictionary } from "@/lib/i18n";
+import { getServerLocale } from "@/lib/i18n/locale";
 
 export async function createPool(input: PoolCreateInput) {
   const admin = await requireRole("ADMIN_KUBRI");
@@ -50,6 +52,7 @@ export async function updatePool(id: string, input: PoolUpdateInput) {
 
 export async function deletePool(id: string) {
   const admin = await requireRole("ADMIN_KUBRI");
+  const t = getDictionary(await getServerLocale());
   // Block deleting the global pool explicitly (in addition to the partial unique
   // constraint, this gives a clear UX error).
   const pool = await prisma.pool.findUnique({
@@ -57,7 +60,7 @@ export async function deletePool(id: string) {
     select: { id: true, name: true, slug: true, isGlobal: true },
   });
   if (!pool) throw new Error("Pool non trovato");
-  if (pool.isGlobal) throw new Error("Il pool 'Global' non può essere eliminato.");
+  if (pool.isGlobal) throw new Error(t.pools.cannotDeleteGlobal);
 
   // ON DELETE RESTRICT on candidates+OrganizationPool will reject if the pool is
   // attached or has candidates. Let Prisma surface the error to the UI.

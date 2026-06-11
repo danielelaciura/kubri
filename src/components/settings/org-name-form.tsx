@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { strings } from "@/lib/i18n/strings";
+import { useT } from "@/lib/i18n/provider";
 
 interface OrgNameFormProps {
   currentName: string;
@@ -11,6 +11,7 @@ interface OrgNameFormProps {
 }
 
 export function OrgNameForm({ currentName, action }: OrgNameFormProps) {
+  const t = useT();
   const [_state, formAction, isPending] = useActionState(
     async (_prev: unknown, formData: FormData) => {
       await action(formData);
@@ -25,11 +26,11 @@ export function OrgNameForm({ currentName, action }: OrgNameFormProps) {
         <Input
           name="name"
           defaultValue={currentName}
-          placeholder={strings.settings.orgName}
+          placeholder={t.settings.orgName}
         />
       </div>
       <Button type="submit" size="sm" disabled={isPending}>
-        {strings.common.save}
+        {t.common.save}
       </Button>
     </form>
   );

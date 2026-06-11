@@ -12,7 +12,8 @@ import {
   changeRoleSchema,
   resendInviteSchema,
 } from "@/lib/validations/organization";
-import { strings } from "@/lib/i18n/strings";
+import { getServerLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n";
 import {
   Table,
   TableBody,
@@ -61,21 +62,25 @@ export default async function MembersPage() {
     ORDER BY "createdAt" ASC
   `;
 
+  const locale = await getServerLocale();
+  const t = getDictionary(locale);
+
   async function inviteMember(formData: FormData) {
     "use server";
     const sbRead = await createSupabaseServerClient();
     const {
       data: { user: aUser },
     } = await sbRead.auth.getUser();
-    if (!aUser) throw new Error("Non autenticato");
+    const dict = getDictionary(await getServerLocale());
+    if (!aUser) throw new Error(dict.common.notAuthenticated);
 
     const me = await prisma.user.findUnique({
       where: { id: aUser.id },
       select: { id: true, role: true, organizationId: true },
     });
-    if (!me?.organizationId) throw new Error("Non autenticato");
+    if (!me?.organizationId) throw new Error(dict.common.notAuthenticated);
     if (me.role !== Role.ADMIN_KUBRI && me.role !== Role.ORG_ADMIN) {
-      throw new Error("Permessi insufficienti");
+      throw new Error(dict.common.insufficientPermissions);
     }
 
     const parsed = inviteMemberSchema.safeParse({
@@ -83,10 +88,12 @@ export default async function MembersPage() {
       name: formData.get("name"),
       role: formData.get("role"),
     });
-    if (!parsed.success) throw new Error("Dati non validi");
+    if (!parsed.success) throw new Error(dict.common.invalidData);
 
     const existing = await prisma.user.findUnique({ where: { email: parsed.data.email } });
-    if (existing) throw new Error(strings.members.emailExists);
+    if (existing) {
+      throw new Error(dict.members.emailExists);
+    }
 
     const admin = createSupabaseAdminClient();
     const origin = await getAppOrigin();
@@ -118,24 +125,25 @@ export default async function MembersPage() {
     const {
       data: { user: aUser },
     } = await sbRead.auth.getUser();
-    if (!aUser) throw new Error("Non autenticato");
+    const dict = getDictionary(await getServerLocale());
+    if (!aUser) throw new Error(dict.common.notAuthenticated);
 
     const me = await prisma.user.findUnique({
       where: { id: aUser.id },
       select: { id: true, role: true, organizationId: true },
     });
-    if (!me?.organizationId) throw new Error("Non autenticato");
+    if (!me?.organizationId) throw new Error(dict.common.notAuthenticated);
     if (me.role !== Role.ADMIN_KUBRI && me.role !== Role.ORG_ADMIN) {
-      throw new Error("Permessi insufficienti");
+      throw new Error(dict.common.insufficientPermissions);
     }
 
     const parsed = resendInviteSchema.safeParse({ userId: formData.get("userId") });
-    if (!parsed.success) throw new Error("Dati non validi");
+    if (!parsed.success) throw new Error(dict.common.invalidData);
 
     const target = await prisma.user.findFirst({
       where: { id: parsed.data.userId, organizationId: me.organizationId },
     });
-    if (!target) throw new Error("Utente non trovato");
+    if (!target) throw new Error(dict.common.userNotFound);
 
     const admin = createSupabaseAdminClient();
     const origin = await getAppOrigin();
@@ -167,28 +175,29 @@ export default async function MembersPage() {
     const {
       data: { user: aUser },
     } = await sbRead.auth.getUser();
-    if (!aUser) throw new Error("Non autenticato");
+    const dict = getDictionary(await getServerLocale());
+    if (!aUser) throw new Error(dict.common.notAuthenticated);
 
     const me = await prisma.user.findUnique({
       where: { id: aUser.id },
       select: { id: true, role: true, organizationId: true },
     });
-    if (!me?.organizationId) throw new Error("Non autenticato");
+    if (!me?.organizationId) throw new Error(dict.common.notAuthenticated);
     if (me.role !== Role.ADMIN_KUBRI && me.role !== Role.ORG_ADMIN) {
-      throw new Error("Permessi insufficienti");
+      throw new Error(dict.common.insufficientPermissions);
     }
 
     const parsed = removeMemberSchema.safeParse({ userId: formData.get("userId") });
-    if (!parsed.success) throw new Error("Dati non validi");
+    if (!parsed.success) throw new Error(dict.common.invalidData);
     if (parsed.data.userId === me.id) {
-      throw new Error(strings.members.cannotRemoveSelf);
+      throw new Error(dict.members.cannotRemoveSelf);
     }
 
     const target = await prisma.user.findFirst({
       where: { id: parsed.data.userId, organizationId: me.organizationId },
       select: { id: true, email: true },
     });
-    if (!target) throw new Error("Utente non trovato");
+    if (!target) throw new Error(dict.common.userNotFound);
 
     const admin = createSupabaseAdminClient();
     const { error } = await admin.auth.admin.deleteUser(target.id);
@@ -212,28 +221,29 @@ export default async function MembersPage() {
     const {
       data: { user: aUser },
     } = await sbRead.auth.getUser();
-    if (!aUser) throw new Error("Non autenticato");
+    const dict = getDictionary(await getServerLocale());
+    if (!aUser) throw new Error(dict.common.notAuthenticated);
 
     const me = await prisma.user.findUnique({
       where: { id: aUser.id },
       select: { id: true, role: true, organizationId: true },
     });
-    if (!me?.organizationId) throw new Error("Non autenticato");
+    if (!me?.organizationId) throw new Error(dict.common.notAuthenticated);
     if (me.role !== Role.ADMIN_KUBRI && me.role !== Role.ORG_ADMIN) {
-      throw new Error("Permessi insufficienti");
+      throw new Error(dict.common.insufficientPermissions);
     }
 
     const parsed = changeRoleSchema.safeParse({
       userId: formData.get("userId"),
       role: formData.get("role"),
     });
-    if (!parsed.success) throw new Error("Dati non validi");
+    if (!parsed.success) throw new Error(dict.common.invalidData);
 
     const target = await prisma.user.findFirst({
       where: { id: parsed.data.userId, organizationId: me.organizationId },
       select: { id: true, email: true, role: true, name: true },
     });
-    if (!target) throw new Error("Utente non trovato");
+    if (!target) throw new Error(dict.common.userNotFound);
 
     // Update Supabase user_metadata first so that if it fails, we haven't
     // diverged public.User from auth.users. The trigger only reads metadata
@@ -269,15 +279,15 @@ export default async function MembersPage() {
     revalidatePath("/dashboard/users");
   }
 
-  const roleLabel = (role: Role): string => strings.roles[role] ?? role;
+  const dateLocale = locale === "it" ? "it-IT" : "en-GB";
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl tracking-tight">{strings.members.title}</h1>
+          <h1 className="text-2xl tracking-tight">{t.members.title}</h1>
           <p className="mt-1 text-muted-foreground">
-            Gestisci i membri della tua organizzazione.
+            {t.members.manageMembersIntro}
           </p>
         </div>
         {isAdmin && (
@@ -300,13 +310,13 @@ export default async function MembersPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>{strings.common.name}</TableHead>
-              <TableHead>{strings.common.email}</TableHead>
-              <TableHead>{strings.common.role}</TableHead>
-              <TableHead>{strings.members.joinedAt}</TableHead>
-              <TableHead>{strings.members.status}</TableHead>
+              <TableHead>{t.common.name}</TableHead>
+              <TableHead>{t.common.email}</TableHead>
+              <TableHead>{t.common.role}</TableHead>
+              <TableHead>{t.members.joinedAt}</TableHead>
+              <TableHead>{t.members.status}</TableHead>
               {isAdmin && (
-                <TableHead className="text-right">{strings.common.actions}</TableHead>
+                <TableHead className="text-right">{t.common.actions}</TableHead>
               )}
             </TableRow>
           </TableHeader>
@@ -316,19 +326,19 @@ export default async function MembersPage() {
                 <TableCell className="font-medium">{member.name}</TableCell>
                 <TableCell className="text-muted-foreground">{member.email}</TableCell>
                 <TableCell>
-                  <Badge variant="secondary">{roleLabel(member.role)}</Badge>
+                  <Badge variant="secondary">{t.roles[member.role]}</Badge>
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {member.createdAt.toLocaleDateString("it-IT")}
+                  {member.createdAt.toLocaleDateString(dateLocale)}
                 </TableCell>
                 <TableCell>
                   {member.isPending ? (
                     <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-900">
-                      {strings.members.pending}
+                      {t.members.pending}
                     </Badge>
                   ) : (
                     <Badge className="bg-emerald-600 hover:bg-emerald-600">
-                      {strings.members.active}
+                      {t.members.active}
                     </Badge>
                   )}
                 </TableCell>

@@ -14,13 +14,14 @@ import {
   DialogTrigger,
   DialogClose,
 } from "@/components/ui/dialog";
-import { strings } from "@/lib/i18n/strings";
+import { useT } from "@/lib/i18n/provider";
 
 interface InviteOrgMemberDialogProps {
   action: (formData: FormData) => Promise<void>;
 }
 
 export function InviteOrgMemberDialog({ action }: InviteOrgMemberDialogProps) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +33,7 @@ export function InviteOrgMemberDialog({ action }: InviteOrgMemberDialogProps) {
       await action(formData);
       setOpen(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Errore nell'invito");
+      setError(e instanceof Error ? e.message : t.members.inviteError);
     } finally {
       setPending(false);
     }
@@ -50,22 +51,22 @@ export function InviteOrgMemberDialog({ action }: InviteOrgMemberDialogProps) {
         render={
           <Button size="sm" className="gap-2">
             <UserPlus className="h-4 w-4" />
-            {strings.members.invite}
+            {t.members.invite}
           </Button>
         }
       />
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{strings.members.invite}</DialogTitle>
+          <DialogTitle>{t.members.invite}</DialogTitle>
           <DialogDescription>
-            Invita un nuovo membro a questa organizzazione.
+            {t.members.inviteOrgDescription}
           </DialogDescription>
         </DialogHeader>
 
         <form action={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <label htmlFor="invite-name" className="text-sm font-medium">
-              {strings.common.name}
+              {t.common.name}
             </label>
             <Input
               id="invite-name"
@@ -77,7 +78,7 @@ export function InviteOrgMemberDialog({ action }: InviteOrgMemberDialogProps) {
 
           <div className="space-y-2">
             <label htmlFor="invite-email" className="text-sm font-medium">
-              {strings.common.email}
+              {t.common.email}
             </label>
             <Input
               id="invite-email"
@@ -90,7 +91,7 @@ export function InviteOrgMemberDialog({ action }: InviteOrgMemberDialogProps) {
 
           <div className="space-y-2">
             <label htmlFor="invite-role" className="text-sm font-medium">
-              {strings.common.role}
+              {t.common.role}
             </label>
             <select
               id="invite-role"
@@ -99,8 +100,8 @@ export function InviteOrgMemberDialog({ action }: InviteOrgMemberDialogProps) {
               defaultValue="ORG_MEMBER"
               className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             >
-              <option value="ORG_MEMBER">{strings.roles.ORG_MEMBER}</option>
-              <option value="ORG_ADMIN">{strings.roles.ORG_ADMIN}</option>
+              <option value="ORG_MEMBER">{t.roles.ORG_MEMBER}</option>
+              <option value="ORG_ADMIN">{t.roles.ORG_ADMIN}</option>
             </select>
           </div>
 
@@ -110,12 +111,12 @@ export function InviteOrgMemberDialog({ action }: InviteOrgMemberDialogProps) {
             <DialogClose
               render={
                 <Button type="button" variant="outline">
-                  {strings.common.cancel}
+                  {t.common.cancel}
                 </Button>
               }
             />
             <Button type="submit" disabled={pending}>
-              {pending ? "Invio..." : strings.members.invite}
+              {pending ? t.members.sending : t.members.invite}
             </Button>
           </DialogFooter>
         </form>

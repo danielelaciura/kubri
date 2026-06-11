@@ -23,9 +23,15 @@ every future text goes through the i18n system.
 3. **Coverage:** full extraction — all hardcoded UI text moves into the
    dictionary system and is translated to EN. Toast/error messages and Zod error
    text are in scope (they are user-visible).
-4. **Locale plumbing:** cookie `kubri_locale` mirrors `User.language`. The cookie
-   is the synchronous read source for both Server and Client Components; the DB
-   field is the persistent source of truth.
+4. **Locale plumbing:** the DB field `User.language` is the single source of
+   truth. Server Components resolve it via a React-`cache()`-wrapped
+   `getServerLocale()` (one query per request, deduped). Client Components get
+   the active dictionary from an `<I18nProvider>` fed by the layout. No cookie.
+   (Originally a `kubri_locale` cookie was planned, but Next.js cannot set
+   cookies during a Server Component render and the login flow is client-side
+   Supabase with no server action to hook — the cached DB read is simpler and
+   removes the sync bug, while still letting the preference follow the user to
+   any device on first login.)
 5. **Switcher location:** the language selector lives **only** on the user
    Profile page (`/dashboard/profile`). Not in the header menu.
 
@@ -41,7 +47,7 @@ src/lib/i18n/
 │   ├── it.ts        ← current object, renamed + enriched with extracted keys
 │   └── en.ts        ← same structure, English values
 ├── types.ts         ← Dictionary, Locale types
-├── locale.ts        ← getServerLocale(), cookie helpers
+├── locale.ts        ← getServerLocale() (cache()-wrapped DB read)
 ├── index.ts         ← getDictionary(locale), LOCALES, DEFAULT_LOCALE, isLocale()
 └── provider.tsx     ← <I18nProvider> + useT() (client)
 ```
@@ -65,20 +71,16 @@ as needed during extraction (`lists`, `stats`, `pools`, `candidates`, `errors`,
 
 `src/lib/i18n/locale.ts`:
 
-- `getServerLocale(): Locale` — reads the `kubri_locale` cookie via `cookies()`;
-  validates with `isLocale()`; falls back to `DEFAULT_LOCALE`. Used by every
-  Server Component.
-- Cookie spec: name `kubri_locale`, `SameSite=Lax`, `path=/`, max-age ~1 year,
-  **not** httpOnly (must be readable client-side). No sensitive data — it only
-  holds `it`/`en`.
+- `getServerLocale(): Promise<Locale>` — wrapped in React `cache()` so it runs at
+  most once per request even when called by the layout, the page, and nested
+  Server Components. It resolves the Supabase auth user, reads `User.language`
+  from the DB, validates with `isLocale()`, and falls back to `DEFAULT_LOCALE`
+  (`it`) when there is no authenticated user (login / error / not-found pages) or
+  the value is invalid. No cookie involved.
 
-The DB field is the persistent truth; the cookie is the fast read path. They are
-synchronized in exactly two places:
-
-1. **On login** — after auth resolves the user, write `kubri_locale` ←
-   `User.language`. (Hook into the existing post-login / session-bootstrap path;
-   if the cookie is already correct, this is a no-op.)
-2. **On change** — the `setLanguage` Server Action writes both DB and cookie.
+The DB field `User.language` is the single source of truth. It is updated only by
+the `setLanguage` Server Action, which follows with `revalidatePath('/')` so the
+next request re-reads the new value through the (now cache-busted) resolver.
 
 ### Accessing strings
 
@@ -106,10 +108,9 @@ KB), so shipping it is fine.
 - Server Action `setLanguage(locale: Locale)`:
   1. Validate `locale` with Zod (`isLocale`).
   2. Resolve the logged-in user; update `User.language` (scoped to that user).
-  3. Set the `kubri_locale` cookie.
-  4. `revalidatePath('/')` (or a broad revalidation) so all Server Components
-     re-render with the new dictionary.
-  5. Optional: write an `AuditLog` entry, consistent with other user actions.
+  3. `revalidatePath('/')` (broad revalidation) so all Server Components
+     re-render with the new dictionary on the next request.
+  4. Optional: write an `AuditLog` entry, consistent with other user actions.
 
 ### Database
 
@@ -138,9 +139,8 @@ Systematic, file-by-file across the ~39 `.tsx` files with inline Italian plus th
 To keep review tractable, the implementation plan sequences this in phases:
 
 1. **Infrastructure** — dictionaries split, types, `locale.ts`, `index.ts`,
-   `provider.tsx`, `User.language` migration, cookie sync on login. Migrate all
-   existing `strings.*` call sites to the new accessors (no behavior change yet,
-   IT still renders).
+   `provider.tsx`, `User.language` migration. Migrate all existing `strings.*`
+   call sites to the new accessors (no behavior change yet, IT still renders).
 2. **Switcher** — `setLanguage` action + `LanguageForm` on the profile page.
    End-to-end IT↔EN switching becomes testable even before full extraction (the
    already-centralized strings flip language).
@@ -168,8 +168,7 @@ UI strings "in separate files" to point at this concrete system.
 - **Type-check** (`tsc` / `pnpm build`): `satisfies Dictionary` guarantees `en`
   and `it` have identical key sets — a missing translation fails the build.
 - **Manual:** on the profile page switch IT→EN → the whole UI changes; reload →
-  persists (cookie); log out and back in → persists (DB→cookie sync). Switch
-  back to IT.
+  persists (DB); log out and back in → persists (DB). Switch back to IT.
 - **Final grep:** no residual accented/Italian text in `.tsx` outside the
   dictionaries.
 

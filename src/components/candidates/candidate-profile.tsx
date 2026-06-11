@@ -17,6 +17,8 @@ import {
   GraduationCap,
   FileText,
 } from "lucide-react";
+import { getServerLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n";
 
 interface CandidateProfileProps {
   candidate: Candidate;
@@ -30,7 +32,8 @@ function formatDate(date: Date): string {
   });
 }
 
-export function CandidateProfile({ candidate }: CandidateProfileProps) {
+export async function CandidateProfile({ candidate }: CandidateProfileProps) {
+  const t = getDictionary(await getServerLocale());
   const c = candidate;
 
   return (
@@ -42,7 +45,7 @@ export function CandidateProfile({ candidate }: CandidateProfileProps) {
             {c.firstName} {c.lastName}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Registrato il {formatDate(c.createdAt)}
+            {t.candidates.registeredOn} {formatDate(c.createdAt)}
           </p>
         </div>
       </div>
@@ -50,61 +53,61 @@ export function CandidateProfile({ candidate }: CandidateProfileProps) {
       {/* Informazioni personali */}
       <Card className="shadow-sm border-border/60">
         <CardHeader>
-          <CardTitle>Informazioni personali</CardTitle>
+          <CardTitle>{t.candidates.personalInfo}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 sm:grid-cols-2">
             {c.dateOfBirth && (
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">Data di nascita:</span>
+                <span className="text-sm font-medium">{t.candidates.dateOfBirth}</span>
                 <span className="text-sm">{c.dateOfBirth}</span>
               </div>
             )}
             <div className="flex items-center gap-2">
               <Globe className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Paese di origine:</span>
+              <span className="text-sm font-medium">{t.candidates.countryOfOrigin}</span>
               <span className="text-sm">{c.countryOfOrigin || "—"}</span>
             </div>
             <div className="flex items-center gap-2">
               <MapPin className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Indirizzo:</span>
+              <span className="text-sm font-medium">{t.candidates.address}</span>
               <span className="text-sm">{c.address || "—"}</span>
             </div>
             {c.phone && (
               <div className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">Telefono:</span>
+                <span className="text-sm font-medium">{t.candidates.phone}</span>
                 <span className="text-sm">{c.phone}</span>
               </div>
             )}
             {c.legalStatus && (
               <div className="flex items-center gap-2">
                 <FileText className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">Stato legale:</span>
+                <span className="text-sm font-medium">{t.candidates.legalStatus}</span>
                 <span className="text-sm">{c.legalStatus}</span>
               </div>
             )}
             <div className="flex items-center gap-2">
               <Briefcase className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Permesso di lavoro:</span>
-              <span className="text-sm">{c.workingPermit ? "Sì" : "No"}</span>
+              <span className="text-sm font-medium">{t.candidates.workingPermit}</span>
+              <span className="text-sm">{c.workingPermit ? t.candidates.workingPermitYes : t.candidates.workingPermitNo}</span>
             </div>
             {c.meanOfTransport && (
               <div className="flex items-center gap-2">
                 <Car className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">Mezzo di trasporto:</span>
+                <span className="text-sm font-medium">{t.candidates.meanOfTransport}</span>
                 <span className="text-sm">{c.meanOfTransport}</span>
               </div>
             )}
             <div className="flex items-center gap-2">
               <Car className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Patente:</span>
-              <span className="text-sm">{c.drivingLicense ? "Sì" : "No"}</span>
+              <span className="text-sm font-medium">{t.candidates.drivingLicense}</span>
+              <span className="text-sm">{c.drivingLicense ? t.candidates.drivingLicenseYes : t.candidates.drivingLicenseNo}</span>
             </div>
             <div className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Canale:</span>
+              <span className="text-sm font-medium">{t.candidates.channel}</span>
               <span className="text-sm capitalize">{c.channel}</span>
             </div>
           </div>
@@ -115,19 +118,19 @@ export function CandidateProfile({ candidate }: CandidateProfileProps) {
       {(c.languages.language || c.languages.additionalLanguages) && (
         <Card className="shadow-sm border-border/60">
           <CardHeader>
-            <CardTitle>Lingue</CardTitle>
+            <CardTitle>{t.candidates.languages}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               {c.languages.language && (
                 <div>
-                  <span className="text-sm font-medium">Lingua madre: </span>
+                  <span className="text-sm font-medium">{t.candidates.motherTongue}</span>
                   <Badge variant="secondary" className="capitalize">{c.languages.language}</Badge>
                 </div>
               )}
               {c.languages.additionalLanguages && (
                 <div>
-                  <span className="text-sm font-medium">Altre lingue: </span>
+                  <span className="text-sm font-medium">{t.candidates.otherLanguages}</span>
                   {c.languages.additionalLanguages.map((language) => (
                     <Badge key={language} variant="secondary" className="capitalize">
                       {language}
@@ -144,7 +147,7 @@ export function CandidateProfile({ candidate }: CandidateProfileProps) {
       {c.educationAndTraining.length > 0 && (
         <Card className="shadow-sm border-border/60">
           <CardHeader>
-            <CardTitle>Formazione</CardTitle>
+            <CardTitle>{t.candidates.education}</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="space-y-2">
@@ -163,7 +166,7 @@ export function CandidateProfile({ candidate }: CandidateProfileProps) {
       {c.skillsAndCompetences.length > 0 && (
         <Card className="shadow-sm border-border/60">
           <CardHeader>
-            <CardTitle>Competenze</CardTitle>
+            <CardTitle>{t.candidates.skills}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
@@ -181,7 +184,7 @@ export function CandidateProfile({ candidate }: CandidateProfileProps) {
       {c.workExperience.length > 0 && (
         <Card className="shadow-sm border-border/60">
           <CardHeader>
-            <CardTitle>Esperienze lavorative</CardTitle>
+            <CardTitle>{t.candidates.workExperience}</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="space-y-2">
@@ -202,39 +205,39 @@ export function CandidateProfile({ candidate }: CandidateProfileProps) {
         c.jobPreferences.hasDesiredJobExperience) && (
         <Card className="shadow-sm border-border/60">
           <CardHeader>
-            <CardTitle>Preferenze lavorative</CardTitle>
+            <CardTitle>{t.candidates.jobPreferences}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid gap-3 sm:grid-cols-2">
               {c.jobPreferences.desiredJob && (
                 <div>
-                  <span className="text-sm font-medium">Lavoro desiderato: </span>
+                  <span className="text-sm font-medium">{t.candidates.desiredJob}</span>
                   <span className="text-sm">{c.jobPreferences.desiredJob}</span>
                 </div>
               )}
               {c.jobPreferences.preferredLocation && (
                 <div>
-                  <span className="text-sm font-medium">Zona preferita: </span>
+                  <span className="text-sm font-medium">{t.candidates.preferredLocation}</span>
                   <span className="text-sm">{c.jobPreferences.preferredLocation}</span>
                 </div>
               )}
               {c.jobPreferences.desiredJob && (
                 <div>
-                  <span className="text-sm font-medium">Preferenza orario: </span>
+                  <span className="text-sm font-medium">{t.candidates.schedulePreference}</span>
                   <span className="text-sm">
-                    {c.jobPreferences.partTimePreference ? "Part-time" : "Full-time"}
+                    {c.jobPreferences.partTimePreference ? t.candidates.partTime : t.candidates.fullTime}
                   </span>
                 </div>
               )}
               {c.jobPreferences.hasDesiredJobExperience && (
                 <div>
-                  <span className="text-sm font-medium">Esperienza nel ruolo: </span>
+                  <span className="text-sm font-medium">{t.candidates.roleExperience}</span>
                   <span className="text-sm">{c.jobPreferences.hasDesiredJobExperience}</span>
                 </div>
               )}
               {c.jobPreferences.constraints && (
                 <div className="sm:col-span-2">
-                  <span className="text-sm font-medium">Limitazioni: </span>
+                  <span className="text-sm font-medium">{t.candidates.constraints}</span>
                   <span className="text-sm">{c.jobPreferences.constraints}</span>
                 </div>
               )}
@@ -247,7 +250,7 @@ export function CandidateProfile({ candidate }: CandidateProfileProps) {
       {(c.cvPdfLink || c.cvDocLink) && (
         <Card className="shadow-sm border-border/60">
           <CardHeader>
-            <CardTitle>Curriculum Vitae</CardTitle>
+            <CardTitle>{t.candidates.cv}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex gap-3">
@@ -258,7 +261,7 @@ export function CandidateProfile({ candidate }: CandidateProfileProps) {
                   rel="noopener noreferrer"
                   className="text-sm text-kubri-600 underline hover:text-kubri-800"
                 >
-                  Scarica PDF
+                  {t.candidates.cvDownloadPdf}
                 </a>
               )}
               {c.cvDocLink && (
@@ -268,7 +271,7 @@ export function CandidateProfile({ candidate }: CandidateProfileProps) {
                   rel="noopener noreferrer"
                   className="text-sm text-kubri-600 underline hover:text-kubri-800"
                 >
-                  Apri documento
+                  {t.candidates.cvOpenDoc}
                 </a>
               )}
             </div>

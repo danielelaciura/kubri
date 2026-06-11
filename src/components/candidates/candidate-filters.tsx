@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { LocationCombobox } from "@/components/shared/location-combobox";
 import { Search, X } from "lucide-react";
-import { strings } from "@/lib/i18n/strings";
+import { useT } from "@/lib/i18n/provider";
 import {
   DEFAULT_SEARCH_RADIUS_KM,
   MIN_RADIUS_KM,
@@ -30,6 +30,7 @@ interface CandidateFiltersProps {
 }
 
 export function CandidateFilters({ initialFilters, lists }: CandidateFiltersProps) {
+  const t = useT();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -89,11 +90,11 @@ export function CandidateFilters({ initialFilters, lists }: CandidateFiltersProp
     <Card className="space-y-4 p-4 shadow-sm border-border/60">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <div>
-          <label className="mb-2 block text-sm font-medium">Ricerca</label>
+          <label className="mb-2 block text-sm font-medium">{t.candidates.filterSearch}</label>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder={`${strings.common.search}...`}
+              placeholder={`${t.common.search}...`}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && applyFilters()}
@@ -103,26 +104,26 @@ export function CandidateFilters({ initialFilters, lists }: CandidateFiltersProp
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium">Lingue</label>
+          <label className="mb-2 block text-sm font-medium">{t.candidates.filterLanguages}</label>
           <Input
-            placeholder="es. Arabo, Francese"
+            placeholder={t.candidates.filterLanguagesPlaceholder}
             value={languages}
             onChange={(e) => setLanguages(e.target.value)}
           />
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium">Vicino a...</label>
+          <label className="mb-2 block text-sm font-medium">{t.candidates.filterNearby}</label>
           <LocationCombobox
             name="nearPlace"
             value={nearPlace}
             onChange={setNearPlace}
-            placeholder="es. Milano, Lombardia"
+            placeholder={t.candidates.filterNearbyPlaceholder}
           />
           {nearPlace.trim() && (
             <div className="mt-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm">Raggio</span>
+                <span className="text-sm">{t.candidates.filterRadius}</span>
                 <span className="text-sm text-muted-foreground">{radiusKm} km</span>
               </div>
               <Slider
@@ -140,13 +141,13 @@ export function CandidateFilters({ initialFilters, lists }: CandidateFiltersProp
       {lists.length > 0 && (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div>
-            <label className="mb-2 block text-sm font-medium">Lista</label>
+            <label className="mb-2 block text-sm font-medium">{t.candidates.filterList}</label>
             <select
               value={listId}
               onChange={(e) => setListId(e.target.value)}
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             >
-              <option value="">Tutte</option>
+              <option value="">{t.candidates.filterListAll}</option>
               {lists.map((l) => (
                 <option key={l.id} value={l.id}>{l.name}</option>
               ))}
@@ -156,10 +157,10 @@ export function CandidateFilters({ initialFilters, lists }: CandidateFiltersProp
       )}
 
       <div className="flex gap-2">
-        <Button onClick={applyFilters}>{strings.common.search}</Button>
+        <Button onClick={applyFilters}>{t.common.search}</Button>
         <Button variant="outline" onClick={resetFilters} className="gap-1">
           <X className="h-5 w-5" />
-          {strings.common.reset}
+          {t.common.reset}
         </Button>
       </div>
     </Card>

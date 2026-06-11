@@ -12,6 +12,8 @@ import { AddToListMenu } from "@/components/lists/add-to-list-menu";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, AlertCircle, FileDown } from "lucide-react";
 import Link from "next/link";
+import { getServerLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n";
 
 interface CandidateDetailPageProps {
   params: Promise<{ id: string }>;
@@ -31,6 +33,8 @@ export default async function CandidateDetailPage({
   } catch {
     redirect("/login");
   }
+
+  const t = getDictionary(await getServerLocale());
 
   const { id } = await params;
   const rawSearchParams = await searchParams;
@@ -70,16 +74,16 @@ export default async function CandidateDetailPage({
         <Link href={backUrl}>
           <Button variant="ghost" size="sm" className="gap-1">
             <ArrowLeft className="h-4 w-4" />
-            Torna alla lista
+            {t.candidates.backToList}
           </Button>
         </Link>
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-destructive/50 p-12 text-center">
           <AlertCircle className="h-12 w-12 text-destructive/50" />
           <h2 className="mt-4 text-lg font-medium text-destructive">
-            Candidato non trovato
+            {t.candidates.notFoundTitle}
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Il profilo richiesto non esiste o non è accessibile.
+            {t.candidates.notFoundDescription}
           </p>
         </div>
       </div>
@@ -89,7 +93,7 @@ export default async function CandidateDetailPage({
   const formattedNotes = notes.map((n) => ({
     id: n.id,
     content: n.content,
-    userName: n.user?.name ?? "Utente eliminato",
+    userName: n.user?.name ?? t.candidates.deletedUser,
     createdAt: n.createdAt,
   }));
 
@@ -99,7 +103,7 @@ export default async function CandidateDetailPage({
         <Link href={backUrl}>
           <Button variant="ghost" size="sm" className="gap-1">
             <ArrowLeft className="h-4 w-4" />
-            Torna alla lista
+            {t.candidates.backToList}
           </Button>
         </Link>
         <a
@@ -109,7 +113,7 @@ export default async function CandidateDetailPage({
         >
           <Button variant="outline" size="sm" className="gap-2" type="button">
             <FileDown className="h-4 w-4" />
-            Esporta PDF
+            {t.candidates.exportPdf}
           </Button>
         </a>
       </div>
@@ -124,7 +128,7 @@ export default async function CandidateDetailPage({
         <div className="space-y-6">
           <div className="rounded-lg border border-border/60 bg-card p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between">
-              <span className="text-sm font-medium">Liste</span>
+              <span className="text-sm font-medium">{t.candidates.listsSection}</span>
               <AddToListMenu
                 candidateId={id}
                 lists={lists}
@@ -133,7 +137,7 @@ export default async function CandidateDetailPage({
               />
             </div>
             {memberOf.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Non in nessuna lista</p>
+              <p className="text-sm text-muted-foreground">{t.candidates.notInAnyList}</p>
             ) : (
               <div className="flex flex-wrap gap-1">
                 {lists

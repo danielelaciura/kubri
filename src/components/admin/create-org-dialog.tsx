@@ -57,7 +57,8 @@ export function CreateOrgDialog({ action }: CreateOrgDialogProps) {
         <DialogHeader>
           <DialogTitle>Nuova organizzazione</DialogTitle>
           <DialogDescription>
-            Crea un&apos;organizzazione e invita il suo primo amministratore.
+            Crea un&apos;organizzazione. Potrai invitare gli utenti in un secondo
+            momento dalla pagina dell&apos;organizzazione.
           </DialogDescription>
         </DialogHeader>
 
@@ -85,35 +86,6 @@ export function CreateOrgDialog({ action }: CreateOrgDialogProps) {
                 placeholder="nome-org"
                 pattern="[a-z0-9-]+"
               />
-            </div>
-          </div>
-
-          <div className="border-t pt-4">
-            <p className="mb-3 text-sm font-medium">Amministratore iniziale</p>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <label
-                  htmlFor="org-admin-name"
-                  className="text-sm font-medium"
-                >
-                  Nome
-                </label>
-                <Input id="org-admin-name" name="adminName" required />
-              </div>
-              <div className="space-y-2">
-                <label
-                  htmlFor="org-admin-email"
-                  className="text-sm font-medium"
-                >
-                  Email
-                </label>
-                <Input
-                  id="org-admin-email"
-                  name="adminEmail"
-                  type="email"
-                  required
-                />
-              </div>
             </div>
           </div>
 

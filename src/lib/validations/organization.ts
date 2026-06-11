@@ -6,9 +6,8 @@ export const createOrgSchema = z.object({
     .string()
     .min(1)
     .regex(/^[a-z0-9-]+$/, "Solo lettere minuscole, numeri e trattini"),
-  adminEmail: z.email("Email non valida"),
-  adminName: z.string().min(1, "Nome obbligatorio"),
-  // adminPassword removed — Supabase invite flow handles password
+  // No admin user is created here — members are invited afterwards from the
+  // org detail page (admin/organizations/[id]).
 });
 
 export const inviteMemberSchema = z.object({

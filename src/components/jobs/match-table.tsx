@@ -2,7 +2,7 @@ import Link from "next/link";
 import { AlertTriangle, Check, MapPin, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScoreBadge } from "./score-badge";
-import { strings } from "@/lib/i18n/strings";
+import type { Dictionary } from "@/lib/i18n/types";
 import type { RankedCandidate } from "@/lib/jobs/matcher";
 import { AddToListMenu } from "@/components/lists/add-to-list-menu";
 
@@ -10,13 +10,14 @@ interface MatchTableProps {
   ranked: RankedCandidate[];
   lists: { id: string; name: string }[];
   membershipByCandidate: Record<string, string[]>;
+  t: Dictionary;
 }
 
-export function MatchTable({ ranked, lists, membershipByCandidate }: MatchTableProps) {
+export function MatchTable({ ranked, lists, membershipByCandidate, t }: MatchTableProps) {
   if (ranked.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-        {strings.jobs.matchEmpty}
+        {t.jobs.matchEmpty}
       </div>
     );
   }
@@ -26,23 +27,23 @@ export function MatchTable({ ranked, lists, membershipByCandidate }: MatchTableP
   return (
     <div className="space-y-2">
       {fallback && (
-        <p className="text-sm text-muted-foreground">{strings.jobs.matchFallback}</p>
+        <p className="text-sm text-muted-foreground">{t.jobs.matchFallback}</p>
       )}
       <div className="overflow-hidden rounded-lg border border-border/60 bg-card shadow-sm">
         <div
           role="row"
           className="hidden md:grid grid-cols-[5.5rem_minmax(10rem,1.2fr)_minmax(8rem,1fr)_minmax(0,2.4fr)_auto] gap-4 border-b border-border/60 bg-muted/30 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
         >
-          <span>{strings.jobs.score}</span>
-          <span>Candidato</span>
-          <span>Preferenza</span>
-          <span>{strings.jobs.matchSummaryHeading}</span>
+          <span>{t.jobs.score}</span>
+          <span>{t.jobs.candidateColumn}</span>
+          <span>{t.jobs.preferredLocationLabel}</span>
+          <span>{t.jobs.matchSummaryHeading}</span>
           <span />
         </div>
         <ul role="rowgroup" className="divide-y divide-border/60">
           {ranked.map((r) => (
             <li key={r.candidate.id}>
-              <CandidateRow ranked={r} lists={lists} membershipByCandidate={membershipByCandidate} />
+              <CandidateRow ranked={r} lists={lists} membershipByCandidate={membershipByCandidate} t={t} />
             </li>
           ))}
         </ul>
@@ -55,10 +56,12 @@ function CandidateRow({
   ranked,
   lists,
   membershipByCandidate,
+  t,
 }: {
   ranked: RankedCandidate;
   lists: { id: string; name: string }[];
   membershipByCandidate: Record<string, string[]>;
+  t: Dictionary;
 }) {
   const { candidate, llm, isFallback } = ranked;
   const score = llm?.score ?? ranked.match.final;
@@ -80,7 +83,7 @@ function CandidateRow({
         <ScoreBadge value={score} />
         {isFallback && (
           <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-            {strings.jobs.lowMatchTag}
+            {t.jobs.lowMatchTag}
           </span>
         )}
       </div>

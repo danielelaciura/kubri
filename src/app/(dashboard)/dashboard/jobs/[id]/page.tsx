@@ -4,7 +4,9 @@ import { Suspense } from "react";
 import { RefreshCw, Pencil } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/db";
-import { strings } from "@/lib/i18n/strings";
+import { getDictionary } from "@/lib/i18n";
+import { getServerLocale } from "@/lib/i18n/locale";
+import type { Dictionary } from "@/lib/i18n/types";
 import { getJobDescription } from "@/lib/jobs/service";
 import { getCandidatesForOrg } from "@/lib/candidates/service";
 import { rankCandidates, type RankedCandidate } from "@/lib/jobs/matcher";
@@ -37,6 +39,7 @@ export default async function JobDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const t = getDictionary(await getServerLocale());
   const { id } = await params;
   const supabase = await createSupabaseServerClient();
   const {
@@ -73,7 +76,7 @@ export default async function JobDetailPage({
             <Link href={`/dashboard/jobs/${jd.id}/edit`}>
               <Button variant="outline" size="sm">
                 <Pencil className="mr-1 h-4 w-4" />
-                {strings.common.edit}
+                {t.common.edit}
               </Button>
             </Link>
             <DeleteJobButton id={jd.id} />
@@ -83,7 +86,7 @@ export default async function JobDetailPage({
 
       <Card className="shadow-sm border-border/60">
         <CardHeader>
-          <CardTitle>{strings.jobs.fieldDescription}</CardTitle>
+          <CardTitle>{t.jobs.fieldDescription}</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="whitespace-pre-wrap text-sm leading-relaxed">{jd.description}</p>
@@ -93,7 +96,7 @@ export default async function JobDetailPage({
       {jd.skills.length > 0 && (
         <Card className="shadow-sm border-border/60">
           <CardHeader>
-            <CardTitle>{strings.jobs.fieldSkills}</CardTitle>
+            <CardTitle>{t.jobs.fieldSkills}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
@@ -108,23 +111,23 @@ export default async function JobDetailPage({
       )}
 
       <div className="flex items-center justify-between">
-        <h2 className="text-lg ">{strings.jobs.matchHeading}</h2>
+        <h2 className="text-lg ">{t.jobs.matchHeading}</h2>
         <form action={refreshCandidatesForJob}>
           <Button variant="outline" size="sm" type="submit" className="gap-1">
             <RefreshCw className="h-4 w-4" />
-            {strings.jobs.refreshMatches}
+            {t.jobs.refreshMatches}
           </Button>
         </form>
       </div>
 
-      <Suspense fallback={<MatchesLoading />}>
-        <Matches jd={jd} orgId={me.organizationId} />
+      <Suspense fallback={<MatchesLoading t={t} />}>
+        <Matches jd={jd} orgId={me.organizationId} t={t} />
       </Suspense>
     </div>
   );
 }
 
-async function Matches({ jd, orgId }: { jd: JdForMatchingLocal; orgId: string }) {
+async function Matches({ jd, orgId, t }: { jd: JdForMatchingLocal; orgId: string; t: Dictionary }) {
   const [lists, membershipByCandidate] = await Promise.all([
     getListOptionsForOrg(orgId),
     getListIdsByCandidateForOrg(orgId),
@@ -142,9 +145,7 @@ async function Matches({ jd, orgId }: { jd: JdForMatchingLocal; orgId: string })
     }
     return (
       <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
-        {isUnavailable
-          ? "Matching non ancora disponibile: l'embedding di questa analisi è in elaborazione."
-          : "Impossibile caricare i candidati. Riprova più tardi."}
+        {isUnavailable ? t.jobs.matchUnavailable : t.jobs.matchLoadError}
       </div>
     );
   }
@@ -160,7 +161,7 @@ async function Matches({ jd, orgId }: { jd: JdForMatchingLocal; orgId: string })
   if (toRerank.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-        Nessun candidato sufficientemente affine per la valutazione AI.
+        {t.jobs.matchNoAffinity}
       </div>
     );
   }
@@ -186,18 +187,18 @@ async function Matches({ jd, orgId }: { jd: JdForMatchingLocal; orgId: string })
     console.error("[jobs/[id]] rerankCandidates failed", e);
     return (
       <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
-        Valutazione AI temporaneamente non disponibile. Riprova più tardi.
+        {t.jobs.aiRerankError}
       </div>
     );
   }
 
-  return <MatchTable ranked={enriched} lists={lists} membershipByCandidate={membershipByCandidate} />;
+  return <MatchTable ranked={enriched} lists={lists} membershipByCandidate={membershipByCandidate} t={t} />;
 }
 
-function MatchesLoading() {
+function MatchesLoading({ t }: { t: Dictionary }) {
   return (
     <div className="rounded-lg border border-border/60 bg-card p-8 text-center text-sm text-muted-foreground">
-      Calcolo delle corrispondenze…
+      {t.jobs.matchCalculating}
     </div>
   );
 }

@@ -1,7 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/db";
-import { strings } from "@/lib/i18n/strings";
+import { getDictionary } from "@/lib/i18n";
+import { getServerLocale } from "@/lib/i18n/locale";
 import { getJobDescription } from "@/lib/jobs/service";
 import { JobForm } from "@/components/jobs/job-form";
 import { updateJobAction } from "../actions";
@@ -11,6 +12,7 @@ export default async function EditJobPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const t = getDictionary(await getServerLocale());
   const { id } = await params;
   const supabase = await createSupabaseServerClient();
   const {
@@ -37,7 +39,7 @@ export default async function EditJobPage({
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl tracking-tight">{strings.pages.jobEdit}</h1>
+      <h1 className="text-2xl tracking-tight">{t.pages.jobEdit}</h1>
       <JobForm
         mode="edit"
         initial={{

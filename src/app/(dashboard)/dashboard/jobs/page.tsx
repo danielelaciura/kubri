@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 import { Briefcase, Plus } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/db";
-import { strings } from "@/lib/i18n/strings";
+import { getDictionary } from "@/lib/i18n";
+import { getServerLocale } from "@/lib/i18n/locale";
 import { listJobDescriptions } from "@/lib/jobs/service";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { JobTableRow } from "@/components/jobs/job-table-row";
 
 export default async function JobsPage() {
+  const t = getDictionary(await getServerLocale());
   const supabase = await createSupabaseServerClient();
   const {
     data: { user: authUser },
@@ -36,21 +38,21 @@ export default async function JobsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl tracking-tight">{strings.pages.jobs}</h1>
+        <h1 className="text-2xl tracking-tight">{t.pages.jobs}</h1>
       </div>
 
       {jobs.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border p-12 text-center">
           <Briefcase className="h-12 w-12 text-muted-foreground/50" />
           <h2 className="mt-4 text-lg font-medium text-muted-foreground">
-            {strings.jobs.listEmpty}
+            {t.jobs.listEmpty}
           </h2>
-          <p className="mt-1 text-sm text-muted-foreground/75">{strings.jobs.listEmptyHint}</p>
+          <p className="mt-1 text-sm text-muted-foreground/75">{t.jobs.listEmptyHint}</p>
           {isAdmin && (
             <Link href="/dashboard/jobs/new" className="mt-4">
               <Button>
                 <Plus className="mr-1 h-4 w-4" />
-                {strings.jobs.addButton}
+                {t.jobs.addButton}
               </Button>
             </Link>
           )}
@@ -60,10 +62,10 @@ export default async function JobsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>{strings.jobs.fieldName}</TableHead>
-                <TableHead>{strings.jobs.fieldLocation}</TableHead>
-                <TableHead>{strings.jobs.fieldSkills}</TableHead>
-                <TableHead>Creata il</TableHead>
+                <TableHead>{t.jobs.fieldName}</TableHead>
+                <TableHead>{t.jobs.fieldLocation}</TableHead>
+                <TableHead>{t.jobs.fieldSkills}</TableHead>
+                <TableHead>{t.jobs.createdAt}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

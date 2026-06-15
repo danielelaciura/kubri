@@ -10,7 +10,6 @@ import {
   Globe,
   MapPin,
   Phone,
-  MessageSquare,
   Calendar,
   Car,
   Briefcase,
@@ -19,6 +18,7 @@ import {
 } from "lucide-react";
 import { getServerLocale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n";
+import { displayCountry } from "@/lib/candidates/country";
 
 interface CandidateProfileProps {
   candidate: Candidate;
@@ -33,7 +33,8 @@ function formatDate(date: Date): string {
 }
 
 export async function CandidateProfile({ candidate }: CandidateProfileProps) {
-  const t = getDictionary(await getServerLocale());
+  const locale = await getServerLocale();
+  const t = getDictionary(locale);
   const c = candidate;
 
   return (
@@ -67,7 +68,7 @@ export async function CandidateProfile({ candidate }: CandidateProfileProps) {
             <div className="flex items-center gap-2">
               <Globe className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm font-medium">{t.candidates.countryOfOrigin}</span>
-              <span className="text-sm">{c.countryOfOrigin || "—"}</span>
+              <span className="text-sm">{displayCountry(c.countryOfOrigin, locale) || "—"}</span>
             </div>
             <div className="flex items-center gap-2">
               <MapPin className="h-4 w-4 text-muted-foreground" />
@@ -104,11 +105,6 @@ export async function CandidateProfile({ candidate }: CandidateProfileProps) {
               <Car className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm font-medium">{t.candidates.drivingLicense}</span>
               <span className="text-sm">{c.drivingLicense ? t.candidates.drivingLicenseYes : t.candidates.drivingLicenseNo}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <MessageSquare className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">{t.candidates.channel}</span>
-              <span className="text-sm capitalize">{c.channel}</span>
             </div>
           </div>
         </CardContent>

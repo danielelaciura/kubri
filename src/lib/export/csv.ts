@@ -1,5 +1,7 @@
 import type { Candidate } from "@/types";
 import type { Dictionary } from "@/lib/i18n";
+import type { Locale } from "@/lib/i18n/types";
+import { displayCountry } from "@/lib/candidates/country";
 
 const BOM = "﻿";
 
@@ -14,6 +16,7 @@ export function candidatesToCsv(
   candidates: Candidate[],
   listsByCandidateId: Record<string, string[]> = {},
   dictionary: Dictionary,
+  locale: Locale,
 ): string {
   const csv = dictionary.csv;
 
@@ -41,7 +44,7 @@ export function candidatesToCsv(
       c.firstName,
       c.lastName,
       c.dateOfBirth,
-      c.countryOfOrigin,
+      displayCountry(c.countryOfOrigin, locale) ?? c.countryOfOrigin,
       c.address,
       c.phone,
       c.legalStatus,

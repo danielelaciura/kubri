@@ -25,7 +25,8 @@ export default async function ListDetailPage({
   } catch {
     redirect("/login");
   }
-  const t = getDictionary(await getServerLocale());
+  const locale = await getServerLocale();
+  const t = getDictionary(locale);
   const { id } = await params;
   if (!user.organizationId) redirect("/login");
 
@@ -78,6 +79,7 @@ export default async function ListDetailPage({
           sort={sort}
           lists={lists}
           membershipByCandidate={membershipByCandidate}
+          locale={locale}
         />
       )}
     </div>

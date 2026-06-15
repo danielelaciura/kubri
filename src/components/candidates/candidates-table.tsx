@@ -13,6 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
 import type { Candidate, PaginatedResult, SortConfig } from "@/types";
+import type { Locale } from "@/lib/i18n/types";
+import { displayCountry } from "@/lib/candidates/country";
 import { AddToListMenu } from "@/components/lists/add-to-list-menu";
 
 interface CandidatesTableProps {
@@ -20,9 +22,10 @@ interface CandidatesTableProps {
   sort: SortConfig;
   lists: { id: string; name: string }[];
   membershipByCandidate: Record<string, string[]>;
+  locale: Locale;
 }
 
-export function CandidatesTable({ result, sort, lists, membershipByCandidate }: CandidatesTableProps) {
+export function CandidatesTable({ result, sort, lists, membershipByCandidate, locale }: CandidatesTableProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -135,7 +138,7 @@ export function CandidatesTable({ result, sort, lists, membershipByCandidate }: 
                 <TableCell>
                   {candidate.jobPreferences.preferredLocation}
                 </TableCell>
-                <TableCell>{candidate.countryOfOrigin}</TableCell>
+                <TableCell>{displayCountry(candidate.countryOfOrigin, locale)}</TableCell>
                 {/* <TableCell>
                   {candidate.languages.language && (
                     <Badge variant="secondary" className="text-xs capitalize">

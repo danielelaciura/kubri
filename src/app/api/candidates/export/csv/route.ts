@@ -19,7 +19,8 @@ export async function GET(request: Request) {
     return new Response("Non autorizzato", { status: 401 });
   }
 
-  const dictionary = getDictionary(await getServerLocale());
+  const locale = await getServerLocale();
+  const dictionary = getDictionary(locale);
   const { organizationId } = session;
   const url = new URL(request.url);
 
@@ -49,7 +50,7 @@ export async function GET(request: Request) {
     const sorted = sortCandidates(filtered, sort);
 
     const listNames = await getListNamesByCandidateForOrg(organizationId);
-    const csv = candidatesToCsv(sorted, listNames, dictionary);
+    const csv = candidatesToCsv(sorted, listNames, dictionary, locale);
 
     const today = new Date().toISOString().slice(0, 10);
 

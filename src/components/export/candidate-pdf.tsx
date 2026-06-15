@@ -8,6 +8,8 @@ import {
 } from "@react-pdf/renderer";
 import type { Candidate } from "@/types";
 import type { Dictionary } from "@/lib/i18n";
+import type { Locale } from "@/lib/i18n/types";
+import { displayCountry } from "@/lib/candidates/country";
 
 const BLUE = "#1e40af";
 const GRAY = "#6b7280";
@@ -108,13 +110,14 @@ interface CandidatePdfProps {
   candidate: Candidate;
   notes: NoteData[];
   dictionary: Dictionary;
+  locale: Locale;
 }
 
-export function renderCandidatePdf({ candidate, notes, dictionary }: CandidatePdfProps) {
+export function renderCandidatePdf({ candidate, notes, dictionary, locale }: CandidatePdfProps) {
   const c = candidate;
   const d = dictionary;
-  const locale = "it-IT";
-  const exportDate = new Date().toLocaleDateString(locale);
+  const dateLocale = "it-IT";
+  const exportDate = new Date().toLocaleDateString(dateLocale);
 
   // Strip trailing colon/space from reused candidates.* labels (they carry ":" for the detail view)
   const strip = (s: string) => s.replace(/:\s*$/, "");
@@ -142,7 +145,7 @@ export function renderCandidatePdf({ candidate, notes, dictionary }: CandidatePd
           )}
           <View style={styles.row}>
             <Text style={styles.label}>{strip(d.candidates.countryOfOrigin)}</Text>
-            <Text style={styles.value}>{c.countryOfOrigin || "—"}</Text>
+            <Text style={styles.value}>{displayCountry(c.countryOfOrigin, locale) || "—"}</Text>
           </View>
           <View style={styles.row}>
             <Text style={styles.label}>{strip(d.candidates.address)}</Text>
@@ -175,7 +178,7 @@ export function renderCandidatePdf({ candidate, notes, dictionary }: CandidatePd
           <View style={styles.row}>
             <Text style={styles.label}>{d.pdf.registeredOn}</Text>
             <Text style={styles.value}>
-              {c.createdAt.toLocaleDateString(locale)}
+              {c.createdAt.toLocaleDateString(dateLocale)}
             </Text>
           </View>
         </View>
@@ -268,7 +271,7 @@ export function renderCandidatePdf({ candidate, notes, dictionary }: CandidatePd
               <View key={i} style={styles.noteBlock}>
                 <Text style={styles.noteAuthor}>
                   {note.userName} -{" "}
-                  {note.createdAt.toLocaleDateString(locale)}
+                  {note.createdAt.toLocaleDateString(dateLocale)}
                 </Text>
                 <Text style={styles.noteContent}>{note.content}</Text>
               </View>

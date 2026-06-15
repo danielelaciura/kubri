@@ -25,7 +25,8 @@ export async function GET(
   const { organizationId } = session;
   const isKubriAdmin = session.role === "ADMIN_KUBRI";
 
-  const dictionary = getDictionary(await getServerLocale());
+  const locale = await getServerLocale();
+  const dictionary = getDictionary(locale);
 
   try {
     const [candidate, notes] = await Promise.all([
@@ -55,6 +56,7 @@ export async function GET(
       candidate,
       notes: formattedNotes,
       dictionary,
+      locale,
     });
 
     const buffer = await renderToBuffer(pdfDocument);

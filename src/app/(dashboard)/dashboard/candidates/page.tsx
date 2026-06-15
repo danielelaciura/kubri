@@ -62,7 +62,8 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
     activePoolId = requestedPool?.id ?? globalPool?.id;
   }
 
-  const t = getDictionary(await getServerLocale());
+  const locale = await getServerLocale();
+  const t = getDictionary(locale);
 
   let errorMessage: string | null = null;
   let candidates: Awaited<ReturnType<typeof getCandidatesForOrg>> = [];
@@ -157,7 +158,7 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
           </p>
         </div>
       ) : (
-        <CandidatesTable result={result} sort={sort} lists={lists} membershipByCandidate={membershipByCandidate} />
+        <CandidatesTable result={result} sort={sort} lists={lists} membershipByCandidate={membershipByCandidate} locale={locale} />
       )}
     </div>
   );

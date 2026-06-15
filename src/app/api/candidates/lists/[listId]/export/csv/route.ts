@@ -19,7 +19,8 @@ export async function GET(
   } catch {
     return new Response("Non autorizzato", { status: 401 });
   }
-  const dictionary = getDictionary(await getServerLocale());
+  const locale = await getServerLocale();
+  const dictionary = getDictionary(locale);
   const { organizationId } = session;
   const { listId } = await params;
 
@@ -32,7 +33,7 @@ export async function GET(
     const candidates = all.filter((c) => memberSet.has(c.id));
 
     const listNames = await getListNamesByCandidateForOrg(organizationId);
-    const csv = candidatesToCsv(candidates, listNames, dictionary);
+    const csv = candidatesToCsv(candidates, listNames, dictionary, locale);
 
     const slug = list.name
       .toLowerCase()

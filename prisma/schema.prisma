@@ -152,6 +152,7 @@ model Candidate {
   birthday        String?
   countryOfOrigin String?
   address         String?
+  location        String?
   latitude        Float?
   longitude       Float?
   phone           String?

@@ -73,6 +73,7 @@ export function normalizeForUpsert(
     birthday: nullableString(d["birthday"]),
     countryOfOrigin: nullableString(d["country"]),
     address,
+    location: nullableString(d["location"]),
     latitude,
     longitude,
     phone: nullableString(d["phone"]),

@@ -21,6 +21,7 @@ describe("normalizeForUpsert", () => {
           birthday: "1995-03-12",
           country: "Italia",
           address: "Via Roma 1",
+          location: "Milano",
           lat: 45.4642,
           lng: 9.19,
           phone: "+39 333",
@@ -53,6 +54,7 @@ describe("normalizeForUpsert", () => {
     expect(result.lastName).toBe("Rossi");
     expect(result.birthday).toBe("1995-03-12");
     expect(result.countryOfOrigin).toBe("Italia");
+    expect(result.location).toBe("Milano");
     expect(result.italianLevel).toBe("B2");
     expect(result.latitude).toBe(45.4642);
     expect(result.longitude).toBe(9.19);
@@ -89,6 +91,7 @@ describe("normalizeForUpsert", () => {
     expect(result.firstName).toBeNull();
     expect(result.lastName).toBeNull();
     expect(result.birthday).toBeNull();
+    expect(result.location).toBeNull();
     expect(result.latitude).toBeNull();
     expect(result.longitude).toBeNull();
     expect(result.italianLevel).toBeNull();

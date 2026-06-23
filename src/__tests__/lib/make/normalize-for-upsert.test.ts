@@ -43,6 +43,7 @@ describe("normalizeForUpsert", () => {
           },
           source_organization: "APL Milano",
           last_updated: "2026-04-24T15:32:11Z",
+          is_kubri_privacy_accepted: true,
         },
       },
       POOL,
@@ -71,6 +72,7 @@ describe("normalizeForUpsert", () => {
     expect(result.hasDesiredJobExperience).toBe("sì");
     expect(result.sourceOrganization).toBe("APL Milano");
     expect(result.channel).toBe("telegram");
+    expect(result.sharedWithGlobal).toBe(true);
     expect(result.sourceUpdatedAt).toBeInstanceOf(Date);
     expect(result.rawPayload).toEqual({
       key: "ext_123",
@@ -100,6 +102,29 @@ describe("normalizeForUpsert", () => {
     expect(result.educationAndTraining).toEqual([]);
     expect(result.additionalLanguages).toEqual([]);
     expect(result.sourceUpdatedAt).toBeNull();
+    expect(result.sharedWithGlobal).toBe(false);
+  });
+
+  it("sets sharedWithGlobal=false for non-boolean is_kubri_privacy_accepted", () => {
+    const truthyString = normalizeForUpsert(
+      {
+        key: "k",
+        externalKey: "global",
+        data: { is_kubri_privacy_accepted: "true" },
+      },
+      POOL,
+    );
+    expect(truthyString.sharedWithGlobal).toBe(false);
+
+    const accepted = normalizeForUpsert(
+      {
+        key: "k",
+        externalKey: "global",
+        data: { is_kubri_privacy_accepted: true },
+      },
+      POOL,
+    );
+    expect(accepted.sharedWithGlobal).toBe(true);
   });
 
   it("derives channel=whatsapp when source_organization contains 'whatsapp'", () => {

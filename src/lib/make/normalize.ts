@@ -100,6 +100,10 @@ export function normalizeForUpsert(
     sourceOrganization: nullableString(d["source_organization"]),
     channel: deriveChannelOrNull(d["source_organization"]),
 
+    // Non-null column: only a real `true` counts as consent; absence or any
+    // unexpected type means "not shared". Raw value is preserved in rawPayload.
+    sharedWithGlobal: d["is_kubri_privacy_accepted"] === true,
+
     rawPayload: payload as unknown as Prisma.InputJsonValue,
 
     sourceUpdatedAt: parseNullableDate(d["last_updated"]),

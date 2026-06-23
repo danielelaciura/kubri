@@ -179,6 +179,10 @@ model Candidate {
   sourceOrganization  String?
   channel             String?
 
+  // Candidate consented (via the Kubri privacy notice) to be shared with the
+  // global dataset. Privacy-safe default: absence of consent = not shared.
+  sharedWithGlobal    Boolean @default(false)
+
   rawPayload          Json
 
   sourceUpdatedAt     DateTime?

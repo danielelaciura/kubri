@@ -148,8 +148,12 @@ single "monorepo project" — each deployable app is its own Project.
 
 | Vercel Project | Root Directory | Domain | Build |
 |----------------|----------------|--------|-------|
-| `kubri-dashboard` (existing) | `.` (root) | `app.kubri.it` | `prisma generate && next build` |
+| `kubri-dashboard` (existing) | `apps/dashboard` | `app.kubri.it` | `prisma generate && next build` |
 | `kubri-assessment` (new) | `apps/assessment` | `assessment.kubri.it` (placeholder) | `next build` |
+
+> **Updated after Phase 2:** the dashboard Root Directory is now `apps/dashboard` (it was `.`
+> until the consolidation). Both apps build with Turbopack; the assessment app's earlier
+> `--webpack` workaround was removed once the workspace root was clean.
 
 Setting Root Directory to `apps/assessment` on a pnpm workspace makes Vercel auto-detect the
 monorepo and include the workspace root in the build, so `packages/contracts` resolves with no
@@ -182,7 +186,18 @@ in prod.
 **Operational notes:** the assessment build runs the root `postinstall` (`prisma generate`) —
 harmless (offline, no DB needed), just minor extra work until `packages/db` is extracted.
 
-## Follow-up (post-launch) — Phase 2 consolidation, DEFERRED
+## Phase 2 consolidation — DONE (2026-06-24)
+
+**Update:** Phase 2 was brought forward and completed. The deferral reasoning below is kept for
+the record, but the incremental layout turned out to be **undeployable** on Vercel: with the
+dashboard as a Next app at the repo root, the nested assessment app could not build (Turbopack
+pulled the dashboard's root `src/middleware.ts`; webpack produced output Vercel's Next 16
+integration rejected). The fix — and the only one — was the standard monorepo layout. The
+dashboard now lives in `apps/dashboard/` (Prisma moved with it; `supabase/` stayed at root), the
+repo root is a pure orchestrator, and both apps build with Turbopack. See
+`docs/superpowers/plans/2026-06-24-phase2-dashboard-into-apps.md`.
+
+### Original deferral decision (superseded)
 
 **Decision:** the monorepo consolidation is kept as a separate change, NOT bundled into the
 assessment task. Rationale: the assessment work is **additive** (new files, dashboard untouched,

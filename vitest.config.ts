@@ -1,25 +1,13 @@
 import { defineConfig } from "vitest/config";
-import react from "@vitejs/plugin-react";
-import path from "path";
 
+// Root-level config for the non-dashboard workspace tests (the dashboard owns
+// its own vitest.config.ts under apps/dashboard). Covers packages/* and the
+// assessment app.
 export default defineConfig({
-  plugins: [react()],
   test: {
     environment: "jsdom",
     globals: true,
-    setupFiles: ["./vitest.setup.ts"],
-    // DB-backed tests in src/lib/pools/__tests__ share the dev database;
-    // disable cross-file parallelism so they don't trample each other.
-    fileParallelism: false,
-    exclude: [
-      "**/node_modules/**",
-      "**/.worktrees/**",
-      "**/.claude/worktrees/**",
-    ],
-  },
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
+    include: ["packages/**/*.test.ts", "apps/assessment/**/*.test.ts"],
+    exclude: ["**/node_modules/**", "**/.next/**", "apps/dashboard/**"],
   },
 });

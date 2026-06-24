@@ -1,16 +1,19 @@
 import type { NextConfig } from "next";
 import path from "path";
 
+// The workspace root (repo root, two levels up). Turbopack must use this as its
+// root so it can resolve `next`, which pnpm installs in the workspace-root
+// node_modules — outside this app's directory. Next still scopes the project to
+// this app (apps/assessment); this only widens module resolution.
+const workspaceRoot = path.resolve(__dirname, "..", "..");
+
 const nextConfig: NextConfig = {
   // @kubri/contracts ships raw TS; Next must transpile it.
   transpilePackages: ["@kubri/contracts"],
-  // Scope file tracing to this app only. The dashboard currently lives at the
-  // workspace root (incremental-monorepo layout), so if Next infers the root as
-  // the workspace root it tries to pull the dashboard's root-level src/ (e.g.
-  // its middleware.ts) into this build. Pinning the root here keeps the build
-  // limited to the assessment app. Revisit after the Phase 2 consolidation moves
-  // the dashboard into apps/dashboard (then the workspace root is clean).
-  outputFileTracingRoot: path.resolve(__dirname),
+  turbopack: {
+    root: workspaceRoot,
+  },
+  outputFileTracingRoot: workspaceRoot,
 };
 
 export default nextConfig;

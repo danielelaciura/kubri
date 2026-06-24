@@ -20,7 +20,15 @@ User journey:
    - **"Download your skills report"** → generates a PDF with a concept map of the user's
      competences (LLM-assisted, almost certainly Claude Haiku — see `CLAUDE.md` "LLM-driven
      candidate narrative (Haiku)").
-   - **"Join the Kubri community"** → collects name, surname, phone number (lead capture).
+   - **"Join the Kubri community"** → collects name, surname, phone number. On submit, a single
+     webhook call sends the contact info **together with the structured assessment answers**,
+     and that payload populates (upserts) a `Candidate` record in Postgres.
+
+If the user does not join the community, nothing is persisted — neither the contacts nor the
+assessment answers. The structured assessment data is kept **only** when the user becomes a
+candidate (i.e. leaves name + phone); at that point it rides into the `Candidate` record
+alongside the contact info, in one webhook call. Anonymous/standalone assessment results are
+never stored.
 
 Starting point: the repo is a single Next.js app (`kubri-dashboard`, Next 16) deployed to
 Vercel at `app.kubri.it`. `pnpm-workspace.yaml` exists but is used only for
@@ -57,11 +65,13 @@ existing dashboard into `apps/` yet. The dashboard stays at the repo root; a sec
 minimum (`packages/contracts`).
 
 Within the incremental path, the public app **does not access the database directly**
-("B-via-API"). It has no Prisma client and no DB credentials. It persists the only data worth
-keeping (community leads) by POSTing to an authenticated endpoint on the dashboard. This is
-consistent with `CLAUDE.md`'s rule that candidate/lead writes go through a controlled endpoint,
-not from arbitrary UI/server actions, and it keeps DB credentials out of the public surface
-(priority A).
+("B-via-API"). It has no Prisma client and no DB credentials. When the user joins the community,
+it POSTs the contact info + structured assessment answers to a **new authenticated webhook** on
+the dashboard, which upserts a `Candidate` row. This new webhook is a **second canonical write
+path for `Candidate`**, alongside the existing Make webhook (`/api/webhooks/make/candidate`) —
+authenticated with a shared secret, and (per `CLAUDE.md`) responsible for generating the
+candidate embedding too. This keeps candidate writes on a controlled webhook path, not arbitrary
+UI/server actions, and keeps DB credentials out of the public surface (priority A).
 
 The report PDF is generated from the **current session's answers** + LLM — it needs no DB
 read — so the public app can do all heavy lifting (LLM + PDF) in its own backend with **zero**
@@ -74,9 +84,11 @@ kubri/
 ├── pnpm-workspace.yaml          # packages: ['apps/*', 'packages/*'] (+ root)
 ├── package.json                 # root: dashboard (kubri-dashboard), nearly untouched
 ├── prisma/                      # stays at root (owned by dashboard)
-├── src/app/api/assessment/      # NEW authenticated endpoint: lead-capture → Postgres
+├── src/app/api/webhooks/assessment/  # NEW authenticated webhook: contacts + assessment
+│                                     # → upsert Candidate + generate embedding
 ├── packages/
-│   └── contracts/               # @kubri/contracts: Zod schema + types for the lead payload
+│   └── contracts/               # @kubri/contracts: Zod schema + types for the webhook payload
+│                                # (contact info + structured assessment)
 └── apps/
     └── assessment/              # @kubri/assessment: public Next app (separate domain)
         ├── env: LLM key ONLY — NO DB credentials
@@ -84,7 +96,7 @@ kubri/
             ├── (questionnaire, mobile-first, no auth)
             └── api/
                 ├── report/      # LLM → concept map → PDF (@react-pdf/renderer)
-                └── community/   # forwards the lead to dashboard /api/assessment
+                └── community/   # on join: POST contacts + assessment to dashboard webhook
 ```
 
 ### Runtime boundaries
@@ -101,24 +113,33 @@ User (from WhatsApp) → opens assessment.<domain>
    ├─ completes questionnaire        [client/session state only, no DB]
    └─ on completion → 2 CTAs:
         ├─ "Download report" → app/api/report: session answers + LLM → PDF → download
-        │                      [no DB read/write]
-        └─ "Join community"  → app/api/community → authenticated POST →
-                                dashboard /api/assessment → Postgres (lead only)
+        │                      [no DB read/write, no persistence]
+        └─ "Join community"  → collect name/surname/phone → app/api/community →
+                                authenticated POST (contacts + structured assessment) →
+                                dashboard /api/webhooks/assessment → upsert Candidate
+                                (+ embedding) in Postgres
 ```
 
-The only thing crossing the boundary toward the DB is the **lead** (name, surname, phone),
-validated with `@kubri/contracts` on both sides.
+What crosses the boundary toward the DB — only when the user joins — is the **contact info plus
+the structured assessment answers, together in one webhook call**, validated with
+`@kubri/contracts` on both sides (sender for correctness, receiver for security; the receiver
+also enforces the shared-secret auth). If the user does not join, nothing crosses and nothing
+is stored.
 
 ## Out of scope / deferred (YAGNI)
 
-- **Persisting assessment results** — not done. Raw answers gain value only when the user
-  becomes a real contact (leaves name + phone). Only community leads are stored.
+- **Persisting assessment results standalone** — not done. Raw answers gain value only when the
+  user becomes a real contact (leaves name + phone). When that happens, the assessment answers
+  are stored **as part of the `Candidate` record** via the new webhook (not as a separate
+  entity). Anonymous assessments are never persisted.
 - **Shared `packages/db` / `packages/i18n` / `packages/ui`/`pdf`** — not needed for this scope.
   `@react-pdf/renderer` is already available; the assessment app can start with local i18n.
 - **Feature internals** — questionnaire content, PDF/concept-map layout, LLM prompt and model
-  wiring (consult the `claude-api` skill at implementation time), and the lead data model
-  (does the lead become a `Candidate`? a separate `Lead` entity? does it enter the Make
-  funnel?) — all defined in a separate feature spec once the questionnaire is provided.
+  wiring (consult the `claude-api` skill at implementation time), and the exact mapping of the
+  webhook payload onto `Candidate` fields (which columns hold the structured assessment, how it
+  composes with `rawPayload` and the embedding text, how the `Pool`/`externalId` are resolved
+  for assessment-sourced candidates) — all defined in a separate feature spec once the
+  questionnaire is provided.
 
 ## Follow-up (post-launch) — REQUIRED
 

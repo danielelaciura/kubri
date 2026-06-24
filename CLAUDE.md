@@ -45,8 +45,26 @@ The historical "Make.com Data Store as source of truth" design has been supersed
 
 ## Project Structure
 
+The repo is a **pnpm workspace monorepo**. The repo root is orchestration-only
+(`package.json` = `kubri`, `pnpm-workspace.yaml`); all apps live under `apps/*` and
+shared code under `packages/*`:
+
 ```
-kubri-dashboard/
+kubri/                              ← workspace root (orchestrator, no app code)
+├── apps/
+│   ├── dashboard/                  ← the operator dashboard (this is the tree below)
+│   └── assessment/                 ← public skills-assessment app (separate domain, no DB)
+├── packages/
+│   └── contracts/                  ← @kubri/contracts: shared Zod payload schemas
+├── supabase/                       ← Edge Functions (deployed via Supabase CLI)
+├── pnpm-workspace.yaml
+└── package.json                    ← orchestrator (name "kubri")
+```
+
+The dashboard app under `apps/dashboard/` (all paths below are relative to it):
+
+```
+apps/dashboard/
 ├── prisma/
 │   └── schema.prisma              ← PostgreSQL schema (NO candidate tables)
 ├── src/
@@ -226,14 +244,20 @@ server actions.
 
 ## Useful Commands
 
+The dashboard lives in `apps/dashboard/`. Either `cd apps/dashboard` first, or use
+`pnpm --filter kubri-dashboard <script>` from the repo root. Prisma commands must run
+from `apps/dashboard` (that's where `prisma.config.ts` and `prisma/` are).
+
 ```bash
-pnpm dev                    # start dev server
-pnpm build                  # production build
-pnpm lint                   # ESLint
-pnpm prisma generate        # generate Prisma client
-pnpm prisma migrate dev     # apply migration in dev
-pnpm prisma db push         # push schema without migration (prototyping)
-pnpm prisma studio          # GUI to explore the DB
+pnpm dev:dashboard                          # start the dashboard dev server (root script)
+pnpm dev:assessment                         # start the assessment app dev server
+pnpm --filter kubri-dashboard build         # dashboard production build
+pnpm --filter kubri-dashboard lint          # ESLint (dashboard)
+
+# Prisma — run from apps/dashboard:
+cd apps/dashboard && pnpm exec prisma generate     # generate Prisma client
+cd apps/dashboard && pnpm exec prisma migrate dev  # apply migration in dev
+cd apps/dashboard && pnpm exec prisma studio       # GUI to explore the DB
 ```
 
 ## Database Migration Workflow (dev → prod)
@@ -244,21 +268,24 @@ the PR that ships the new code.
 
 ### Standard flow for any schema change
 
-1. Modify `prisma/schema.prisma`
+All Prisma commands run **from `apps/dashboard`** (where `prisma.config.ts` and the
+`prisma/` dir live). `cd apps/dashboard` first.
+
+1. Modify `apps/dashboard/prisma/schema.prisma`
 2. Generate + apply to dev:
    ```bash
-   pnpm prisma migrate dev --name <descriptive_name>
+   cd apps/dashboard && pnpm exec prisma migrate dev --name <descriptive_name>
    ```
 3. Implement code, test, commit (migration files + code together)
 4. Open PR, code review
 5. **Before merging:** apply to prod
    ```bash
-   set -a && source .env.prod && set +a && pnpm prisma migrate deploy
+   cd apps/dashboard && set -a && source .env.prod && set +a && pnpm exec prisma migrate deploy
    ```
-   (`.env.prod` is gitignored — contains `DATABASE_URL` 6543 + `DIRECT_URL` 5432)
+   (`.env.prod` is gitignored, lives in `apps/dashboard/` — `DATABASE_URL` 6543 + `DIRECT_URL` 5432)
 6. Verify status:
    ```bash
-   set -a && source .env.prod && set +a && pnpm prisma migrate status
+   cd apps/dashboard && set -a && source .env.prod && set +a && pnpm exec prisma migrate status
    ```
 7. Merge PR → Vercel auto-deploys the new code (DB already aligned)
 

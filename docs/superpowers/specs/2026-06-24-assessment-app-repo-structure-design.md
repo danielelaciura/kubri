@@ -141,10 +141,92 @@ is stored.
   for assessment-sourced candidates) — all defined in a separate feature spec once the
   questionnaire is provided.
 
-## Follow-up (post-launch) — REQUIRED
+## Vercel / Deployment
 
-**Once the assessment feature is live in production, complete the architectural migration:**
-move the existing dashboard from the repo root into `apps/dashboard/`, making the monorepo
-symmetric (two apps under `apps/`, shared code under `packages/`). The incremental layout
-(dashboard at root + `apps/assessment`) is a deliberate temporary asymmetry; this follow-up
-closes it. Nothing done in the incremental phase is thrown away — it becomes Option 1 in full.
+One Git repo → **two Vercel Projects**, distinguished only by Root Directory. There is no
+single "monorepo project" — each deployable app is its own Project.
+
+| Vercel Project | Root Directory | Domain | Build |
+|----------------|----------------|--------|-------|
+| `kubri-dashboard` (existing) | `.` (root) | `app.kubri.it` | `prisma generate && next build` |
+| `kubri-assessment` (new) | `apps/assessment` | `assessment.kubri.it` (placeholder) | `next build` |
+
+Setting Root Directory to `apps/assessment` on a pnpm workspace makes Vercel auto-detect the
+monorepo and include the workspace root in the build, so `packages/contracts` resolves with no
+manual config.
+
+**Environment variables — fully separated, the concrete form of priority A:**
+
+- **Dashboard Project** (unchanged + 1 new): `DATABASE_URL`, `DIRECT_URL`, Supabase keys,
+  `SUPABASE_EDGE_FUNCTION_URL`, Make webhook secret, `CRON_SECRET`, **+ `ASSESSMENT_WEBHOOK_SECRET`**
+  (receiver side).
+- **Assessment Project** (minimal, no DB): `ANTHROPIC_API_KEY` (LLM), `DASHBOARD_WEBHOOK_URL`,
+  `ASSESSMENT_WEBHOOK_SECRET` (sender side). **No `DATABASE_URL`, no Supabase service-role key** —
+  the public deploy physically cannot reach the DB except through the authenticated webhook.
+
+**Per-environment safety:** `DASHBOARD_WEBHOOK_URL` differs per Vercel environment — Production
+points at the prod dashboard (writes to Supabase prod); Preview/Dev point at the dev/staging
+dashboard (writes to Supabase dev). So assessment preview deploys never create test candidates
+in prod.
+
+**Deploy organization:**
+- Push to `main` → prod deploy of the affected Project(s); each PR → preview URLs.
+- **Ignored Build Step** per Project so a push only rebuilds the app it touched
+  (`npx turbo-ignore` with Turborepo, or a `git diff` path check without). Set this up so the
+  two Projects don't both rebuild on every push.
+- **Crons** (`vercel.json` at root: embeddings + notifications) stay on the dashboard Project
+  only — `vercel.json` is relative to Root Directory. The assessment app inherits no crons.
+- **DB migrations** — unchanged manual pre-merge flow (see `CLAUDE.md`); only the dashboard
+  Project touches the DB. The assessment app is never in the migration loop.
+
+**Operational notes:** the assessment build runs the root `postinstall` (`prisma generate`) —
+harmless (offline, no DB needed), just minor extra work until `packages/db` is extracted.
+
+## Follow-up (post-launch) — Phase 2 consolidation, DEFERRED
+
+**Decision:** the monorepo consolidation is kept as a separate change, NOT bundled into the
+assessment task. Rationale: the assessment work is **additive** (new files, dashboard untouched,
+tiny blast radius); the consolidation is a **structural change to the live production system**
+(Vercel Root Directory + Prisma migration resolution on the prod DB). Bundling couples a
+low-risk feature to a higher-risk refactor with **zero efficiency gain** — the assessment app's
+structure is identical whether the dashboard sits at root or under `apps/`, and `packages/db`
+gives the API-only assessment app nothing. Effort ≈ 5/10, but risk ≈ 8/10 and self-inflicted if
+entangled. Revisit only if a business reason (e.g. a third app sharing Prisma) demands symmetry
+sooner.
+
+**What Phase 2 does:** move the dashboard from the repo root into `apps/dashboard/`, making the
+monorepo symmetric. Nothing from the incremental phase is discarded — it becomes the full
+monorepo (Option 1). Three core moves:
+
+1. **Move dashboard → `apps/dashboard/`** (`src/`, `public/`, `next.config.ts`, `tsconfig.json`,
+   `components.json`, `vitest.config.ts`, …). `@/...` aliases keep working (relative to the app).
+2. **Extract Prisma → `packages/db/`** (`@kubri/db`) — the actual reason to consolidate; future
+   apps then share one client/schema.
+3. **Vercel:** dashboard Project Root Directory `.` → `apps/dashboard`; move `vercel.json`
+   (crons) into `apps/dashboard/`; env values unchanged.
+
+Root becomes a pure workspace orchestrator. Turborepo and `packages/i18n` / `packages/ui` are
+optional, on-demand.
+
+**Prisma migration history — the one real hazard.** Migration history lives in **two halves that
+must agree**: the `migrations/` folders in Git (26 today) + the `_prisma_migrations` table in the
+DB, which records applied migrations by **name + SQL checksum** (it does NOT care about file
+paths). Moving the folder touches only the Git half; the DB still matches **as long as** names
+and SQL stay byte-identical and `migration_lock.toml` travels with them. The danger is "tidying
+up" during the move:
+- Never edit/reformat an already-applied migration (`prisma format` / `migrate dev` rewrite files
+  → checksum mismatch → blocked). The project already avoids `prisma format` for this reason.
+- Never squash the 26 into one (names vanish, DB no longer matches).
+- **Never `prisma migrate reset`** — it drops the whole schema and re-applies from files: in prod
+  that wipes all candidates (GDPR, irrecoverable) AND risks rebuilding without the **HNSW pgvector
+  indexes** (whose true prod state isn't cleanly reproducible from files — see the known
+  pgvector / `embeddingUpdatedAt` migration-drift notes). Prod is always `migrate deploy`, never
+  `reset`, never `migrate dev`.
+
+**Safe 5-step Prisma move:**
+1. `git mv prisma packages/db/prisma` (preserves names, SQL, lock; Git keeps history)
+2. update the 3 paths in `prisma.config.ts` (`schema`, `migrations.path`, the `.env` it loads)
+3. `prisma generate` (regenerate client at the new location)
+4. `prisma migrate status` against **dev** → must report **0 pending** ✅ (proof the two halves
+   still agree)
+5. never touch the 26 migrations' contents; never `reset`

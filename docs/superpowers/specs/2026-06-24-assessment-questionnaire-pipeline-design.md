@@ -35,13 +35,18 @@ duplication, and adding/changing a question is a one-place edit.
     already does).
 - **Component types** (from the JSON, **no `rank`**): `single_choice`, `multi_choice`, `scale`,
   `text`, `textarea`, `select`, `repeatable_group`.
-- **`Candidate` is written only on "join community."** The questionnaire holds no contact fields;
-  name/surname/phone come from the join CTA. Submission shape stays `{ contact, assessment }`
-  (the existing `assessmentSubmissionSchema`). No join → nothing persisted (answers live only in
-  browser state).
-- **Identity:** `externalId` = normalized phone; pool resolved via a configured key
-  (`ASSESSMENT_POOL_KEY`, default `"global"`); `channel = "assessment"`,
-  `sourceOrganization = "kubri-assessment"`. Re-taking with the same phone upserts the same row.
+- **`Candidate` is written only when the user opts into the community.** The questionnaire holds
+  no contact fields. At completion there are **two CTAs**: *"Scarica il questionario"* (download
+  only — the report, built in the next round) and, with more prominence, *"Scarica il questionario
+  e unisciti alla community"*. Only the second reveals the contact form and produces a submission.
+  No opt-in → nothing persisted (answers live only in browser state).
+- **Contact form** (shown by the community CTA): `firstName`, `lastName`, `phone` **required**;
+  `email` **optional**; a **required GDPR privacy checkbox**. Submission shape stays
+  `{ contact, assessment }`; the `contact` schema grows to `{ firstName, lastName, phone, email? }`.
+- **Identity:** `externalId` = normalized phone (required, so identity is always present, and it
+  ties into the WhatsApp funnel); pool resolved via a configured key (`ASSESSMENT_POOL_KEY`,
+  default `"global"`); `channel = "assessment"`, `sourceOrganization = "kubri-assessment"`.
+  Re-taking with the same phone upserts the same row.
 
 ## Architecture
 
@@ -67,27 +72,38 @@ Lives in the package both apps already share.
   (`apps/dashboard/src/lib/make/normalize.ts`), reusing its coercion style (`safeStringArray`,
   `nullableString`).
 
-### 2. Schema change — `Candidate.assessmentProfile`
+### 2. Schema change — two new `Candidate` columns
 
-Add `assessmentProfile Json?` to `model Candidate` (`apps/dashboard/prisma/schema.prisma`) and a
-Prisma migration generated **from `apps/dashboard`**. Additive and nullable. Strip any spurious
-HNSW `DROP INDEX` the generator injects; never `migrate reset`.
+Add `assessmentProfile Json?` (psychometric answers) and `email String?` (optional community-lead
+email) to `model Candidate` (`apps/dashboard/prisma/schema.prisma`), in one Prisma migration
+generated **from `apps/dashboard`**. Both additive and nullable. Strip any spurious HNSW
+`DROP INDEX` the generator injects; never `migrate reset`.
 
 ### 3. Questionnaire rendering — `apps/assessment`
 
 One component per `ComponentType` under `src/components/questionnaire/`, plus a `QuestionRenderer`
 that switches on `question.component`, styled per the HTML reference. A client `AssessmentFlow`
-drives section navigation, a progress bar, and in-memory answers. The final **"Unisciti alla
-community"** step collects `firstName`/`lastName`/`phone` **+ a required GDPR consent checkbox**
-(consent → `Candidate.sharedWithGlobal = true`, mirroring the Make webhook's
-`is_kubri_privacy_accepted` mapping), then POSTs `{ contact, assessment }` to the existing
-`/api/community` route.
+drives section navigation, a progress bar, and in-memory answers.
+
+At completion, **two CTAs** (the join one more prominent):
+- *"Scarica il questionario"* — download the report only (PDF; built in the next round). No form,
+  no submission.
+- *"Scarica il questionario e unisciti alla community"* — reveals the **contact form**: `nome`,
+  `cognome`, `telefono` (required), `email` (optional), a **required privacy checkbox**, the
+  reassurance copy ("no spam promesso!"), and the send button. On send it POSTs
+  `{ contact, assessment }` to the existing `/api/community` route.
+
+The privacy consent → `Candidate.sharedWithGlobal = true` (mirroring the Make webhook's
+`is_kubri_privacy_accepted` mapping). The PDF/report step is out of scope this round, but the
+two-CTA layout is built now so it slots in without rework.
 
 ### 4. Webhook receiver — `apps/dashboard/src/app/api/webhooks/assessment/route.ts`
 
 A near-clone of the Make webhook (`api/webhooks/make/candidate/route.ts`): Bearer-secret auth →
 validate with `assessmentSubmissionSchema` → resolve pool (`resolvePoolByExternalKey`) → build
-upsert input via `mapAssessmentToCandidate` (+ contact, identity fields, `rawPayload`) → upsert on
+upsert input via `mapAssessmentToCandidate` (the mapped columns + `assessmentProfile`) plus the
+contact fields (`firstName`, `lastName`, `phone`, `email`), identity fields (`externalId` = phone,
+`channel`, `sourceOrganization`), `sharedWithGlobal` from the consent, and `rawPayload` → upsert on
 `@@unique([poolId, externalId])` → regenerate embedding with `buildCandidateEmbeddingText` +
 `generateEmbedding` (reuse the existing block).
 

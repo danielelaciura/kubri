@@ -183,6 +183,13 @@ model Candidate {
   // global dataset. Privacy-safe default: absence of consent = not shared.
   sharedWithGlobal    Boolean @default(false)
 
+  // Optional community-lead email (assessment funnel). Candidate has no email
+  // from the chatbot funnel; this is collected at the "join community" step.
+  email               String?
+  // Structured psychometric answers from the skills assessment (keyed by the
+  // question registry's profile paths). Null for non-assessment candidates.
+  assessmentProfile   Json?
+
   rawPayload          Json
 
   sourceUpdatedAt     DateTime?

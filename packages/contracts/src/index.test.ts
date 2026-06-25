@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import { assessmentSubmissionSchema } from "./index";
 
 const VALID = {
-  contact: { firstName: "Amir", lastName: "K", phone: "+393331234567" },
-  assessment: { q1: "a", q2: 3 },
+  contact: { firstName: "Amir", lastName: "K", phone: "+393331234567", privacyAccepted: true as const },
+  assessment: { q1: "analitico", q3: 4 },
 };
 
 describe("assessmentSubmissionSchema", () => {

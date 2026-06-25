@@ -12,6 +12,12 @@ export const assessmentContactSchema = z.object({
   lastName: z.string().min(1),
   // Digits with an optional leading "+", 8–15 long (loose E.164).
   phone: z.string().regex(/^\+?[0-9]{8,15}$/),
+  // Residence comune, resolved client-side from the static comuni dataset.
+  // location is the display label ("Comune (PROV)"); coordinates are range-
+  // checked to Italy so a tampered client can't inject arbitrary points.
+  location: z.string().min(1),
+  latitude: z.number().min(35).max(48),
+  longitude: z.number().min(6).max(19),
   email: z.string().email().optional(),
   privacyAccepted: z.literal(true),
 });

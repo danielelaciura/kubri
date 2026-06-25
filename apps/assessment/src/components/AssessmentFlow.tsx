@@ -42,7 +42,7 @@ export function AssessmentFlow() {
     email: "",
     privacyAccepted: false,
   });
-  const [formError, setFormError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitState, setSubmitState] = useState<"idle" | "success" | "error">("idle");
 
@@ -70,19 +70,33 @@ export function AssessmentFlow() {
 
   async function handleContactSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setFormError(null);
+    setFieldErrors({});
 
     const payload = {
       firstName: contact.firstName.trim(),
       lastName: contact.lastName.trim(),
-      phone: contact.phone.trim(),
+      // Accept the format the placeholder shows ("+39 333 1234567"): strip
+      // spaces and common separators, keeping a leading + and the digits.
+      phone: contact.phone.trim().replace(/[\s().\-/]/g, ""),
       email: contact.email.trim() || undefined,
       privacyAccepted: contact.privacyAccepted as true,
     };
 
     const result = assessmentContactSchema.safeParse(payload);
     if (!result.success) {
-      setFormError("Controlla i campi: nome, cognome, telefono e privacy sono obbligatori.");
+      const messages: Record<string, string> = {
+        firstName: "Inserisci il nome.",
+        lastName: "Inserisci il cognome.",
+        phone: "Inserisci un numero di telefono valido (es. +39 333 1234567).",
+        email: "L'email non sembra valida.",
+        privacyAccepted: "Devi accettare la privacy policy per continuare.",
+      };
+      const next: Record<string, string> = {};
+      for (const issue of result.error.issues) {
+        const field = String(issue.path[0] ?? "");
+        if (field && !next[field]) next[field] = messages[field] ?? "Campo non valido.";
+      }
+      setFieldErrors(next);
       return;
     }
 
@@ -105,6 +119,7 @@ export function AssessmentFlow() {
           <div
             className="flex h-16 w-16 items-center justify-center rounded-2xl text-3xl"
             style={{ backgroundColor: "#EEEDFE" }}
+            aria-hidden="true"
           >
             🧭
           </div>
@@ -209,6 +224,7 @@ export function AssessmentFlow() {
         <div
           className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl text-3xl"
           style={{ backgroundColor: "#EEEDFE" }}
+          aria-hidden="true"
         >
           ✅
         </div>
@@ -271,7 +287,7 @@ export function AssessmentFlow() {
 
           {/* Contact form */}
           {showForm && submitState !== "success" && (
-            <form onSubmit={handleContactSubmit} className="mt-5 flex flex-col gap-4">
+            <form onSubmit={handleContactSubmit} noValidate className="mt-5 flex flex-col gap-4">
               <p className="text-sm text-neutral-700">
                 Se ti va di entrare nella nostra community per scoprire come
                 valorizzare le tue competenze ed entrare in contatto con una rete
@@ -288,9 +304,15 @@ export function AssessmentFlow() {
                     value={contact.firstName}
                     onChange={(e) => setContact((c) => ({ ...c, firstName: e.target.value }))}
                     placeholder="Mario"
-                    className="rounded-lg border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-[#534AB7] focus:ring-2 focus:ring-[#534AB7]/20"
+                    aria-invalid={!!fieldErrors.firstName}
+                    className={`rounded-lg border px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#534AB7]/20 ${
+                      fieldErrors.firstName ? "border-red-400 focus:border-red-500" : "border-neutral-300 focus:border-[#534AB7]"
+                    }`}
                     required
                   />
+                  {fieldErrors.firstName && (
+                    <p className="text-xs text-red-600">{fieldErrors.firstName}</p>
+                  )}
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-sm font-medium text-neutral-700">
@@ -301,9 +323,15 @@ export function AssessmentFlow() {
                     value={contact.lastName}
                     onChange={(e) => setContact((c) => ({ ...c, lastName: e.target.value }))}
                     placeholder="Rossi"
-                    className="rounded-lg border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-[#534AB7] focus:ring-2 focus:ring-[#534AB7]/20"
+                    aria-invalid={!!fieldErrors.lastName}
+                    className={`rounded-lg border px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#534AB7]/20 ${
+                      fieldErrors.lastName ? "border-red-400 focus:border-red-500" : "border-neutral-300 focus:border-[#534AB7]"
+                    }`}
                     required
                   />
+                  {fieldErrors.lastName && (
+                    <p className="text-xs text-red-600">{fieldErrors.lastName}</p>
+                  )}
                 </div>
               </div>
 
@@ -316,9 +344,15 @@ export function AssessmentFlow() {
                   value={contact.phone}
                   onChange={(e) => setContact((c) => ({ ...c, phone: e.target.value }))}
                   placeholder="+39 333 1234567"
-                  className="rounded-lg border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-[#534AB7] focus:ring-2 focus:ring-[#534AB7]/20"
+                  aria-invalid={!!fieldErrors.phone}
+                  className={`rounded-lg border px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#534AB7]/20 ${
+                    fieldErrors.phone ? "border-red-400 focus:border-red-500" : "border-neutral-300 focus:border-[#534AB7]"
+                  }`}
                   required
                 />
+                {fieldErrors.phone && (
+                  <p className="text-xs text-red-600">{fieldErrors.phone}</p>
+                )}
               </div>
 
               <div className="flex flex-col gap-1">
@@ -330,8 +364,14 @@ export function AssessmentFlow() {
                   value={contact.email}
                   onChange={(e) => setContact((c) => ({ ...c, email: e.target.value }))}
                   placeholder="mario@esempio.it"
-                  className="rounded-lg border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-[#534AB7] focus:ring-2 focus:ring-[#534AB7]/20"
+                  aria-invalid={!!fieldErrors.email}
+                  className={`rounded-lg border px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#534AB7]/20 ${
+                    fieldErrors.email ? "border-red-400 focus:border-red-500" : "border-neutral-300 focus:border-[#534AB7]"
+                  }`}
                 />
+                {fieldErrors.email && (
+                  <p className="text-xs text-red-600">{fieldErrors.email}</p>
+                )}
               </div>
 
               <label className="flex cursor-pointer items-start gap-3">
@@ -356,14 +396,11 @@ export function AssessmentFlow() {
                   <span className="text-red-500">*</span>
                 </span>
               </label>
+              {fieldErrors.privacyAccepted && (
+                <p className="text-xs text-red-600">{fieldErrors.privacyAccepted}</p>
+              )}
 
               <p className="text-xs text-neutral-500">no spam promesso!</p>
-
-              {formError && (
-                <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
-                  {formError}
-                </p>
-              )}
 
               {submitState === "error" && (
                 <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">

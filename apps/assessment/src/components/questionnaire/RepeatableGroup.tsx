@@ -96,12 +96,21 @@ export function RepeatableGroup({ question, value, onChange }: FieldProps) {
         </div>
       ))}
 
+      {entries.length === 0 && (
+        <p className="rounded-md border border-dashed border-neutral-300 bg-neutral-50 px-4 py-4 text-center text-sm text-neutral-500">
+          Non hai ancora aggiunto esperienze. Aggiungine una per raccontare cosa
+          sai fare — valgono anche lavoretti, stage o volontariato.
+        </p>
+      )}
+
       <button
         type="button"
         onClick={addEntry}
-        className="rounded-md border border-dashed border-[#AFA9EC] bg-[#EEEDFE] px-4 py-2.5 text-sm font-medium text-[#3C3489] transition hover:border-[#534AB7] hover:bg-[#E4E2FC]"
+        className="rounded-md border border-dashed border-[#AFA9EC] bg-[#EEEDFE] px-4 py-2.5 text-sm font-medium text-[#3C3489] transition hover:border-[#534AB7] hover:bg-[#E4E2FC] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#534AB7] focus-visible:ring-offset-1"
       >
-        + Aggiungi esperienza
+        {entries.length === 0
+          ? "+ Aggiungi la tua prima esperienza"
+          : "+ Aggiungi un'altra esperienza"}
       </button>
     </div>
   );

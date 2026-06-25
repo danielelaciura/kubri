@@ -33,10 +33,14 @@ function fieldSchema(q: QuestionDef | SubFieldDef): z.ZodTypeAny {
   return z.unknown();
 }
 
-function buildAnswersSchema(): z.ZodTypeAny {
+// The schema is built dynamically from the registry, so its precise object
+// shape isn't known statically. We expose it typed as a record of optional
+// answers — enough for consumers (the mapper takes `Record<string, unknown>`)
+// while runtime validation stays exact.
+function buildAnswersSchema(): z.ZodType<Record<string, unknown>> {
   const shape: Record<string, z.ZodTypeAny> = {};
   for (const q of allQuestions()) shape[q.id] = fieldSchema(q).optional();
-  return z.object(shape);
+  return z.object(shape) as unknown as z.ZodType<Record<string, unknown>>;
 }
 
 export const assessmentAnswersSchema = buildAnswersSchema();

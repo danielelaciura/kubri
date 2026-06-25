@@ -10,8 +10,8 @@ function makeReq(body: unknown): Request {
 }
 
 const VALID = {
-  contact: { firstName: "Amir", lastName: "K", phone: "+393331234567" },
-  assessment: { q1: "a" },
+  contact: { firstName: "Amir", lastName: "K", phone: "+393331234567", privacyAccepted: true as const },
+  assessment: { q1: "analitico" },
 };
 
 describe("POST /api/community", () => {

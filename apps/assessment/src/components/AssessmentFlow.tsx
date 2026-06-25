@@ -1,11 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import { ASSESSMENT_SECTIONS, assessmentContactSchema } from "@kubri/contracts";
+import { ASSESSMENT_SECTIONS, allQuestions, assessmentContactSchema } from "@kubri/contracts";
 import { QuestionRenderer } from "./questionnaire/QuestionRenderer";
 import { submitCommunity } from "@/lib/submit";
 
 type Phase = "intro" | "questions" | "done";
+
+/**
+ * Seed scale questions with their default so what the slider shows (its default
+ * position) is what gets submitted — even if the user never touches it.
+ * Without this, an untouched scale stays `undefined` and is dropped on mapping.
+ */
+function initialAnswers(): Record<string, unknown> {
+  const init: Record<string, unknown> = {};
+  for (const q of allQuestions()) {
+    if (q.component === "scale" && q.scale) init[q.id] = q.scale.default;
+  }
+  return init;
+}
 
 type ContactFormState = {
   firstName: string;
@@ -18,7 +31,7 @@ type ContactFormState = {
 export function AssessmentFlow() {
   const [phase, setPhase] = useState<Phase>("intro");
   const [sectionIndex, setSectionIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, unknown>>({});
+  const [answers, setAnswers] = useState<Record<string, unknown>>(initialAnswers);
 
   // Done screen state
   const [showForm, setShowForm] = useState(false);

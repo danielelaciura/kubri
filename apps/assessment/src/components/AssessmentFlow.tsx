@@ -50,7 +50,10 @@ export function AssessmentFlow() {
   const currentSection = ASSESSMENT_SECTIONS[sectionIndex]!;
   const isFirstSection = sectionIndex === 0;
   const isLastSection = sectionIndex === totalSections - 1;
-  const progressPercent = Math.round((sectionIndex / totalSections) * 100);
+  // Stepper progress: the 5 sections map across 0–100% (0 · 25 · 50 · 75 · 100),
+  // so the last section reads as a full bar rather than stalling at 80%.
+  const progressPercent =
+    totalSections > 1 ? Math.round((sectionIndex / (totalSections - 1)) * 100) : 100;
 
   function handleNext() {
     if (isLastSection) {
@@ -66,6 +69,15 @@ export function AssessmentFlow() {
       setSectionIndex((i) => i - 1);
       window.scrollTo(0, 0);
     }
+  }
+
+  // From the completion screen, return to the questionnaire (last section) to
+  // review/edit answers. Answers persist in state, so nothing is lost.
+  function handleReview() {
+    setShowForm(false);
+    setPhase("questions");
+    setSectionIndex(totalSections - 1);
+    window.scrollTo(0, 0);
   }
 
   async function handleContactSubmit(e: React.FormEvent) {
@@ -232,6 +244,15 @@ export function AssessmentFlow() {
         <p className="mt-2 text-neutral-600">
           Hai risposto a tutte le sezioni. Ottimo lavoro.
         </p>
+        {submitState !== "success" && (
+          <button
+            type="button"
+            onClick={handleReview}
+            className="mt-3 rounded text-sm font-medium text-neutral-500 underline-offset-2 transition-colors hover:text-neutral-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#534AB7] focus-visible:ring-offset-2"
+          >
+            ← Rivedi le tue risposte
+          </button>
+        )}
       </div>
 
       {/* CTAs */}

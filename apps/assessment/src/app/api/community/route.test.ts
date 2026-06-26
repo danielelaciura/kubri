@@ -10,7 +10,15 @@ function makeReq(body: unknown): Request {
 }
 
 const VALID = {
-  contact: { firstName: "Amir", lastName: "K", phone: "+393331234567", privacyAccepted: true as const },
+  contact: {
+    firstName: "Amir",
+    lastName: "K",
+    phone: "+393331234567",
+    location: "Roma (RM)",
+    latitude: 41.89,
+    longitude: 12.48,
+    privacyAccepted: true as const,
+  },
   assessment: { q1: "analitico" },
 };
 

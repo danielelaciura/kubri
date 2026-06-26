@@ -61,3 +61,5 @@ next-env.d.ts
 supabase/.temp/
 
 .impeccable/
+# Brainstorm visual companion
+.superpowers/

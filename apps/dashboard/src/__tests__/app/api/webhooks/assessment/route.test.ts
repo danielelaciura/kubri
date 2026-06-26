@@ -21,7 +21,15 @@ function req(body: unknown, auth?: string): Request {
 }
 
 const VALID = {
-  contact: { firstName: "Amir", lastName: "K", phone: "+393331234567", privacyAccepted: true },
+  contact: {
+    firstName: "Amir",
+    lastName: "K",
+    phone: "+393331234567",
+    location: "Roma (RM)",
+    latitude: 41.89,
+    longitude: 12.48,
+    privacyAccepted: true,
+  },
   assessment: { q1: "analitico", q3: 4 },
 };
 
@@ -53,5 +61,8 @@ describe("POST /api/webhooks/assessment", () => {
     expect(arg.create.channel).toBe("assessment");
     expect(arg.create.sharedWithGlobal).toBe(true);
     expect(arg.create.assessmentProfile).toMatchObject({ cognitive: { q1: "analitico" } });
+    expect(arg.create.location).toBe("Roma (RM)");
+    expect(arg.create.latitude).toBe(41.89);
+    expect(arg.create.longitude).toBe(12.48);
   });
 });

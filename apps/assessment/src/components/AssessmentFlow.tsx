@@ -4,6 +4,8 @@ import { useState } from "react";
 import { ASSESSMENT_SECTIONS, allQuestions, assessmentContactSchema } from "@kubri/contracts";
 import { QuestionRenderer } from "./questionnaire/QuestionRenderer";
 import { submitCommunity } from "@/lib/submit";
+import { ComuneSelect } from "./questionnaire/ComuneSelect";
+import { comuneLabel, type Comune } from "@/lib/comuni";
 
 type Phase = "intro" | "questions" | "done";
 
@@ -24,6 +26,9 @@ type ContactFormState = {
   firstName: string;
   lastName: string;
   phone: string;
+  location: string;
+  latitude: number | null;
+  longitude: number | null;
   email: string;
   privacyAccepted: boolean;
 };
@@ -39,6 +44,9 @@ export function AssessmentFlow() {
     firstName: "",
     lastName: "",
     phone: "",
+    location: "",
+    latitude: null,
+    longitude: null,
     email: "",
     privacyAccepted: false,
   });
@@ -90,6 +98,9 @@ export function AssessmentFlow() {
       // Accept the format the placeholder shows ("+39 333 1234567"): strip
       // spaces and common separators, keeping a leading + and the digits.
       phone: contact.phone.trim().replace(/[\s().\-/]/g, ""),
+      location: contact.location,
+      latitude: contact.latitude ?? undefined,
+      longitude: contact.longitude ?? undefined,
       email: contact.email.trim() || undefined,
       privacyAccepted: contact.privacyAccepted as true,
     };
@@ -100,6 +111,9 @@ export function AssessmentFlow() {
         firstName: "Inserisci il nome.",
         lastName: "Inserisci il cognome.",
         phone: "Inserisci un numero di telefono valido (es. +39 333 1234567).",
+        location: "Seleziona un comune dalla lista.",
+        latitude: "Seleziona un comune dalla lista.",
+        longitude: "Seleziona un comune dalla lista.",
         email: "L'email non sembra valida.",
         privacyAccepted: "Devi accettare la privacy policy per continuare.",
       };
@@ -373,6 +387,32 @@ export function AssessmentFlow() {
                 />
                 {fieldErrors.phone && (
                   <p className="text-xs text-red-600">{fieldErrors.phone}</p>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium text-neutral-700">
+                  Comune di residenza <span className="text-red-500">*</span>
+                </label>
+                <ComuneSelect
+                  value={contact.location}
+                  error={!!(fieldErrors.location || fieldErrors.latitude || fieldErrors.longitude)}
+                  onSelect={(c: Comune) =>
+                    setContact((s) => ({
+                      ...s,
+                      location: comuneLabel(c),
+                      latitude: c.lat,
+                      longitude: c.lon,
+                    }))
+                  }
+                  onClear={() =>
+                    setContact((s) => ({ ...s, location: "", latitude: null, longitude: null }))
+                  }
+                />
+                {(fieldErrors.location || fieldErrors.latitude || fieldErrors.longitude) && (
+                  <p className="text-xs text-red-600">
+                    {fieldErrors.location || fieldErrors.latitude || fieldErrors.longitude}
+                  </p>
                 )}
               </div>
 

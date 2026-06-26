@@ -67,6 +67,9 @@ export function ComuneSelect({ value, onSelect, onClear, error }: Props) {
         aria-controls="comune-listbox"
         aria-label="Comune di residenza"
         aria-invalid={!!error}
+        aria-activedescendant={
+          open && results[active] ? `comune-opt-${active}` : undefined
+        }
         value={query}
         placeholder="Inizia a scrivere il tuo comune…"
         onChange={(e) => onChange(e.target.value)}
@@ -85,6 +88,7 @@ export function ComuneSelect({ value, onSelect, onClear, error }: Props) {
           {results.map((c, i) => (
             <li
               key={`${c.nome}-${c.sigla}`}
+              id={`comune-opt-${i}`}
               role="option"
               aria-selected={i === active}
               onMouseDown={(e) => { e.preventDefault(); pick(c); }}
@@ -97,6 +101,11 @@ export function ComuneSelect({ value, onSelect, onClear, error }: Props) {
             </li>
           ))}
         </ul>
+      )}
+      {open && query.trim() && results.length === 0 && all.length > 0 && (
+        <div className="absolute z-10 mt-1 w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-500 shadow-lg">
+          Nessun comune trovato.
+        </div>
       )}
     </div>
   );

@@ -21,6 +21,8 @@ export function searchComuni(query: string, comuni: Comune[], limit = 50): Comun
     const n = normalize(c.nome);
     if (n.startsWith(q)) prefix.push(c);
     else if (n.includes(q)) substr.push(c);
+    // Once we have `limit` prefix matches, substring matches can never rank in,
+    // so stop scanning — the trailing `.slice` keeps only the prefix block.
     if (prefix.length >= limit) break;
   }
   return [...prefix, ...substr].slice(0, limit);

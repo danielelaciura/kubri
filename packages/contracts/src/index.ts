@@ -5,6 +5,7 @@ export * from "./assessment/types";
 export * from "./assessment/registry";
 export * from "./assessment/schema";
 export * from "./assessment/mapping";
+export * from "./assessment/report";
 
 /** Contact details collected when the user joins the Kubri community. */
 export const assessmentContactSchema = z.object({

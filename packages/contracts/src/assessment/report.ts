@@ -1,0 +1,45 @@
+import { z } from "zod/v4";
+
+/** Fixed competence-domain taxonomy. The LLM assigns competences to these; it never invents domains. */
+export const DOMAIN_IDS = [
+  "cognitive",
+  "relational",
+  "organizational",
+  "technical",
+  "motivation",
+] as const;
+
+export type DomainId = (typeof DOMAIN_IDS)[number];
+
+export const DOMAIN_LABELS: Record<DomainId, string> = {
+  cognitive: "Cognitive",
+  relational: "Relazionali",
+  organizational: "Organizzative",
+  technical: "Tecnico-operative",
+  motivation: "Motivazioni & interessi",
+};
+
+export const COMPETENCE_LEVELS = ["Base", "Buono", "Forte"] as const;
+export type CompetenceLevel = (typeof COMPETENCE_LEVELS)[number];
+
+export const assessmentReportSchema = z.object({
+  intro: z.string().min(1),
+  domains: z
+    .array(
+      z.object({
+        id: z.enum(DOMAIN_IDS),
+        competences: z
+          .array(
+            z.object({
+              name: z.string().min(1),
+              level: z.enum(COMPETENCE_LEVELS),
+              note: z.string(),
+            }),
+          )
+          .min(1),
+      }),
+    )
+    .min(1),
+});
+
+export type AssessmentReport = z.infer<typeof assessmentReportSchema>;

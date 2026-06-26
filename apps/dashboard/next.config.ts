@@ -11,6 +11,9 @@ const nextConfig: NextConfig = {
     root: workspaceRoot,
   },
   outputFileTracingRoot: workspaceRoot,
+  outputFileTracingIncludes: {
+    "/api/assessment/report": ["./src/components/report/fonts/**"],
+  },
 };
 
 export default nextConfig;

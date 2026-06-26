@@ -4,6 +4,12 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { generateReport } from "@/lib/report/generate";
 import { renderCompetenceReportPdf } from "@/components/report/CompetenceReportPdf";
 
+// Needs the Node runtime (node:path, font file read, renderToBuffer). The
+// Mistral call (up to ~20s) plus one retry plus PDF render can exceed the
+// platform's default function timeout, so raise it.
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
 const bodySchema = z.object({
   assessment: z.record(z.string(), z.unknown()),
   name: z.string().optional(),
@@ -38,7 +44,13 @@ export async function POST(req: Request): Promise<Response> {
     return NextResponse.json({ error: "report_generation_failed" }, { status: 502 });
   }
 
-  const buffer = await renderToBuffer(renderCompetenceReportPdf({ report, name }));
+  let buffer: Buffer;
+  try {
+    buffer = await renderToBuffer(renderCompetenceReportPdf({ report, name }));
+  } catch (e) {
+    console.error("[assessment/report] pdf render failed", e);
+    return NextResponse.json({ error: "report_render_failed" }, { status: 502 });
+  }
   const safeName = (name ?? "kubri").replace(/[^a-zA-Z0-9À-ɏ\s-]/g, "").replace(/\s+/g, "-").toLowerCase() || "kubri";
 
   return new Response(new Uint8Array(buffer), {

@@ -6,12 +6,16 @@ import path from "node:path";
 import { DOMAIN_LABELS, type AssessmentReport } from "@kubri/contracts";
 import { computeReportLayout, CANVAS_W, CANVAS_H } from "@/lib/report/layout";
 
+// Static instances of the Onest variable font (one TTF per weight) so @react-pdf
+// renders a real weight hierarchy — registering one variable TTF for several
+// weights renders them all at the default instance (flat).
+const fontDir = path.join(process.cwd(), "src/components/report/fonts");
 Font.register({
   family: "Onest",
   fonts: [
-    { src: path.join(process.cwd(), "src/components/report/fonts/Onest-var.ttf"), fontWeight: 400 },
-    { src: path.join(process.cwd(), "src/components/report/fonts/Onest-var.ttf"), fontWeight: 600 },
-    { src: path.join(process.cwd(), "src/components/report/fonts/Onest-var.ttf"), fontWeight: 800 },
+    { src: path.join(fontDir, "Onest-Regular.ttf"), fontWeight: 400 },
+    { src: path.join(fontDir, "Onest-SemiBold.ttf"), fontWeight: 600 },
+    { src: path.join(fontDir, "Onest-ExtraBold.ttf"), fontWeight: 800 },
   ],
 });
 

@@ -1,7 +1,11 @@
 import { DOMAIN_IDS, DOMAIN_LABELS, COMPETENCE_LEVELS } from "@kubri/contracts";
 
 // Contact fields that must never reach the LLM, stripped defensively in case a
-// caller passes a wider object than the bare assessment answers.
+// caller passes a wider object than the bare assessment answers. Note: this
+// strips only structured contact keys. Free-text questionnaire answers
+// (work-experience descriptions etc.) are the report's source material and are
+// intentionally sent — a user could type PII into them, which is inherent to
+// the design.
 const PII_KEYS = new Set(["firstName", "lastName", "phone", "email", "location", "latitude", "longitude"]);
 
 function stripPii(answers: Record<string, unknown>): Record<string, unknown> {

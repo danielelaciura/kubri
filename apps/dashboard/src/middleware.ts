@@ -8,6 +8,10 @@ const PUBLIC_PREFIXES = [
   "/auth/reset-password",
   // Webhooks authenticate via shared secret (Bearer token), not Supabase session.
   "/api/webhooks",
+  // The assessment report endpoint authenticates via ASSESSMENT_WEBHOOK_SECRET
+  // (Bearer token) for server-to-server calls from the public assessment app,
+  // not a Supabase session.
+  "/api/assessment",
   // Cron jobs authenticate via CRON_SECRET (Bearer token), not Supabase session.
   "/api/cron",
 ];

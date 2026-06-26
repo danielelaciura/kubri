@@ -30,6 +30,12 @@ describe("middleware auth gating", () => {
     expect(res.headers.get("location")).toBeNull();
   });
 
+  it("lets unauthenticated assessment report requests through (shared-secret auth)", async () => {
+    const res = await run("/api/assessment/report", null);
+    expect(res.status).not.toBe(307);
+    expect(res.headers.get("location")).toBeNull();
+  });
+
   it("redirects unauthenticated access to a protected route to /login", async () => {
     const res = await run("/dashboard/profile", null);
     expect(res.status).toBe(307);

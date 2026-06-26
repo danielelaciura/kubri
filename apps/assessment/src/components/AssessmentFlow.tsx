@@ -53,6 +53,7 @@ export function AssessmentFlow() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitState, setSubmitState] = useState<"idle" | "success" | "error">("idle");
+  const [reportState, setReportState] = useState<"idle" | "loading" | "error">("idle");
 
   const totalSections = ASSESSMENT_SECTIONS.length;
   const currentSection = ASSESSMENT_SECTIONS[sectionIndex]!;
@@ -86,6 +87,30 @@ export function AssessmentFlow() {
     setPhase("questions");
     setSectionIndex(totalSections - 1);
     window.scrollTo(0, 0);
+  }
+
+  async function downloadReport(name?: string) {
+    setReportState("loading");
+    try {
+      const res = await fetch("/api/report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assessment: answers, name }),
+      });
+      if (!res.ok) throw new Error(`report ${res.status}`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "competenze-kubri.pdf";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setReportState("idle");
+    } catch {
+      setReportState("error");
+    }
   }
 
   async function handleContactSubmit(e: React.FormEvent) {
@@ -130,6 +155,9 @@ export function AssessmentFlow() {
     try {
       const ok = await submitCommunity({ contact: result.data, assessment: answers });
       setSubmitState(ok ? "success" : "error");
+      if (ok) {
+        void downloadReport(`${result.data.firstName} ${result.data.lastName}`.trim());
+      }
     } catch {
       setSubmitState("error");
     } finally {
@@ -271,20 +299,24 @@ export function AssessmentFlow() {
 
       {/* CTAs */}
       <div className="flex flex-col gap-4">
-        {/* CTA 1 — Download (not yet available) */}
+        {/* CTA 1 — Download only */}
         <div className="rounded-2xl border border-neutral-200 bg-white p-5">
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="font-semibold text-neutral-900">Scarica il questionario</p>
-              <p className="mt-0.5 text-sm text-neutral-500">Il report PDF sarà disponibile a breve.</p>
+              <p className="mt-0.5 text-sm text-neutral-500">Ricevi subito il tuo report PDF delle competenze.</p>
             </div>
             <button
-              disabled
-              className="shrink-0 cursor-not-allowed rounded-xl border border-neutral-200 px-5 py-2.5 text-sm font-medium text-neutral-400"
+              onClick={() => downloadReport()}
+              disabled={reportState === "loading"}
+              className="shrink-0 rounded-xl border border-[#534AB7] px-5 py-2.5 text-sm font-medium text-[#534AB7] transition-colors hover:bg-[#EEEDFE] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Presto disponibile
+              {reportState === "loading" ? "Generazione…" : "Scarica PDF"}
             </button>
           </div>
+          {reportState === "error" && (
+            <p className="mt-3 text-sm text-red-600">Qualcosa è andato storto. Riprova tra qualche secondo.</p>
+          )}
         </div>
 
         {/* CTA 2 — Join community */}

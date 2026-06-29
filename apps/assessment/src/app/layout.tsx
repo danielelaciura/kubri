@@ -1,6 +1,17 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import { Poppins } from "next/font/google";
 import "./globals.css";
+
+// Body/normal text. Agrandir (titles + bold) is a licensed font wired via
+// next/font/local once its files are added; until then the title/bold rules in
+// globals.css fall back to Poppins.
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-poppins",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Kubri Assessment",
@@ -13,7 +24,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="it">
+    <html lang="it" className={poppins.variable}>
       <body className="flex min-h-dvh flex-col bg-white text-neutral-900 antialiased">
         <header className="flex shrink-0 items-center justify-between gap-4 border-b border-neutral-200 bg-white px-5 py-3 sm:px-6">
           <a

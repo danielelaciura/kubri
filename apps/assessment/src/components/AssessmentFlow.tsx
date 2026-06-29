@@ -168,7 +168,7 @@ export function AssessmentFlow() {
   // ---- Intro ----
   if (phase === "intro") {
     return (
-      <main className="mx-auto flex min-h-dvh max-w-[640px] flex-col items-center justify-center px-5 py-10">
+      <main className="mx-auto flex w-full flex-1 max-w-[640px] flex-col items-center justify-center px-5 py-10">
         <div
           className="flex w-full flex-col items-center gap-[1.4rem] rounded-2xl px-7 pb-9 pt-11 text-center"
           style={{ backgroundColor: "#F4F3FD" }}
@@ -209,7 +209,7 @@ export function AssessmentFlow() {
   // ---- Questions ----
   if (phase === "questions") {
     return (
-      <div className="mx-auto min-h-dvh max-w-[620px] px-4 pb-24 pt-6">
+      <div className="mx-auto w-full flex-1 max-w-[620px] px-4 pb-24 pt-6">
         {/* Progress bar */}
         <div className="mb-8">
           <div className="mb-2 flex items-center justify-between text-sm text-neutral-500">
@@ -279,7 +279,7 @@ export function AssessmentFlow() {
 
   // ---- Done ----
   return (
-    <main className="mx-auto min-h-dvh max-w-[620px] px-4 pb-24 pt-12">
+    <main className="mx-auto w-full flex-1 max-w-[620px] px-4 pb-24 pt-12">
       <div className="mb-10 text-center">
         <div
           className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl text-3xl"

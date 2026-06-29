@@ -12,7 +12,7 @@ const VALID = {
 describe("assessmentReportSchema", () => {
   it("exposes the 5 fixed domains with Italian labels", () => {
     expect(DOMAIN_IDS).toHaveLength(5);
-    expect(DOMAIN_LABELS.technical).toBe("Tecnico-operative");
+    expect(DOMAIN_LABELS.technical).toBe("Competenze operative");
   });
 
   it("accepts a valid report", () => {

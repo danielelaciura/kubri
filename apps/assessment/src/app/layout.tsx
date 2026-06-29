@@ -15,10 +15,7 @@ export default function RootLayout({
   return (
     <html lang="it">
       <body className="flex min-h-dvh flex-col bg-white text-neutral-900 antialiased">
-        <header
-          className="flex shrink-0 items-center justify-between gap-4 border-b border-[#E4E2FC] px-5 py-3 sm:px-6"
-          style={{ backgroundColor: "#EEEDFE" }}
-        >
+        <header className="flex shrink-0 items-center justify-between gap-4 border-b border-neutral-200 bg-white px-5 py-3 sm:px-6">
           <a
             href="https://www.kubri.it"
             target="_blank"

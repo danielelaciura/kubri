@@ -6,6 +6,7 @@ import { QuestionRenderer } from "./questionnaire/QuestionRenderer";
 import { submitCommunity } from "@/lib/submit";
 import { ComuneSelect } from "./questionnaire/ComuneSelect";
 import { comuneLabel, type Comune } from "@/lib/comuni";
+import { trackEvent } from "@/lib/analytics";
 import { Sparkles, CircleCheck, ArrowLeft, ArrowRight } from "lucide-react";
 
 type Phase = "intro" | "questions" | "done";
@@ -68,7 +69,10 @@ export function AssessmentFlow() {
   function handleNext() {
     if (isLastSection) {
       setPhase("done");
+      trackEvent("Assessment Completed");
     } else {
+      // 1-based index of the section just completed (1..4).
+      trackEvent("Section Advanced", { completed_section: sectionIndex + 1 });
       setSectionIndex((i) => i + 1);
     }
     window.scrollTo(0, 0);
@@ -189,7 +193,7 @@ export function AssessmentFlow() {
             pochi minuti ti mostriamo i tuoi punti di forza — quelli veri.
           </p>
           <button
-            onClick={() => { setPhase("questions"); window.scrollTo(0, 0); }}
+            onClick={() => { trackEvent("Assessment Started"); setPhase("questions"); window.scrollTo(0, 0); }}
             className="w-full max-w-[22rem] rounded-xl py-3.5 text-base font-semibold text-white transition-colors"
             style={{ backgroundColor: "#534AB7" }}
             onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#3C3489"; }}
@@ -320,7 +324,7 @@ export function AssessmentFlow() {
           </p>
           {!showForm && submitState === "idle" && (
             <button
-              onClick={() => setShowForm(true)}
+              onClick={() => { trackEvent("CTA Clicked", { cta: "join_community" }); setShowForm(true); }}
               className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-3 font-semibold text-white transition-colors"
               style={{ backgroundColor: "#534AB7" }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#3C3489"; }}
@@ -516,7 +520,7 @@ export function AssessmentFlow() {
               <p className="mt-0.5 text-sm text-neutral-500">Ricevi subito il tuo report PDF delle competenze.</p>
             </div>
             <button
-              onClick={() => downloadReport()}
+              onClick={() => { trackEvent("CTA Clicked", { cta: "download" }); downloadReport(); }}
               disabled={reportState === "loading"}
               className="shrink-0 rounded-xl border border-[#534AB7] px-5 py-2.5 text-sm font-medium text-[#534AB7] transition-colors hover:bg-[#EEEDFE] disabled:cursor-not-allowed disabled:opacity-60"
             >

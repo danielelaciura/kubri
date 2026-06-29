@@ -6,6 +6,7 @@ import { QuestionRenderer } from "./questionnaire/QuestionRenderer";
 import { submitCommunity } from "@/lib/submit";
 import { ComuneSelect } from "./questionnaire/ComuneSelect";
 import { comuneLabel, type Comune } from "@/lib/comuni";
+import { Sparkles, CircleCheck, ArrowLeft, ArrowRight } from "lucide-react";
 
 type Phase = "intro" | "questions" | "done";
 
@@ -168,34 +169,40 @@ export function AssessmentFlow() {
   // ---- Intro ----
   if (phase === "intro") {
     return (
-      <main className="mx-auto flex min-h-dvh max-w-[620px] flex-col items-center justify-center gap-8 px-6 py-16 text-center">
-        <div className="flex flex-col items-center gap-4">
+      <main className="mx-auto flex w-full flex-1 max-w-[640px] flex-col items-center justify-center px-5 py-10">
+        <div
+          className="flex w-full flex-col items-center gap-[1.4rem] rounded-2xl px-7 pb-9 pt-11 text-center"
+          style={{ backgroundColor: "#F4F3FD" }}
+        >
           <div
-            className="flex h-16 w-16 items-center justify-center rounded-2xl text-3xl"
-            style={{ backgroundColor: "#EEEDFE" }}
+            className="grid h-[4.25rem] w-[4.25rem] place-items-center rounded-2xl bg-white"
+            style={{ boxShadow: "0 1px 0 #E5E5E5" }}
             aria-hidden="true"
           >
-            🧭
+            <Sparkles className="h-8 w-8 text-[#534AB7]" strokeWidth={1.75} />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
+          <h1 className="text-balance text-[2.1rem] font-extrabold leading-[1.12] tracking-tight text-neutral-900">
             Scopri dove puoi arrivare davvero
           </h1>
-          <p className="max-w-md text-lg text-neutral-600">
-            In pochi minuti risponderai a domande sul tuo modo di lavorare, le tue
-            esperienze e i tuoi interessi. Al termine scoprirai i tuoi punti di forza
-            e potrai unirti alla community Kubri.
+          <p className="max-w-[30rem] text-pretty text-[1.0125rem] leading-relaxed text-neutral-700">
+            Raccontaci come ti piace lavorare, cosa hai già fatto e cosa ti appassiona. In
+            pochi minuti ti mostriamo i tuoi punti di forza — quelli veri.
           </p>
+          <button
+            onClick={() => { setPhase("questions"); window.scrollTo(0, 0); }}
+            className="w-full max-w-[22rem] rounded-xl py-3.5 text-base font-semibold text-white transition-colors"
+            style={{ backgroundColor: "#534AB7" }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#3C3489"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#534AB7"; }}
+          >
+            Inizia
+          </button>
+          <div className="flex flex-wrap justify-center gap-2">
+            <span className="rounded-full px-2.5 py-1 text-xs" style={{ backgroundColor: "#EEEDFE", color: "#3C3489" }}>8–12 minuti</span>
+            <span className="rounded-full px-2.5 py-1 text-xs" style={{ backgroundColor: "#EEEDFE", color: "#3C3489" }}>nessuna risposta sbagliata</span>
+            <span className="rounded-full px-2.5 py-1 text-xs" style={{ backgroundColor: "#EEEDFE", color: "#3C3489" }}>gratis</span>
+          </div>
         </div>
-        <button
-          onClick={() => { setPhase("questions"); window.scrollTo(0, 0); }}
-          className="rounded-xl px-10 py-4 text-lg font-semibold text-white shadow-sm transition-colors"
-          style={{ backgroundColor: "#534AB7" }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#3C3489"; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#534AB7"; }}
-        >
-          Inizia
-        </button>
-        <p className="text-sm text-neutral-400">Circa 8–12 minuti · nessuna risposta giusta o sbagliata</p>
       </main>
     );
   }
@@ -203,7 +210,7 @@ export function AssessmentFlow() {
   // ---- Questions ----
   if (phase === "questions") {
     return (
-      <div className="mx-auto min-h-dvh max-w-[620px] px-4 pb-24 pt-6">
+      <div className="mx-auto w-full flex-1 max-w-[620px] px-4 pb-24 pt-6">
         {/* Progress bar */}
         <div className="mb-8">
           <div className="mb-2 flex items-center justify-between text-sm text-neutral-500">
@@ -273,14 +280,14 @@ export function AssessmentFlow() {
 
   // ---- Done ----
   return (
-    <main className="mx-auto min-h-dvh max-w-[620px] px-4 pb-24 pt-12">
+    <main className="mx-auto w-full flex-1 max-w-[620px] px-4 pb-24 pt-12">
       <div className="mb-10 text-center">
         <div
-          className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl text-3xl"
+          className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl"
           style={{ backgroundColor: "#EEEDFE" }}
           aria-hidden="true"
         >
-          ✅
+          <CircleCheck className="h-8 w-8 text-[#534AB7]" strokeWidth={2} />
         </div>
         <h1 className="text-3xl font-bold text-neutral-900">Assessment completato!</h1>
         <p className="mt-2 text-neutral-600">
@@ -290,36 +297,17 @@ export function AssessmentFlow() {
           <button
             type="button"
             onClick={handleReview}
-            className="mt-3 rounded text-sm font-medium text-neutral-500 underline-offset-2 transition-colors hover:text-neutral-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#534AB7] focus-visible:ring-offset-2"
+            className="mt-3 inline-flex items-center gap-1 rounded text-sm font-medium text-neutral-500 underline-offset-2 transition-colors hover:text-neutral-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#534AB7] focus-visible:ring-offset-2"
           >
-            ← Rivedi le tue risposte
+            <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+            Rivedi le tue risposte
           </button>
         )}
       </div>
 
       {/* CTAs */}
       <div className="flex flex-col gap-4">
-        {/* CTA 1 — Download only */}
-        <div className="rounded-2xl border border-neutral-200 bg-white p-5">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="font-semibold text-neutral-900">Scarica il questionario</p>
-              <p className="mt-0.5 text-sm text-neutral-500">Ricevi subito il tuo report PDF delle competenze.</p>
-            </div>
-            <button
-              onClick={() => downloadReport()}
-              disabled={reportState === "loading"}
-              className="shrink-0 rounded-xl border border-[#534AB7] px-5 py-2.5 text-sm font-medium text-[#534AB7] transition-colors hover:bg-[#EEEDFE] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {reportState === "loading" ? "Generazione…" : "Scarica PDF"}
-            </button>
-          </div>
-          {reportState === "error" && (
-            <p className="mt-3 text-sm text-red-600">Qualcosa è andato storto. Riprova tra qualche secondo.</p>
-          )}
-        </div>
-
-        {/* CTA 2 — Join community */}
+        {/* CTA 1 — Join community */}
         <div
           className="rounded-2xl border-2 p-5"
           style={{ borderColor: "#534AB7", backgroundColor: "#EEEDFE" }}
@@ -333,12 +321,13 @@ export function AssessmentFlow() {
           {!showForm && submitState === "idle" && (
             <button
               onClick={() => setShowForm(true)}
-              className="mt-4 w-full rounded-xl py-3 font-semibold text-white transition-colors"
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-3 font-semibold text-white transition-colors"
               style={{ backgroundColor: "#534AB7" }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#3C3489"; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#534AB7"; }}
             >
-              Unisciti alla community →
+              Unisciti alla community
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </button>
           )}
 
@@ -516,6 +505,26 @@ export function AssessmentFlow() {
                 {submitting ? "Invio in corso…" : "Invia"}
               </button>
             </form>
+          )}
+        </div>
+
+        {/* CTA 2 — Download only */}
+        <div className="rounded-2xl border border-neutral-200 bg-white p-5">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="font-semibold text-neutral-900">Scarica il questionario</p>
+              <p className="mt-0.5 text-sm text-neutral-500">Ricevi subito il tuo report PDF delle competenze.</p>
+            </div>
+            <button
+              onClick={() => downloadReport()}
+              disabled={reportState === "loading"}
+              className="shrink-0 rounded-xl border border-[#534AB7] px-5 py-2.5 text-sm font-medium text-[#534AB7] transition-colors hover:bg-[#EEEDFE] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {reportState === "loading" ? "Generazione…" : "Scarica PDF"}
+            </button>
+          </div>
+          {reportState === "error" && (
+            <p className="mt-3 text-sm text-red-600">Qualcosa è andato storto. Riprova tra qualche secondo.</p>
           )}
         </div>
       </div>

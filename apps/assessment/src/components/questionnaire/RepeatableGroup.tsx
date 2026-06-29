@@ -7,6 +7,7 @@ import { Scale } from "./Scale";
 import { TextInput } from "./TextInput";
 import { TextArea } from "./TextArea";
 import { SelectInput } from "./SelectInput";
+import { X } from "lucide-react";
 
 type Entry = Record<string, unknown>;
 
@@ -73,10 +74,10 @@ export function RepeatableGroup({ question, value, onChange }: FieldProps) {
             <button
               type="button"
               onClick={() => removeEntry(index)}
-              className="rounded p-1 text-xs text-neutral-400 transition hover:bg-neutral-100 hover:text-neutral-600"
+              className="rounded p-1 text-neutral-400 transition hover:bg-neutral-100 hover:text-neutral-600"
               aria-label="Rimuovi"
             >
-              ✕
+              <X className="h-4 w-4" aria-hidden="true" />
             </button>
           </div>
           <div className="flex flex-col gap-3">

@@ -190,7 +190,7 @@ export function AssessmentFlow() {
           </h1>
           <p className="max-w-[30rem] text-pretty text-[1.0125rem] leading-relaxed text-neutral-700">
             Raccontaci come ti piace lavorare, cosa hai già fatto e cosa ti appassiona. In
-            pochi minuti ti mostriamo i tuoi punti di forza — quelli veri.
+            pochi minuti ti mostriamo i tuoi punti di forza.
           </p>
           <button
             onClick={() => { trackEvent("Assessment Started"); setPhase("questions"); window.scrollTo(0, 0); }}

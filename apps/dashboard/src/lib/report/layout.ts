@@ -1,4 +1,4 @@
-import { DOMAIN_LABELS, type AssessmentReport, type DomainId } from "@kubri/contracts";
+import { DOMAIN_SHORT_LABELS, type AssessmentReport, type DomainId } from "@kubri/contracts";
 
 /** Map canvas (matches the SVG viewBox used by the PDF component). */
 export const CANVAS_W = 720;
@@ -44,7 +44,7 @@ export function computeReportLayout(domains: AssessmentReport["domains"]): Repor
       return { name: c.name, x: dx + LEAF_RADIUS * Math.cos(a), y: dy + LEAF_RADIUS * Math.sin(a) };
     });
 
-    out.push({ id: d.id, label: DOMAIN_LABELS[d.id], x: dx, y: dy, leaves });
+    out.push({ id: d.id, label: DOMAIN_SHORT_LABELS[d.id], x: dx, y: dy, leaves });
   });
 
   return { center: { ...CENTER }, domains: out, edges };

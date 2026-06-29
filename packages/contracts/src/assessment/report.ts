@@ -12,11 +12,20 @@ export const DOMAIN_IDS = [
 export type DomainId = (typeof DOMAIN_IDS)[number];
 
 export const DOMAIN_LABELS: Record<DomainId, string> = {
-  cognitive: "Cognitive",
-  relational: "Relazionali",
-  organizational: "Organizzative",
-  technical: "Tecnico-operative",
-  motivation: "Motivazioni & interessi",
+  cognitive: "Stile di pensiero",
+  relational: "Stile relazionale",
+  organizational: "Approccio all'organizzazione",
+  technical: "Competenze operative",
+  motivation: "Motivatori e preferenze lavorative",
+};
+
+/** Short labels for the cluster-map nodes, where the full labels don't fit. */
+export const DOMAIN_SHORT_LABELS: Record<DomainId, string> = {
+  cognitive: "Pensiero",
+  relational: "Relazionale",
+  organizational: "Organizzazione",
+  technical: "Operative",
+  motivation: "Motivatori",
 };
 
 export const COMPETENCE_LEVELS = ["Base", "Buono", "Forte"] as const;

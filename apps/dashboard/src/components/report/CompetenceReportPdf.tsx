@@ -88,10 +88,10 @@ function ReportDoc({ report, name }: { report: AssessmentReport; name?: string }
           </View>
         </View>
 
-        <Text style={styles.sectionLabel}>IN SINTESI</Text>
+        <Text style={styles.sectionLabel}>PROFILO IN SINTESI</Text>
         <Text style={styles.intro}>{report.intro}</Text>
 
-        <Text style={styles.sectionLabel}>LA TUA MAPPA</Text>
+        <Text style={styles.sectionLabel}>MAPPA DEL PROFILO</Text>
         <Map report={report} />
 
         <Text style={styles.sectionLabel}>DETTAGLIO COMPETENZE</Text>

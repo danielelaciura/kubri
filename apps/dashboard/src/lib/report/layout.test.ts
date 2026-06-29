@@ -23,8 +23,8 @@ describe("computeReportLayout", () => {
     }
   });
 
-  it("maps domain ids to Italian labels", () => {
+  it("maps domain ids to short map labels", () => {
     const l = computeReportLayout([domain("technical", 1)]);
-    expect(l.domains[0]!.label).toBe("Tecnico-operative");
+    expect(l.domains[0]!.label).toBe("Operative");
   });
 });

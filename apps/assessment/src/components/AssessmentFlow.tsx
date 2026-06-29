@@ -6,6 +6,7 @@ import { QuestionRenderer } from "./questionnaire/QuestionRenderer";
 import { submitCommunity } from "@/lib/submit";
 import { ComuneSelect } from "./questionnaire/ComuneSelect";
 import { comuneLabel, type Comune } from "@/lib/comuni";
+import { Sparkles, CircleCheck, ArrowLeft, ArrowRight } from "lucide-react";
 
 type Phase = "intro" | "questions" | "done";
 
@@ -174,11 +175,11 @@ export function AssessmentFlow() {
           style={{ backgroundColor: "#F4F3FD" }}
         >
           <div
-            className="grid h-[4.25rem] w-[4.25rem] place-items-center rounded-2xl bg-white text-[2rem]"
+            className="grid h-[4.25rem] w-[4.25rem] place-items-center rounded-2xl bg-white"
             style={{ boxShadow: "0 1px 0 #E5E5E5" }}
             aria-hidden="true"
           >
-            🧭
+            <Sparkles className="h-8 w-8 text-[#534AB7]" strokeWidth={1.75} />
           </div>
           <h1 className="text-balance text-[2.1rem] font-extrabold leading-[1.12] tracking-tight text-neutral-900">
             Scopri dove puoi arrivare davvero
@@ -282,11 +283,11 @@ export function AssessmentFlow() {
     <main className="mx-auto w-full flex-1 max-w-[620px] px-4 pb-24 pt-12">
       <div className="mb-10 text-center">
         <div
-          className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl text-3xl"
+          className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl"
           style={{ backgroundColor: "#EEEDFE" }}
           aria-hidden="true"
         >
-          ✅
+          <CircleCheck className="h-8 w-8 text-[#534AB7]" strokeWidth={2} />
         </div>
         <h1 className="text-3xl font-bold text-neutral-900">Assessment completato!</h1>
         <p className="mt-2 text-neutral-600">
@@ -296,9 +297,10 @@ export function AssessmentFlow() {
           <button
             type="button"
             onClick={handleReview}
-            className="mt-3 rounded text-sm font-medium text-neutral-500 underline-offset-2 transition-colors hover:text-neutral-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#534AB7] focus-visible:ring-offset-2"
+            className="mt-3 inline-flex items-center gap-1 rounded text-sm font-medium text-neutral-500 underline-offset-2 transition-colors hover:text-neutral-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#534AB7] focus-visible:ring-offset-2"
           >
-            ← Rivedi le tue risposte
+            <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+            Rivedi le tue risposte
           </button>
         )}
       </div>
@@ -319,12 +321,13 @@ export function AssessmentFlow() {
           {!showForm && submitState === "idle" && (
             <button
               onClick={() => setShowForm(true)}
-              className="mt-4 w-full rounded-xl py-3 font-semibold text-white transition-colors"
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-3 font-semibold text-white transition-colors"
               style={{ backgroundColor: "#534AB7" }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#3C3489"; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#534AB7"; }}
             >
-              Unisciti alla community →
+              Unisciti alla community
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </button>
           )}
 

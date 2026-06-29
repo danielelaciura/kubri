@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { Poppins } from "next/font/google";
+import { ArrowLeft } from "lucide-react";
 import "./globals.css";
 
 // Body/normal text. Agrandir (titles + bold) is a licensed font wired via
@@ -33,9 +34,10 @@ export default function RootLayout({
             rel="noopener noreferrer"
             className="group inline-flex items-center gap-1.5 text-sm font-medium text-[#534AB7] transition-colors hover:text-[#3C3489]"
           >
-            <span aria-hidden="true" className="transition-transform group-hover:-translate-x-0.5">
-              ←
-            </span>
+            <ArrowLeft
+              aria-hidden="true"
+              className="h-4 w-4 transition-transform group-hover:-translate-x-0.5"
+            />
             visita il sito di Kubri
           </a>
           <div className="flex items-center gap-2">

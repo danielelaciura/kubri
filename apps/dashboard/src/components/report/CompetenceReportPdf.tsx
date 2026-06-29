@@ -1,10 +1,9 @@
 import React from "react";
 import {
-  Document, Page, Text, View, StyleSheet, Font, Svg, Circle, Line,
+  Document, Page, Text, View, StyleSheet, Font,
 } from "@react-pdf/renderer";
 import path from "node:path";
 import { DOMAIN_LABELS, type AssessmentReport } from "@kubri/contracts";
-import { computeReportLayout, CANVAS_W, CANVAS_H } from "@/lib/report/layout";
 
 // Static instances of the Onest variable font (one TTF per weight) so @react-pdf
 // renders a real weight hierarchy — registering one variable TTF for several
@@ -41,37 +40,6 @@ const styles = StyleSheet.create({
   footer: { marginTop: 18, paddingTop: 10, borderTopWidth: 1, borderTopColor: "#eee", fontSize: 9, color: "#999" },
 });
 
-function Map({ report }: { report: AssessmentReport }) {
-  const layout = computeReportLayout(report.domains);
-  return (
-    <Svg viewBox={`0 0 ${CANVAS_W} ${CANVAS_H}`} style={{ width: "100%", height: 250 }}>
-      {layout.edges.map((e, i) => (
-        <Line key={`e${i}`} x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2} strokeWidth={2.5} stroke="#C9C4F0" />
-      ))}
-      {layout.domains.flatMap((d) =>
-        d.leaves.map((leaf, j) => (
-          <Line key={`l${d.id}${j}`} x1={d.x} y1={d.y} x2={leaf.x} y2={leaf.y} strokeWidth={1.5} stroke="#E4E2FC" />
-        )),
-      )}
-      {layout.domains.flatMap((d) =>
-        d.leaves.map((leaf, j) => <Circle key={`lc${d.id}${j}`} cx={leaf.x} cy={leaf.y} r={3} fill="#AFA9EC" />),
-      )}
-      {layout.domains.map((d) => (
-        <React.Fragment key={d.id}>
-          <Circle cx={d.x} cy={d.y} r={34} fill={PURPLE_LT} stroke={PURPLE} strokeWidth={2} />
-          <Text x={d.x} y={d.y + 3} style={{ fontSize: 9, fontWeight: 700, color: PURPLE_DK, textAlign: "center" }}>
-            {d.label}
-          </Text>
-        </React.Fragment>
-      ))}
-      <Circle cx={layout.center.x} cy={layout.center.y} r={40} fill={PURPLE} />
-      <Text x={layout.center.x} y={layout.center.y + 3} style={{ fontSize: 10, fontWeight: 800, color: "#fff", textAlign: "center" }}>
-        competenze
-      </Text>
-    </Svg>
-  );
-}
-
 function ReportDoc({ report, name }: { report: AssessmentReport; name?: string }) {
   const date = new Date().toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" });
   return (
@@ -90,9 +58,6 @@ function ReportDoc({ report, name }: { report: AssessmentReport; name?: string }
 
         <Text style={styles.sectionLabel}>PROFILO IN SINTESI</Text>
         <Text style={styles.intro}>{report.intro}</Text>
-
-        <Text style={styles.sectionLabel}>MAPPA DEL PROFILO</Text>
-        <Map report={report} />
 
         <Text style={styles.sectionLabel}>DETTAGLIO COMPETENZE</Text>
         {report.domains.map((d) => (

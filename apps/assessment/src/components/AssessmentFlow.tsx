@@ -168,34 +168,40 @@ export function AssessmentFlow() {
   // ---- Intro ----
   if (phase === "intro") {
     return (
-      <main className="mx-auto flex min-h-dvh max-w-[620px] flex-col items-center justify-center gap-8 px-6 py-16 text-center">
-        <div className="flex flex-col items-center gap-4">
+      <main className="mx-auto flex min-h-dvh max-w-[640px] flex-col items-center justify-center px-5 py-10">
+        <div
+          className="flex w-full flex-col items-center gap-[1.4rem] rounded-2xl px-7 pb-9 pt-11 text-center"
+          style={{ backgroundColor: "#F4F3FD" }}
+        >
           <div
-            className="flex h-16 w-16 items-center justify-center rounded-2xl text-3xl"
-            style={{ backgroundColor: "#EEEDFE" }}
+            className="grid h-[4.25rem] w-[4.25rem] place-items-center rounded-2xl bg-white text-[2rem]"
+            style={{ boxShadow: "0 1px 0 #E5E5E5" }}
             aria-hidden="true"
           >
             🧭
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
+          <h1 className="text-balance text-[2.1rem] font-extrabold leading-[1.12] tracking-tight text-neutral-900">
             Scopri dove puoi arrivare davvero
           </h1>
-          <p className="max-w-md text-lg text-neutral-600">
-            In pochi minuti risponderai a domande sul tuo modo di lavorare, le tue
-            esperienze e i tuoi interessi. Al termine scoprirai i tuoi punti di forza
-            e potrai unirti alla community Kubri.
+          <p className="max-w-[30rem] text-pretty text-[1.0125rem] leading-relaxed text-neutral-700">
+            Raccontaci come ti piace lavorare, cosa hai già fatto e cosa ti appassiona. In
+            pochi minuti ti mostriamo i tuoi punti di forza — quelli veri.
           </p>
+          <button
+            onClick={() => { setPhase("questions"); window.scrollTo(0, 0); }}
+            className="w-full max-w-[22rem] rounded-xl py-3.5 text-base font-semibold text-white transition-colors"
+            style={{ backgroundColor: "#534AB7" }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#3C3489"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#534AB7"; }}
+          >
+            Inizia
+          </button>
+          <div className="flex flex-wrap justify-center gap-2">
+            <span className="rounded-full px-2.5 py-1 text-xs" style={{ backgroundColor: "#EEEDFE", color: "#3C3489" }}>8–12 minuti</span>
+            <span className="rounded-full px-2.5 py-1 text-xs" style={{ backgroundColor: "#EEEDFE", color: "#3C3489" }}>nessuna risposta sbagliata</span>
+            <span className="rounded-full px-2.5 py-1 text-xs" style={{ backgroundColor: "#EEEDFE", color: "#3C3489" }}>gratis</span>
+          </div>
         </div>
-        <button
-          onClick={() => { setPhase("questions"); window.scrollTo(0, 0); }}
-          className="rounded-xl px-10 py-4 text-lg font-semibold text-white shadow-sm transition-colors"
-          style={{ backgroundColor: "#534AB7" }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#3C3489"; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#534AB7"; }}
-        >
-          Inizia
-        </button>
-        <p className="text-sm text-neutral-400">Circa 8–12 minuti · nessuna risposta giusta o sbagliata</p>
       </main>
     );
   }
@@ -299,27 +305,7 @@ export function AssessmentFlow() {
 
       {/* CTAs */}
       <div className="flex flex-col gap-4">
-        {/* CTA 1 — Download only */}
-        <div className="rounded-2xl border border-neutral-200 bg-white p-5">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="font-semibold text-neutral-900">Scarica il questionario</p>
-              <p className="mt-0.5 text-sm text-neutral-500">Ricevi subito il tuo report PDF delle competenze.</p>
-            </div>
-            <button
-              onClick={() => downloadReport()}
-              disabled={reportState === "loading"}
-              className="shrink-0 rounded-xl border border-[#534AB7] px-5 py-2.5 text-sm font-medium text-[#534AB7] transition-colors hover:bg-[#EEEDFE] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {reportState === "loading" ? "Generazione…" : "Scarica PDF"}
-            </button>
-          </div>
-          {reportState === "error" && (
-            <p className="mt-3 text-sm text-red-600">Qualcosa è andato storto. Riprova tra qualche secondo.</p>
-          )}
-        </div>
-
-        {/* CTA 2 — Join community */}
+        {/* CTA 1 — Join community */}
         <div
           className="rounded-2xl border-2 p-5"
           style={{ borderColor: "#534AB7", backgroundColor: "#EEEDFE" }}
@@ -516,6 +502,26 @@ export function AssessmentFlow() {
                 {submitting ? "Invio in corso…" : "Invia"}
               </button>
             </form>
+          )}
+        </div>
+
+        {/* CTA 2 — Download only */}
+        <div className="rounded-2xl border border-neutral-200 bg-white p-5">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="font-semibold text-neutral-900">Scarica il questionario</p>
+              <p className="mt-0.5 text-sm text-neutral-500">Ricevi subito il tuo report PDF delle competenze.</p>
+            </div>
+            <button
+              onClick={() => downloadReport()}
+              disabled={reportState === "loading"}
+              className="shrink-0 rounded-xl border border-[#534AB7] px-5 py-2.5 text-sm font-medium text-[#534AB7] transition-colors hover:bg-[#EEEDFE] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {reportState === "loading" ? "Generazione…" : "Scarica PDF"}
+            </button>
+          </div>
+          {reportState === "error" && (
+            <p className="mt-3 text-sm text-red-600">Qualcosa è andato storto. Riprova tra qualche secondo.</p>
           )}
         </div>
       </div>

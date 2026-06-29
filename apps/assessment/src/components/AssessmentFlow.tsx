@@ -471,7 +471,7 @@ export function AssessmentFlow() {
                 <span className="text-sm text-neutral-700">
                   Accetto la{" "}
                   <a
-                    href="/privacy"
+                    href="https://kubri.notion.site/GDPR-and-Privacy-Policy-Italiano-2aed010a992780228abbf79cb7afc13c"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="underline"

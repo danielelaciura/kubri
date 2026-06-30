@@ -203,8 +203,6 @@ export function AssessmentFlow() {
           </button>
           <div className="flex flex-wrap justify-center gap-2">
             <span className="rounded-full px-2.5 py-1 text-xs" style={{ backgroundColor: "#EEEDFE", color: "#3C3489" }}>8–12 minuti</span>
-            <span className="rounded-full px-2.5 py-1 text-xs" style={{ backgroundColor: "#EEEDFE", color: "#3C3489" }}>nessuna risposta sbagliata</span>
-            <span className="rounded-full px-2.5 py-1 text-xs" style={{ backgroundColor: "#EEEDFE", color: "#3C3489" }}>gratis</span>
           </div>
         </div>
       </main>

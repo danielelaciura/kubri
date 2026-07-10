@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth-utils";
 import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 import { getOrgAccessiblePoolIds } from "@/lib/pools/access";
+import { candidateVisibilityWhere } from "@/lib/pools/candidate-visibility";
 import {
   createListSchema,
   renameListSchema,
@@ -33,9 +34,8 @@ async function requireCandidateAccessibleToOrg(
     return;
   }
   const poolIds = await getOrgAccessiblePoolIds(organizationId);
-  if (poolIds.length === 0) throw new Error("Candidato non accessibile");
   const exists = await prisma.candidate.findFirst({
-    where: { id: candidateId, poolId: { in: poolIds } },
+    where: { id: candidateId, ...candidateVisibilityWhere(poolIds) },
     select: { id: true },
   });
   if (!exists) throw new Error("Candidato non accessibile");

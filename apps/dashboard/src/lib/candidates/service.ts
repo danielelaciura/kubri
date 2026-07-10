@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getOrgAccessiblePoolIds } from "@/lib/pools/access";
+import { candidateVisibilityWhere } from "@/lib/pools/candidate-visibility";
 import type { Candidate, Channel } from "@/types";
 import type { CandidateModel as DbCandidate } from "@/generated/prisma/models/Candidate";
 
@@ -50,9 +51,8 @@ export async function getCandidatesForOrg(
   organizationId: string,
 ): Promise<Candidate[]> {
   const poolIds = await getOrgAccessiblePoolIds(organizationId);
-  if (poolIds.length === 0) return [];
   const rows = await prisma.candidate.findMany({
-    where: { poolId: { in: poolIds } },
+    where: candidateVisibilityWhere(poolIds),
     orderBy: { createdAt: "desc" },
   });
   return rows.map(dbCandidateToApp);
@@ -73,9 +73,8 @@ export async function getCandidateForOrg(
   candidateId: string,
 ): Promise<Candidate | null> {
   const poolIds = await getOrgAccessiblePoolIds(organizationId);
-  if (poolIds.length === 0) return null;
   const row = await prisma.candidate.findFirst({
-    where: { id: candidateId, poolId: { in: poolIds } },
+    where: { id: candidateId, ...candidateVisibilityWhere(poolIds) },
   });
   return row ? dbCandidateToApp(row) : null;
 }

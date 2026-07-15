@@ -61,8 +61,15 @@ export async function getCandidatesForOrg(
 export async function getCandidatesForPool(
   poolId: string,
 ): Promise<Candidate[]> {
+  // The Global pool also surfaces every sharedWithGlobal candidate, wherever
+  // its home pool is (consent-gated cross-org visibility). Any other pool is
+  // shown strictly — you see only the candidates that live in it.
+  const pool = await prisma.pool.findUnique({
+    where: { id: poolId },
+    select: { isGlobal: true },
+  });
   const rows = await prisma.candidate.findMany({
-    where: { poolId },
+    where: pool?.isGlobal ? candidateVisibilityWhere([poolId]) : { poolId },
     orderBy: { createdAt: "desc" },
   });
   return rows.map(dbCandidateToApp);

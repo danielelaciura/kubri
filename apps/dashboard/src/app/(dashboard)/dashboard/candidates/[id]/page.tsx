@@ -9,6 +9,8 @@ import { getListOptionsForOrg, getListIdsByCandidateForOrg } from "@/lib/lists/s
 import { CandidateProfile } from "@/components/candidates/candidate-profile";
 import { CandidateNotes } from "@/components/candidates/candidate-notes";
 import { AddToListMenu } from "@/components/lists/add-to-list-menu";
+import { CandidateStatusSelect } from "@/components/candidates/candidate-status-select";
+import { getCandidateStatusForOrg } from "@/lib/candidates/status-service";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, AlertCircle, FileDown } from "lucide-react";
 import Link from "next/link";
@@ -50,7 +52,7 @@ export default async function CandidateDetailPage({
     ? { candidateId: id }
     : { candidateId: id, organizationId };
 
-  const [candidate, notes, lists, membershipByCandidate] = await Promise.all([
+  const [candidate, notes, lists, membershipByCandidate, status] = await Promise.all([
     (isKubriAdmin
       ? getCandidateByIdUnscoped(id)
       : getCandidateForOrg(organizationId, id)
@@ -62,6 +64,7 @@ export default async function CandidateDetailPage({
     }),
     getListOptionsForOrg(organizationId),
     getListIdsByCandidateForOrg(organizationId),
+    getCandidateStatusForOrg(organizationId, id),
   ]);
 
   const memberOf = membershipByCandidate[id] ?? [];
@@ -124,8 +127,14 @@ export default async function CandidateDetailPage({
           <CandidateProfile candidate={candidate} />
         </div>
 
-        {/* Sidebar: lists + notes */}
+        {/* Sidebar: status + lists + notes */}
         <div className="space-y-6">
+          <div className="rounded-lg border border-border/60 bg-card p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">{t.candidateStatus.label}</span>
+              <CandidateStatusSelect candidateId={id} status={status} />
+            </div>
+          </div>
           <div className="rounded-lg border border-border/60 bg-card p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between">
               <span className="text-sm font-medium">{t.candidates.listsSection}</span>

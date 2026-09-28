@@ -15,6 +15,7 @@ import {
   MAX_RADIUS_KM,
   RADIUS_STEP_KM,
 } from "@/lib/geo/constants";
+import { CANDIDATE_STATUSES } from "@/lib/candidates/status";
 
 interface CandidateFiltersProps {
   initialFilters: {
@@ -25,6 +26,7 @@ interface CandidateFiltersProps {
     nearPlace?: string;
     radiusKm?: string;
     listId?: string;
+    status?: string;
   };
   lists: { id: string; name: string }[];
 }
@@ -43,6 +45,7 @@ export function CandidateFilters({ initialFilters, lists }: CandidateFiltersProp
     initialFilters.radiusKm ? Number(initialFilters.radiusKm) : DEFAULT_SEARCH_RADIUS_KM,
   );
   const [listId, setListId] = useState(initialFilters.listId ?? "");
+  const [status, setStatus] = useState(initialFilters.status ?? "");
 
   const applyFilters = useCallback(() => {
     const params = new URLSearchParams(searchParams.toString());
@@ -61,6 +64,7 @@ export function CandidateFilters({ initialFilters, lists }: CandidateFiltersProp
     if (nearPlace.trim()) params.set("radiusKm", String(radiusKm));
     else params.delete("radiusKm");
     setOrDelete("listId", listId);
+    setOrDelete("status", status);
 
     router.push(`/dashboard/candidates?${params.toString()}`);
   }, [
@@ -73,6 +77,7 @@ export function CandidateFilters({ initialFilters, lists }: CandidateFiltersProp
     nearPlace,
     radiusKm,
     listId,
+    status,
   ]);
 
   const resetFilters = useCallback(() => {
@@ -83,6 +88,7 @@ export function CandidateFilters({ initialFilters, lists }: CandidateFiltersProp
     setNearPlace("");
     setRadiusKm(DEFAULT_SEARCH_RADIUS_KM);
     setListId("");
+    setStatus("");
     router.push("/dashboard/candidates");
   }, [router]);
 
@@ -138,8 +144,21 @@ export function CandidateFilters({ initialFilters, lists }: CandidateFiltersProp
         </div>
       </div>
 
-      {lists.length > 0 && (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div>
+          <label className="mb-2 block text-sm font-medium">{t.candidateStatus.label}</label>
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          >
+            <option value="">{t.candidateStatus.filterAll}</option>
+            {CANDIDATE_STATUSES.map((s) => (
+              <option key={s} value={s}>{t.candidateStatus.values[s]}</option>
+            ))}
+          </select>
+        </div>
+        {lists.length > 0 && (
           <div>
             <label className="mb-2 block text-sm font-medium">{t.candidates.filterList}</label>
             <select
@@ -153,8 +172,8 @@ export function CandidateFilters({ initialFilters, lists }: CandidateFiltersProp
               ))}
             </select>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       <div className="flex gap-2">
         <Button onClick={applyFilters}>{t.common.search}</Button>

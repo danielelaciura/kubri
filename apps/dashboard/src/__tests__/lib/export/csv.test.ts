@@ -58,8 +58,21 @@ describe("candidatesToCsv", () => {
     const csv = candidatesToCsv([], {}, dict, DEFAULT_LOCALE);
     const firstLine = csv.replace("﻿", "").split("\n")[0];
     expect(firstLine).toBe(
-      "Nome,Cognome,Data di nascita,Paese di origine,Indirizzo,Telefono,Stato legale,Permesso di lavoro,Lingua madre,Altre lingue,Competenze,Esperienze lavorative,Lavoro desiderato,Liste,Data,Canale",
+      "Nome,Cognome,Data di nascita,Paese di origine,Indirizzo,Telefono,Stato legale,Permesso di lavoro,Lingua madre,Altre lingue,Competenze,Esperienze lavorative,Lavoro desiderato,Liste,Stato,Data,Canale",
     );
+  });
+
+  it("includes the org's status label, defaulting to Nuovo", () => {
+    const csv = candidatesToCsv(
+      [makeCandidate({ id: "c1" }), makeCandidate({ id: "c2" })],
+      {},
+      dict,
+      DEFAULT_LOCALE,
+      { c1: "HIRED" },
+    );
+    const [, row1, row2] = csv.replace("\uFEFF", "").split("\n");
+    expect(row1).toContain(",Assunto,");
+    expect(row2).toContain(",Nuovo,");
   });
 
   it("includes the candidate's list names in the Liste column", () => {
@@ -152,7 +165,7 @@ describe("candidatesToCsv", () => {
     expect(lines).toHaveLength(2);
     // Should not throw and should produce a valid row with the expected number of columns
     const cells = lines[1]!.split(",");
-    expect(cells.length).toBe(16);
+    expect(cells.length).toBe(17);
   });
 
   it("produces correct rows for multiple candidates", () => {

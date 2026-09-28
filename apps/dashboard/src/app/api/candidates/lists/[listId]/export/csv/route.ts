@@ -6,6 +6,7 @@ import {
 } from "@/lib/lists/service";
 import { candidatesToCsv } from "@/lib/export/csv";
 import { logAudit } from "@/lib/audit";
+import { getStatusByCandidateForOrg } from "@/lib/candidates/status-service";
 import { getDictionary } from "@/lib/i18n";
 import { getServerLocale } from "@/lib/i18n/locale";
 
@@ -33,7 +34,14 @@ export async function GET(
     const candidates = all.filter((c) => memberSet.has(c.id));
 
     const listNames = await getListNamesByCandidateForOrg(organizationId);
-    const csv = candidatesToCsv(candidates, listNames, dictionary, locale);
+    const statusByCandidate = await getStatusByCandidateForOrg(organizationId);
+    const csv = candidatesToCsv(
+      candidates,
+      listNames,
+      dictionary,
+      locale,
+      statusByCandidate,
+    );
 
     const slug = list.name
       .toLowerCase()

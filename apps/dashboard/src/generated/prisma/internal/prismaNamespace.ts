@@ -393,7 +393,8 @@ export const ModelName = {
   JobDescription: 'JobDescription',
   Candidate: 'Candidate',
   CandidateList: 'CandidateList',
-  CandidateListMembership: 'CandidateListMembership'
+  CandidateListMembership: 'CandidateListMembership',
+  CandidateStatus: 'CandidateStatus'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -409,7 +410,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "organization" | "pool" | "organizationPool" | "user" | "candidateNote" | "auditLog" | "jobDescription" | "candidate" | "candidateList" | "candidateListMembership"
+    modelProps: "organization" | "pool" | "organizationPool" | "user" | "candidateNote" | "auditLog" | "jobDescription" | "candidate" | "candidateList" | "candidateListMembership" | "candidateStatus"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1153,6 +1154,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    CandidateStatus: {
+      payload: Prisma.$CandidateStatusPayload<ExtArgs>
+      fields: Prisma.CandidateStatusFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CandidateStatusFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CandidateStatusPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CandidateStatusFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CandidateStatusPayload>
+        }
+        findFirst: {
+          args: Prisma.CandidateStatusFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CandidateStatusPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CandidateStatusFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CandidateStatusPayload>
+        }
+        findMany: {
+          args: Prisma.CandidateStatusFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CandidateStatusPayload>[]
+        }
+        create: {
+          args: Prisma.CandidateStatusCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CandidateStatusPayload>
+        }
+        createMany: {
+          args: Prisma.CandidateStatusCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CandidateStatusCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CandidateStatusPayload>[]
+        }
+        delete: {
+          args: Prisma.CandidateStatusDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CandidateStatusPayload>
+        }
+        update: {
+          args: Prisma.CandidateStatusUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CandidateStatusPayload>
+        }
+        deleteMany: {
+          args: Prisma.CandidateStatusDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CandidateStatusUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CandidateStatusUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CandidateStatusPayload>[]
+        }
+        upsert: {
+          args: Prisma.CandidateStatusUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CandidateStatusPayload>
+        }
+        aggregate: {
+          args: Prisma.CandidateStatusAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCandidateStatus>
+        }
+        groupBy: {
+          args: Prisma.CandidateStatusGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CandidateStatusGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CandidateStatusCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CandidateStatusCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1320,6 +1395,8 @@ export const CandidateScalarFieldEnum = {
   sourceOrganization: 'sourceOrganization',
   channel: 'channel',
   sharedWithGlobal: 'sharedWithGlobal',
+  email: 'email',
+  assessmentProfile: 'assessmentProfile',
   rawPayload: 'rawPayload',
   sourceUpdatedAt: 'sourceUpdatedAt',
   createdAt: 'createdAt',
@@ -1352,6 +1429,17 @@ export const CandidateListMembershipScalarFieldEnum = {
 } as const
 
 export type CandidateListMembershipScalarFieldEnum = (typeof CandidateListMembershipScalarFieldEnum)[keyof typeof CandidateListMembershipScalarFieldEnum]
+
+
+export const CandidateStatusScalarFieldEnum = {
+  candidateId: 'candidateId',
+  organizationId: 'organizationId',
+  status: 'status',
+  updatedByUserId: 'updatedByUserId',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CandidateStatusScalarFieldEnum = (typeof CandidateStatusScalarFieldEnum)[keyof typeof CandidateStatusScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1512,6 +1600,20 @@ export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, '
 export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
     
 
+
+/**
+ * Reference to a field of type 'CandidateStatusValue'
+ */
+export type EnumCandidateStatusValueFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CandidateStatusValue'>
+    
+
+
+/**
+ * Reference to a field of type 'CandidateStatusValue[]'
+ */
+export type ListEnumCandidateStatusValueFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CandidateStatusValue[]'>
+    
+
 /**
  * Batch Payload for updateMany & deleteMany & createMany
  */
@@ -1617,6 +1719,7 @@ export type GlobalOmitConfig = {
   candidate?: Prisma.CandidateOmit
   candidateList?: Prisma.CandidateListOmit
   candidateListMembership?: Prisma.CandidateListMembershipOmit
+  candidateStatus?: Prisma.CandidateStatusOmit
 }
 
 /* Types for Logging */

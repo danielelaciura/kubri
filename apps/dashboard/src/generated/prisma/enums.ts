@@ -24,3 +24,17 @@ export const NotifyFrequency = {
 } as const
 
 export type NotifyFrequency = (typeof NotifyFrequency)[keyof typeof NotifyFrequency]
+
+
+export const CandidateStatusValue = {
+  NEW: 'NEW',
+  SCREENING: 'SCREENING',
+  CONTACTED: 'CONTACTED',
+  INTERVIEW: 'INTERVIEW',
+  OFFER: 'OFFER',
+  HIRED: 'HIRED',
+  REJECTED: 'REJECTED',
+  WITHDRAWN: 'WITHDRAWN'
+} as const
+
+export type CandidateStatusValue = (typeof CandidateStatusValue)[keyof typeof CandidateStatusValue]

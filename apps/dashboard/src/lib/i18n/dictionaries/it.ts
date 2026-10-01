@@ -346,13 +346,12 @@ export const it = {
     updateError: "Impossibile aggiornare lo stato. Riprova.",
     values: {
       NEW: "Nuovo",
-      SCREENING: "In valutazione",
       CONTACTED: "Contattato",
+      SCREENING: "In valutazione",
       INTERVIEW: "Colloquio",
-      OFFER: "Proposta",
+      OFFER: "Offerta",
       HIRED: "Assunto",
-      REJECTED: "Scartato",
-      WITHDRAWN: "Ritirato",
+      NOT_SELECTED: "Non selezionato",
     },
   },
   authErrors: {

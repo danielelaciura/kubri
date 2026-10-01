@@ -1,5 +1,5 @@
 -- CreateEnum
-CREATE TYPE "CandidateStatusValue" AS ENUM ('NEW', 'SCREENING', 'CONTACTED', 'INTERVIEW', 'OFFER', 'HIRED', 'REJECTED', 'WITHDRAWN');
+CREATE TYPE "CandidateStatusValue" AS ENUM ('NEW', 'CONTACTED', 'SCREENING', 'INTERVIEW', 'OFFER', 'HIRED', 'NOT_SELECTED');
 
 -- CreateTable
 CREATE TABLE "CandidateStatus" (

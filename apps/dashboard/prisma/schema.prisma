@@ -20,13 +20,12 @@ enum NotifyFrequency {
 
 enum CandidateStatusValue {
   NEW
-  SCREENING
   CONTACTED
+  SCREENING
   INTERVIEW
   OFFER
   HIRED
-  REJECTED
-  WITHDRAWN
+  NOT_SELECTED
 }
 
 model Organization {

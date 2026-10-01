@@ -3,13 +3,12 @@
 /** Journey order: used for the dropdown, the filter and validation. */
 export const CANDIDATE_STATUSES = [
   "NEW",
-  "SCREENING",
   "CONTACTED",
+  "SCREENING",
   "INTERVIEW",
   "OFFER",
   "HIRED",
-  "REJECTED",
-  "WITHDRAWN",
+  "NOT_SELECTED",
 ] as const;
 
 export type CandidateStatusValue = (typeof CANDIDATE_STATUSES)[number];

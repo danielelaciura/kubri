@@ -348,13 +348,12 @@ export const en = {
     updateError: "Could not update the status. Please try again.",
     values: {
       NEW: "New",
-      SCREENING: "Screening",
       CONTACTED: "Contacted",
+      SCREENING: "Screening",
       INTERVIEW: "Interview",
       OFFER: "Offer",
       HIRED: "Hired",
-      REJECTED: "Rejected",
-      WITHDRAWN: "Withdrawn",
+      NOT_SELECTED: "Not selected",
     },
   },
   authErrors: {

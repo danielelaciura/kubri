@@ -24,13 +24,15 @@ writer of `Candidate` (CLAUDE.md rule).
 | Enum | IT | EN | Meaning |
 |------|----|----|---------|
 | `NEW` | Nuovo | New | Arrived via webhook, not yet reviewed (initial state) |
-| `SCREENING` | In valutazione | Screening | Operator is evaluating the profile |
 | `CONTACTED` | Contattato | Contacted | First contact made |
+| `SCREENING` | In valutazione | Screening | Candidate is being evaluated after contact |
 | `INTERVIEW` | Colloquio | Interview | Interview scheduled or held |
-| `OFFER` | Proposta | Offer | Job offer made |
+| `OFFER` | Offerta | Offer | Job offer made |
 | `HIRED` | Assunto | Hired | Positive exit |
-| `REJECTED` | Scartato | Rejected | Rejected by the organization (from any step) |
-| `WITHDRAWN` | Ritirato | Withdrawn | Candidate withdrew / unreachable (from any step) |
+| `NOT_SELECTED` | Non selezionato | Not selected | Negative exit (from any step) |
+
+*Revised 2026-10-01: Contacted now precedes Screening; "Proposta" → "Offerta";
+`REJECTED` and `WITHDRAWN` merged into a single `NOT_SELECTED`.*
 
 Transitions are **not enforced**: any status can be set from any status (to fix
 mistakes, reject straight from `NEW`, etc.). The order above is the display order
@@ -41,13 +43,12 @@ in the dropdown and in the filter.
 ```prisma
 enum CandidateStatusValue {
   NEW
-  SCREENING
   CONTACTED
+  SCREENING
   INTERVIEW
   OFFER
   HIRED
-  REJECTED
-  WITHDRAWN
+  NOT_SELECTED
 }
 
 model CandidateStatus {
@@ -130,8 +131,7 @@ statuses", update error message).
   user's organization; honour the `?status=` filter too.
 
 Badge colours (Tailwind, subtle): neutral for `NEW`, blue-ish for the in-progress
-steps (`SCREENING`…`OFFER`), green for `HIRED`, red for `REJECTED`, muted grey
-for `WITHDRAWN`.
+steps (`CONTACTED`…`OFFER`), green for `HIRED`, red for `NOT_SELECTED`.
 
 ## Out of scope
 

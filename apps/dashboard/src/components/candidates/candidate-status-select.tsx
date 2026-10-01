@@ -17,13 +17,12 @@ import { setCandidateStatus } from "@/app/(dashboard)/dashboard/candidates/[id]/
 
 const STATUS_STYLES: Record<CandidateStatusValue, string> = {
   NEW: "border-border bg-muted text-foreground",
-  SCREENING: "border-sky-200 bg-sky-50 text-sky-700",
   CONTACTED: "border-sky-200 bg-sky-50 text-sky-700",
+  SCREENING: "border-sky-200 bg-sky-50 text-sky-700",
   INTERVIEW: "border-blue-200 bg-blue-50 text-blue-700",
   OFFER: "border-indigo-200 bg-indigo-50 text-indigo-700",
   HIRED: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  REJECTED: "border-red-200 bg-red-50 text-red-700",
-  WITHDRAWN: "border-border bg-transparent text-muted-foreground",
+  NOT_SELECTED: "border-red-200 bg-red-50 text-red-700",
 };
 
 interface CandidateStatusSelectProps {

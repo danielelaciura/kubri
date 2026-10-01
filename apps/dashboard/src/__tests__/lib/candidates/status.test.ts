@@ -11,13 +11,12 @@ describe("candidate status helpers", () => {
   it("lists the statuses in journey order, starting from NEW", () => {
     expect(CANDIDATE_STATUSES).toEqual([
       "NEW",
-      "SCREENING",
       "CONTACTED",
+      "SCREENING",
       "INTERVIEW",
       "OFFER",
       "HIRED",
-      "REJECTED",
-      "WITHDRAWN",
+      "NOT_SELECTED",
     ]);
     expect(DEFAULT_CANDIDATE_STATUS).toBe("NEW");
   });

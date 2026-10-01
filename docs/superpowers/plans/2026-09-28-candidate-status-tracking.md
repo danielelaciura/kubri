@@ -10,6 +10,8 @@
 
 Spec: `docs/superpowers/specs/2026-09-28-candidate-status-tracking-design.md`
 
+> **Note (2026-10-01):** the status list was revised after implementation to `NEW, CONTACTED, SCREENING, INTERVIEW, OFFER, HIRED, NOT_SELECTED` (see spec). Code snippets below show the original list.
+
 All commands run from `apps/dashboard`.
 
 **Deviations from spec (decided while planning):**

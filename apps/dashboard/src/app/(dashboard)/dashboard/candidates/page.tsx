@@ -11,6 +11,8 @@ import { CandidatesTable } from "@/components/candidates/candidates-table";
 import { CandidateFilters } from "@/components/candidates/candidate-filters";
 import { getListOptionsForOrg, getListIdsByCandidateForOrg, getMemberCandidateIdSet } from "@/lib/lists/service";
 import { AdminPoolSelector } from "@/components/candidates/admin-pool-selector";
+import { filterByStatus } from "@/lib/candidates/status";
+import { getStatusByCandidateForOrg } from "@/lib/candidates/status-service";
 import { Button } from "@/components/ui/button";
 import { getServerLocale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n";
@@ -95,6 +97,9 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
       : [];
   }
 
+  const statusByCandidate = await getStatusByCandidateForOrg(user.organizationId);
+  candidates = filterByStatus(candidates, statusByCandidate, filters.status);
+
   const filtered = filterCandidates(candidates, filters);
   const sorted = sortCandidates(filtered, sort);
   const result = paginateCandidates(sorted, page, pageSize);
@@ -158,7 +163,7 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
           </p>
         </div>
       ) : (
-        <CandidatesTable result={result} sort={sort} lists={lists} membershipByCandidate={membershipByCandidate} locale={locale} />
+        <CandidatesTable result={result} sort={sort} lists={lists} membershipByCandidate={membershipByCandidate} statusByCandidate={statusByCandidate} locale={locale} />
       )}
     </div>
   );

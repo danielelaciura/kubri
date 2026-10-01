@@ -16,16 +16,21 @@ import type { Candidate, PaginatedResult, SortConfig } from "@/types";
 import type { Locale } from "@/lib/i18n/types";
 import { displayCountry } from "@/lib/candidates/country";
 import { AddToListMenu } from "@/components/lists/add-to-list-menu";
+import { CandidateStatusSelect } from "@/components/candidates/candidate-status-select";
+import { resolveStatus, type StatusByCandidate } from "@/lib/candidates/status";
+import { useT } from "@/lib/i18n/provider";
 
 interface CandidatesTableProps {
   result: PaginatedResult<Candidate>;
   sort: SortConfig;
   lists: { id: string; name: string }[];
   membershipByCandidate: Record<string, string[]>;
+  statusByCandidate: StatusByCandidate;
   locale: Locale;
 }
 
-export function CandidatesTable({ result, sort, lists, membershipByCandidate, locale }: CandidatesTableProps) {
+export function CandidatesTable({ result, sort, lists, membershipByCandidate, statusByCandidate, locale }: CandidatesTableProps) {
+  const t = useT();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -111,6 +116,7 @@ export function CandidatesTable({ result, sort, lists, membershipByCandidate, lo
                 <SortButton field="lastName" label="Cognome" />
               </TableHead>
               <TableHead className="w-40">Nome</TableHead>
+              <TableHead className="w-36">{t.candidateStatus.label}</TableHead>
               <TableHead>Zona di lavoro</TableHead>
               <TableHead>Paese di origine</TableHead>
               {/* <TableHead>Lingue</TableHead> */}
@@ -134,6 +140,12 @@ export function CandidatesTable({ result, sort, lists, membershipByCandidate, lo
                 </TableCell>
                 <TableCell>
                   {candidate.firstName} 
+                </TableCell>
+                <TableCell onClick={(e) => e.stopPropagation()}>
+                  <CandidateStatusSelect
+                    candidateId={candidate.id}
+                    status={resolveStatus(statusByCandidate, candidate.id)}
+                  />
                 </TableCell>
                 <TableCell>
                   {candidate.jobPreferences.preferredLocation}

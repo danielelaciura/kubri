@@ -62,6 +62,7 @@ export type CandidateMinAggregateOutputType = {
   sourceOrganization: string | null
   channel: string | null
   sharedWithGlobal: boolean | null
+  email: string | null
   sourceUpdatedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -96,6 +97,7 @@ export type CandidateMaxAggregateOutputType = {
   sourceOrganization: string | null
   channel: string | null
   sharedWithGlobal: boolean | null
+  email: string | null
   sourceUpdatedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -134,6 +136,8 @@ export type CandidateCountAggregateOutputType = {
   sourceOrganization: number
   channel: number
   sharedWithGlobal: number
+  email: number
+  assessmentProfile: number
   rawPayload: number
   sourceUpdatedAt: number
   createdAt: number
@@ -181,6 +185,7 @@ export type CandidateMinAggregateInputType = {
   sourceOrganization?: true
   channel?: true
   sharedWithGlobal?: true
+  email?: true
   sourceUpdatedAt?: true
   createdAt?: true
   updatedAt?: true
@@ -215,6 +220,7 @@ export type CandidateMaxAggregateInputType = {
   sourceOrganization?: true
   channel?: true
   sharedWithGlobal?: true
+  email?: true
   sourceUpdatedAt?: true
   createdAt?: true
   updatedAt?: true
@@ -253,6 +259,8 @@ export type CandidateCountAggregateInputType = {
   sourceOrganization?: true
   channel?: true
   sharedWithGlobal?: true
+  email?: true
+  assessmentProfile?: true
   rawPayload?: true
   sourceUpdatedAt?: true
   createdAt?: true
@@ -379,6 +387,8 @@ export type CandidateGroupByOutputType = {
   sourceOrganization: string | null
   channel: string | null
   sharedWithGlobal: boolean
+  email: string | null
+  assessmentProfile: runtime.JsonValue | null
   rawPayload: runtime.JsonValue
   sourceUpdatedAt: Date | null
   createdAt: Date
@@ -441,6 +451,8 @@ export type CandidateWhereInput = {
   sourceOrganization?: Prisma.StringNullableFilter<"Candidate"> | string | null
   channel?: Prisma.StringNullableFilter<"Candidate"> | string | null
   sharedWithGlobal?: Prisma.BoolFilter<"Candidate"> | boolean
+  email?: Prisma.StringNullableFilter<"Candidate"> | string | null
+  assessmentProfile?: Prisma.JsonNullableFilter<"Candidate">
   rawPayload?: Prisma.JsonFilter<"Candidate">
   sourceUpdatedAt?: Prisma.DateTimeNullableFilter<"Candidate"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Candidate"> | Date | string
@@ -451,6 +463,7 @@ export type CandidateWhereInput = {
   pool?: Prisma.XOR<Prisma.PoolScalarRelationFilter, Prisma.PoolWhereInput>
   notes?: Prisma.CandidateNoteListRelationFilter
   listMemberships?: Prisma.CandidateListMembershipListRelationFilter
+  statuses?: Prisma.CandidateStatusListRelationFilter
 }
 
 export type CandidateOrderByWithRelationInput = {
@@ -483,6 +496,8 @@ export type CandidateOrderByWithRelationInput = {
   sourceOrganization?: Prisma.SortOrderInput | Prisma.SortOrder
   channel?: Prisma.SortOrderInput | Prisma.SortOrder
   sharedWithGlobal?: Prisma.SortOrder
+  email?: Prisma.SortOrderInput | Prisma.SortOrder
+  assessmentProfile?: Prisma.SortOrderInput | Prisma.SortOrder
   rawPayload?: Prisma.SortOrder
   sourceUpdatedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -493,6 +508,7 @@ export type CandidateOrderByWithRelationInput = {
   pool?: Prisma.PoolOrderByWithRelationInput
   notes?: Prisma.CandidateNoteOrderByRelationAggregateInput
   listMemberships?: Prisma.CandidateListMembershipOrderByRelationAggregateInput
+  statuses?: Prisma.CandidateStatusOrderByRelationAggregateInput
 }
 
 export type CandidateWhereUniqueInput = Prisma.AtLeast<{
@@ -529,6 +545,8 @@ export type CandidateWhereUniqueInput = Prisma.AtLeast<{
   sourceOrganization?: Prisma.StringNullableFilter<"Candidate"> | string | null
   channel?: Prisma.StringNullableFilter<"Candidate"> | string | null
   sharedWithGlobal?: Prisma.BoolFilter<"Candidate"> | boolean
+  email?: Prisma.StringNullableFilter<"Candidate"> | string | null
+  assessmentProfile?: Prisma.JsonNullableFilter<"Candidate">
   rawPayload?: Prisma.JsonFilter<"Candidate">
   sourceUpdatedAt?: Prisma.DateTimeNullableFilter<"Candidate"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Candidate"> | Date | string
@@ -539,6 +557,7 @@ export type CandidateWhereUniqueInput = Prisma.AtLeast<{
   pool?: Prisma.XOR<Prisma.PoolScalarRelationFilter, Prisma.PoolWhereInput>
   notes?: Prisma.CandidateNoteListRelationFilter
   listMemberships?: Prisma.CandidateListMembershipListRelationFilter
+  statuses?: Prisma.CandidateStatusListRelationFilter
 }, "id" | "poolId_externalId">
 
 export type CandidateOrderByWithAggregationInput = {
@@ -571,6 +590,8 @@ export type CandidateOrderByWithAggregationInput = {
   sourceOrganization?: Prisma.SortOrderInput | Prisma.SortOrder
   channel?: Prisma.SortOrderInput | Prisma.SortOrder
   sharedWithGlobal?: Prisma.SortOrder
+  email?: Prisma.SortOrderInput | Prisma.SortOrder
+  assessmentProfile?: Prisma.SortOrderInput | Prisma.SortOrder
   rawPayload?: Prisma.SortOrder
   sourceUpdatedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -618,6 +639,8 @@ export type CandidateScalarWhereWithAggregatesInput = {
   sourceOrganization?: Prisma.StringNullableWithAggregatesFilter<"Candidate"> | string | null
   channel?: Prisma.StringNullableWithAggregatesFilter<"Candidate"> | string | null
   sharedWithGlobal?: Prisma.BoolWithAggregatesFilter<"Candidate"> | boolean
+  email?: Prisma.StringNullableWithAggregatesFilter<"Candidate"> | string | null
+  assessmentProfile?: Prisma.JsonNullableWithAggregatesFilter<"Candidate">
   rawPayload?: Prisma.JsonWithAggregatesFilter<"Candidate">
   sourceUpdatedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Candidate"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Candidate"> | Date | string
@@ -657,6 +680,8 @@ export type CandidateCreateInput = {
   sourceOrganization?: string | null
   channel?: string | null
   sharedWithGlobal?: boolean
+  email?: string | null
+  assessmentProfile?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   rawPayload: Prisma.JsonNullValueInput | runtime.InputJsonValue
   sourceUpdatedAt?: Date | string | null
   createdAt?: Date | string
@@ -666,6 +691,7 @@ export type CandidateCreateInput = {
   pool: Prisma.PoolCreateNestedOneWithoutCandidatesInput
   notes?: Prisma.CandidateNoteCreateNestedManyWithoutCandidateInput
   listMemberships?: Prisma.CandidateListMembershipCreateNestedManyWithoutCandidateInput
+  statuses?: Prisma.CandidateStatusCreateNestedManyWithoutCandidateInput
 }
 
 export type CandidateUncheckedCreateInput = {
@@ -698,6 +724,8 @@ export type CandidateUncheckedCreateInput = {
   sourceOrganization?: string | null
   channel?: string | null
   sharedWithGlobal?: boolean
+  email?: string | null
+  assessmentProfile?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   rawPayload: Prisma.JsonNullValueInput | runtime.InputJsonValue
   sourceUpdatedAt?: Date | string | null
   createdAt?: Date | string
@@ -707,6 +735,7 @@ export type CandidateUncheckedCreateInput = {
   poolId: string
   notes?: Prisma.CandidateNoteUncheckedCreateNestedManyWithoutCandidateInput
   listMemberships?: Prisma.CandidateListMembershipUncheckedCreateNestedManyWithoutCandidateInput
+  statuses?: Prisma.CandidateStatusUncheckedCreateNestedManyWithoutCandidateInput
 }
 
 export type CandidateUpdateInput = {
@@ -739,6 +768,8 @@ export type CandidateUpdateInput = {
   sourceOrganization?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sharedWithGlobal?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assessmentProfile?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   rawPayload?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   sourceUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -748,6 +779,7 @@ export type CandidateUpdateInput = {
   pool?: Prisma.PoolUpdateOneRequiredWithoutCandidatesNestedInput
   notes?: Prisma.CandidateNoteUpdateManyWithoutCandidateNestedInput
   listMemberships?: Prisma.CandidateListMembershipUpdateManyWithoutCandidateNestedInput
+  statuses?: Prisma.CandidateStatusUpdateManyWithoutCandidateNestedInput
 }
 
 export type CandidateUncheckedUpdateInput = {
@@ -780,6 +812,8 @@ export type CandidateUncheckedUpdateInput = {
   sourceOrganization?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sharedWithGlobal?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assessmentProfile?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   rawPayload?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   sourceUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -789,6 +823,7 @@ export type CandidateUncheckedUpdateInput = {
   poolId?: Prisma.StringFieldUpdateOperationsInput | string
   notes?: Prisma.CandidateNoteUncheckedUpdateManyWithoutCandidateNestedInput
   listMemberships?: Prisma.CandidateListMembershipUncheckedUpdateManyWithoutCandidateNestedInput
+  statuses?: Prisma.CandidateStatusUncheckedUpdateManyWithoutCandidateNestedInput
 }
 
 export type CandidateCreateManyInput = {
@@ -821,6 +856,8 @@ export type CandidateCreateManyInput = {
   sourceOrganization?: string | null
   channel?: string | null
   sharedWithGlobal?: boolean
+  email?: string | null
+  assessmentProfile?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   rawPayload: Prisma.JsonNullValueInput | runtime.InputJsonValue
   sourceUpdatedAt?: Date | string | null
   createdAt?: Date | string
@@ -860,6 +897,8 @@ export type CandidateUpdateManyMutationInput = {
   sourceOrganization?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sharedWithGlobal?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assessmentProfile?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   rawPayload?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   sourceUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -898,6 +937,8 @@ export type CandidateUncheckedUpdateManyInput = {
   sourceOrganization?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sharedWithGlobal?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assessmentProfile?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   rawPayload?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   sourceUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -957,6 +998,8 @@ export type CandidateCountOrderByAggregateInput = {
   sourceOrganization?: Prisma.SortOrder
   channel?: Prisma.SortOrder
   sharedWithGlobal?: Prisma.SortOrder
+  email?: Prisma.SortOrder
+  assessmentProfile?: Prisma.SortOrder
   rawPayload?: Prisma.SortOrder
   sourceUpdatedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -997,6 +1040,7 @@ export type CandidateMaxOrderByAggregateInput = {
   sourceOrganization?: Prisma.SortOrder
   channel?: Prisma.SortOrder
   sharedWithGlobal?: Prisma.SortOrder
+  email?: Prisma.SortOrder
   sourceUpdatedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -1031,6 +1075,7 @@ export type CandidateMinOrderByAggregateInput = {
   sourceOrganization?: Prisma.SortOrder
   channel?: Prisma.SortOrder
   sharedWithGlobal?: Prisma.SortOrder
+  email?: Prisma.SortOrder
   sourceUpdatedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -1162,6 +1207,20 @@ export type CandidateUpdateOneRequiredWithoutListMembershipsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.CandidateUpdateToOneWithWhereWithoutListMembershipsInput, Prisma.CandidateUpdateWithoutListMembershipsInput>, Prisma.CandidateUncheckedUpdateWithoutListMembershipsInput>
 }
 
+export type CandidateCreateNestedOneWithoutStatusesInput = {
+  create?: Prisma.XOR<Prisma.CandidateCreateWithoutStatusesInput, Prisma.CandidateUncheckedCreateWithoutStatusesInput>
+  connectOrCreate?: Prisma.CandidateCreateOrConnectWithoutStatusesInput
+  connect?: Prisma.CandidateWhereUniqueInput
+}
+
+export type CandidateUpdateOneRequiredWithoutStatusesNestedInput = {
+  create?: Prisma.XOR<Prisma.CandidateCreateWithoutStatusesInput, Prisma.CandidateUncheckedCreateWithoutStatusesInput>
+  connectOrCreate?: Prisma.CandidateCreateOrConnectWithoutStatusesInput
+  upsert?: Prisma.CandidateUpsertWithoutStatusesInput
+  connect?: Prisma.CandidateWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.CandidateUpdateToOneWithWhereWithoutStatusesInput, Prisma.CandidateUpdateWithoutStatusesInput>, Prisma.CandidateUncheckedUpdateWithoutStatusesInput>
+}
+
 export type CandidateCreateWithoutPoolInput = {
   id?: string
   externalId: string
@@ -1192,6 +1251,8 @@ export type CandidateCreateWithoutPoolInput = {
   sourceOrganization?: string | null
   channel?: string | null
   sharedWithGlobal?: boolean
+  email?: string | null
+  assessmentProfile?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   rawPayload: Prisma.JsonNullValueInput | runtime.InputJsonValue
   sourceUpdatedAt?: Date | string | null
   createdAt?: Date | string
@@ -1200,6 +1261,7 @@ export type CandidateCreateWithoutPoolInput = {
   embeddingUpdatedAt?: Date | string | null
   notes?: Prisma.CandidateNoteCreateNestedManyWithoutCandidateInput
   listMemberships?: Prisma.CandidateListMembershipCreateNestedManyWithoutCandidateInput
+  statuses?: Prisma.CandidateStatusCreateNestedManyWithoutCandidateInput
 }
 
 export type CandidateUncheckedCreateWithoutPoolInput = {
@@ -1232,6 +1294,8 @@ export type CandidateUncheckedCreateWithoutPoolInput = {
   sourceOrganization?: string | null
   channel?: string | null
   sharedWithGlobal?: boolean
+  email?: string | null
+  assessmentProfile?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   rawPayload: Prisma.JsonNullValueInput | runtime.InputJsonValue
   sourceUpdatedAt?: Date | string | null
   createdAt?: Date | string
@@ -1240,6 +1304,7 @@ export type CandidateUncheckedCreateWithoutPoolInput = {
   embeddingUpdatedAt?: Date | string | null
   notes?: Prisma.CandidateNoteUncheckedCreateNestedManyWithoutCandidateInput
   listMemberships?: Prisma.CandidateListMembershipUncheckedCreateNestedManyWithoutCandidateInput
+  statuses?: Prisma.CandidateStatusUncheckedCreateNestedManyWithoutCandidateInput
 }
 
 export type CandidateCreateOrConnectWithoutPoolInput = {
@@ -1301,6 +1366,8 @@ export type CandidateScalarWhereInput = {
   sourceOrganization?: Prisma.StringNullableFilter<"Candidate"> | string | null
   channel?: Prisma.StringNullableFilter<"Candidate"> | string | null
   sharedWithGlobal?: Prisma.BoolFilter<"Candidate"> | boolean
+  email?: Prisma.StringNullableFilter<"Candidate"> | string | null
+  assessmentProfile?: Prisma.JsonNullableFilter<"Candidate">
   rawPayload?: Prisma.JsonFilter<"Candidate">
   sourceUpdatedAt?: Prisma.DateTimeNullableFilter<"Candidate"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Candidate"> | Date | string
@@ -1340,6 +1407,8 @@ export type CandidateCreateWithoutNotesInput = {
   sourceOrganization?: string | null
   channel?: string | null
   sharedWithGlobal?: boolean
+  email?: string | null
+  assessmentProfile?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   rawPayload: Prisma.JsonNullValueInput | runtime.InputJsonValue
   sourceUpdatedAt?: Date | string | null
   createdAt?: Date | string
@@ -1348,6 +1417,7 @@ export type CandidateCreateWithoutNotesInput = {
   embeddingUpdatedAt?: Date | string | null
   pool: Prisma.PoolCreateNestedOneWithoutCandidatesInput
   listMemberships?: Prisma.CandidateListMembershipCreateNestedManyWithoutCandidateInput
+  statuses?: Prisma.CandidateStatusCreateNestedManyWithoutCandidateInput
 }
 
 export type CandidateUncheckedCreateWithoutNotesInput = {
@@ -1380,6 +1450,8 @@ export type CandidateUncheckedCreateWithoutNotesInput = {
   sourceOrganization?: string | null
   channel?: string | null
   sharedWithGlobal?: boolean
+  email?: string | null
+  assessmentProfile?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   rawPayload: Prisma.JsonNullValueInput | runtime.InputJsonValue
   sourceUpdatedAt?: Date | string | null
   createdAt?: Date | string
@@ -1388,6 +1460,7 @@ export type CandidateUncheckedCreateWithoutNotesInput = {
   embeddingUpdatedAt?: Date | string | null
   poolId: string
   listMemberships?: Prisma.CandidateListMembershipUncheckedCreateNestedManyWithoutCandidateInput
+  statuses?: Prisma.CandidateStatusUncheckedCreateNestedManyWithoutCandidateInput
 }
 
 export type CandidateCreateOrConnectWithoutNotesInput = {
@@ -1436,6 +1509,8 @@ export type CandidateUpdateWithoutNotesInput = {
   sourceOrganization?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sharedWithGlobal?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assessmentProfile?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   rawPayload?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   sourceUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1444,6 +1519,7 @@ export type CandidateUpdateWithoutNotesInput = {
   embeddingUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   pool?: Prisma.PoolUpdateOneRequiredWithoutCandidatesNestedInput
   listMemberships?: Prisma.CandidateListMembershipUpdateManyWithoutCandidateNestedInput
+  statuses?: Prisma.CandidateStatusUpdateManyWithoutCandidateNestedInput
 }
 
 export type CandidateUncheckedUpdateWithoutNotesInput = {
@@ -1476,6 +1552,8 @@ export type CandidateUncheckedUpdateWithoutNotesInput = {
   sourceOrganization?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sharedWithGlobal?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assessmentProfile?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   rawPayload?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   sourceUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1484,6 +1562,7 @@ export type CandidateUncheckedUpdateWithoutNotesInput = {
   embeddingUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   poolId?: Prisma.StringFieldUpdateOperationsInput | string
   listMemberships?: Prisma.CandidateListMembershipUncheckedUpdateManyWithoutCandidateNestedInput
+  statuses?: Prisma.CandidateStatusUncheckedUpdateManyWithoutCandidateNestedInput
 }
 
 export type CandidateCreateWithoutListMembershipsInput = {
@@ -1516,6 +1595,8 @@ export type CandidateCreateWithoutListMembershipsInput = {
   sourceOrganization?: string | null
   channel?: string | null
   sharedWithGlobal?: boolean
+  email?: string | null
+  assessmentProfile?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   rawPayload: Prisma.JsonNullValueInput | runtime.InputJsonValue
   sourceUpdatedAt?: Date | string | null
   createdAt?: Date | string
@@ -1524,6 +1605,7 @@ export type CandidateCreateWithoutListMembershipsInput = {
   embeddingUpdatedAt?: Date | string | null
   pool: Prisma.PoolCreateNestedOneWithoutCandidatesInput
   notes?: Prisma.CandidateNoteCreateNestedManyWithoutCandidateInput
+  statuses?: Prisma.CandidateStatusCreateNestedManyWithoutCandidateInput
 }
 
 export type CandidateUncheckedCreateWithoutListMembershipsInput = {
@@ -1556,6 +1638,8 @@ export type CandidateUncheckedCreateWithoutListMembershipsInput = {
   sourceOrganization?: string | null
   channel?: string | null
   sharedWithGlobal?: boolean
+  email?: string | null
+  assessmentProfile?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   rawPayload: Prisma.JsonNullValueInput | runtime.InputJsonValue
   sourceUpdatedAt?: Date | string | null
   createdAt?: Date | string
@@ -1564,6 +1648,7 @@ export type CandidateUncheckedCreateWithoutListMembershipsInput = {
   embeddingUpdatedAt?: Date | string | null
   poolId: string
   notes?: Prisma.CandidateNoteUncheckedCreateNestedManyWithoutCandidateInput
+  statuses?: Prisma.CandidateStatusUncheckedCreateNestedManyWithoutCandidateInput
 }
 
 export type CandidateCreateOrConnectWithoutListMembershipsInput = {
@@ -1612,6 +1697,8 @@ export type CandidateUpdateWithoutListMembershipsInput = {
   sourceOrganization?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sharedWithGlobal?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assessmentProfile?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   rawPayload?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   sourceUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1620,6 +1707,7 @@ export type CandidateUpdateWithoutListMembershipsInput = {
   embeddingUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   pool?: Prisma.PoolUpdateOneRequiredWithoutCandidatesNestedInput
   notes?: Prisma.CandidateNoteUpdateManyWithoutCandidateNestedInput
+  statuses?: Prisma.CandidateStatusUpdateManyWithoutCandidateNestedInput
 }
 
 export type CandidateUncheckedUpdateWithoutListMembershipsInput = {
@@ -1652,6 +1740,8 @@ export type CandidateUncheckedUpdateWithoutListMembershipsInput = {
   sourceOrganization?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sharedWithGlobal?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assessmentProfile?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   rawPayload?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   sourceUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1660,6 +1750,195 @@ export type CandidateUncheckedUpdateWithoutListMembershipsInput = {
   embeddingUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   poolId?: Prisma.StringFieldUpdateOperationsInput | string
   notes?: Prisma.CandidateNoteUncheckedUpdateManyWithoutCandidateNestedInput
+  statuses?: Prisma.CandidateStatusUncheckedUpdateManyWithoutCandidateNestedInput
+}
+
+export type CandidateCreateWithoutStatusesInput = {
+  id?: string
+  externalId: string
+  firstName?: string | null
+  lastName?: string | null
+  birthday?: string | null
+  countryOfOrigin?: string | null
+  address?: string | null
+  location?: string | null
+  latitude?: number | null
+  longitude?: number | null
+  phone?: string | null
+  workingPermit?: boolean | null
+  meanOfTransport?: string | null
+  drivingLicense?: boolean | null
+  educationAndTraining?: Prisma.CandidateCreateeducationAndTrainingInput | string[]
+  workExperience?: Prisma.CandidateCreateworkExperienceInput | string[]
+  skillsAndCompetences?: Prisma.CandidateCreateskillsAndCompetencesInput | string[]
+  language?: string | null
+  additionalLanguages?: Prisma.CandidateCreateadditionalLanguagesInput | string[]
+  italianLevel?: string | null
+  desiredJob?: string | null
+  partTimePreference?: boolean | null
+  preferredLocation?: string | null
+  jobConstraints?: string | null
+  hasDesiredJobExperience?: string | null
+  interviewLanguage?: string | null
+  sourceOrganization?: string | null
+  channel?: string | null
+  sharedWithGlobal?: boolean
+  email?: string | null
+  assessmentProfile?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  rawPayload: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  sourceUpdatedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  embeddingText?: string | null
+  embeddingUpdatedAt?: Date | string | null
+  pool: Prisma.PoolCreateNestedOneWithoutCandidatesInput
+  notes?: Prisma.CandidateNoteCreateNestedManyWithoutCandidateInput
+  listMemberships?: Prisma.CandidateListMembershipCreateNestedManyWithoutCandidateInput
+}
+
+export type CandidateUncheckedCreateWithoutStatusesInput = {
+  id?: string
+  externalId: string
+  firstName?: string | null
+  lastName?: string | null
+  birthday?: string | null
+  countryOfOrigin?: string | null
+  address?: string | null
+  location?: string | null
+  latitude?: number | null
+  longitude?: number | null
+  phone?: string | null
+  workingPermit?: boolean | null
+  meanOfTransport?: string | null
+  drivingLicense?: boolean | null
+  educationAndTraining?: Prisma.CandidateCreateeducationAndTrainingInput | string[]
+  workExperience?: Prisma.CandidateCreateworkExperienceInput | string[]
+  skillsAndCompetences?: Prisma.CandidateCreateskillsAndCompetencesInput | string[]
+  language?: string | null
+  additionalLanguages?: Prisma.CandidateCreateadditionalLanguagesInput | string[]
+  italianLevel?: string | null
+  desiredJob?: string | null
+  partTimePreference?: boolean | null
+  preferredLocation?: string | null
+  jobConstraints?: string | null
+  hasDesiredJobExperience?: string | null
+  interviewLanguage?: string | null
+  sourceOrganization?: string | null
+  channel?: string | null
+  sharedWithGlobal?: boolean
+  email?: string | null
+  assessmentProfile?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  rawPayload: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  sourceUpdatedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  embeddingText?: string | null
+  embeddingUpdatedAt?: Date | string | null
+  poolId: string
+  notes?: Prisma.CandidateNoteUncheckedCreateNestedManyWithoutCandidateInput
+  listMemberships?: Prisma.CandidateListMembershipUncheckedCreateNestedManyWithoutCandidateInput
+}
+
+export type CandidateCreateOrConnectWithoutStatusesInput = {
+  where: Prisma.CandidateWhereUniqueInput
+  create: Prisma.XOR<Prisma.CandidateCreateWithoutStatusesInput, Prisma.CandidateUncheckedCreateWithoutStatusesInput>
+}
+
+export type CandidateUpsertWithoutStatusesInput = {
+  update: Prisma.XOR<Prisma.CandidateUpdateWithoutStatusesInput, Prisma.CandidateUncheckedUpdateWithoutStatusesInput>
+  create: Prisma.XOR<Prisma.CandidateCreateWithoutStatusesInput, Prisma.CandidateUncheckedCreateWithoutStatusesInput>
+  where?: Prisma.CandidateWhereInput
+}
+
+export type CandidateUpdateToOneWithWhereWithoutStatusesInput = {
+  where?: Prisma.CandidateWhereInput
+  data: Prisma.XOR<Prisma.CandidateUpdateWithoutStatusesInput, Prisma.CandidateUncheckedUpdateWithoutStatusesInput>
+}
+
+export type CandidateUpdateWithoutStatusesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  externalId?: Prisma.StringFieldUpdateOperationsInput | string
+  firstName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthday?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  countryOfOrigin?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  location?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  latitude?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  longitude?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workingPermit?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  meanOfTransport?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  drivingLicense?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  educationAndTraining?: Prisma.CandidateUpdateeducationAndTrainingInput | string[]
+  workExperience?: Prisma.CandidateUpdateworkExperienceInput | string[]
+  skillsAndCompetences?: Prisma.CandidateUpdateskillsAndCompetencesInput | string[]
+  language?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  additionalLanguages?: Prisma.CandidateUpdateadditionalLanguagesInput | string[]
+  italianLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  desiredJob?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  partTimePreference?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  preferredLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jobConstraints?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasDesiredJobExperience?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  interviewLanguage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceOrganization?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  channel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sharedWithGlobal?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assessmentProfile?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  rawPayload?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  sourceUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  embeddingText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  embeddingUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pool?: Prisma.PoolUpdateOneRequiredWithoutCandidatesNestedInput
+  notes?: Prisma.CandidateNoteUpdateManyWithoutCandidateNestedInput
+  listMemberships?: Prisma.CandidateListMembershipUpdateManyWithoutCandidateNestedInput
+}
+
+export type CandidateUncheckedUpdateWithoutStatusesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  externalId?: Prisma.StringFieldUpdateOperationsInput | string
+  firstName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthday?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  countryOfOrigin?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  location?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  latitude?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  longitude?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workingPermit?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  meanOfTransport?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  drivingLicense?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  educationAndTraining?: Prisma.CandidateUpdateeducationAndTrainingInput | string[]
+  workExperience?: Prisma.CandidateUpdateworkExperienceInput | string[]
+  skillsAndCompetences?: Prisma.CandidateUpdateskillsAndCompetencesInput | string[]
+  language?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  additionalLanguages?: Prisma.CandidateUpdateadditionalLanguagesInput | string[]
+  italianLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  desiredJob?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  partTimePreference?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  preferredLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jobConstraints?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasDesiredJobExperience?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  interviewLanguage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceOrganization?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  channel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sharedWithGlobal?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assessmentProfile?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  rawPayload?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  sourceUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  embeddingText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  embeddingUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  poolId?: Prisma.StringFieldUpdateOperationsInput | string
+  notes?: Prisma.CandidateNoteUncheckedUpdateManyWithoutCandidateNestedInput
+  listMemberships?: Prisma.CandidateListMembershipUncheckedUpdateManyWithoutCandidateNestedInput
 }
 
 export type CandidateCreateManyPoolInput = {
@@ -1692,6 +1971,8 @@ export type CandidateCreateManyPoolInput = {
   sourceOrganization?: string | null
   channel?: string | null
   sharedWithGlobal?: boolean
+  email?: string | null
+  assessmentProfile?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   rawPayload: Prisma.JsonNullValueInput | runtime.InputJsonValue
   sourceUpdatedAt?: Date | string | null
   createdAt?: Date | string
@@ -1730,6 +2011,8 @@ export type CandidateUpdateWithoutPoolInput = {
   sourceOrganization?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sharedWithGlobal?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assessmentProfile?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   rawPayload?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   sourceUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1738,6 +2021,7 @@ export type CandidateUpdateWithoutPoolInput = {
   embeddingUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   notes?: Prisma.CandidateNoteUpdateManyWithoutCandidateNestedInput
   listMemberships?: Prisma.CandidateListMembershipUpdateManyWithoutCandidateNestedInput
+  statuses?: Prisma.CandidateStatusUpdateManyWithoutCandidateNestedInput
 }
 
 export type CandidateUncheckedUpdateWithoutPoolInput = {
@@ -1770,6 +2054,8 @@ export type CandidateUncheckedUpdateWithoutPoolInput = {
   sourceOrganization?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sharedWithGlobal?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assessmentProfile?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   rawPayload?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   sourceUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1778,6 +2064,7 @@ export type CandidateUncheckedUpdateWithoutPoolInput = {
   embeddingUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   notes?: Prisma.CandidateNoteUncheckedUpdateManyWithoutCandidateNestedInput
   listMemberships?: Prisma.CandidateListMembershipUncheckedUpdateManyWithoutCandidateNestedInput
+  statuses?: Prisma.CandidateStatusUncheckedUpdateManyWithoutCandidateNestedInput
 }
 
 export type CandidateUncheckedUpdateManyWithoutPoolInput = {
@@ -1810,6 +2097,8 @@ export type CandidateUncheckedUpdateManyWithoutPoolInput = {
   sourceOrganization?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sharedWithGlobal?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assessmentProfile?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   rawPayload?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   sourceUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1826,11 +2115,13 @@ export type CandidateUncheckedUpdateManyWithoutPoolInput = {
 export type CandidateCountOutputType = {
   notes: number
   listMemberships: number
+  statuses: number
 }
 
 export type CandidateCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   notes?: boolean | CandidateCountOutputTypeCountNotesArgs
   listMemberships?: boolean | CandidateCountOutputTypeCountListMembershipsArgs
+  statuses?: boolean | CandidateCountOutputTypeCountStatusesArgs
 }
 
 /**
@@ -1855,6 +2146,13 @@ export type CandidateCountOutputTypeCountNotesArgs<ExtArgs extends runtime.Types
  */
 export type CandidateCountOutputTypeCountListMembershipsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.CandidateListMembershipWhereInput
+}
+
+/**
+ * CandidateCountOutputType without action
+ */
+export type CandidateCountOutputTypeCountStatusesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.CandidateStatusWhereInput
 }
 
 
@@ -1888,6 +2186,8 @@ export type CandidateSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   sourceOrganization?: boolean
   channel?: boolean
   sharedWithGlobal?: boolean
+  email?: boolean
+  assessmentProfile?: boolean
   rawPayload?: boolean
   sourceUpdatedAt?: boolean
   createdAt?: boolean
@@ -1898,6 +2198,7 @@ export type CandidateSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   pool?: boolean | Prisma.PoolDefaultArgs<ExtArgs>
   notes?: boolean | Prisma.Candidate$notesArgs<ExtArgs>
   listMemberships?: boolean | Prisma.Candidate$listMembershipsArgs<ExtArgs>
+  statuses?: boolean | Prisma.Candidate$statusesArgs<ExtArgs>
   _count?: boolean | Prisma.CandidateCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["candidate"]>
 
@@ -1931,6 +2232,8 @@ export type CandidateSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ext
   sourceOrganization?: boolean
   channel?: boolean
   sharedWithGlobal?: boolean
+  email?: boolean
+  assessmentProfile?: boolean
   rawPayload?: boolean
   sourceUpdatedAt?: boolean
   createdAt?: boolean
@@ -1971,6 +2274,8 @@ export type CandidateSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ext
   sourceOrganization?: boolean
   channel?: boolean
   sharedWithGlobal?: boolean
+  email?: boolean
+  assessmentProfile?: boolean
   rawPayload?: boolean
   sourceUpdatedAt?: boolean
   createdAt?: boolean
@@ -2011,6 +2316,8 @@ export type CandidateSelectScalar = {
   sourceOrganization?: boolean
   channel?: boolean
   sharedWithGlobal?: boolean
+  email?: boolean
+  assessmentProfile?: boolean
   rawPayload?: boolean
   sourceUpdatedAt?: boolean
   createdAt?: boolean
@@ -2020,11 +2327,12 @@ export type CandidateSelectScalar = {
   poolId?: boolean
 }
 
-export type CandidateOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "externalId" | "firstName" | "lastName" | "birthday" | "countryOfOrigin" | "address" | "location" | "latitude" | "longitude" | "phone" | "workingPermit" | "meanOfTransport" | "drivingLicense" | "educationAndTraining" | "workExperience" | "skillsAndCompetences" | "language" | "additionalLanguages" | "italianLevel" | "desiredJob" | "partTimePreference" | "preferredLocation" | "jobConstraints" | "hasDesiredJobExperience" | "interviewLanguage" | "sourceOrganization" | "channel" | "sharedWithGlobal" | "rawPayload" | "sourceUpdatedAt" | "createdAt" | "updatedAt" | "embeddingText" | "embeddingUpdatedAt" | "poolId", ExtArgs["result"]["candidate"]>
+export type CandidateOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "externalId" | "firstName" | "lastName" | "birthday" | "countryOfOrigin" | "address" | "location" | "latitude" | "longitude" | "phone" | "workingPermit" | "meanOfTransport" | "drivingLicense" | "educationAndTraining" | "workExperience" | "skillsAndCompetences" | "language" | "additionalLanguages" | "italianLevel" | "desiredJob" | "partTimePreference" | "preferredLocation" | "jobConstraints" | "hasDesiredJobExperience" | "interviewLanguage" | "sourceOrganization" | "channel" | "sharedWithGlobal" | "email" | "assessmentProfile" | "rawPayload" | "sourceUpdatedAt" | "createdAt" | "updatedAt" | "embeddingText" | "embeddingUpdatedAt" | "poolId", ExtArgs["result"]["candidate"]>
 export type CandidateInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   pool?: boolean | Prisma.PoolDefaultArgs<ExtArgs>
   notes?: boolean | Prisma.Candidate$notesArgs<ExtArgs>
   listMemberships?: boolean | Prisma.Candidate$listMembershipsArgs<ExtArgs>
+  statuses?: boolean | Prisma.Candidate$statusesArgs<ExtArgs>
   _count?: boolean | Prisma.CandidateCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type CandidateIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2040,6 +2348,7 @@ export type $CandidatePayload<ExtArgs extends runtime.Types.Extensions.InternalA
     pool: Prisma.$PoolPayload<ExtArgs>
     notes: Prisma.$CandidateNotePayload<ExtArgs>[]
     listMemberships: Prisma.$CandidateListMembershipPayload<ExtArgs>[]
+    statuses: Prisma.$CandidateStatusPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -2071,6 +2380,8 @@ export type $CandidatePayload<ExtArgs extends runtime.Types.Extensions.InternalA
     sourceOrganization: string | null
     channel: string | null
     sharedWithGlobal: boolean
+    email: string | null
+    assessmentProfile: runtime.JsonValue | null
     rawPayload: runtime.JsonValue
     sourceUpdatedAt: Date | null
     createdAt: Date
@@ -2475,6 +2786,7 @@ export interface Prisma__CandidateClient<T, Null = never, ExtArgs extends runtim
   pool<T extends Prisma.PoolDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PoolDefaultArgs<ExtArgs>>): Prisma.Prisma__PoolClient<runtime.Types.Result.GetResult<Prisma.$PoolPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   notes<T extends Prisma.Candidate$notesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Candidate$notesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CandidateNotePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   listMemberships<T extends Prisma.Candidate$listMembershipsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Candidate$listMembershipsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CandidateListMembershipPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  statuses<T extends Prisma.Candidate$statusesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Candidate$statusesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CandidateStatusPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2533,6 +2845,8 @@ export interface CandidateFieldRefs {
   readonly sourceOrganization: Prisma.FieldRef<"Candidate", 'String'>
   readonly channel: Prisma.FieldRef<"Candidate", 'String'>
   readonly sharedWithGlobal: Prisma.FieldRef<"Candidate", 'Boolean'>
+  readonly email: Prisma.FieldRef<"Candidate", 'String'>
+  readonly assessmentProfile: Prisma.FieldRef<"Candidate", 'Json'>
   readonly rawPayload: Prisma.FieldRef<"Candidate", 'Json'>
   readonly sourceUpdatedAt: Prisma.FieldRef<"Candidate", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"Candidate", 'DateTime'>
@@ -2986,6 +3300,30 @@ export type Candidate$listMembershipsArgs<ExtArgs extends runtime.Types.Extensio
   take?: number
   skip?: number
   distinct?: Prisma.CandidateListMembershipScalarFieldEnum | Prisma.CandidateListMembershipScalarFieldEnum[]
+}
+
+/**
+ * Candidate.statuses
+ */
+export type Candidate$statusesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the CandidateStatus
+   */
+  select?: Prisma.CandidateStatusSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the CandidateStatus
+   */
+  omit?: Prisma.CandidateStatusOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CandidateStatusInclude<ExtArgs> | null
+  where?: Prisma.CandidateStatusWhereInput
+  orderBy?: Prisma.CandidateStatusOrderByWithRelationInput | Prisma.CandidateStatusOrderByWithRelationInput[]
+  cursor?: Prisma.CandidateStatusWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.CandidateStatusScalarFieldEnum | Prisma.CandidateStatusScalarFieldEnum[]
 }
 
 /**

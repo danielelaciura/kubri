@@ -60,7 +60,8 @@ export const ModelName = {
   JobDescription: 'JobDescription',
   Candidate: 'Candidate',
   CandidateList: 'CandidateList',
-  CandidateListMembership: 'CandidateListMembership'
+  CandidateListMembership: 'CandidateListMembership',
+  CandidateStatus: 'CandidateStatus'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -207,6 +208,8 @@ export const CandidateScalarFieldEnum = {
   sourceOrganization: 'sourceOrganization',
   channel: 'channel',
   sharedWithGlobal: 'sharedWithGlobal',
+  email: 'email',
+  assessmentProfile: 'assessmentProfile',
   rawPayload: 'rawPayload',
   sourceUpdatedAt: 'sourceUpdatedAt',
   createdAt: 'createdAt',
@@ -239,6 +242,17 @@ export const CandidateListMembershipScalarFieldEnum = {
 } as const
 
 export type CandidateListMembershipScalarFieldEnum = (typeof CandidateListMembershipScalarFieldEnum)[keyof typeof CandidateListMembershipScalarFieldEnum]
+
+
+export const CandidateStatusScalarFieldEnum = {
+  candidateId: 'candidateId',
+  organizationId: 'organizationId',
+  status: 'status',
+  updatedByUserId: 'updatedByUserId',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CandidateStatusScalarFieldEnum = (typeof CandidateStatusScalarFieldEnum)[keyof typeof CandidateStatusScalarFieldEnum]
 
 
 export const SortOrder = {

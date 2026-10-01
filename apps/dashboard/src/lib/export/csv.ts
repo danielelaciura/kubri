@@ -2,6 +2,7 @@ import type { Candidate } from "@/types";
 import type { Dictionary } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n/types";
 import { displayCountry } from "@/lib/candidates/country";
+import { resolveStatus, type StatusByCandidate } from "@/lib/candidates/status";
 
 const BOM = "﻿";
 
@@ -17,6 +18,7 @@ export function candidatesToCsv(
   listsByCandidateId: Record<string, string[]> = {},
   dictionary: Dictionary,
   locale: Locale,
+  statusByCandidateId: StatusByCandidate = {},
 ): string {
   const csv = dictionary.csv;
 
@@ -35,6 +37,7 @@ export function candidatesToCsv(
     csv.headerWorkExperience,
     csv.headerDesiredJob,
     csv.headerLists,
+    csv.headerStatus,
     csv.headerDate,
     csv.headerChannel,
   ];
@@ -55,6 +58,7 @@ export function candidatesToCsv(
       c.workExperience.join("; "),
       c.jobPreferences.desiredJob,
       (listsByCandidateId[c.id] ?? []).join("; "),
+      dictionary.candidateStatus.values[resolveStatus(statusByCandidateId, c.id)],
       c.createdAt.toLocaleDateString("it-IT"),
       c.channel,
     ]

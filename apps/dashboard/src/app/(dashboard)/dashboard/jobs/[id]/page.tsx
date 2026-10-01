@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { Suspense } from "react";
-import { RefreshCw, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/db";
 import { getDictionary } from "@/lib/i18n";
@@ -17,7 +17,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MatchTable } from "@/components/jobs/match-table";
 import { getListOptionsForOrg, getListIdsByCandidateForOrg } from "@/lib/lists/service";
 import { DeleteJobButton } from "@/components/jobs/delete-job-button";
-import { refreshCandidatesForJob } from "./actions";
+import { MatchesLoading } from "@/components/jobs/matches-loading";
+import { MatchesSection } from "@/components/jobs/matches-section";
 
 interface JdForMatchingLocal {
   id: string;
@@ -110,19 +111,18 @@ export default async function JobDetailPage({
         </Card>
       )}
 
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg ">{t.jobs.matchHeading}</h2>
-        <form action={refreshCandidatesForJob}>
-          <Button variant="outline" size="sm" type="submit" className="gap-1">
-            <RefreshCw className="h-4 w-4" />
-            {t.jobs.refreshMatches}
-          </Button>
-        </form>
-      </div>
-
-      <Suspense fallback={<MatchesLoading t={t} />}>
-        <Matches jd={jd} orgId={me.organizationId} t={t} />
-      </Suspense>
+      <MatchesSection>
+        <Suspense
+          fallback={
+            <MatchesLoading
+              title={t.jobs.matchCalculating}
+              hint={t.jobs.matchCalculatingHint}
+            />
+          }
+        >
+          <Matches jd={jd} orgId={me.organizationId} t={t} />
+        </Suspense>
+      </MatchesSection>
     </div>
   );
 }
@@ -193,12 +193,4 @@ async function Matches({ jd, orgId, t }: { jd: JdForMatchingLocal; orgId: string
   }
 
   return <MatchTable ranked={enriched} lists={lists} membershipByCandidate={membershipByCandidate} t={t} />;
-}
-
-function MatchesLoading({ t }: { t: Dictionary }) {
-  return (
-    <div className="rounded-lg border border-border/60 bg-card p-8 text-center text-sm text-muted-foreground">
-      {t.jobs.matchCalculating}
-    </div>
-  );
 }

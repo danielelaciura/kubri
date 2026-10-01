@@ -10,6 +10,7 @@ import {
 } from "@/lib/lists/service";
 import { sortCandidates, paginateCandidates } from "@/lib/candidates/filter";
 import { CandidatesTable } from "@/components/candidates/candidates-table";
+import { getStatusByCandidateForOrg } from "@/lib/candidates/status-service";
 import { Button } from "@/components/ui/button";
 import { getServerLocale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n";
@@ -42,6 +43,9 @@ export default async function ListDetailPage({
 
   const lists = await getListOptionsForOrg(user.organizationId);
   const membershipByCandidate = await getListIdsByCandidateForOrg(
+    user.organizationId,
+  );
+  const statusByCandidate = await getStatusByCandidateForOrg(
     user.organizationId,
   );
 
@@ -79,6 +83,7 @@ export default async function ListDetailPage({
           sort={sort}
           lists={lists}
           membershipByCandidate={membershipByCandidate}
+          statusByCandidate={statusByCandidate}
           locale={locale}
         />
       )}

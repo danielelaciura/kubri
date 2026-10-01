@@ -8,6 +8,8 @@ import {
   getMemberCandidateIdSet,
 } from "@/lib/lists/service";
 import { logAudit } from "@/lib/audit";
+import { filterByStatus } from "@/lib/candidates/status";
+import { getStatusByCandidateForOrg } from "@/lib/candidates/status-service";
 import { getDictionary } from "@/lib/i18n";
 import { getServerLocale } from "@/lib/i18n/locale";
 
@@ -46,11 +48,19 @@ export async function GET(request: Request) {
         ? candidates.filter((c) => memberSet.has(c.id))
         : [];
     }
+    const statusByCandidate = await getStatusByCandidateForOrg(organizationId);
+    candidates = filterByStatus(candidates, statusByCandidate, filters.status);
     const filtered = filterCandidates(candidates, filters);
     const sorted = sortCandidates(filtered, sort);
 
     const listNames = await getListNamesByCandidateForOrg(organizationId);
-    const csv = candidatesToCsv(sorted, listNames, dictionary, locale);
+    const csv = candidatesToCsv(
+      sorted,
+      listNames,
+      dictionary,
+      locale,
+      statusByCandidate,
+    );
 
     const today = new Date().toISOString().slice(0, 10);
 

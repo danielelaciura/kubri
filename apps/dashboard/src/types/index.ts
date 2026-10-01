@@ -1,3 +1,5 @@
+import type { CandidateStatusValue } from "@/lib/candidates/status";
+
 export type Channel = "telegram" | "whatsapp";
 
 export interface Languages {
@@ -56,6 +58,7 @@ export interface CandidateFilters {
   nearPlace?: string;
   radiusKm?: number;
   listId?: string;
+  status?: CandidateStatusValue;
 }
 
 export interface SortConfig {

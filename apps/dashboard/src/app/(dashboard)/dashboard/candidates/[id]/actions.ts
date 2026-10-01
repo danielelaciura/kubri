@@ -9,6 +9,8 @@ import { z } from "zod/v4";
 import { revalidatePath } from "next/cache";
 import { getDictionary } from "@/lib/i18n";
 import { getServerLocale } from "@/lib/i18n/locale";
+import { CANDIDATE_STATUSES } from "@/lib/candidates/status";
+import { changeCandidateStatus } from "@/lib/candidates/status-service";
 
 const noteSchema = z.object({
   candidateId: z.string().uuid(),
@@ -82,3 +84,36 @@ export async function addNote(formData: FormData) {
   revalidatePath(`/dashboard/candidates/${candidateId}`);
 }
 
+
+const statusSchema = z.object({
+  candidateId: z.string().uuid(),
+  status: z.enum(CANDIDATE_STATUSES),
+});
+
+export async function setCandidateStatus(candidateId: string, status: string) {
+  const session = await getCurrentUser();
+  if (!session.organizationId) {
+    throw new Error("Non autenticato");
+  }
+
+  const t = getDictionary(await getServerLocale());
+
+  const parsed = statusSchema.safeParse({ candidateId, status });
+  if (!parsed.success) {
+    throw new Error(t.common.invalidData);
+  }
+
+  const { id: userId, organizationId } = session;
+  await requireCandidateAccess(organizationId, parsed.data.candidateId, session.role);
+
+  // Status is per organization: ADMIN_KUBRI too writes its own org's status.
+  await changeCandidateStatus({
+    candidateId: parsed.data.candidateId,
+    organizationId,
+    userId,
+    status: parsed.data.status,
+  });
+
+  revalidatePath("/dashboard/candidates");
+  revalidatePath(`/dashboard/candidates/${parsed.data.candidateId}`);
+}

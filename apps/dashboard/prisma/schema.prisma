@@ -18,6 +18,16 @@ enum NotifyFrequency {
   WEEKLY
 }
 
+enum CandidateStatusValue {
+  NEW
+  CONTACTED
+  SCREENING
+  INTERVIEW
+  OFFER
+  HIRED
+  NOT_SELECTED
+}
+
 model Organization {
   id              String   @id @default(uuid()) @db.Uuid
   name            String
@@ -31,6 +41,7 @@ model Organization {
   jobDescriptions JobDescription[]
   pools           OrganizationPool[]
   candidateLists  CandidateList[]
+  candidateStatuses CandidateStatus[]
 }
 
 model Pool {
@@ -77,6 +88,7 @@ model User {
   jobDescriptions JobDescription[]
   candidateLists       CandidateList[]
   listMembershipsAdded CandidateListMembership[]
+  candidateStatusUpdates CandidateStatus[]
 }
 
 model CandidateNote {
@@ -205,6 +217,7 @@ model Candidate {
 
   notes           CandidateNote[]
   listMemberships CandidateListMembership[]
+  statuses        CandidateStatus[]
 
   @@unique([poolId, externalId])
   @@index([poolId])
@@ -240,4 +253,21 @@ model CandidateListMembership {
 
   @@id([listId, candidateId])
   @@index([candidateId])
+}
+
+// Per-organization hiring status of a candidate. No row = NEW.
+// Candidates can be visible to several orgs, so status is keyed by the pair.
+model CandidateStatus {
+  candidateId     String               @db.Uuid
+  organizationId  String               @db.Uuid
+  status          CandidateStatusValue
+  updatedByUserId String?              @db.Uuid
+  updatedAt       DateTime             @updatedAt
+
+  candidate    Candidate    @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  updatedBy    User?        @relation(fields: [updatedByUserId], references: [id], onDelete: SetNull)
+
+  @@id([candidateId, organizationId])
+  @@index([organizationId, status])
 }

@@ -170,6 +170,10 @@ export const it = {
     matchNoAffinity: "Nessun candidato sufficientemente affine per la valutazione AI.",
     aiRerankError: "Valutazione AI temporaneamente non disponibile. Riprova più tardi.",
     matchCalculating: "Calcolo delle corrispondenze…",
+    matchCalculatingHint: "Stiamo analizzando i candidati con l'AI: può richiedere qualche secondo.",
+    refreshingMatches: "Ricalcolo…",
+    creatingButton: "Creazione analisi…",
+    updatingButton: "Salvataggio…",
   },
   profile: {
     language: "Lingua",

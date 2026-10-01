@@ -2,6 +2,7 @@
 
 import { useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -121,8 +122,15 @@ export function JobForm({ mode, initial, action }: JobFormProps) {
       )}
 
       <div className="flex gap-2">
-        <Button type="submit" disabled={isPending}>
-          {mode === "create" ? t.jobs.createButton : t.jobs.updateButton}
+        <Button type="submit" disabled={isPending} className="gap-2">
+          {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+          {mode === "create"
+            ? isPending
+              ? t.jobs.creatingButton
+              : t.jobs.createButton
+            : isPending
+              ? t.jobs.updatingButton
+              : t.jobs.updateButton}
         </Button>
         <Button type="button" variant="outline" onClick={() => router.back()}>
           {t.common.cancel}

@@ -172,6 +172,10 @@ export const en = {
     matchNoAffinity: "No candidate is sufficiently relevant for AI assessment.",
     aiRerankError: "AI assessment temporarily unavailable. Please try again later.",
     matchCalculating: "Calculating matches…",
+    matchCalculatingHint: "We are analysing candidates with AI: this may take a few seconds.",
+    refreshingMatches: "Recalculating…",
+    creatingButton: "Creating analysis…",
+    updatingButton: "Saving…",
   },
   profile: {
     language: "Language",

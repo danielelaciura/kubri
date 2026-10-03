@@ -30,6 +30,9 @@ export async function replaceJobMatchSnapshot(params: {
         candidateId: e.candidateId,
         llmScore: e.llmScore,
       })),
+      // Two concurrent fresh reranks of the same JD both delete-then-insert;
+      // the loser's rows already exist and are skipped instead of failing.
+      skipDuplicates: true,
     }),
   ]);
 }

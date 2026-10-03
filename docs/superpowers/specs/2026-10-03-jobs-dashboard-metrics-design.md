@@ -256,5 +256,8 @@ One-off script (backfills are the sanctioned exception for direct writes):
 1. Apply the `JobMatch` migration to prod before merging (standard flow).
 2. Merge → deploy.
 3. Run `scripts/normalize-job-names.ts --dry-run` against prod, review
-   collisions, then run for real.
+   collisions, then run for real. **Resolve reported collisions right away**
+   (rename one of the two JDs by hand): until then, editing the
+   un-normalized JD fails with "name already exists", even if only the
+   description changed, because the name is normalized on every save.
 4. Open each existing analysis and press "Rigenera" to populate the snapshot.

@@ -35,6 +35,7 @@ describe("replaceJobMatchSnapshot", () => {
         { jobDescriptionId: "jd-1", organizationId: "org-1", candidateId: "c1", llmScore: 91 },
         { jobDescriptionId: "jd-1", organizationId: "org-1", candidateId: "c2", llmScore: 64 },
       ],
+      skipDuplicates: true,
     });
     expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1);
     const ops = mockPrisma.$transaction.mock.calls[0]![0] as Array<{ op: string }>;

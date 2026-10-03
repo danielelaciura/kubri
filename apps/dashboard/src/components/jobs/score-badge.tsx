@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { TARGET_MATCH_SCORE } from "@/lib/jobs/constants";
 
 interface ScoreBadgeProps {
   value: number;
@@ -17,7 +18,7 @@ function fillColorClass(value: number): string {
   if (value < 50) return "bg-gray-400";
   if (value < 60) return "bg-red-500";
   if (value < 70) return "bg-orange-500";
-  if (value < 80) return "bg-yellow-400";
+  if (value < TARGET_MATCH_SCORE) return "bg-yellow-400";
   if (value < 90) return "bg-emerald-400";
   return "bg-emerald-600";
 }

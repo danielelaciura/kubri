@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Briefcase, Plus } from "lucide-react";
@@ -17,9 +18,11 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { JobTableRow } from "@/components/jobs/job-table-row";
+import { JobsDashboard, JobsDashboardSkeleton } from "@/components/jobs/jobs-dashboard";
 
 export default async function JobsPage() {
-  const t = getDictionary(await getServerLocale());
+  const locale = await getServerLocale();
+  const t = getDictionary(locale);
   const supabase = await createSupabaseServerClient();
   const {
     data: { user: authUser },
@@ -40,6 +43,12 @@ export default async function JobsPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl tracking-tight">{t.pages.jobs}</h1>
       </div>
+
+      {jobs.length > 0 && (
+        <Suspense fallback={<JobsDashboardSkeleton />}>
+          <JobsDashboard organizationId={currentUser.organizationId} t={t} locale={locale} />
+        </Suspense>
+      )}
 
       {jobs.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border p-12 text-center">

@@ -8,6 +8,8 @@ import { MatchesLoading } from "@/components/jobs/matches-loading";
 import { refreshCandidatesForJob } from "@/app/(dashboard)/dashboard/jobs/[id]/actions";
 
 interface MatchesSectionProps {
+  /** JD whose matches are recalculated by the refresh button. */
+  jdId: string;
   /** Server-rendered matches (inside their own Suspense boundary). */
   children: ReactNode;
 }
@@ -17,13 +19,13 @@ interface MatchesSectionProps {
  * (stale) results are replaced by the loading state, since a server action
  * re-render does not show the Suspense fallback again.
  */
-export function MatchesSection({ children }: MatchesSectionProps) {
+export function MatchesSection({ jdId, children }: MatchesSectionProps) {
   const t = useT();
   const [isPending, startTransition] = useTransition();
 
   const refresh = () => {
     startTransition(async () => {
-      await refreshCandidatesForJob();
+      await refreshCandidatesForJob(jdId);
     });
   };
 

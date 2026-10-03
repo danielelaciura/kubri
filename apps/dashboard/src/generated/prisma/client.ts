@@ -96,3 +96,8 @@ export type CandidateListMembership = Prisma.CandidateListMembershipModel
  * 
  */
 export type CandidateStatus = Prisma.CandidateStatusModel
+/**
+ * Model JobMatch
+ * 
+ */
+export type JobMatch = Prisma.JobMatchModel

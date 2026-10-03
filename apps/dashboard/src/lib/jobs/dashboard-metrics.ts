@@ -46,3 +46,21 @@ export async function getJobsDashboardMetrics(
 
   return { activeJobs, jobsLast30Days, targetCandidates, neverMatchedCandidates, totalCandidates };
 }
+
+/**
+ * Per-JD number of visible candidates scoring >= TARGET_MATCH_SCORE in the
+ * JD's snapshot, keyed by JD id. JDs without target matches are absent (0).
+ */
+export async function getTargetCountsByJob(organizationId: string): Promise<Map<string, number>> {
+  const visibility = candidateVisibilityWhere(await getOrgAccessiblePoolIds(organizationId));
+  const rows = await prisma.jobMatch.groupBy({
+    by: ["jobDescriptionId"],
+    where: {
+      organizationId,
+      llmScore: { gte: TARGET_MATCH_SCORE },
+      candidate: visibility,
+    },
+    _count: { _all: true },
+  });
+  return new Map(rows.map((r) => [r.jobDescriptionId, r._count._all]));
+}

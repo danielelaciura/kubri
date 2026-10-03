@@ -19,6 +19,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { JobTableRow } from "@/components/jobs/job-table-row";
 import { JobsDashboard, JobsDashboardSkeleton } from "@/components/jobs/jobs-dashboard";
+import { getTargetCountsByJob } from "@/lib/jobs/dashboard-metrics";
+import { cn } from "@/lib/utils";
 
 export default async function JobsPage() {
   const locale = await getServerLocale();
@@ -36,7 +38,15 @@ export default async function JobsPage() {
   if (!currentUser?.organizationId) redirect("/login");
   const isAdmin = currentUser.role === "ORG_ADMIN";
 
-  const jobs = await listJobDescriptions({ organizationId: currentUser.organizationId });
+  const [jobs, targetCounts] = await Promise.all([
+    listJobDescriptions({ organizationId: currentUser.organizationId }),
+    // A failure only blanks the column ("—"); the table still renders.
+    getTargetCountsByJob(currentUser.organizationId).catch((e: unknown) => {
+      console.error("[jobs] target counts failed", e);
+      return null;
+    }),
+  ]);
+  const numberFormat = new Intl.NumberFormat(locale === "it" ? "it-IT" : "en-GB");
 
   return (
     <div className="space-y-6">
@@ -74,6 +84,7 @@ export default async function JobsPage() {
                 <TableHead>{t.jobs.fieldName}</TableHead>
                 <TableHead>{t.jobs.fieldLocation}</TableHead>
                 <TableHead>{t.jobs.fieldSkills}</TableHead>
+                <TableHead className="text-right">{t.jobs.targetColumn}</TableHead>
                 <TableHead>{t.jobs.createdAt}</TableHead>
               </TableRow>
             </TableHeader>
@@ -95,6 +106,21 @@ export default async function JobsPage() {
                         </Badge>
                       )}
                     </div>
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {targetCounts === null ? (
+                      <span className="text-muted-foreground">—</span>
+                    ) : (
+                      <span
+                        className={cn(
+                          (targetCounts.get(j.id) ?? 0) > 0
+                            ? "font-medium text-emerald-700"
+                            : "text-muted-foreground",
+                        )}
+                      >
+                        {numberFormat.format(targetCounts.get(j.id) ?? 0)}
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell>
                     {j.createdAt.toLocaleDateString("it-IT", {

@@ -163,6 +163,7 @@ export const it = {
     viewCandidateAction: "Apri profilo",
     preferredLocationLabel: "Preferenza",
     createdAt: "Creata il",
+    targetColumn: "A target",
     searchRadiusLabel: "Raggio di ricerca default",
     candidateColumn: "Candidato",
     matchUnavailable: "Matching non ancora disponibile: l'embedding di questa analisi è in elaborazione.",

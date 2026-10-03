@@ -165,6 +165,7 @@ export const en = {
     viewCandidateAction: "Open profile",
     preferredLocationLabel: "Preference",
     createdAt: "Created on",
+    targetColumn: "On target",
     searchRadiusLabel: "Default search radius",
     candidateColumn: "Candidate",
     matchUnavailable: "Matching not yet available: the embedding for this analysis is being processed.",

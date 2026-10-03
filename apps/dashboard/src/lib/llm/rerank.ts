@@ -22,6 +22,12 @@ export interface CandidateEnrichment {
   redFlags: string[];
 }
 
+export interface RerankResult {
+  enrichments: CandidateEnrichment[];
+  /** True when served from the rerank cache (no LLM call was made). */
+  fromCache: boolean;
+}
+
 const SYSTEM_PROMPT = `Sei un assistente che valuta la compatibilità tra un'offerta di lavoro italiana (Job Description) e un elenco di candidati. Restituisci ESCLUSIVAMENTE un oggetto JSON valido con la struttura specificata, in italiano.
 
 CRITERI DI VALUTAZIONE (in ordine di importanza):
@@ -136,8 +142,8 @@ function parseRerankResponse(content: string): CandidateEnrichment[] {
 
 // Cache: key = `llm:rerank:{jdId}:{candidate ids signature}`, value =
 // enrichments. Default TTL is 24h, tunable via LLM_RERANK_CACHE_TTL_MS. The
-// "Aggiorna match" button on the JD page invalidates the cache for that JD,
-// and JD edits do the same.
+// "Ricalcola" button on the JD page and JD edits invalidate the cache for
+// that JD only.
 const KEY_PREFIX = "llm:rerank:";
 
 function cacheTtlMs(): number {
@@ -156,21 +162,16 @@ export async function invalidateRerankCacheForJd(jdId: string): Promise<void> {
   await getCacheStore().deleteByPrefix(`${KEY_PREFIX}${jdId}:`);
 }
 
-/** Drop every rerank cache entry. */
-export async function clearRerankCache(): Promise<void> {
-  await getCacheStore().deleteByPrefix(KEY_PREFIX);
-}
-
 export async function rerankCandidates(
   jdId: string,
   input: RerankInput,
-): Promise<CandidateEnrichment[]> {
-  if (input.candidates.length === 0) return [];
+): Promise<RerankResult> {
+  if (input.candidates.length === 0) return { enrichments: [], fromCache: false };
 
   const store = getCacheStore();
   const key = cacheKey(jdId, input.candidates);
   const cached = await store.get<CandidateEnrichment[]>(key);
-  if (cached) return cached;
+  if (cached) return { enrichments: cached, fromCache: true };
 
   const content = await chatCompletion({
     model: "mistral-small-latest",
@@ -184,7 +185,7 @@ export async function rerankCandidates(
 
   const enrichments = parseRerankResponse(content);
   await store.set(key, enrichments, cacheTtlMs());
-  return enrichments;
+  return { enrichments, fromCache: false };
 }
 
 /** Test-only: clear all rerank cache entries. */

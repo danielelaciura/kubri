@@ -176,6 +176,16 @@ export const en = {
     refreshingMatches: "Recalculating…",
     creatingButton: "Creating analysis…",
     updatingButton: "Saving…",
+    dashboard: {
+      activeJobs: "Active analyses",
+      activeJobsHint: "+{count} in the last 30 days",
+      targetCandidates: "Target candidates",
+      targetCandidatesHint: "Score ≥ {score} in at least one analysis",
+      neverMatched: "Never matched",
+      neverMatchedHint: "out of {total} candidates",
+      notPopulated: "Data fills in as you open or recalculate an analysis.",
+      loadError: "Unable to load metrics. Please try again later.",
+    },
   },
   profile: {
     language: "Language",

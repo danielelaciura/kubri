@@ -42,6 +42,7 @@ model Organization {
   pools           OrganizationPool[]
   candidateLists  CandidateList[]
   candidateStatuses CandidateStatus[]
+  jobMatches        JobMatch[]
 }
 
 model Pool {
@@ -149,6 +150,7 @@ model JobDescription {
 
   organization Organization @relation(fields: [organizationId], references: [id])
   createdBy    User?        @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+  jobMatches   JobMatch[]
 
   @@unique([organizationId, name])
   @@index([organizationId, createdAt])
@@ -218,6 +220,7 @@ model Candidate {
   notes           CandidateNote[]
   listMemberships CandidateListMembership[]
   statuses        CandidateStatus[]
+  jobMatches      JobMatch[]
 
   @@unique([poolId, externalId])
   @@index([poolId])
@@ -270,4 +273,22 @@ model CandidateStatus {
 
   @@id([candidateId, organizationId])
   @@index([organizationId, status])
+}
+
+// Snapshot of the last fresh AI evaluation of a JD: one row per candidate the
+// LLM scored. Replaced wholesale on every recompute (see lib/jobs/match-snapshot).
+model JobMatch {
+  jobDescriptionId String   @db.Uuid
+  candidateId      String   @db.Uuid
+  organizationId   String   @db.Uuid
+  llmScore         Int
+  computedAt       DateTime @default(now())
+
+  jobDescription JobDescription @relation(fields: [jobDescriptionId], references: [id], onDelete: Cascade)
+  candidate      Candidate      @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@id([jobDescriptionId, candidateId])
+  @@index([organizationId, llmScore])
+  @@index([organizationId, candidateId])
 }

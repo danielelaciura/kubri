@@ -5,7 +5,7 @@ vi.mock("@/lib/llm/client", () => ({
 }));
 
 import { chatCompletion } from "@/lib/llm/client";
-import { rerankCandidates, _clearRerankCache } from "@/lib/llm/rerank";
+import { rerankCandidates, invalidateRerankCacheForJd, _clearRerankCache } from "@/lib/llm/rerank";
 import { LLMError } from "@/lib/llm/errors";
 import type { Candidate } from "@/types";
 
@@ -73,7 +73,8 @@ describe("rerankCandidates", () => {
       }),
     );
 
-    const out = await rerankCandidates("jd-1", baseInput);
+    const { enrichments: out, fromCache } = await rerankCandidates("jd-1", baseInput);
+    expect(fromCache).toBe(false);
     expect(out).toHaveLength(2);
     expect(out[0]).toMatchObject({ candidateId: "c1", score: 85, summary: "ok" });
     expect(out[1]).toMatchObject({ candidateId: "c2", score: 30, redFlags: ["off-topic"] });
@@ -88,7 +89,7 @@ describe("rerankCandidates", () => {
         ],
       }),
     );
-    const out = await rerankCandidates("jd-1", baseInput);
+    const { enrichments: out } = await rerankCandidates("jd-1", baseInput);
     expect(out[0]!.score).toBe(100);
     expect(out[1]!.score).toBe(73);
   });
@@ -103,9 +104,9 @@ describe("rerankCandidates", () => {
     await expect(rerankCandidates("jd-1", baseInput)).rejects.toBeInstanceOf(LLMError);
   });
 
-  it("returns [] without calling the LLM when candidates is empty", async () => {
+  it("returns no enrichments without calling the LLM when candidates is empty", async () => {
     const out = await rerankCandidates("jd-1", { ...baseInput, candidates: [] });
-    expect(out).toEqual([]);
+    expect(out).toEqual({ enrichments: [], fromCache: false });
     expect(chatCompletion).not.toHaveBeenCalled();
   });
 
@@ -118,8 +119,11 @@ describe("rerankCandidates", () => {
         ],
       }),
     );
-    await rerankCandidates("jd-1", baseInput);
-    await rerankCandidates("jd-1", baseInput);
+    const first = await rerankCandidates("jd-1", baseInput);
+    const second = await rerankCandidates("jd-1", baseInput);
+    expect(first.fromCache).toBe(false);
+    expect(second.fromCache).toBe(true);
+    expect(second.enrichments).toEqual(first.enrichments);
     expect(chatCompletion).toHaveBeenCalledTimes(1);
   });
 
@@ -135,5 +139,21 @@ describe("rerankCandidates", () => {
     await rerankCandidates("jd-1", baseInput);
     await rerankCandidates("jd-2", baseInput);
     expect(chatCompletion).toHaveBeenCalledTimes(2);
+  });
+
+  it("misses the cache again after invalidateRerankCacheForJd", async () => {
+    vi.mocked(chatCompletion).mockResolvedValue(
+      JSON.stringify({
+        results: [
+          { candidateId: "c1", score: 85, summary: "", matchedSkills: [], missingSkills: [], redFlags: [] },
+          { candidateId: "c2", score: 30, summary: "", matchedSkills: [], missingSkills: [], redFlags: [] },
+        ],
+      }),
+    );
+    await rerankCandidates("jd-1", baseInput);
+    await rerankCandidates("jd-2", baseInput);
+    await invalidateRerankCacheForJd("jd-1");
+    expect((await rerankCandidates("jd-1", baseInput)).fromCache).toBe(false);
+    expect((await rerankCandidates("jd-2", baseInput)).fromCache).toBe(true);
   });
 });

@@ -5,13 +5,15 @@ import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/db";
 import { jobDescriptionInputSchema } from "@/lib/validations/job-description";
+import { z } from "zod/v4";
 import {
+  getJobDescription,
   updateJobDescription,
   deleteJobDescription,
   JobNameAlreadyExistsError,
   JobNotFoundError,
 } from "@/lib/jobs/service";
-import { clearRerankCache, invalidateRerankCacheForJd } from "@/lib/llm/rerank";
+import { invalidateRerankCacheForJd } from "@/lib/llm/rerank";
 import { getDictionary } from "@/lib/i18n";
 import { getServerLocale } from "@/lib/i18n/locale";
 
@@ -119,9 +121,13 @@ export async function deleteJobAction(id: string): Promise<ActionResult> {
   redirect("/dashboard/jobs");
 }
 
-export async function refreshCandidatesForJob(): Promise<void> {
+export async function refreshCandidatesForJob(jdId: string): Promise<void> {
+  if (!z.uuid().safeParse(jdId).success) return;
   const ctx = await requireAdmin();
   if (!ctx) return;
-  await clearRerankCache();
-  revalidatePath(`/dashboard/jobs`, "layout");
+  const jd = await getJobDescription({ id: jdId, organizationId: ctx.organizationId });
+  if (!jd) return;
+  await invalidateRerankCacheForJd(jdId);
+  revalidatePath(`/dashboard/jobs/${jdId}`);
+  revalidatePath("/dashboard/jobs");
 }

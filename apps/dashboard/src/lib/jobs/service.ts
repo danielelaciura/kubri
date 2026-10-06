@@ -162,13 +162,14 @@ export async function listAllJobDescriptionsForAdmin() {
   });
 }
 
-async function syncJobDescriptionEmbedding(id: string, input: {
+/** Regenerate and store the JD embedding. Returns false on failure (logged). */
+export async function syncJobDescriptionEmbedding(id: string, input: {
   name: string;
   description: string;
   skills: string[];
-}): Promise<void> {
+}): Promise<boolean> {
   const text = buildJobDescriptionEmbeddingText(input);
-  if (text.length === 0) return;
+  if (text.length === 0) return false;
   try {
     const vector = await generateEmbedding(text);
     await prisma.$executeRaw`
@@ -178,8 +179,10 @@ async function syncJobDescriptionEmbedding(id: string, input: {
           "embeddingUpdatedAt" = now()
       WHERE id = ${id}::uuid
     `;
+    return true;
   } catch (e) {
     console.error("[jobs] embedding failed", { jobDescriptionId: id, error: e });
+    return false;
   }
 }
 

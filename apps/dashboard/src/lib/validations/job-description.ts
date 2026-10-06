@@ -4,9 +4,15 @@ import {
   MIN_RADIUS_KM,
   MAX_RADIUS_KM,
 } from "@/lib/geo/constants";
+import { normalizeJobName } from "@/lib/jobs/normalize-name";
 
 export const jobDescriptionInputSchema = z.object({
-  name: z.string().trim().min(1, "Il nome è obbligatorio").max(120, "Massimo 120 caratteri"),
+  name: z
+    .string()
+    .trim()
+    .min(1, "Il nome è obbligatorio")
+    .max(120, "Massimo 120 caratteri")
+    .transform(normalizeJobName),
   locationRaw: z.string().trim().min(1, "La località è obbligatoria").max(120),
   description: z
     .string()

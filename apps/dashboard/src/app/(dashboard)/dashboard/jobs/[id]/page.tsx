@@ -8,6 +8,7 @@ import { getDictionary } from "@/lib/i18n";
 import { getServerLocale } from "@/lib/i18n/locale";
 import type { Dictionary } from "@/lib/i18n/types";
 import { getJobDescription } from "@/lib/jobs/service";
+import { replaceJobMatchSnapshot, type JobMatchSnapshotEntry } from "@/lib/jobs/match-snapshot";
 import { getCandidatesForOrg } from "@/lib/candidates/service";
 import { rankCandidates, type RankedCandidate } from "@/lib/jobs/matcher";
 import { rerankCandidates } from "@/lib/llm/rerank";
@@ -111,7 +112,7 @@ export default async function JobDetailPage({
         </Card>
       )}
 
-      <MatchesSection>
+      <MatchesSection jdId={jd.id}>
         <Suspense
           fallback={
             <MatchesLoading
@@ -125,6 +126,22 @@ export default async function JobDetailPage({
       </MatchesSection>
     </div>
   );
+}
+
+/**
+ * Persist the fresh AI evaluation for the jobs dashboard. Never throws: a
+ * snapshot failure must not break the matches page.
+ */
+async function persistMatchSnapshot(
+  jobDescriptionId: string,
+  organizationId: string,
+  entries: JobMatchSnapshotEntry[],
+): Promise<void> {
+  try {
+    await replaceJobMatchSnapshot({ jobDescriptionId, organizationId, entries });
+  } catch (e) {
+    console.error("[jobs/[id]] snapshot write failed", e);
+  }
 }
 
 async function Matches({ jd, orgId, t }: { jd: JdForMatchingLocal; orgId: string; t: Dictionary }) {
@@ -159,6 +176,7 @@ async function Matches({ jd, orgId, t }: { jd: JdForMatchingLocal; orgId: string
     .slice(0, LLM_RERANK_MAX_CANDIDATES);
 
   if (toRerank.length === 0) {
+    await persistMatchSnapshot(jd.id, orgId, []);
     return (
       <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
         {t.jobs.matchNoAffinity}
@@ -168,7 +186,7 @@ async function Matches({ jd, orgId, t }: { jd: JdForMatchingLocal; orgId: string
 
   let enriched: RankedCandidate[];
   try {
-    const enrichments = await rerankCandidates(jd.id, {
+    const { enrichments, fromCache } = await rerankCandidates(jd.id, {
       jd: {
         name: jd.name,
         description: jd.description,
@@ -183,6 +201,15 @@ async function Matches({ jd, orgId, t }: { jd: JdForMatchingLocal; orgId: string
       return enrichment ? [{ ...r, llm: enrichment }] : [];
     });
     enriched.sort((a, b) => (b.llm?.score ?? -1) - (a.llm?.score ?? -1));
+    if (!fromCache) {
+      // Built from `enriched` (not raw `enrichments`): only candidates we sent,
+      // each once — the LLM could echo unknown or duplicate ids.
+      await persistMatchSnapshot(
+        jd.id,
+        orgId,
+        enriched.flatMap((r) => (r.llm ? [{ candidateId: r.candidate.id, llmScore: r.llm.score }] : [])),
+      );
+    }
   } catch (e) {
     console.error("[jobs/[id]] rerankCandidates failed", e);
     return (

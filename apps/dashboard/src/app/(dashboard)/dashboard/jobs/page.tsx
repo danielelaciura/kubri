@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Briefcase, Plus } from "lucide-react";
@@ -17,9 +18,13 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { JobTableRow } from "@/components/jobs/job-table-row";
+import { JobsDashboard, JobsDashboardSkeleton } from "@/components/jobs/jobs-dashboard";
+import { getTargetCountsByJob } from "@/lib/jobs/dashboard-metrics";
+import { cn } from "@/lib/utils";
 
 export default async function JobsPage() {
-  const t = getDictionary(await getServerLocale());
+  const locale = await getServerLocale();
+  const t = getDictionary(locale);
   const supabase = await createSupabaseServerClient();
   const {
     data: { user: authUser },
@@ -33,13 +38,27 @@ export default async function JobsPage() {
   if (!currentUser?.organizationId) redirect("/login");
   const isAdmin = currentUser.role === "ORG_ADMIN";
 
-  const jobs = await listJobDescriptions({ organizationId: currentUser.organizationId });
+  const [jobs, targetCounts] = await Promise.all([
+    listJobDescriptions({ organizationId: currentUser.organizationId }),
+    // A failure only blanks the column ("—"); the table still renders.
+    getTargetCountsByJob(currentUser.organizationId).catch((e: unknown) => {
+      console.error("[jobs] target counts failed", e);
+      return null;
+    }),
+  ]);
+  const numberFormat = new Intl.NumberFormat(locale === "it" ? "it-IT" : "en-GB");
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl tracking-tight">{t.pages.jobs}</h1>
       </div>
+
+      {jobs.length > 0 && (
+        <Suspense fallback={<JobsDashboardSkeleton />}>
+          <JobsDashboard organizationId={currentUser.organizationId} t={t} locale={locale} />
+        </Suspense>
+      )}
 
       {jobs.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border p-12 text-center">
@@ -65,6 +84,7 @@ export default async function JobsPage() {
                 <TableHead>{t.jobs.fieldName}</TableHead>
                 <TableHead>{t.jobs.fieldLocation}</TableHead>
                 <TableHead>{t.jobs.fieldSkills}</TableHead>
+                <TableHead className="text-right">{t.jobs.targetColumn}</TableHead>
                 <TableHead>{t.jobs.createdAt}</TableHead>
               </TableRow>
             </TableHeader>
@@ -86,6 +106,21 @@ export default async function JobsPage() {
                         </Badge>
                       )}
                     </div>
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {targetCounts === null ? (
+                      <span className="text-muted-foreground">—</span>
+                    ) : (
+                      <span
+                        className={cn(
+                          (targetCounts.get(j.id) ?? 0) > 0
+                            ? "font-medium text-emerald-700"
+                            : "text-muted-foreground",
+                        )}
+                      >
+                        {numberFormat.format(targetCounts.get(j.id) ?? 0)}
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell>
                     {j.createdAt.toLocaleDateString("it-IT", {

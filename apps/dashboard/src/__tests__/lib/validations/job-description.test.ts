@@ -81,4 +81,16 @@ describe("jobDescriptionInputSchema", () => {
     const r = jobDescriptionInputSchema.safeParse({ ...valid, searchRadiusKm: 201 });
     expect(r.success).toBe(false);
   });
+
+  it("normalizes the name casing", () => {
+    const r = jobDescriptionInputSchema.safeParse({ ...valid, name: "  OPERATORE   MAGAZZINO " });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.name).toBe("Operatore magazzino");
+  });
+
+  it("keeps acronyms in a mixed-case name", () => {
+    const r = jobDescriptionInputSchema.safeParse({ ...valid, name: "Operatore OSS Notturno" });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.name).toBe("Operatore OSS notturno");
+  });
 });

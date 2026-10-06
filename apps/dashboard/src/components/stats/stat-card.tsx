@@ -9,7 +9,8 @@ import { cn } from "@/lib/utils";
 
 interface StatCardProps {
   title: string;
-  value: number;
+  /** A number, or a string already formatted for the active locale. */
+  value: number | string;
   icon: LucideIcon;
   description?: string;
   iconClassName?: string;

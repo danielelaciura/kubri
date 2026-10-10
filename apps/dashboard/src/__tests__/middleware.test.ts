@@ -36,6 +36,12 @@ describe("middleware auth gating", () => {
     expect(res.headers.get("location")).toBeNull();
   });
 
+  it("lets unauthenticated invitees reach the accept-invite page", async () => {
+    const res = await run("/auth/accept-invite?token_hash=abc&type=invite", null);
+    expect(res.status).not.toBe(307);
+    expect(res.headers.get("location")).toBeNull();
+  });
+
   it("redirects unauthenticated access to a protected route to /login", async () => {
     const res = await run("/dashboard/profile", null);
     expect(res.status).toBe(307);

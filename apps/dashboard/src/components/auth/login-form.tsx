@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { mapSupabaseError } from "@/lib/supabase/errors";
 import { getDictionary, DEFAULT_LOCALE } from "@/lib/i18n";
@@ -23,6 +23,10 @@ import {
 
 export function LoginForm() {
   const router = useRouter();
+  // /auth/callback bounces here with ?error=<code> when an email link fails
+  // (expired, already used, prefetched by a scanner). Say so explicitly instead
+  // of showing a bare login form to someone who has no password yet.
+  const linkError = useSearchParams().get("error");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -103,6 +107,11 @@ export function LoginForm() {
               required
             />
           </div>
+          {linkError && !error && (
+            <p className="text-sm text-destructive text-center">
+              {authDictionary.auth.linkExpiredOnLogin}
+            </p>
+          )}
           {error && <p className="text-sm text-destructive text-center">{error}</p>}
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? "Accesso in corso..." : "Accedi"}

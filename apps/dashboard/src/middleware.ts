@@ -4,6 +4,9 @@ import { updateSession } from "@/lib/supabase/middleware";
 const PUBLIC_PREFIXES = [
   "/login",
   "/auth/callback",
+  // Invitees have no session yet: the page must render so they can click
+  // "Accetta invito" (which is what actually consumes the one-time token).
+  "/auth/accept-invite",
   "/auth/set-password",
   "/auth/reset-password",
   // Webhooks authenticate via shared secret (Bearer token), not Supabase session.

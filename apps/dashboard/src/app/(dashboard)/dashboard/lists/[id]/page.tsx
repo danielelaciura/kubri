@@ -84,7 +84,6 @@ export default async function ListDetailPage({
           lists={lists}
           membershipByCandidate={membershipByCandidate}
           statusByCandidate={statusByCandidate}
-          locale={locale}
         />
       )}
     </div>

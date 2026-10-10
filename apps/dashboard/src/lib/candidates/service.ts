@@ -24,6 +24,7 @@ function dbCandidateToApp(c: DbCandidate): Candidate {
     languages: {
       language: c.language ?? "",
       additionalLanguages: c.additionalLanguages,
+      italianLevel: c.italianLevel ?? "",
     },
     drivingLicense: c.drivingLicense ?? false,
     jobPreferences: {

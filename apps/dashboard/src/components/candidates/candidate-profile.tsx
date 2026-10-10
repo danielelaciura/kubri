@@ -7,7 +7,6 @@ import {
 } from "@/components/ui/card";
 import type { Candidate } from "@/types";
 import {
-  Globe,
   MapPin,
   Phone,
   Calendar,
@@ -18,7 +17,6 @@ import {
 } from "lucide-react";
 import { getServerLocale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n";
-import { displayCountry } from "@/lib/candidates/country";
 
 interface CandidateProfileProps {
   candidate: Candidate;
@@ -66,11 +64,6 @@ export async function CandidateProfile({ candidate }: CandidateProfileProps) {
               </div>
             )}
             <div className="flex items-center gap-2">
-              <Globe className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">{t.candidates.countryOfOrigin}</span>
-              <span className="text-sm">{displayCountry(c.countryOfOrigin, locale) || "—"}</span>
-            </div>
-            <div className="flex items-center gap-2">
               <MapPin className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm font-medium">{t.candidates.address}</span>
               <span className="text-sm">{c.address || "—"}</span>
@@ -111,7 +104,7 @@ export async function CandidateProfile({ candidate }: CandidateProfileProps) {
       </Card>
 
       {/* Lingue */}
-      {(c.languages.language || c.languages.additionalLanguages) && (
+      {(c.languages.language || c.languages.additionalLanguages || c.languages.italianLevel) && (
         <Card className="shadow-sm border-border/60">
           <CardHeader>
             <CardTitle>{t.candidates.languages}</CardTitle>
@@ -132,6 +125,12 @@ export async function CandidateProfile({ candidate }: CandidateProfileProps) {
                       {language}
                     </Badge>
                   ))}
+                </div>
+              )}
+              {c.languages.italianLevel && (
+                <div>
+                  <span className="text-sm font-medium">{t.candidates.italianLevel}</span>
+                  <Badge variant="secondary">{c.languages.italianLevel}</Badge>
                 </div>
               )}
             </div>

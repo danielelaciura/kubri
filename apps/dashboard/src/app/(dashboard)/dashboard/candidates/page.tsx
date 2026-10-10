@@ -163,7 +163,7 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
           </p>
         </div>
       ) : (
-        <CandidatesTable result={result} sort={sort} lists={lists} membershipByCandidate={membershipByCandidate} statusByCandidate={statusByCandidate} locale={locale} />
+        <CandidatesTable result={result} sort={sort} lists={lists} membershipByCandidate={membershipByCandidate} statusByCandidate={statusByCandidate} />
       )}
     </div>
   );

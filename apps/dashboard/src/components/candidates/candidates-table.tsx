@@ -13,8 +13,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
 import type { Candidate, PaginatedResult, SortConfig } from "@/types";
-import type { Locale } from "@/lib/i18n/types";
-import { displayCountry } from "@/lib/candidates/country";
 import { AddToListMenu } from "@/components/lists/add-to-list-menu";
 import { CandidateStatusSelect } from "@/components/candidates/candidate-status-select";
 import { resolveStatus, type StatusByCandidate } from "@/lib/candidates/status";
@@ -26,10 +24,9 @@ interface CandidatesTableProps {
   lists: { id: string; name: string }[];
   membershipByCandidate: Record<string, string[]>;
   statusByCandidate: StatusByCandidate;
-  locale: Locale;
 }
 
-export function CandidatesTable({ result, sort, lists, membershipByCandidate, statusByCandidate, locale }: CandidatesTableProps) {
+export function CandidatesTable({ result, sort, lists, membershipByCandidate, statusByCandidate }: CandidatesTableProps) {
   const t = useT();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -117,11 +114,9 @@ export function CandidatesTable({ result, sort, lists, membershipByCandidate, st
               </TableHead>
               <TableHead className="w-40">Nome</TableHead>
               <TableHead className="w-36">{t.candidateStatus.label}</TableHead>
-              <TableHead>Zona di lavoro</TableHead>
-              <TableHead>Paese di origine</TableHead>
+              <TableHead>{t.candidates.addressColumn}</TableHead>
               {/* <TableHead>Lingue</TableHead> */}
               <TableHead>Competenze</TableHead>
-              {/* <TableHead>Indirizzo</TableHead> */}
               {/* <TableHead>
                 <SortButton field="createdAt" label="Data" />
               </TableHead> */}
@@ -147,10 +142,9 @@ export function CandidatesTable({ result, sort, lists, membershipByCandidate, st
                     status={resolveStatus(statusByCandidate, candidate.id)}
                   />
                 </TableCell>
-                <TableCell>
-                  {candidate.jobPreferences.preferredLocation}
+                <TableCell className="max-w-[220px] truncate" title={candidate.address || undefined}>
+                  {candidate.address}
                 </TableCell>
-                <TableCell>{displayCountry(candidate.countryOfOrigin, locale)}</TableCell>
                 {/* <TableCell>
                   {candidate.languages.language && (
                     <Badge variant="secondary" className="text-xs capitalize">
@@ -159,7 +153,6 @@ export function CandidatesTable({ result, sort, lists, membershipByCandidate, st
                   )}
                 </TableCell> */}
                 <TableCell>{renderTags(candidate.skillsAndCompetences, 3)}</TableCell>
-                {/* <TableCell className="max-w-[140px] truncate">{candidate.address}</TableCell> */}
                 {/* <TableCell>{formatDate(candidate.createdAt)}</TableCell> */}
                 <TableCell className="w-12" onClick={(e) => e.stopPropagation()}>
                   <AddToListMenu

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import type { EmailOtpType } from "@supabase/supabase-js";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,10 +25,15 @@ export function AcceptInviteForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // token_hash: invite email template → /auth/callback → here (current flow).
+  // code: legacy PKCE redirect from inviteUserByEmail's redirectTo.
+  const tokenHash = searchParams.get("token_hash");
+  const type = (searchParams.get("type") ?? "invite") as EmailOtpType;
   const code = searchParams.get("code");
+  const hasToken = Boolean(tokenHash || code);
 
   async function handleAccept() {
-    if (!code) {
+    if (!hasToken) {
       setError(t.auth.inviteLinkInvalid);
       return;
     }
@@ -36,7 +42,9 @@ export function AcceptInviteForm() {
     setError("");
 
     const supabase = createSupabaseBrowserClient();
-    const { error: authError } = await supabase.auth.exchangeCodeForSession(code);
+    const { error: authError } = tokenHash
+      ? await supabase.auth.verifyOtp({ token_hash: tokenHash, type })
+      : await supabase.auth.exchangeCodeForSession(code!);
 
     if (authError) {
       setError(t.auth.inviteLinkExpired);
@@ -59,7 +67,7 @@ export function AcceptInviteForm() {
         {error && <p className="text-sm text-destructive text-center">{error}</p>}
         <Button
           onClick={handleAccept}
-          disabled={isLoading || !code}
+          disabled={isLoading || !hasToken}
           className="w-full"
         >
           {isLoading ? t.auth.verifying : t.auth.acceptInvite}

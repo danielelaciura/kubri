@@ -275,6 +275,8 @@ export const it = {
       "Sei stato invitato ad accedere alla piattaforma. Clicca il pulsante per accettare l'invito e impostare la tua password.",
     verifying: "Verifica in corso...",
     acceptInvite: "Accetta invito",
+    linkExpiredOnLogin:
+      "Il link che hai aperto è scaduto o è già stato utilizzato. Se è un invito, chiedi all'amministratore di reinviarlo; se hai già un account, usa «Password dimenticata?».",
   },
   pdf: {
     exportedOn: "Esportato il",

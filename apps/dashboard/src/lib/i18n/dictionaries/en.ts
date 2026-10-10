@@ -277,6 +277,8 @@ export const en = {
       "You have been invited to access the platform. Click the button to accept the invite and set your password.",
     verifying: "Verifying...",
     acceptInvite: "Accept invite",
+    linkExpiredOnLogin:
+      "The link you opened has expired or has already been used. If it was an invite, ask your administrator to resend it; if you already have an account, use \"Forgot password?\".",
   },
   pdf: {
     exportedOn: "Exported on",

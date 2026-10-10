@@ -5,6 +5,8 @@ export type Channel = "telegram" | "whatsapp";
 export interface Languages {
   language: string;
   additionalLanguages: string[];
+  /** Free text from the chatbot (e.g. "B2", "Madrelingua"); absent/"" when not collected. */
+  italianLevel?: string;
 }
 
 export interface JobPreferences {

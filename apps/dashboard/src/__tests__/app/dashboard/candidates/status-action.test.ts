@@ -16,7 +16,7 @@ vi.mock("@/lib/i18n/locale", () => ({
 }));
 vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
 vi.mock("@/lib/pools/access", () => ({
-  getOrgAccessiblePoolIds: vi.fn(async () => ["p1"]),
+  getOrgCandidateVisibility: vi.fn(async () => ({ poolId: { in: ["p1"] } })),
 }));
 vi.mock("@/lib/db", () => ({
   prisma: { candidate: { findFirst: vi.fn() } },

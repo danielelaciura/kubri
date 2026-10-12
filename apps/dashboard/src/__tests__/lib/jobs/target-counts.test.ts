@@ -8,7 +8,9 @@ const { mockPrisma } = vi.hoisted(() => ({
 
 vi.mock("@/lib/db", () => ({ prisma: mockPrisma }));
 vi.mock("@/lib/pools/access", () => ({
-  getOrgAccessiblePoolIds: vi.fn(async () => ["p1"]),
+  getOrgCandidateVisibility: vi.fn(async () => ({
+    OR: [{ poolId: { in: ["p1"] } }, { sharedWithGlobal: true }],
+  })),
 }));
 
 import { getTargetCountsByJob } from "@/lib/jobs/dashboard-metrics";

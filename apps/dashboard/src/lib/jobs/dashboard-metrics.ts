@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/db";
-import { getOrgAccessiblePoolIds } from "@/lib/pools/access";
-import { candidateVisibilityWhere } from "@/lib/pools/candidate-visibility";
+import { getOrgCandidateVisibility } from "@/lib/pools/access";
 import { TARGET_MATCH_SCORE } from "@/lib/jobs/constants";
 
 const RECENT_WINDOW_DAYS = 30;
@@ -25,7 +24,7 @@ export async function getJobsDashboardMetrics(
   organizationId: string,
   now: Date = new Date(),
 ): Promise<JobsDashboardMetrics> {
-  const visibility = candidateVisibilityWhere(await getOrgAccessiblePoolIds(organizationId));
+  const visibility = await getOrgCandidateVisibility(organizationId);
   const since = new Date(now.getTime() - RECENT_WINDOW_DAYS * DAY_MS);
 
   const [activeJobs, jobsLast30Days, targetCandidates, neverMatchedCandidates, totalCandidates] =
@@ -52,7 +51,7 @@ export async function getJobsDashboardMetrics(
  * JD's snapshot, keyed by JD id. JDs without target matches are absent (0).
  */
 export async function getTargetCountsByJob(organizationId: string): Promise<Map<string, number>> {
-  const visibility = candidateVisibilityWhere(await getOrgAccessiblePoolIds(organizationId));
+  const visibility = await getOrgCandidateVisibility(organizationId);
   const rows = await prisma.jobMatch.groupBy({
     by: ["jobDescriptionId"],
     where: {

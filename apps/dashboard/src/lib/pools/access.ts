@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/db";
 import type { PoolModel as Pool } from "@/generated/prisma/models/Pool";
+import type { Prisma } from "@/generated/prisma/client";
+import { candidateVisibilityWhere } from "@/lib/pools/candidate-visibility";
 
 async function getUserWithPools(userId: string) {
   return prisma.user.findUniqueOrThrow({
@@ -68,4 +70,23 @@ export async function getOrgAccessiblePools(
     select: { pool: true },
   });
   return rows.map((r) => r.pool);
+}
+
+/**
+ * Prisma `where` fragment for the candidates the given organization may see.
+ * Globally-shared candidates are included only when the org is attached to the
+ * Global pool; isolated orgs see strictly their own pools. Org-scoped; no admin
+ * bypass. Use this for every org-scoped candidate read or access check.
+ */
+export async function getOrgCandidateVisibility(
+  organizationId: string,
+): Promise<Prisma.CandidateWhereInput> {
+  const rows = await prisma.organizationPool.findMany({
+    where: { organizationId },
+    select: { poolId: true, pool: { select: { isGlobal: true } } },
+  });
+  return candidateVisibilityWhere(
+    rows.map((r) => r.poolId),
+    rows.some((r) => r.pool.isGlobal),
+  );
 }

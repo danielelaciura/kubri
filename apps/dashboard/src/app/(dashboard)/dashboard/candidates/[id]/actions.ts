@@ -3,8 +3,7 @@
 import { getCurrentUser } from "@/lib/auth-utils";
 import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
-import { getOrgAccessiblePoolIds } from "@/lib/pools/access";
-import { candidateVisibilityWhere } from "@/lib/pools/candidate-visibility";
+import { getOrgCandidateVisibility } from "@/lib/pools/access";
 import { z } from "zod/v4";
 import { revalidatePath } from "next/cache";
 import { getDictionary } from "@/lib/i18n";
@@ -32,9 +31,8 @@ async function requireCandidateAccess(
     }
     return;
   }
-  const poolIds = await getOrgAccessiblePoolIds(organizationId);
   const exists = await prisma.candidate.findFirst({
-    where: { id: candidateId, ...candidateVisibilityWhere(poolIds) },
+    where: { id: candidateId, ...(await getOrgCandidateVisibility(organizationId)) },
     select: { id: true },
   });
   if (!exists) {

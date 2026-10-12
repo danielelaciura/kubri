@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { getOrgAccessiblePoolIds } from "@/lib/pools/access";
+import { getOrgCandidateVisibility } from "@/lib/pools/access";
 import { candidateVisibilityWhere } from "@/lib/pools/candidate-visibility";
 import type { Candidate, Channel } from "@/types";
 import type { CandidateModel as DbCandidate } from "@/generated/prisma/models/Candidate";
@@ -51,9 +51,8 @@ function dbCandidateToApp(c: DbCandidate): Candidate {
 export async function getCandidatesForOrg(
   organizationId: string,
 ): Promise<Candidate[]> {
-  const poolIds = await getOrgAccessiblePoolIds(organizationId);
   const rows = await prisma.candidate.findMany({
-    where: candidateVisibilityWhere(poolIds),
+    where: await getOrgCandidateVisibility(organizationId),
     orderBy: { createdAt: "desc" },
   });
   return rows.map(dbCandidateToApp);
@@ -70,7 +69,7 @@ export async function getCandidatesForPool(
     select: { isGlobal: true },
   });
   const rows = await prisma.candidate.findMany({
-    where: pool?.isGlobal ? candidateVisibilityWhere([poolId]) : { poolId },
+    where: pool?.isGlobal ? candidateVisibilityWhere([poolId], true) : { poolId },
     orderBy: { createdAt: "desc" },
   });
   return rows.map(dbCandidateToApp);
@@ -80,9 +79,8 @@ export async function getCandidateForOrg(
   organizationId: string,
   candidateId: string,
 ): Promise<Candidate | null> {
-  const poolIds = await getOrgAccessiblePoolIds(organizationId);
   const row = await prisma.candidate.findFirst({
-    where: { id: candidateId, ...candidateVisibilityWhere(poolIds) },
+    where: { id: candidateId, ...(await getOrgCandidateVisibility(organizationId)) },
   });
   return row ? dbCandidateToApp(row) : null;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { ListPlus, Loader2, Plus } from "lucide-react";
 import { useT } from "@/lib/i18n/provider";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import {
   removeCandidateFromList,
   createList,
 } from "@/app/(dashboard)/dashboard/lists/actions";
+import { useProgressTransition } from "@/components/layout/route-progress";
 
 interface ListOption {
   id: string;
@@ -40,7 +41,7 @@ export function AddToListMenu({
   const [members, setMembers] = useState<Set<string>>(new Set(memberOf));
   const [options, setOptions] = useState<ListOption[]>(lists);
   const [newName, setNewName] = useState("");
-  const [isPending, startTransition] = useTransition();
+  const [isPending, startTransition] = useProgressTransition();
   const [createError, setCreateError] = useState<string | null>(null);
 
   const toggle = (listId: string, checked: boolean) => {

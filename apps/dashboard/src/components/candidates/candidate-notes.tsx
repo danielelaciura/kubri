@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/shared/loading-button";
 import {
   Card,
   CardContent,
@@ -9,7 +9,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { addNote } from "@/app/(dashboard)/dashboard/candidates/[id]/actions";
-import { Loader2 } from "lucide-react";
 
 interface NoteData {
   id: string;
@@ -60,10 +59,7 @@ function AddNoteForm({ candidateId }: { candidateId: string }) {
       {error && (
         <p className="text-sm text-destructive">{error}</p>
       )}
-      <Button type="submit" size="sm" disabled={isPending}>
-        {isPending && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
-        Aggiungi nota
-      </Button>
+      <SubmitButton size="sm">Aggiungi nota</SubmitButton>
     </form>
   );
 }

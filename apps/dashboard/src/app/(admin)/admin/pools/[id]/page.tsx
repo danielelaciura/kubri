@@ -12,6 +12,7 @@ import {
 } from "@/lib/pools/actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/shared/loading-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -138,7 +139,7 @@ export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
                   maxLength={255}
                 />
               </div>
-              <Button type="submit">{t.common.save}</Button>
+              <SubmitButton>{t.common.save}</SubmitButton>
             </form>
           </CardContent>
         </Card>
@@ -177,7 +178,7 @@ export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
                   <option value="ALWAYS">{t.pools.globalSharingAlways}</option>
                   <option value="NEVER">{t.pools.globalSharingNever}</option>
                 </select>
-                <Button type="submit">{t.common.save}</Button>
+                <SubmitButton>{t.common.save}</SubmitButton>
               </form>
               <p className="text-xs text-muted-foreground">
                 {t.pools.globalSharingNotRetroactive}
@@ -211,9 +212,9 @@ export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
                         name="organizationId"
                         value={op.organizationId}
                       />
-                      <Button type="submit" variant="ghost" size="sm">
+                      <SubmitButton variant="ghost" size="sm">
                         {t.common.remove}
-                      </Button>
+                      </SubmitButton>
                     </form>
                   </li>
                 ))}
@@ -233,7 +234,7 @@ export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
                     </option>
                   ))}
                 </select>
-                <Button type="submit">{t.admin.attach}</Button>
+                <SubmitButton>{t.admin.attach}</SubmitButton>
               </form>
             )}
           </CardContent>
@@ -245,13 +246,12 @@ export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
           </CardHeader>
           <CardContent className="space-y-2">
             <form action={deleteAction}>
-              <Button
-                type="submit"
+              <SubmitButton
                 variant="destructive"
                 disabled={!canDelete}
               >
                 {t.pools.deletePool}
-              </Button>
+              </SubmitButton>
             </form>
             {!canDelete && (
               <p className="text-xs text-muted-foreground">

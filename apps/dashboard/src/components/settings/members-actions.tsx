@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/shared/loading-button";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
@@ -97,7 +98,9 @@ export function MembersActions({ inviteAction }: MembersActionsProps) {
             <DialogClose render={<Button variant="outline" />}>
               {t.common.cancel}
             </DialogClose>
-            <Button type="submit">{t.members.invite}</Button>
+            <SubmitButton loadingText={t.members.sending}>
+              {t.members.invite}
+            </SubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>

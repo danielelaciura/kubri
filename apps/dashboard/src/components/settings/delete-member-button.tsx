@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/shared/loading-button";
 import {
   Dialog,
   DialogContent,
@@ -64,13 +65,14 @@ export function DeleteMemberButton({
           >
             {t.common.cancel}
           </DialogClose>
-          <Button
+          <LoadingButton
             variant="destructive"
             onClick={handleConfirm}
-            disabled={isPending}
+            loading={isPending}
+            loadingText={t.members.removing}
           >
-            {isPending ? t.members.removing : t.members.remove}
-          </Button>
+            {t.members.remove}
+          </LoadingButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>

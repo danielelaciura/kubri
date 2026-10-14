@@ -1,6 +1,7 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useProgressRouter } from "@/components/layout/route-progress";
 import {
   Table,
   TableBody,
@@ -28,7 +29,7 @@ interface CandidatesTableProps {
 
 export function CandidatesTable({ result, sort, lists, membershipByCandidate, statusByCandidate }: CandidatesTableProps) {
   const t = useT();
-  const router = useRouter();
+  const router = useProgressRouter();
   const searchParams = useSearchParams();
 
   const { data: candidates, page, totalPages, total } = result;

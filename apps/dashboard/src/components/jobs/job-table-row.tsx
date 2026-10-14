@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useProgressRouter } from "@/components/layout/route-progress";
 import { TableRow } from "@/components/ui/table";
 
 export function JobTableRow({
@@ -10,7 +10,7 @@ export function JobTableRow({
   href: string;
   children: React.ReactNode;
 }) {
-  const router = useRouter();
+  const router = useProgressRouter();
   return (
     <TableRow
       className="cursor-pointer hover:bg-muted/50"

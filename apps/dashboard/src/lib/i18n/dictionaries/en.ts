@@ -50,6 +50,7 @@ export const en = {
     never: "Never",
     remove: "Remove",
     invalidLanguage: "Invalid language",
+    processing: "Working...",
   },
   header: {
     createAnalysis: "Create analysis",
@@ -134,6 +135,10 @@ export const en = {
     orgCreated: "Organization created successfully",
     orgUpdated: "Organization updated successfully",
     details: "Organization details",
+    creating: "Creating...",
+    createDialogDescription: "Create an organization. You can invite users later from the organization page.",
+    namePlaceholder: "Organization name",
+    createError: "Failed to create organization",
   },
   jobs: {
     listEmpty: "No analysis",

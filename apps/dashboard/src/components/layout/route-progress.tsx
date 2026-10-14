@@ -1,20 +1,90 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import {
+  createContext,
+  Suspense,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-function RouteProgressInner() {
+const MIN_VISIBLE_MS = 400;
+
+/** Registers one pending operation; returns the function that ends it. */
+type BeginProgress = () => () => void;
+
+const ProgressContext = createContext<BeginProgress | null>(null);
+
+/**
+ * Shows the top progress bar while `pending` is true. No-op outside
+ * `<ProgressProvider>` (e.g. unauthenticated pages).
+ */
+export function usePendingProgress(pending: boolean) {
+  const begin = useContext(ProgressContext);
+  useEffect(() => {
+    if (!pending || !begin) return;
+    return begin();
+  }, [pending, begin]);
+}
+
+/** `useTransition` whose pending state also drives the top progress bar. */
+export function useProgressTransition() {
+  const [isPending, startTransition] = useTransition();
+  usePendingProgress(isPending);
+  return [isPending, startTransition] as const;
+}
+
+/**
+ * `useRouter` whose `push` runs inside a progress transition, so programmatic
+ * navigations (filters, sorting, paging) show the top bar until the new page
+ * has rendered.
+ */
+export function useProgressRouter() {
+  const router = useRouter();
+  const [, startTransition] = useProgressTransition();
+  return useMemo<ReturnType<typeof useRouter>>(
+    () => ({
+      ...router,
+      push: (...args) => startTransition(() => router.push(...args)),
+    }),
+    [router, startTransition],
+  );
+}
+
+/**
+ * Ends the anchor-click navigation token once the URL actually changes.
+ * Isolated so `useSearchParams` only suspends this leaf, not the whole shell.
+ */
+function NavigationSettledListener({ onSettled }: { onSettled: () => void }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const mountedRef = useRef(false);
+
+  useEffect(() => {
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      return;
+    }
+    const id = setTimeout(onSettled, 0);
+    return () => clearTimeout(id);
+  }, [pathname, searchParams, onSettled]);
+
+  return null;
+}
+
+export function ProgressProvider({ children }: { children: React.ReactNode }) {
   const [visible, setVisible] = useState(false);
   const [progress, setProgress] = useState(0);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const trickleRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const mountedRef = useRef(false);
   const startedAtRef = useRef(0);
-  const activeRef = useRef(false);
-
-  const MIN_VISIBLE_MS = 400;
+  const activeCountRef = useRef(0);
+  const endNavigationRef = useRef<(() => void) | null>(null);
 
   const clearTimers = () => {
     if (trickleRef.current) {
@@ -29,7 +99,6 @@ function RouteProgressInner() {
 
   const start = () => {
     clearTimers();
-    activeRef.current = true;
     startedAtRef.current = Date.now();
     setVisible(true);
     setProgress(12);
@@ -39,7 +108,6 @@ function RouteProgressInner() {
   };
 
   const finish = () => {
-    activeRef.current = false;
     if (trickleRef.current) {
       clearInterval(trickleRef.current);
       trickleRef.current = null;
@@ -52,26 +120,33 @@ function RouteProgressInner() {
   };
 
   const done = () => {
-    if (!activeRef.current) return;
-    const elapsed = Date.now() - startedAtRef.current;
-    const remaining = MIN_VISIBLE_MS - elapsed;
+    const remaining = MIN_VISIBLE_MS - (Date.now() - startedAtRef.current);
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
     if (remaining > 0) {
-      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
       hideTimerRef.current = setTimeout(finish, remaining);
     } else {
       finish();
     }
   };
 
-  useEffect(() => {
-    if (!mountedRef.current) {
-      mountedRef.current = true;
-      return;
-    }
-    const id = setTimeout(done, 0);
-    return () => clearTimeout(id);
+  // Ref-only body: stable identity so consumers' effects don't re-run.
+  const begin = useCallback<BeginProgress>(() => {
+    activeCountRef.current += 1;
+    if (activeCountRef.current === 1) start();
+    let ended = false;
+    return () => {
+      if (ended) return;
+      ended = true;
+      activeCountRef.current -= 1;
+      if (activeCountRef.current === 0) done();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname, searchParams]);
+  }, []);
+
+  const onNavigationSettled = useCallback(() => {
+    endNavigationRef.current?.();
+    endNavigationRef.current = null;
+  }, []);
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
@@ -97,7 +172,7 @@ function RouteProgressInner() {
       } catch {
         return;
       }
-      start();
+      if (!endNavigationRef.current) endNavigationRef.current = begin();
     };
 
     document.addEventListener("click", onClick);
@@ -105,34 +180,32 @@ function RouteProgressInner() {
       document.removeEventListener("click", onClick);
       clearTimers();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [begin]);
 
   return (
-    <div
-      aria-hidden
-      className="pointer-events-none fixed left-0 top-0 z-[9999] h-1 w-full"
-      style={{
-        opacity: visible ? 1 : 0,
-        transition: "opacity 300ms ease-out",
-      }}
-    >
+    <ProgressContext.Provider value={begin}>
       <div
-        className="h-full bg-primary"
+        aria-hidden
+        className="pointer-events-none fixed left-0 top-0 z-[9999] h-1 w-full"
         style={{
-          width: `${progress}%`,
-          transition: "width 200ms ease-out",
-          boxShadow: "0 0 10px var(--color-primary), 0 0 4px var(--color-primary)",
+          opacity: visible ? 1 : 0,
+          transition: "opacity 300ms ease-out",
         }}
-      />
-    </div>
-  );
-}
-
-export function RouteProgress() {
-  return (
-    <Suspense fallback={null}>
-      <RouteProgressInner />
-    </Suspense>
+      >
+        <div
+          className="h-full w-full origin-left bg-primary"
+          style={{
+            transform: `scaleX(${progress / 100})`,
+            transition: "transform 200ms ease-out",
+            boxShadow:
+              "0 0 10px var(--color-primary), 0 0 4px var(--color-primary)",
+          }}
+        />
+      </div>
+      <Suspense fallback={null}>
+        <NavigationSettledListener onSettled={onNavigationSettled} />
+      </Suspense>
+      {children}
+    </ProgressContext.Provider>
   );
 }

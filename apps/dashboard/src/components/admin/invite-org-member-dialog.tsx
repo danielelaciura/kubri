@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/shared/loading-button";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
@@ -23,19 +24,15 @@ interface InviteOrgMemberDialogProps {
 export function InviteOrgMemberDialog({ action }: InviteOrgMemberDialogProps) {
   const t = useT();
   const [open, setOpen] = useState(false);
-  const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(formData: FormData) {
-    setPending(true);
     setError(null);
     try {
       await action(formData);
       setOpen(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : t.members.inviteError);
-    } finally {
-      setPending(false);
     }
   }
 
@@ -115,9 +112,9 @@ export function InviteOrgMemberDialog({ action }: InviteOrgMemberDialogProps) {
                 </Button>
               }
             />
-            <Button type="submit" disabled={pending}>
-              {pending ? t.members.sending : t.members.invite}
-            </Button>
+            <SubmitButton loadingText={t.members.sending}>
+              {t.members.invite}
+            </SubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>

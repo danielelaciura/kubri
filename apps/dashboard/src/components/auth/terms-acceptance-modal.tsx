@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Dialog,
   DialogContent,
@@ -123,6 +124,7 @@ export function TermsAcceptanceModal() {
             onClick={onLogout}
             disabled={isLoggingOut || isAccepting}
           >
+            {isLoggingOut && <Spinner data-icon="inline-start" aria-hidden />}
             {isLoggingOut ? t.auth.loggingOut : t.common.logout}
           </Button>
           <Button
@@ -130,6 +132,7 @@ export function TermsAcceptanceModal() {
             onClick={onConfirm}
             disabled={!bothAccepted || isAccepting || isLoggingOut}
           >
+            {isAccepting && <Spinner data-icon="inline-start" aria-hidden />}
             {isAccepting ? t.auth.saving : t.common.confirm}
           </Button>
         </div>

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/shared/loading-button";
 import {
   Dialog,
   DialogContent,
@@ -45,9 +46,9 @@ export function DeleteJobButton({ id }: { id: string }) {
           <Button variant="outline" onClick={() => setOpen(false)}>
             {t.common.cancel}
           </Button>
-          <Button variant="destructive" onClick={onConfirm} disabled={isPending}>
+          <LoadingButton variant="destructive" onClick={onConfirm} loading={isPending}>
             {t.jobs.deleteButton}
-          </Button>
+          </LoadingButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>

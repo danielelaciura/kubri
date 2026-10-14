@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import {
   MAX_RADIUS_KM,
   RADIUS_STEP_KM,
 } from "@/lib/geo/constants";
+import { useProgressTransition } from "@/components/layout/route-progress";
 
 type FormState = { ok: true } | { ok: false; error: string } | null;
 
@@ -39,7 +40,7 @@ export function JobForm({ mode, initial, action }: JobFormProps) {
     initial?.searchRadiusKm ?? DEFAULT_SEARCH_RADIUS_KM,
   );
   const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [isPending, startTransition] = useProgressTransition();
   const router = useRouter();
 
   const onSubmit = (e: FormEvent<HTMLFormElement>) => {

@@ -1,0 +1,6 @@
+# Gitignored files Claude Code copies from the main checkout into every new
+# worktree (gitignore syntax). Paths only — never put secrets here.
+.env
+apps/dashboard/.env.local
+apps/dashboard/.env.prod
+apps/assessment/.env.local

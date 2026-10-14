@@ -127,6 +127,28 @@ describe("normalizeForUpsert", () => {
     expect(accepted.sharedWithGlobal).toBe(true);
   });
 
+  it("maps email, trimmed and lowercased", () => {
+    const result = normalizeForUpsert(
+      {
+        key: "k",
+        externalKey: "global",
+        data: { email: "  Mario.Rossi@Example.IT " },
+      },
+      POOL,
+    );
+    expect(result.email).toBe("mario.rossi@example.it");
+  });
+
+  it("returns null email when missing, empty or malformed", () => {
+    for (const email of [undefined, "", "   ", "non ho email", "mario@", 42]) {
+      const result = normalizeForUpsert(
+        { key: "k", externalKey: "global", data: { email } },
+        POOL,
+      );
+      expect(result.email).toBeNull();
+    }
+  });
+
   it("derives channel=whatsapp when source_organization contains 'whatsapp'", () => {
     const result = normalizeForUpsert(
       {

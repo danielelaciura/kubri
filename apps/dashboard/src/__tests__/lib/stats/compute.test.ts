@@ -14,6 +14,7 @@ function makeCandidate(
     countryOfOrigin: "Italian",
     address: "Roma",
     phone: "",
+    email: "",
     legalStatus: "citizen",
     workingPermit: true,
     meanOfTransport: "",

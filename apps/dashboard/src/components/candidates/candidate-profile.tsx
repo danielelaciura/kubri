@@ -9,6 +9,7 @@ import type { Candidate } from "@/types";
 import {
   MapPin,
   Phone,
+  Mail,
   Calendar,
   Car,
   Briefcase,
@@ -73,6 +74,15 @@ export async function CandidateProfile({ candidate }: CandidateProfileProps) {
                 <Phone className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm font-medium">{t.candidates.phone}</span>
                 <span className="text-sm">{c.phone}</span>
+              </div>
+            )}
+            {c.email && (
+              <div className="flex items-center gap-2">
+                <Mail className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">{t.candidates.email}</span>
+                <a href={`mailto:${c.email}`} className="text-sm break-all hover:underline">
+                  {c.email}
+                </a>
               </div>
             )}
             {c.legalStatus && (

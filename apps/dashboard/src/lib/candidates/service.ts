@@ -15,6 +15,7 @@ function dbCandidateToApp(c: DbCandidate): Candidate {
     countryOfOrigin: c.countryOfOrigin ?? "",
     address: c.address ?? "",
     phone: c.phone ?? "",
+    email: c.email ?? "",
     legalStatus: "",
     workingPermit: c.workingPermit ?? false,
     meanOfTransport: c.meanOfTransport ?? "",

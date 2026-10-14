@@ -2,6 +2,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import type { PoolModel as Pool } from "@/generated/prisma/models/Pool";
 import type { MakeCandidateWebhookPayload } from "@/lib/validations/webhook-candidate";
 import { geocodeFromAddress } from "@/lib/geo/proximity";
+import { resolveSharedWithGlobal } from "@/lib/pools/global-sharing";
 
 function safeStringArray(value: unknown): string[] {
   if (!value) return [];
@@ -114,7 +115,11 @@ export function normalizeForUpsert(
 
     // Non-null column: only a real `true` counts as consent; absence or any
     // unexpected type means "not shared". Raw value is preserved in rawPayload.
-    sharedWithGlobal: d["is_kubri_privacy_accepted"] === true,
+    // The pool's globalSharing mode may override it (ALWAYS / NEVER).
+    sharedWithGlobal: resolveSharedWithGlobal(
+      pool,
+      d["is_kubri_privacy_accepted"] === true,
+    ),
 
     rawPayload: payload as unknown as Prisma.InputJsonValue,
 

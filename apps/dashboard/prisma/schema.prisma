@@ -18,6 +18,15 @@ enum NotifyFrequency {
   WEEKLY
 }
 
+// How candidates ingested into a (non-global) pool get `sharedWithGlobal`:
+// WEBHOOK = from the payload's privacy consent; ALWAYS/NEVER = forced.
+// Applied at ingestion only — changing it does not touch existing candidates.
+enum GlobalSharingMode {
+  WEBHOOK
+  ALWAYS
+  NEVER
+}
+
 enum CandidateStatusValue {
   NEW
   CONTACTED
@@ -51,6 +60,7 @@ model Pool {
   slug        String   @unique
   externalKey String?  @unique
   isGlobal    Boolean  @default(false)
+  globalSharing GlobalSharingMode @default(WEBHOOK)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

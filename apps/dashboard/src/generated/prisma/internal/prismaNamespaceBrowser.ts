@@ -98,6 +98,7 @@ export const PoolScalarFieldEnum = {
   slug: 'slug',
   externalKey: 'externalKey',
   isGlobal: 'isGlobal',
+  globalSharing: 'globalSharing',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

@@ -12,7 +12,7 @@ import { resolvePoolByExternalKey } from "@/lib/pools/resolve";
 import { POST } from "@/app/api/webhooks/assessment/route";
 
 const SECRET = "test-secret";
-const POOL = { id: "00000000-0000-0000-0000-000000000001", name: "Global", externalKey: "global", createdAt: new Date() };
+const POOL = { id: "00000000-0000-0000-0000-000000000001", name: "Global", externalKey: "global", isGlobal: true, globalSharing: "WEBHOOK", createdAt: new Date() };
 
 function req(body: unknown, auth?: string): Request {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -50,6 +50,16 @@ describe("POST /api/webhooks/assessment", () => {
 
   it("400 on invalid payload", async () => {
     expect((await POST(req({ contact: {}, assessment: {} }, `Bearer ${SECRET}`))).status).toBe(400);
+  });
+
+  it("honours a non-global pool's NEVER sharing mode over the payload consent", async () => {
+    (resolvePoolByExternalKey as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ...POOL, isGlobal: false, globalSharing: "NEVER",
+    });
+    const res = await POST(req(VALID, `Bearer ${SECRET}`));
+    expect(res.status).toBe(200);
+    const arg = (prisma.candidate.upsert as ReturnType<typeof vi.fn>).mock.calls[0]![0];
+    expect(arg.create.sharedWithGlobal).toBe(false);
   });
 
   it("upserts with externalId = phone and assessmentProfile populated", async () => {

@@ -175,6 +175,13 @@ export type BoolFilter<$PrismaModel = never> = {
   not?: Prisma.NestedBoolFilter<$PrismaModel> | boolean
 }
 
+export type EnumGlobalSharingModeFilter<$PrismaModel = never> = {
+  equals?: $Enums.GlobalSharingMode | Prisma.EnumGlobalSharingModeFieldRefInput<$PrismaModel>
+  in?: $Enums.GlobalSharingMode[] | Prisma.ListEnumGlobalSharingModeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.GlobalSharingMode[] | Prisma.ListEnumGlobalSharingModeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumGlobalSharingModeFilter<$PrismaModel> | $Enums.GlobalSharingMode
+}
+
 export type StringNullableWithAggregatesFilter<$PrismaModel = never> = {
   equals?: string | Prisma.StringFieldRefInput<$PrismaModel> | null
   in?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel> | null
@@ -199,6 +206,16 @@ export type BoolWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedBoolFilter<$PrismaModel>
   _max?: Prisma.NestedBoolFilter<$PrismaModel>
+}
+
+export type EnumGlobalSharingModeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.GlobalSharingMode | Prisma.EnumGlobalSharingModeFieldRefInput<$PrismaModel>
+  in?: $Enums.GlobalSharingMode[] | Prisma.ListEnumGlobalSharingModeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.GlobalSharingMode[] | Prisma.ListEnumGlobalSharingModeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumGlobalSharingModeWithAggregatesFilter<$PrismaModel> | $Enums.GlobalSharingMode
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumGlobalSharingModeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumGlobalSharingModeFilter<$PrismaModel>
 }
 
 export type EnumRoleFilter<$PrismaModel = never> = {
@@ -568,6 +585,13 @@ export type NestedBoolFilter<$PrismaModel = never> = {
   not?: Prisma.NestedBoolFilter<$PrismaModel> | boolean
 }
 
+export type NestedEnumGlobalSharingModeFilter<$PrismaModel = never> = {
+  equals?: $Enums.GlobalSharingMode | Prisma.EnumGlobalSharingModeFieldRefInput<$PrismaModel>
+  in?: $Enums.GlobalSharingMode[] | Prisma.ListEnumGlobalSharingModeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.GlobalSharingMode[] | Prisma.ListEnumGlobalSharingModeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumGlobalSharingModeFilter<$PrismaModel> | $Enums.GlobalSharingMode
+}
+
 export type NestedStringNullableWithAggregatesFilter<$PrismaModel = never> = {
   equals?: string | Prisma.StringFieldRefInput<$PrismaModel> | null
   in?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel> | null
@@ -591,6 +615,16 @@ export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedBoolFilter<$PrismaModel>
   _max?: Prisma.NestedBoolFilter<$PrismaModel>
+}
+
+export type NestedEnumGlobalSharingModeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.GlobalSharingMode | Prisma.EnumGlobalSharingModeFieldRefInput<$PrismaModel>
+  in?: $Enums.GlobalSharingMode[] | Prisma.ListEnumGlobalSharingModeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.GlobalSharingMode[] | Prisma.ListEnumGlobalSharingModeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumGlobalSharingModeWithAggregatesFilter<$PrismaModel> | $Enums.GlobalSharingMode
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumGlobalSharingModeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumGlobalSharingModeFilter<$PrismaModel>
 }
 
 export type NestedEnumRoleFilter<$PrismaModel = never> = {

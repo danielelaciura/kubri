@@ -6,6 +6,8 @@ const POOL: Pool = {
   id: "00000000-0000-0000-0000-000000000001",
   name: "Global",
   externalKey: "global",
+  isGlobal: false,
+  globalSharing: "WEBHOOK",
   createdAt: new Date("2026-01-01T00:00:00Z"),
 } as Pool;
 
@@ -149,6 +151,20 @@ describe("normalizeForUpsert", () => {
     }
   });
 
+  it("forces sharedWithGlobal from the pool's globalSharing mode", () => {
+    const never = normalizeForUpsert(
+      { key: "k", externalKey: "global", data: { is_kubri_privacy_accepted: true } },
+      { ...POOL, globalSharing: "NEVER" },
+    );
+    expect(never.sharedWithGlobal).toBe(false);
+
+    const always = normalizeForUpsert(
+      { key: "k", externalKey: "global", data: {} },
+      { ...POOL, globalSharing: "ALWAYS" },
+    );
+    expect(always.sharedWithGlobal).toBe(true);
+  });
+
   it("derives channel=whatsapp when source_organization contains 'whatsapp'", () => {
     const result = normalizeForUpsert(
       {
@@ -214,6 +230,8 @@ describe("normalizeForUpsert", () => {
       id: "00000000-0000-0000-0000-000000000099",
       name: "Other",
       externalKey: "tenant_a",
+      isGlobal: false,
+      globalSharing: "WEBHOOK",
       createdAt: new Date(),
     } as Pool;
     const result = normalizeForUpsert(

@@ -1,4 +1,5 @@
 import { z } from "zod/v4";
+import { GLOBAL_SHARING_MODES } from "@/lib/pools/global-sharing";
 
 const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
@@ -16,3 +17,5 @@ export const poolUpdateSchema = poolCreateSchema.partial();
 
 export type PoolCreateInput = z.infer<typeof poolCreateSchema>;
 export type PoolUpdateInput = z.infer<typeof poolUpdateSchema>;
+
+export const poolGlobalSharingSchema = z.enum(GLOBAL_SHARING_MODES);

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { getPoolDetail } from "@/lib/pools/queries";
 import {
   updatePool,
+  setPoolGlobalSharing,
   deletePool,
   attachOrgToPool,
   detachOrgFromPool,
@@ -57,6 +58,11 @@ export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
     const externalKey = externalKeyRaw === "" ? null : externalKeyRaw;
 
     await updatePool(id, { name, slug, externalKey });
+  }
+
+  async function globalSharingAction(formData: FormData) {
+    "use server";
+    await setPoolGlobalSharing(id, formData.get("globalSharing"));
   }
 
   async function deleteAction() {
@@ -150,6 +156,35 @@ export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
             </p>
           </CardContent>
         </Card>
+
+        {!pool.isGlobal && (
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle>{t.pools.globalSharingTitle}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                {t.pools.globalSharingDescription}
+              </p>
+              <form action={globalSharingAction} className="flex flex-wrap gap-2">
+                <select
+                  name="globalSharing"
+                  defaultValue={pool.globalSharing}
+                  aria-label={t.pools.globalSharingTitle}
+                  className="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                >
+                  <option value="WEBHOOK">{t.pools.globalSharingWebhook}</option>
+                  <option value="ALWAYS">{t.pools.globalSharingAlways}</option>
+                  <option value="NEVER">{t.pools.globalSharingNever}</option>
+                </select>
+                <Button type="submit">{t.common.save}</Button>
+              </form>
+              <p className="text-xs text-muted-foreground">
+                {t.pools.globalSharingNotRetroactive}
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         <Card className="md:col-span-2">
           <CardHeader>

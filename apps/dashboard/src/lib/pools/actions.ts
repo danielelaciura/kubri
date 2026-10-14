@@ -7,6 +7,7 @@ import { logAudit } from "@/lib/audit";
 import {
   poolCreateSchema,
   poolUpdateSchema,
+  poolGlobalSharingSchema,
   type PoolCreateInput,
   type PoolUpdateInput,
 } from "@/lib/validations/pool";
@@ -75,6 +76,36 @@ export async function deletePool(id: string) {
     metadata: { name: pool.name, slug: pool.slug },
   });
   revalidatePath("/admin/pools");
+}
+
+/**
+ * Sets how candidates ingested into this pool get `sharedWithGlobal` from now
+ * on. Not retroactive: existing candidates keep their current value. Not
+ * applicable to the Global pool.
+ */
+export async function setPoolGlobalSharing(id: string, mode: unknown) {
+  const admin = await requireRole("ADMIN_KUBRI");
+  const t = getDictionary(await getServerLocale());
+  const globalSharing = poolGlobalSharingSchema.parse(mode);
+  const pool = await prisma.pool.findUnique({
+    where: { id },
+    select: { isGlobal: true, globalSharing: true },
+  });
+  if (!pool) throw new Error(t.pools.notFound);
+  if (pool.isGlobal) throw new Error(t.pools.globalSharingNotForGlobal);
+  if (pool.globalSharing === globalSharing) return;
+
+  await prisma.pool.update({ where: { id }, data: { globalSharing } });
+  await logAudit({
+    userId: admin.id,
+    organizationId: null,
+    action: "update_pool_global_sharing",
+    resourceType: "Pool",
+    resourceId: id,
+    metadata: { from: pool.globalSharing, to: globalSharing },
+  });
+  revalidatePath("/admin/pools");
+  revalidatePath(`/admin/pools/${id}`);
 }
 
 export async function attachOrgToPool(poolId: string, organizationId: string) {

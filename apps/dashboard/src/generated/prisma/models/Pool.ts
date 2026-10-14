@@ -30,6 +30,7 @@ export type PoolMinAggregateOutputType = {
   slug: string | null
   externalKey: string | null
   isGlobal: boolean | null
+  globalSharing: $Enums.GlobalSharingMode | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -40,6 +41,7 @@ export type PoolMaxAggregateOutputType = {
   slug: string | null
   externalKey: string | null
   isGlobal: boolean | null
+  globalSharing: $Enums.GlobalSharingMode | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -50,6 +52,7 @@ export type PoolCountAggregateOutputType = {
   slug: number
   externalKey: number
   isGlobal: number
+  globalSharing: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -62,6 +65,7 @@ export type PoolMinAggregateInputType = {
   slug?: true
   externalKey?: true
   isGlobal?: true
+  globalSharing?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -72,6 +76,7 @@ export type PoolMaxAggregateInputType = {
   slug?: true
   externalKey?: true
   isGlobal?: true
+  globalSharing?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -82,6 +87,7 @@ export type PoolCountAggregateInputType = {
   slug?: true
   externalKey?: true
   isGlobal?: true
+  globalSharing?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -165,6 +171,7 @@ export type PoolGroupByOutputType = {
   slug: string
   externalKey: string | null
   isGlobal: boolean
+  globalSharing: $Enums.GlobalSharingMode
   createdAt: Date
   updatedAt: Date
   _count: PoolCountAggregateOutputType | null
@@ -196,6 +203,7 @@ export type PoolWhereInput = {
   slug?: Prisma.StringFilter<"Pool"> | string
   externalKey?: Prisma.StringNullableFilter<"Pool"> | string | null
   isGlobal?: Prisma.BoolFilter<"Pool"> | boolean
+  globalSharing?: Prisma.EnumGlobalSharingModeFilter<"Pool"> | $Enums.GlobalSharingMode
   createdAt?: Prisma.DateTimeFilter<"Pool"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Pool"> | Date | string
   candidates?: Prisma.CandidateListRelationFilter
@@ -208,6 +216,7 @@ export type PoolOrderByWithRelationInput = {
   slug?: Prisma.SortOrder
   externalKey?: Prisma.SortOrderInput | Prisma.SortOrder
   isGlobal?: Prisma.SortOrder
+  globalSharing?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   candidates?: Prisma.CandidateOrderByRelationAggregateInput
@@ -223,6 +232,7 @@ export type PoolWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.PoolWhereInput | Prisma.PoolWhereInput[]
   name?: Prisma.StringFilter<"Pool"> | string
   isGlobal?: Prisma.BoolFilter<"Pool"> | boolean
+  globalSharing?: Prisma.EnumGlobalSharingModeFilter<"Pool"> | $Enums.GlobalSharingMode
   createdAt?: Prisma.DateTimeFilter<"Pool"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Pool"> | Date | string
   candidates?: Prisma.CandidateListRelationFilter
@@ -235,6 +245,7 @@ export type PoolOrderByWithAggregationInput = {
   slug?: Prisma.SortOrder
   externalKey?: Prisma.SortOrderInput | Prisma.SortOrder
   isGlobal?: Prisma.SortOrder
+  globalSharing?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.PoolCountOrderByAggregateInput
@@ -251,6 +262,7 @@ export type PoolScalarWhereWithAggregatesInput = {
   slug?: Prisma.StringWithAggregatesFilter<"Pool"> | string
   externalKey?: Prisma.StringNullableWithAggregatesFilter<"Pool"> | string | null
   isGlobal?: Prisma.BoolWithAggregatesFilter<"Pool"> | boolean
+  globalSharing?: Prisma.EnumGlobalSharingModeWithAggregatesFilter<"Pool"> | $Enums.GlobalSharingMode
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Pool"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Pool"> | Date | string
 }
@@ -261,6 +273,7 @@ export type PoolCreateInput = {
   slug: string
   externalKey?: string | null
   isGlobal?: boolean
+  globalSharing?: $Enums.GlobalSharingMode
   createdAt?: Date | string
   updatedAt?: Date | string
   candidates?: Prisma.CandidateCreateNestedManyWithoutPoolInput
@@ -273,6 +286,7 @@ export type PoolUncheckedCreateInput = {
   slug: string
   externalKey?: string | null
   isGlobal?: boolean
+  globalSharing?: $Enums.GlobalSharingMode
   createdAt?: Date | string
   updatedAt?: Date | string
   candidates?: Prisma.CandidateUncheckedCreateNestedManyWithoutPoolInput
@@ -285,6 +299,7 @@ export type PoolUpdateInput = {
   slug?: Prisma.StringFieldUpdateOperationsInput | string
   externalKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isGlobal?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  globalSharing?: Prisma.EnumGlobalSharingModeFieldUpdateOperationsInput | $Enums.GlobalSharingMode
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   candidates?: Prisma.CandidateUpdateManyWithoutPoolNestedInput
@@ -297,6 +312,7 @@ export type PoolUncheckedUpdateInput = {
   slug?: Prisma.StringFieldUpdateOperationsInput | string
   externalKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isGlobal?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  globalSharing?: Prisma.EnumGlobalSharingModeFieldUpdateOperationsInput | $Enums.GlobalSharingMode
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   candidates?: Prisma.CandidateUncheckedUpdateManyWithoutPoolNestedInput
@@ -309,6 +325,7 @@ export type PoolCreateManyInput = {
   slug: string
   externalKey?: string | null
   isGlobal?: boolean
+  globalSharing?: $Enums.GlobalSharingMode
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -319,6 +336,7 @@ export type PoolUpdateManyMutationInput = {
   slug?: Prisma.StringFieldUpdateOperationsInput | string
   externalKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isGlobal?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  globalSharing?: Prisma.EnumGlobalSharingModeFieldUpdateOperationsInput | $Enums.GlobalSharingMode
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -329,6 +347,7 @@ export type PoolUncheckedUpdateManyInput = {
   slug?: Prisma.StringFieldUpdateOperationsInput | string
   externalKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isGlobal?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  globalSharing?: Prisma.EnumGlobalSharingModeFieldUpdateOperationsInput | $Enums.GlobalSharingMode
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -339,6 +358,7 @@ export type PoolCountOrderByAggregateInput = {
   slug?: Prisma.SortOrder
   externalKey?: Prisma.SortOrder
   isGlobal?: Prisma.SortOrder
+  globalSharing?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -349,6 +369,7 @@ export type PoolMaxOrderByAggregateInput = {
   slug?: Prisma.SortOrder
   externalKey?: Prisma.SortOrder
   isGlobal?: Prisma.SortOrder
+  globalSharing?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -359,6 +380,7 @@ export type PoolMinOrderByAggregateInput = {
   slug?: Prisma.SortOrder
   externalKey?: Prisma.SortOrder
   isGlobal?: Prisma.SortOrder
+  globalSharing?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -374,6 +396,10 @@ export type NullableStringFieldUpdateOperationsInput = {
 
 export type BoolFieldUpdateOperationsInput = {
   set?: boolean
+}
+
+export type EnumGlobalSharingModeFieldUpdateOperationsInput = {
+  set?: $Enums.GlobalSharingMode
 }
 
 export type PoolCreateNestedOneWithoutOrganizationsInput = {
@@ -410,6 +436,7 @@ export type PoolCreateWithoutOrganizationsInput = {
   slug: string
   externalKey?: string | null
   isGlobal?: boolean
+  globalSharing?: $Enums.GlobalSharingMode
   createdAt?: Date | string
   updatedAt?: Date | string
   candidates?: Prisma.CandidateCreateNestedManyWithoutPoolInput
@@ -421,6 +448,7 @@ export type PoolUncheckedCreateWithoutOrganizationsInput = {
   slug: string
   externalKey?: string | null
   isGlobal?: boolean
+  globalSharing?: $Enums.GlobalSharingMode
   createdAt?: Date | string
   updatedAt?: Date | string
   candidates?: Prisma.CandidateUncheckedCreateNestedManyWithoutPoolInput
@@ -448,6 +476,7 @@ export type PoolUpdateWithoutOrganizationsInput = {
   slug?: Prisma.StringFieldUpdateOperationsInput | string
   externalKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isGlobal?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  globalSharing?: Prisma.EnumGlobalSharingModeFieldUpdateOperationsInput | $Enums.GlobalSharingMode
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   candidates?: Prisma.CandidateUpdateManyWithoutPoolNestedInput
@@ -459,6 +488,7 @@ export type PoolUncheckedUpdateWithoutOrganizationsInput = {
   slug?: Prisma.StringFieldUpdateOperationsInput | string
   externalKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isGlobal?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  globalSharing?: Prisma.EnumGlobalSharingModeFieldUpdateOperationsInput | $Enums.GlobalSharingMode
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   candidates?: Prisma.CandidateUncheckedUpdateManyWithoutPoolNestedInput
@@ -470,6 +500,7 @@ export type PoolCreateWithoutCandidatesInput = {
   slug: string
   externalKey?: string | null
   isGlobal?: boolean
+  globalSharing?: $Enums.GlobalSharingMode
   createdAt?: Date | string
   updatedAt?: Date | string
   organizations?: Prisma.OrganizationPoolCreateNestedManyWithoutPoolInput
@@ -481,6 +512,7 @@ export type PoolUncheckedCreateWithoutCandidatesInput = {
   slug: string
   externalKey?: string | null
   isGlobal?: boolean
+  globalSharing?: $Enums.GlobalSharingMode
   createdAt?: Date | string
   updatedAt?: Date | string
   organizations?: Prisma.OrganizationPoolUncheckedCreateNestedManyWithoutPoolInput
@@ -508,6 +540,7 @@ export type PoolUpdateWithoutCandidatesInput = {
   slug?: Prisma.StringFieldUpdateOperationsInput | string
   externalKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isGlobal?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  globalSharing?: Prisma.EnumGlobalSharingModeFieldUpdateOperationsInput | $Enums.GlobalSharingMode
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   organizations?: Prisma.OrganizationPoolUpdateManyWithoutPoolNestedInput
@@ -519,6 +552,7 @@ export type PoolUncheckedUpdateWithoutCandidatesInput = {
   slug?: Prisma.StringFieldUpdateOperationsInput | string
   externalKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isGlobal?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  globalSharing?: Prisma.EnumGlobalSharingModeFieldUpdateOperationsInput | $Enums.GlobalSharingMode
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   organizations?: Prisma.OrganizationPoolUncheckedUpdateManyWithoutPoolNestedInput
@@ -570,6 +604,7 @@ export type PoolSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   slug?: boolean
   externalKey?: boolean
   isGlobal?: boolean
+  globalSharing?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   candidates?: boolean | Prisma.Pool$candidatesArgs<ExtArgs>
@@ -583,6 +618,7 @@ export type PoolSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   slug?: boolean
   externalKey?: boolean
   isGlobal?: boolean
+  globalSharing?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["pool"]>
@@ -593,6 +629,7 @@ export type PoolSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   slug?: boolean
   externalKey?: boolean
   isGlobal?: boolean
+  globalSharing?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["pool"]>
@@ -603,11 +640,12 @@ export type PoolSelectScalar = {
   slug?: boolean
   externalKey?: boolean
   isGlobal?: boolean
+  globalSharing?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type PoolOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "slug" | "externalKey" | "isGlobal" | "createdAt" | "updatedAt", ExtArgs["result"]["pool"]>
+export type PoolOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "slug" | "externalKey" | "isGlobal" | "globalSharing" | "createdAt" | "updatedAt", ExtArgs["result"]["pool"]>
 export type PoolInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   candidates?: boolean | Prisma.Pool$candidatesArgs<ExtArgs>
   organizations?: boolean | Prisma.Pool$organizationsArgs<ExtArgs>
@@ -628,6 +666,7 @@ export type $PoolPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     slug: string
     externalKey: string | null
     isGlobal: boolean
+    globalSharing: $Enums.GlobalSharingMode
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["pool"]>
@@ -1060,6 +1099,7 @@ export interface PoolFieldRefs {
   readonly slug: Prisma.FieldRef<"Pool", 'String'>
   readonly externalKey: Prisma.FieldRef<"Pool", 'String'>
   readonly isGlobal: Prisma.FieldRef<"Pool", 'Boolean'>
+  readonly globalSharing: Prisma.FieldRef<"Pool", 'GlobalSharingMode'>
   readonly createdAt: Prisma.FieldRef<"Pool", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Pool", 'DateTime'>
 }

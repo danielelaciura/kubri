@@ -251,6 +251,16 @@ export const en = {
     cannotDeleteGlobal: "The 'Global' pool cannot be deleted.",
     cannotDeleteHasCandidates: "Cannot delete: the pool contains {count} candidates.",
     cannotDeleteHasOrgs: "Cannot delete: the pool is attached to {count} organizations. Remove the attachments first.",
+    notFound: "Pool not found.",
+    globalSharingTitle: "Sharing with Global",
+    globalSharingDescription:
+      "Controls whether candidates entering this pool are shared with the Global pool.",
+    globalSharingWebhook: "Decided by the webhook (candidate consent)",
+    globalSharingAlways: "Always share with Global",
+    globalSharingNever: "Never share with Global",
+    globalSharingNotRetroactive:
+      "Applies only to candidates arriving after saving: existing ones are not changed.",
+    globalSharingNotForGlobal: "The sharing option does not apply to the Global pool.",
   },
   stats: {
     loadError: "Unable to load statistics. Please try again later.",

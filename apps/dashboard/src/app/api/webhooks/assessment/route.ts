@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { assessmentSubmissionSchema, mapAssessmentToCandidate } from "@kubri/contracts";
 import { resolvePoolByExternalKey, UnknownPoolError } from "@/lib/pools/resolve";
+import { resolveSharedWithGlobal } from "@/lib/pools/global-sharing";
 import { generateEmbedding, vectorToPgLiteral } from "@/lib/embeddings/client";
 import { buildCandidateEmbeddingText } from "@/lib/embeddings/text";
 import type { Prisma } from "@/generated/prisma/client";
@@ -55,7 +56,7 @@ export async function POST(req: Request): Promise<Response> {
     email: contact.email ?? null,
     channel: "assessment",
     sourceOrganization: "kubri-assessment",
-    sharedWithGlobal: contact.privacyAccepted === true,
+    sharedWithGlobal: resolveSharedWithGlobal(pool, contact.privacyAccepted === true),
     workExperience: columns.workExperience ?? [],
     skillsAndCompetences: columns.skillsAndCompetences ?? [],
     educationAndTraining: columns.educationAndTraining ?? [],

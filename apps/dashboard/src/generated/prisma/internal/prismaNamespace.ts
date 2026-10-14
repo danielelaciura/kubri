@@ -1359,6 +1359,7 @@ export const PoolScalarFieldEnum = {
   slug: 'slug',
   externalKey: 'externalKey',
   isGlobal: 'isGlobal',
+  globalSharing: 'globalSharing',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -1628,6 +1629,20 @@ export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$Prisma
  * Reference to a field of type 'Boolean'
  */
 export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
+    
+
+
+/**
+ * Reference to a field of type 'GlobalSharingMode'
+ */
+export type EnumGlobalSharingModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GlobalSharingMode'>
+    
+
+
+/**
+ * Reference to a field of type 'GlobalSharingMode[]'
+ */
+export type ListEnumGlobalSharingModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GlobalSharingMode[]'>
     
 
 

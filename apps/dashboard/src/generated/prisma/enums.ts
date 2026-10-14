@@ -26,6 +26,15 @@ export const NotifyFrequency = {
 export type NotifyFrequency = (typeof NotifyFrequency)[keyof typeof NotifyFrequency]
 
 
+export const GlobalSharingMode = {
+  WEBHOOK: 'WEBHOOK',
+  ALWAYS: 'ALWAYS',
+  NEVER: 'NEVER'
+} as const
+
+export type GlobalSharingMode = (typeof GlobalSharingMode)[keyof typeof GlobalSharingMode]
+
+
 export const CandidateStatusValue = {
   NEW: 'NEW',
   CONTACTED: 'CONTACTED',

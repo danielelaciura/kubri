@@ -249,6 +249,16 @@ export const it = {
     cannotDeleteGlobal: "Il pool 'Global' non può essere eliminato.",
     cannotDeleteHasCandidates: "Impossibile eliminare: il pool contiene {count} candidati.",
     cannotDeleteHasOrgs: "Impossibile eliminare: il pool è agganciato a {count} organizzazioni. Rimuovi prima gli agganci.",
+    notFound: "Pool non trovato.",
+    globalSharingTitle: "Condivisione con Global",
+    globalSharingDescription:
+      "Stabilisce se i candidati che entrano in questo pool vengono condivisi con il pool Global.",
+    globalSharingWebhook: "Decide il webhook (consenso del candidato)",
+    globalSharingAlways: "Condividi sempre con Global",
+    globalSharingNever: "Non condividere mai con Global",
+    globalSharingNotRetroactive:
+      "Vale solo per i candidati che arrivano dopo il salvataggio: quelli già presenti non cambiano.",
+    globalSharingNotForGlobal: "L'opzione di condivisione non si applica al pool Global.",
   },
   stats: {
     loadError: "Impossibile caricare le statistiche. Riprova più tardi.",

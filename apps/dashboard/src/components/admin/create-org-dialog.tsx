@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/shared/loading-button";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
@@ -14,26 +15,24 @@ import {
   DialogTrigger,
   DialogClose,
 } from "@/components/ui/dialog";
+import { useT } from "@/lib/i18n/provider";
 
 interface CreateOrgDialogProps {
   action: (formData: FormData) => Promise<void>;
 }
 
 export function CreateOrgDialog({ action }: CreateOrgDialogProps) {
+  const t = useT();
   const [open, setOpen] = useState(false);
-  const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(formData: FormData) {
-    setPending(true);
     setError(null);
     try {
       await action(formData);
       setOpen(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Errore nella creazione");
-    } finally {
-      setPending(false);
+      setError(e instanceof Error ? e.message : t.organizations.createError);
     }
   }
 
@@ -49,16 +48,15 @@ export function CreateOrgDialog({ action }: CreateOrgDialogProps) {
         render={
           <Button className="gap-2">
             <Plus className="h-4 w-4" />
-            Nuova organizzazione
+            {t.organizations.newOrg}
           </Button>
         }
       />
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Nuova organizzazione</DialogTitle>
+          <DialogTitle>{t.organizations.newOrg}</DialogTitle>
           <DialogDescription>
-            Crea un&apos;organizzazione. Potrai invitare gli utenti in un secondo
-            momento dalla pagina dell&apos;organizzazione.
+            {t.organizations.createDialogDescription}
           </DialogDescription>
         </DialogHeader>
 
@@ -66,18 +64,18 @@ export function CreateOrgDialog({ action }: CreateOrgDialogProps) {
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <label htmlFor="org-name" className="text-sm font-medium">
-                Nome
+                {t.common.name}
               </label>
               <Input
                 id="org-name"
                 name="name"
                 required
-                placeholder="Nome organizzazione"
+                placeholder={t.organizations.namePlaceholder}
               />
             </div>
             <div className="space-y-2">
               <label htmlFor="org-slug" className="text-sm font-medium">
-                Slug
+                {t.organizations.slug}
               </label>
               <Input
                 id="org-slug"
@@ -97,13 +95,13 @@ export function CreateOrgDialog({ action }: CreateOrgDialogProps) {
             <DialogClose
               render={
                 <Button type="button" variant="outline">
-                  Annulla
+                  {t.common.cancel}
                 </Button>
               }
             />
-            <Button type="submit" disabled={pending}>
-              {pending ? "Creazione..." : "Crea organizzazione"}
-            </Button>
+            <SubmitButton loadingText={t.organizations.creating}>
+              {t.organizations.createOrg}
+            </SubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>

@@ -4,6 +4,7 @@ import { Role } from "@/generated/prisma/client";
 import { createPool } from "@/lib/pools/actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/shared/loading-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft } from "lucide-react";
@@ -82,7 +83,7 @@ export default async function NewPoolPage() {
               </p>
             </div>
             <div className="flex gap-2">
-              <Button type="submit">{t.common.save}</Button>
+              <SubmitButton>{t.common.save}</SubmitButton>
               <a href="/admin/pools">
                 <Button type="button" variant="ghost">
                   {t.common.cancel}

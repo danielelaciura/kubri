@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/shared/loading-button";
 import { Input } from "@/components/ui/input";
 import { useT } from "@/lib/i18n/provider";
 
@@ -12,7 +12,7 @@ interface OrgNameFormProps {
 
 export function OrgNameForm({ currentName, action }: OrgNameFormProps) {
   const t = useT();
-  const [_state, formAction, isPending] = useActionState(
+  const [, formAction] = useActionState(
     async (_prev: unknown, formData: FormData) => {
       await action(formData);
       return { success: true };
@@ -29,9 +29,9 @@ export function OrgNameForm({ currentName, action }: OrgNameFormProps) {
           placeholder={t.settings.orgName}
         />
       </div>
-      <Button type="submit" size="sm" disabled={isPending}>
+      <SubmitButton size="sm">
         {t.common.save}
-      </Button>
+      </SubmitButton>
     </form>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Check, ChevronDown, Loader2 } from "lucide-react";
 import { useT } from "@/lib/i18n/provider";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,7 @@ import {
   type CandidateStatusValue,
 } from "@/lib/candidates/status";
 import { setCandidateStatus } from "@/app/(dashboard)/dashboard/candidates/[id]/actions";
+import { useProgressTransition } from "@/components/layout/route-progress";
 
 const STATUS_STYLES: Record<CandidateStatusValue, string> = {
   NEW: "border-border bg-muted text-foreground",
@@ -38,7 +39,7 @@ export function CandidateStatusSelect({
   const [current, setCurrent] = useState<CandidateStatusValue>(status);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [isPending, startTransition] = useProgressTransition();
 
   const select = (next: CandidateStatusValue) => {
     setOpen(false);

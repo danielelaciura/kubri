@@ -28,6 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/shared/loading-button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft } from "lucide-react";
 
@@ -301,7 +302,7 @@ async function resendInvite(formData: FormData) {
           <CardContent>
             <form action={updateOrgName} className="flex gap-2">
               <Input name="name" defaultValue={org.name} required />
-              <Button type="submit">{t.common.save}</Button>
+              <SubmitButton>{t.common.save}</SubmitButton>
             </form>
           </CardContent>
         </Card>
@@ -338,9 +339,9 @@ async function resendInvite(formData: FormData) {
                     </div>
                     <form action={detachPoolAction}>
                       <input type="hidden" name="poolId" value={op.pool.id} />
-                      <Button type="submit" variant="ghost" size="sm">
+                      <SubmitButton variant="ghost" size="sm">
                         {t.common.remove}
-                      </Button>
+                      </SubmitButton>
                     </form>
                   </li>
                 ))}
@@ -361,7 +362,7 @@ async function resendInvite(formData: FormData) {
                     </option>
                   ))}
                 </select>
-                <Button type="submit">{t.admin.attach}</Button>
+                <SubmitButton>{t.admin.attach}</SubmitButton>
               </form>
             )}
 
@@ -423,14 +424,13 @@ async function resendInvite(formData: FormData) {
                     {user.isPending && (
                       <form action={resendInvite} className="inline">
                         <input type="hidden" name="userId" value={user.id} />
-                        <Button
-                          type="submit"
+                        <SubmitButton
                           variant="ghost"
                           size="sm"
                           className="text-xs"
                         >
                           {t.members.resendInvite}
-                        </Button>
+                        </SubmitButton>
                       </form>
                     )}
                     {user.role !== Role.ADMIN_KUBRI && (

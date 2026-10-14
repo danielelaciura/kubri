@@ -14,6 +14,7 @@ import { AdminPoolSelector } from "@/components/candidates/admin-pool-selector";
 import { filterByStatus } from "@/lib/candidates/status";
 import { getStatusByCandidateForOrg } from "@/lib/candidates/status-service";
 import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/shared/loading-button";
 import { getServerLocale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n";
 import { RefreshCw, Users, AlertCircle, Download } from "lucide-react";
@@ -130,10 +131,10 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
             </Button>
           </a>
           <form action={refreshCandidates}>
-            <Button variant="outline" size="sm" className="gap-2" type="submit">
+            <SubmitButton variant="outline" size="sm" className="gap-2">
               <RefreshCw className="h-4 w-4" />
               {t.common.refresh}
-            </Button>
+            </SubmitButton>
           </form>
         </div>
       </div>
@@ -147,7 +148,7 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
             {errorMessage}
           </h2>
           <form action={refreshCandidates} className="mt-4">
-            <Button variant="outline" type="submit">{t.candidates.retryButton}</Button>
+            <SubmitButton variant="outline">{t.candidates.retryButton}</SubmitButton>
           </form>
         </div>
       ) : result.total === 0 ? (

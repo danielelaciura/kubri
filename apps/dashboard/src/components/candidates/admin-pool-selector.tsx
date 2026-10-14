@@ -1,6 +1,7 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useProgressRouter } from "@/components/layout/route-progress";
 
 interface AdminPoolSelectorProps {
   pools: { id: string; name: string }[];
@@ -8,7 +9,7 @@ interface AdminPoolSelectorProps {
 }
 
 export function AdminPoolSelector({ pools, activePoolId }: AdminPoolSelectorProps) {
-  const router = useRouter();
+  const router = useProgressRouter();
   const searchParams = useSearchParams();
 
   const onChange = (poolId: string) => {

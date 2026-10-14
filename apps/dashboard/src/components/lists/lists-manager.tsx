@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { Loader2, Trash2, Download, Pencil, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import {
   deleteList,
   renameList,
 } from "@/app/(dashboard)/dashboard/lists/actions";
+import { useProgressTransition } from "@/components/layout/route-progress";
 
 interface ListRow {
   id: string;
@@ -27,7 +28,7 @@ interface ListRow {
 
 export function ListsManager({ lists }: { lists: ListRow[] }) {
   const t = useT();
-  const [isPending, startTransition] = useTransition();
+  const [isPending, startTransition] = useProgressTransition();
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");

@@ -1,9 +1,9 @@
 "use client";
 
-import { useTransition } from "react";
 import type { Role } from "@/generated/prisma/client";
 import { useT } from "@/lib/i18n/provider";
 import { DeleteMemberButton } from "@/components/settings/delete-member-button";
+import { SubmitButton } from "@/components/shared/loading-button";
 
 interface Props {
   memberId: string;
@@ -27,7 +27,6 @@ export function MemberRowActions({
   resendInviteAction,
 }: Props) {
   const t = useT();
-  const [transitionPending, startTransition] = useTransition();
   const newRole = memberRole === ("ORG_ADMIN" as Role) ? "ORG_MEMBER" : "ORG_ADMIN";
   const newRoleLabel =
     memberRole === ("ORG_ADMIN" as Role)
@@ -39,25 +38,26 @@ export function MemberRowActions({
       {isPending && (
         <form action={resendInviteAction}>
           <input type="hidden" name="userId" value={memberId} />
-          <button
-            type="submit"
-            disabled={transitionPending}
-            className="rounded px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+          <SubmitButton
+            variant="ghost"
+            size="xs"
+            className="text-muted-foreground"
           >
             {t.members.resendInvite}
-          </button>
+          </SubmitButton>
         </form>
       )}
       {memberRole !== ("ADMIN_KUBRI" as Role) && (
-        <form action={(fd) => startTransition(() => changeRoleAction(fd))}>
+        <form action={changeRoleAction}>
           <input type="hidden" name="userId" value={memberId} />
           <input type="hidden" name="role" value={newRole} />
-          <button
-            type="submit"
-            className="rounded px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+          <SubmitButton
+            variant="ghost"
+            size="xs"
+            className="text-muted-foreground"
           >
             {newRoleLabel}
-          </button>
+          </SubmitButton>
         </form>
       )}
       <DeleteMemberButton

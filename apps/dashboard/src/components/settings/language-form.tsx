@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/shared/loading-button";
 import { useT } from "@/lib/i18n/provider";
 import type { Locale } from "@/lib/i18n/types";
 
@@ -14,7 +14,7 @@ export function LanguageForm({ defaultLanguage, action }: LanguageFormProps) {
   const t = useT();
   const [language, setLanguage] = useState<Locale>(defaultLanguage);
 
-  const [_state, formAction, isPending] = useActionState(
+  const [, formAction] = useActionState(
     async (_prev: unknown, formData: FormData) => {
       await action(formData);
       return { success: true };
@@ -36,9 +36,9 @@ export function LanguageForm({ defaultLanguage, action }: LanguageFormProps) {
           <option value="en">{t.profile.english}</option>
         </select>
       </div>
-      <Button type="submit" size="sm" disabled={isPending}>
+      <SubmitButton size="sm">
         {t.common.save}
-      </Button>
+      </SubmitButton>
     </form>
   );
 }

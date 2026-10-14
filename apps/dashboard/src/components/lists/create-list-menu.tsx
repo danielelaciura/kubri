@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,12 +10,13 @@ import {
   PopoverContent,
 } from "@/components/ui/popover";
 import { createList } from "@/app/(dashboard)/dashboard/lists/actions";
+import { useProgressTransition } from "@/components/layout/route-progress";
 
 export function CreateListMenu() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [isPending, startTransition] = useProgressTransition();
 
   const handleCreate = () => {
     const trimmed = name.trim();

@@ -1,6 +1,7 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useProgressRouter } from "@/components/layout/route-progress";
 import { useCallback, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -33,7 +34,7 @@ interface CandidateFiltersProps {
 
 export function CandidateFilters({ initialFilters, lists }: CandidateFiltersProps) {
   const t = useT();
-  const router = useRouter();
+  const router = useProgressRouter();
   const searchParams = useSearchParams();
 
   const [search, setSearch] = useState(initialFilters.search ?? "");

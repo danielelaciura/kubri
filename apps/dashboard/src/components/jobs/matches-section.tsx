@@ -1,11 +1,12 @@
 "use client";
 
-import { useTransition, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { Loader2, RefreshCw } from "lucide-react";
 import { useT } from "@/lib/i18n/provider";
 import { Button } from "@/components/ui/button";
 import { MatchesLoading } from "@/components/jobs/matches-loading";
 import { refreshCandidatesForJob } from "@/app/(dashboard)/dashboard/jobs/[id]/actions";
+import { useProgressTransition } from "@/components/layout/route-progress";
 
 interface MatchesSectionProps {
   /** JD whose matches are recalculated by the refresh button. */
@@ -21,7 +22,7 @@ interface MatchesSectionProps {
  */
 export function MatchesSection({ jdId, children }: MatchesSectionProps) {
   const t = useT();
-  const [isPending, startTransition] = useTransition();
+  const [isPending, startTransition] = useProgressTransition();
 
   const refresh = () => {
     startTransition(async () => {

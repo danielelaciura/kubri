@@ -48,6 +48,7 @@ export const it = {
     never: "Mai",
     remove: "Rimuovi",
     invalidLanguage: "Lingua non valida",
+    processing: "Operazione in corso...",
   },
   header: {
     createAnalysis: "Crea analisi",
@@ -132,6 +133,10 @@ export const it = {
     orgCreated: "Organizzazione creata con successo",
     orgUpdated: "Organizzazione aggiornata con successo",
     details: "Dettagli organizzazione",
+    creating: "Creazione...",
+    createDialogDescription: "Crea un'organizzazione. Potrai invitare gli utenti in un secondo momento dalla pagina dell'organizzazione.",
+    namePlaceholder: "Nome organizzazione",
+    createError: "Errore nella creazione",
   },
   jobs: {
     listEmpty: "Nessuna analisi",

@@ -168,7 +168,11 @@ export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
                 {t.pools.globalSharingDescription}
               </p>
               <form action={globalSharingAction} className="flex flex-wrap gap-2">
+                {/* React 19 resets the form after the action, and a select's
+                    defaultValue only applies on mount: keying on the saved
+                    value remounts it so the reset lands on the new value. */}
                 <select
+                  key={pool.globalSharing}
                   name="globalSharing"
                   defaultValue={pool.globalSharing}
                   aria-label={t.pools.globalSharingTitle}

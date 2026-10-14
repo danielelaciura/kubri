@@ -19,6 +19,7 @@ function makeCandidate(id: string, overrides: Partial<Candidate> = {}): Candidat
     countryOfOrigin: "",
     address: "",
     phone: "",
+    email: "",
     legalStatus: "",
     workingPermit: true,
     meanOfTransport: "",

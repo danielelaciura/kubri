@@ -15,6 +15,7 @@ function makeCandidate(overrides: Partial<Candidate> = {}): Candidate {
     countryOfOrigin: "Italiana",
     address: "Via Roma 1, Milano",
     phone: "+39 333 1234567",
+    email: "",
     legalStatus: "citizen",
     workingPermit: true,
     meanOfTransport: "car",

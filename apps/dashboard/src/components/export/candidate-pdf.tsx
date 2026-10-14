@@ -157,6 +157,12 @@ export function renderCandidatePdf({ candidate, notes, dictionary, locale }: Can
               <Text style={styles.value}>{c.phone}</Text>
             </View>
           )}
+          {c.email && (
+            <View style={styles.row}>
+              <Text style={styles.label}>{strip(d.candidates.email)}</Text>
+              <Text style={styles.value}>{c.email}</Text>
+            </View>
+          )}
           {c.legalStatus && (
             <View style={styles.row}>
               <Text style={styles.label}>{strip(d.candidates.legalStatus)}</Text>

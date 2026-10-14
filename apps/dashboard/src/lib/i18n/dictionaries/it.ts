@@ -331,6 +331,7 @@ export const it = {
     address: "Indirizzo:",
     addressColumn: "Indirizzo",
     phone: "Telefono:",
+    email: "Email:",
     legalStatus: "Stato legale:",
     workingPermit: "Permesso di lavoro:",
     workingPermitYes: "Sì",

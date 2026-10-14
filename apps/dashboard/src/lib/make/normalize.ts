@@ -17,6 +17,17 @@ function nullableString(value: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+// Loose shape check: the chatbot extracts free text, so anything that isn't
+// recognisably an address is dropped (the raw value survives in rawPayload).
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function nullableEmail(value: unknown): string | null {
+  const s = nullableString(value);
+  if (!s) return null;
+  const lower = s.toLowerCase();
+  return EMAIL_RE.test(lower) ? lower : null;
+}
+
 function nullableBoolean(value: unknown): boolean | null {
   return typeof value === "boolean" ? value : null;
 }
@@ -77,6 +88,7 @@ export function normalizeForUpsert(
     latitude,
     longitude,
     phone: nullableString(d["phone"]),
+    email: nullableEmail(d["email"]),
 
     workingPermit: nullableBoolean(d["working_permit"]),
     meanOfTransport: nullableString(d["transport"]),

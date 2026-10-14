@@ -28,6 +28,8 @@ export interface Candidate {
   countryOfOrigin: string;
   address: string;
   phone: string;
+  /** "" when not collected (chatbot may or may not ask for it). */
+  email: string;
   legalStatus: string;
   workingPermit: boolean;
   meanOfTransport: string;

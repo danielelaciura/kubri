@@ -333,6 +333,7 @@ export const en = {
     address: "Address:",
     addressColumn: "Address",
     phone: "Phone:",
+    email: "Email:",
     legalStatus: "Legal status:",
     workingPermit: "Work permit:",
     workingPermitYes: "Yes",

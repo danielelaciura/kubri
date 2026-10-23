@@ -8,6 +8,8 @@ import { usePendingProgress } from "@/components/layout/route-progress";
 import { useT } from "@/lib/i18n/provider";
 import { runCandidateImportExtractionAction } from "@/app/(dashboard)/dashboard/candidates/new/actions";
 
+const POLL_MS = 4000;
+
 /**
  * Kicks off extraction for an UPLOADED/EXTRACTING import and refreshes the
  * page when it settles. This is a mutation trigger, not data fetching: the
@@ -25,8 +27,17 @@ export function ExtractionRunner({ importId }: { importId: string }) {
   useEffect(() => {
     if (started.current) return;
     started.current = true;
-    void runCandidateImportExtractionAction(importId).finally(() => router.refresh());
+    void runCandidateImportExtractionAction(importId)
+      .catch(() => {})
+      .finally(() => router.refresh());
   }, [importId, router]);
+
+  // The action may no-op (another request holds the claim), so keep polling
+  // until the page re-renders with a settled status and this unmounts.
+  useEffect(() => {
+    const timer = setInterval(() => router.refresh(), POLL_MS);
+    return () => clearInterval(timer);
+  }, [router]);
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">

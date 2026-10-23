@@ -179,7 +179,7 @@ Indexes: `[organizationId, createdAt]`, `[status, updatedAt]` (cleanup cron).
 - `channel = "dashboard_form" | "dashboard_cv"`
 - `rawPayload = { mode, draft?, submitted }` — the original LLM draft (if
   any) plus the confirmed fields, so operator edits are traceable
-- `sharedWithGlobal = false`, forced (no candidate consent); not in the form
+- `sharedWithGlobal` follows the pool mode, consent `false` (see Refinements); not in the form
 
 There is no candidate delete path in the app today. `CandidateDocument`
 cascades on candidate delete at the DB level; whoever later adds candidate
@@ -305,10 +305,13 @@ them to dictionary strings.
   returns 404.
 - Bucket `candidate-documents` is private, accessed only server-side with the
   service role; downloads via 60 s signed URLs.
-- Audit log actions: `CANDIDATE_CREATED` (metadata: `mode`),
-  `CANDIDATE_IMPORT_CREATED`, `CANDIDATE_DOCUMENT_DOWNLOADED`.
+- Audit log actions: `candidate.create` (metadata: `mode`),
+  `candidate_import.create`, `candidate_document.download`.
 - The organization is the controller of CVs it uploads; `sharedWithGlobal`
-  is forced to `false`.
+  follows the pool's `globalSharing` mode with consent `false` (see
+  Refinements). The CV file itself stays org-only, even when the profile is
+  shared.
+- A discarded or confirmed import clears its extracted text and draft.
 - Mistral is EU-hosted and already a processor. **To verify before shipping:**
   that the existing DPA / retention terms cover the OCR endpoint, and which
   file types the OCR endpoint accepts (if legacy `.doc` is unsupported, it is

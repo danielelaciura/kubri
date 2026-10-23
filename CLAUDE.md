@@ -39,6 +39,7 @@ The historical "Make.com Data Store as source of truth" design has been supersed
 - **Candidate ingestion:** webhook from Make → upsert in `Candidate` table
 - **Embeddings:** Supabase Edge Functions with `gte-small` (384-dim, multilingual, EU-hosted, free tier)
 - **Auth:** Supabase Auth
+- **CV import:** Mistral (OCR + JSON chat, EU-hosted); CV files in the private Supabase Storage bucket `candidate-documents` (service role only, signed URLs)
 - **PDF generation:** @react-pdf/renderer
 - **Hosting:** Vercel
 - **Package manager:** pnpm
@@ -149,6 +150,8 @@ Models (see `prisma/schema.prisma` for full field lists):
 - **JobDescription** — JD per organization, with `description`, `skills[]`, location fields and (after the semantic matching feature) an `embedding` vector
 - **Candidate** — full candidate profile, scoped by `poolId`, identified externally by `externalId`. Holds the raw Make payload (`rawPayload`) and the embedding columns
 - **CandidateNote**, **CandidateTag** — dashboard-side metadata linked to `Candidate` via FK
+- **CandidateImport** — a CV upload being turned into a candidate (status, extracted text, LLM draft); text and draft are cleared when discarded or confirmed
+- **CandidateDocument** — the CV file attached to a candidate; stays with the uploading organization
 - **AuditLog** — append-only log of user actions
 
 Conventions:
@@ -357,6 +360,7 @@ See `.env.example` for the current authoritative list. The categories in use tod
 - **Supabase**: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
 - **Supabase Edge Functions** (semantic matching): `SUPABASE_EDGE_FUNCTION_URL`, `EMBEDDING_TIMEOUT_MS`
 - **Make webhook**: shared secret for the candidate ingestion endpoint
+- **Mistral**: `MISTRAL_API_KEY` (CV OCR + draft extraction)
 - **Cron**: `CRON_SECRET` for protected scheduled jobs
 
 ## Domain Context

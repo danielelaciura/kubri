@@ -205,7 +205,14 @@ export async function confirmImport(input: ConfirmImportInput): Promise<{ candid
     }
 
     const claimed = await tx.candidateImport.updateMany({
-      where: { id: imp.id, status: { in: ["READY", "FAILED"] } },
+      where: {
+        id: imp.id,
+        OR: [
+          { status: { in: ["READY", "FAILED"] } },
+          // A stuck extraction may be filled in by hand (review page ?manual=1).
+          { status: "EXTRACTING", updatedAt: { lt: new Date(Date.now() - STALE_EXTRACTION_MS) } },
+        ],
+      },
       data: { status: "COMPLETED" },
     });
     if (claimed.count === 0) throw new ImportStateError(imp.status);

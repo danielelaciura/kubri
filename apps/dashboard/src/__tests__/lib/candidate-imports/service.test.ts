@@ -243,7 +243,13 @@ describe("confirmImport", () => {
     expect(r).toEqual({ candidateId: "c-1" });
     expect(tx.candidateImport.findFirst.mock.calls[0]![0].where).toEqual({ id: "22222222-2222-4222-8222-222222222222", organizationId: "o" });
     expect(tx.candidateImport.updateMany.mock.calls[0]![0]).toEqual({
-      where: { id: "22222222-2222-4222-8222-222222222222", status: { in: ["READY", "FAILED"] } },
+      where: {
+        id: "22222222-2222-4222-8222-222222222222",
+        OR: [
+          { status: { in: ["READY", "FAILED"] } },
+          { status: "EXTRACTING", updatedAt: { lt: expect.any(Date) } },
+        ],
+      },
       data: { status: "COMPLETED" },
     });
     const [data, client] = m(upsertCandidate).mock.calls[0]!;
@@ -255,6 +261,17 @@ describe("confirmImport", () => {
     });
     expect(tx.candidateImport.update.mock.calls[0]![0].data).toEqual({ candidateId: "c-1" });
     expect(m(refreshCandidateEmbedding)).toHaveBeenCalledWith({ id: "c-1" }, "candidate import");
+  });
+
+  it("can confirm a stale EXTRACTING import (manual fallback)", async () => {
+    tx.candidateImport.findFirst.mockResolvedValueOnce({ ...IMPORT, status: "EXTRACTING" });
+    tx.candidateImport.updateMany.mockResolvedValueOnce({ count: 1 });
+    m(upsertCandidate).mockResolvedValueOnce({ id: "c-2" });
+    const r = await confirmImport({ importId: "22222222-2222-4222-8222-222222222222", organizationId: "o", userId: "u", fields: FIELDS });
+    expect(r).toEqual({ candidateId: "c-2" });
+    const where = tx.candidateImport.updateMany.mock.calls[0]![0].where;
+    const stale = where.OR[1].updatedAt.lt as Date;
+    expect(Date.now() - stale.getTime()).toBeGreaterThanOrEqual(2 * 60 * 1000 - 50);
   });
 
   it("is idempotent for an already completed import", async () => {

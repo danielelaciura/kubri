@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireOrganization } from "@/lib/auth-utils";
 import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
-import { getOrgCandidateVisibility } from "@/lib/pools/access";
+import { getOrgWritablePools } from "@/lib/pools/access";
 import { createDocumentSignedUrl } from "@/lib/storage/candidate-documents";
 
 /** Download a candidate's document. Access-checked and audit-logged (GDPR). */
@@ -18,10 +18,17 @@ export async function GET(
   }
   const { id, documentId } = await params;
 
+  // The raw CV file stays with the org that owns the candidate's pool: a
+  // globally-shared profile does not expose the uploading org's document.
   const candidateWhere =
     user.role === "ADMIN_KUBRI"
       ? { id }
-      : { id, ...(await getOrgCandidateVisibility(user.organizationId)) };
+      : {
+          id,
+          poolId: {
+            in: (await getOrgWritablePools(user.organizationId)).map((p) => p.id),
+          },
+        };
 
   const doc = await prisma.candidateDocument.findFirst({
     where: { id: documentId, candidateId: id, candidate: candidateWhere },

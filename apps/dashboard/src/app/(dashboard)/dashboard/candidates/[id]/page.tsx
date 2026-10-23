@@ -5,6 +5,7 @@ import {
   getCandidateForOrg,
   getCandidateByIdUnscoped,
 } from "@/lib/candidates/service";
+import { getOrgWritablePools } from "@/lib/pools/access";
 import { getListOptionsForOrg, getListIdsByCandidateForOrg } from "@/lib/lists/service";
 import { CandidateProfile } from "@/components/candidates/candidate-profile";
 import { CandidateNotes } from "@/components/candidates/candidate-notes";
@@ -55,6 +56,10 @@ export default async function CandidateDetailPage({
     ? { candidateId: id }
     : { candidateId: id, organizationId };
 
+  const ownPoolIds = isKubriAdmin
+    ? []
+    : (await getOrgWritablePools(organizationId)).map((p) => p.id);
+
   const [candidate, notes, lists, membershipByCandidate, status, documents] = await Promise.all([
     (isKubriAdmin
       ? getCandidateByIdUnscoped(id)
@@ -69,7 +74,10 @@ export default async function CandidateDetailPage({
     getListIdsByCandidateForOrg(organizationId),
     getCandidateStatusForOrg(organizationId, id),
     prisma.candidateDocument.findMany({
-      where: { candidateId: id },
+      // Raw CV files are visible only to orgs owning the candidate's pool.
+      where: isKubriAdmin
+        ? { candidateId: id }
+        : { candidateId: id, candidate: { poolId: { in: ownPoolIds } } },
       orderBy: { createdAt: "desc" },
       select: { id: true, fileName: true, createdAt: true, uploadedBy: { select: { name: true } } },
     }),

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 vi.mock("@/lib/auth-utils", () => ({ requireOrganization: vi.fn() }));
 vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
-vi.mock("@/lib/pools/access", () => ({ getOrgCandidateVisibility: vi.fn().mockResolvedValue({}) }));
+vi.mock("@/lib/pools/access", () => ({ getOrgWritablePools: vi.fn().mockResolvedValue([{ id: "pool-1" }, { id: "pool-2" }]) }));
 vi.mock("@/lib/candidate-imports/service", () => ({ getImportForOrg: vi.fn() }));
 vi.mock("@/lib/storage/candidate-documents", () => ({ createDocumentSignedUrl: vi.fn() }));
 vi.mock("@/lib/db", () => ({
@@ -48,6 +48,21 @@ describe("GET /api/candidates/[id]/documents/[documentId]", () => {
     const res = await downloadGET(req, { params: Promise.resolve({ id: "c", documentId: "d" }) });
     expect(res.status).toBe(404);
     expect(m(logAudit)).not.toHaveBeenCalled();
+  });
+
+  it("scopes non-admins to the org's own non-global pools", async () => {
+    m(prisma.candidateDocument.findFirst).mockResolvedValueOnce(null);
+    await downloadGET(req, { params: Promise.resolve({ id: "c", documentId: "d" }) });
+    expect(m(prisma.candidateDocument.findFirst).mock.calls[0]![0].where).toEqual({
+      id: "d", candidateId: "c", candidate: { id: "c", poolId: { in: ["pool-1", "pool-2"] } },
+    });
+  });
+
+  it("lets ADMIN_KUBRI bypass pool scoping", async () => {
+    m(requireOrganization).mockResolvedValueOnce({ id: "u", organizationId: "o", role: "ADMIN_KUBRI" });
+    m(prisma.candidateDocument.findFirst).mockResolvedValueOnce(null);
+    await downloadGET(req, { params: Promise.resolve({ id: "c", documentId: "d" }) });
+    expect(m(prisma.candidateDocument.findFirst).mock.calls[0]![0].where.candidate).toEqual({ id: "c" });
   });
 
   it("logs the download and redirects with a download file name", async () => {

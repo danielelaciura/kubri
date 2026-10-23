@@ -61,6 +61,17 @@ describe("buildDashboardCandidateInput", () => {
     expect(input.rawPayload).toEqual({ mode: "form" });
   });
 
+  it("does not let stray field keys override identity", () => {
+    const input = buildDashboardCandidateInput({
+      pool: POOL,
+      fields: { ...FIELDS, poolId: "evil", externalId: "x" } as never,
+      channel: "dashboard_form",
+      rawPayload: {},
+    });
+    expect(input.poolId).toBe("pool-1");
+    expect(input.externalId).toMatch(/^dashboard:/);
+  });
+
   it("honours a pool forced to ALWAYS share", () => {
     const input = buildDashboardCandidateInput({
       pool: { ...POOL, globalSharing: "ALWAYS" },

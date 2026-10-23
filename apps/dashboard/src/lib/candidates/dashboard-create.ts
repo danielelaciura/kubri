@@ -29,9 +29,9 @@ export function buildDashboardCandidateInput(args: {
   const coords = geocodeFromAddress(fields.location) ?? geocodeFromAddress(fields.address);
 
   return {
+    ...fields,
     externalId: `dashboard:${randomUUID()}`,
     poolId: pool.id,
-    ...fields,
     latitude: coords?.latitude ?? null,
     longitude: coords?.longitude ?? null,
     channel: args.channel,

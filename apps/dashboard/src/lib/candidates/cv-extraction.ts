@@ -1,5 +1,6 @@
 import { z } from "zod/v4";
 import {
+  CANDIDATE_BOOLEAN_FIELD_KEYS,
   CANDIDATE_FIELD_KEYS,
   candidateDraftFieldsSchema,
   isArrayFieldKey,
@@ -10,6 +11,8 @@ import {
 import { extractStructured } from "@/lib/llm/structured";
 
 export const MAX_CV_CHARS = 20_000;
+
+const BOOLEAN_KEYS: ReadonlySet<string> = new Set(CANDIDATE_BOOLEAN_FIELD_KEYS);
 
 /** Envelope only — fields are validated one by one in normalizeLlmDraft. */
 const llmEnvelopeSchema = z.object({
@@ -59,7 +62,7 @@ Regole:
 - "isCv": false se il documento chiaramente non è un curriculum.`;
 
 export function buildCvExtractionPrompt(text: string): { system: string; user: string } {
-  return { system: SYSTEM_PROMPT, user: `<cv>\n${text.slice(0, MAX_CV_CHARS)}\n</cv>` };
+  return { system: SYSTEM_PROMPT, user: `<cv>\n${text.slice(0, MAX_CV_CHARS).replace(/<\/cv>/gi, "</ cv>")}\n</cv>` };
 }
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -84,7 +87,15 @@ export function normalizeLlmDraft(raw: unknown): CandidateDraft {
   for (const key of CANDIDATE_FIELD_KEYS) {
     const entry = rawFields[key];
     const wrapped = isRecord(entry) && "value" in entry;
-    const value = wrapped ? entry["value"] : entry;
+    let value = wrapped ? entry["value"] : entry;
+    if (
+      typeof value === "number" &&
+      Number.isFinite(value) &&
+      !isArrayFieldKey(key) &&
+      !BOOLEAN_KEYS.has(key)
+    ) {
+      value = String(value);
+    }
     const flagged = wrapped && entry["uncertain"] === true;
 
     const parsed = candidateDraftFieldsSchema.shape[key].safeParse(value ?? emptyValue(key));

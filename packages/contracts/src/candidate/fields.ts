@@ -25,26 +25,97 @@ const optEmail = z
   .transform((s) => (s ? s : null))
   .pipe(z.email().nullable());
 
+/** Length limits shared by the strict form schema and the lenient draft schema. */
+const LIMITS = {
+  firstName: 100,
+  lastName: 100,
+  birthday: 40,
+  countryOfOrigin: 100,
+  address: 300,
+  location: 200,
+  phone: 40,
+  meanOfTransport: 100,
+  language: 100,
+  italianLevel: 50,
+  desiredJob: 200,
+  preferredLocation: 200,
+  jobConstraints: 1000,
+} as const;
+
+const LIST_LIMITS = {
+  educationAndTraining: { maxItems: 30, maxLen: 500 },
+  workExperience: { maxItems: 30, maxLen: 500 },
+  skillsAndCompetences: { maxItems: 50, maxLen: 200 },
+  additionalLanguages: { maxItems: 20, maxLen: 100 },
+} as const;
+
+/** Draft (LLM output) text: trimmed, "" → null, truncated to `max` instead of rejected. */
+const draftText = (max: number) =>
+  z
+    .string()
+    .nullable()
+    .transform((s) => {
+      const t = (s ?? "").trim();
+      return t ? t.slice(0, max) : null;
+    });
+
+/** Draft list: entries trimmed and truncated, empties dropped, capped at `maxItems`. */
+const draftList = (maxItems: number, maxLen: number) =>
+  z
+    .array(z.string())
+    .transform((items) =>
+      items
+        .map((s) => s.trim().slice(0, maxLen))
+        .filter((s) => s.length > 0)
+        .slice(0, maxItems),
+    );
+
+const L = LIST_LIMITS;
+
+/** Strict shape (form submission). */
 const sharedShape = {
-  birthday: optText(40),
-  countryOfOrigin: optText(100),
-  address: optText(300),
-  location: optText(200),
-  phone: optText(40),
+  birthday: optText(LIMITS.birthday),
+  countryOfOrigin: optText(LIMITS.countryOfOrigin),
+  address: optText(LIMITS.address),
+  location: optText(LIMITS.location),
+  phone: optText(LIMITS.phone),
   email: optEmail,
   workingPermit: z.boolean().nullable(),
-  meanOfTransport: optText(100),
+  meanOfTransport: optText(LIMITS.meanOfTransport),
   drivingLicense: z.boolean().nullable(),
-  educationAndTraining: textList(30, 500),
-  workExperience: textList(30, 500),
-  skillsAndCompetences: textList(50, 200),
-  language: optText(100),
-  additionalLanguages: textList(20, 100),
-  italianLevel: optText(50),
-  desiredJob: optText(200),
+  educationAndTraining: textList(L.educationAndTraining.maxItems, L.educationAndTraining.maxLen),
+  workExperience: textList(L.workExperience.maxItems, L.workExperience.maxLen),
+  skillsAndCompetences: textList(L.skillsAndCompetences.maxItems, L.skillsAndCompetences.maxLen),
+  language: optText(LIMITS.language),
+  additionalLanguages: textList(L.additionalLanguages.maxItems, L.additionalLanguages.maxLen),
+  italianLevel: optText(LIMITS.italianLevel),
+  desiredJob: optText(LIMITS.desiredJob),
   partTimePreference: z.boolean().nullable(),
-  preferredLocation: optText(200),
-  jobConstraints: optText(1000),
+  preferredLocation: optText(LIMITS.preferredLocation),
+  jobConstraints: optText(LIMITS.jobConstraints),
+};
+
+/** Lenient shape (draft): same limits, but truncates instead of rejecting. Email stays strict. */
+const draftShape = {
+  birthday: draftText(LIMITS.birthday),
+  countryOfOrigin: draftText(LIMITS.countryOfOrigin),
+  address: draftText(LIMITS.address),
+  location: draftText(LIMITS.location),
+  phone: draftText(LIMITS.phone),
+  email: optEmail,
+  workingPermit: z.boolean().nullable(),
+  meanOfTransport: draftText(LIMITS.meanOfTransport),
+  drivingLicense: z.boolean().nullable(),
+  educationAndTraining: draftList(L.educationAndTraining.maxItems, L.educationAndTraining.maxLen),
+  workExperience: draftList(L.workExperience.maxItems, L.workExperience.maxLen),
+  skillsAndCompetences: draftList(L.skillsAndCompetences.maxItems, L.skillsAndCompetences.maxLen),
+  language: draftText(LIMITS.language),
+  additionalLanguages: draftList(L.additionalLanguages.maxItems, L.additionalLanguages.maxLen),
+  italianLevel: draftText(LIMITS.italianLevel),
+  desiredJob: draftText(LIMITS.desiredJob),
+  partTimePreference: z.boolean().nullable(),
+  preferredLocation: draftText(LIMITS.preferredLocation),
+  jobConstraints: draftText(LIMITS.jobConstraints),
 };
 
 /**
@@ -53,8 +124,8 @@ const sharedShape = {
  * list hides rows without a last name.
  */
 export const candidateFieldsSchema = z.object({
-  firstName: z.string().trim().min(1).max(100),
-  lastName: z.string().trim().min(1).max(100),
+  firstName: z.string().trim().min(1).max(LIMITS.firstName),
+  lastName: z.string().trim().min(1).max(LIMITS.lastName),
   ...sharedShape,
 });
 export type CandidateFields = z.output<typeof candidateFieldsSchema>;
@@ -63,9 +134,9 @@ export type CandidateFieldKey = keyof CandidateFields;
 
 /** Same fields with names optional — what an LLM extraction can produce. */
 export const candidateDraftFieldsSchema = z.object({
-  firstName: optText(100),
-  lastName: optText(100),
-  ...sharedShape,
+  firstName: draftText(LIMITS.firstName),
+  lastName: draftText(LIMITS.lastName),
+  ...draftShape,
 });
 export type CandidateDraftFields = z.output<typeof candidateDraftFieldsSchema>;
 

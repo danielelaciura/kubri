@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   CANDIDATE_ARRAY_FIELD_KEYS,
   CANDIDATE_FIELD_KEYS,
+  candidateDraftFieldsSchema,
   candidateDraftSchema,
   candidateFieldsSchema,
   emptyCandidateDraftFields,
@@ -83,5 +84,28 @@ describe("field keys", () => {
     expect(e.firstName).toBeNull();
     expect(e.workExperience).toEqual([]);
     expect(candidateDraftSchema.shape.fields.safeParse(e).success).toBe(true);
+  });
+});
+
+describe("lenient draft vs strict form", () => {
+  it("draft truncates an over-long text field", () => {
+    const r = candidateDraftFieldsSchema.shape.jobConstraints.parse("x".repeat(1500));
+    expect(r).toHaveLength(1000);
+  });
+
+  it("draft truncates long list entries and caps list length", () => {
+    expect(candidateDraftFieldsSchema.shape.workExperience.parse(["x".repeat(800)])[0]).toHaveLength(500);
+    const skills = Array.from({ length: 60 }, (_, i) => `s${i}`);
+    expect(candidateDraftFieldsSchema.shape.skillsAndCompetences.parse(skills)).toHaveLength(50);
+  });
+
+  it("draft still rejects an invalid email", () => {
+    expect(candidateDraftFieldsSchema.shape.email.safeParse("x").success).toBe(false);
+  });
+
+  it("form stays strict on over-long entries", () => {
+    expect(
+      candidateFieldsSchema.safeParse({ ...VALID, workExperience: ["x".repeat(501)] }).success,
+    ).toBe(false);
   });
 });

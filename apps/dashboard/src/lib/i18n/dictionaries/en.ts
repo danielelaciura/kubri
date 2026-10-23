@@ -409,7 +409,7 @@ export const en = {
     extractedBanner: "Data extracted automatically from the CV. Check it before saving.",
     notCvWarning: "This document doesn't look like a CV. You can continue anyway or discard it.",
     duplicateWarning: "A candidate with the same phone or email already exists in this pool:",
-    toVerify: "check this",
+    toVerify: "needs checking",
     notStated: "Not stated",
     yes: "Yes",
     no: "No",

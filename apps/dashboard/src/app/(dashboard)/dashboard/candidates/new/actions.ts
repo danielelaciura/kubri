@@ -2,7 +2,8 @@
 
 import { z } from "zod/v4";
 import { revalidatePath } from "next/cache";
-import { candidateFieldsSchema, type CandidateFieldKey } from "@kubri/contracts";
+import { candidateFieldsSchema } from "@kubri/contracts";
+import { toFieldErrors, type FieldErrors } from "@/components/candidates/create/form-state";
 import { requireOrganization } from "@/lib/auth-utils";
 import { getOrgWritablePools } from "@/lib/pools/access";
 import { logAudit } from "@/lib/audit";
@@ -29,7 +30,7 @@ export type CreateCandidateErrorCode =
   | "VALIDATION"
   | "NOT_FOUND";
 
-export type FieldErrors = Partial<Record<CandidateFieldKey, "required" | "invalid">>;
+export type { FieldErrors };
 
 export type ActionResult<T> =
   | { ok: true; data: T }
@@ -46,6 +47,14 @@ async function writablePool(organizationId: string, poolId: string) {
   return pools.find((p) => p.id === poolId) ?? null;
 }
 
+async function safeAudit(params: Parameters<typeof logAudit>[0]) {
+  try {
+    await logAudit(params);
+  } catch (e) {
+    console.error("[create candidate] audit log failed", e);
+  }
+}
+
 function fail(e: unknown): { ok: false; error: CreateCandidateErrorCode } {
   if (e instanceof ImportError) return { ok: false, error: e.code };
   if (e instanceof ImportNotFoundError) return { ok: false, error: "NOT_FOUND" };
@@ -56,12 +65,7 @@ function fail(e: unknown): { ok: false; error: CreateCandidateErrorCode } {
 function parseFields(values: unknown) {
   const parsed = candidateFieldsSchema.safeParse(values);
   if (parsed.success) return { ok: true as const, fields: parsed.data };
-  const fieldErrors: FieldErrors = {};
-  for (const issue of parsed.error.issues) {
-    const key = issue.path[0] as CandidateFieldKey | undefined;
-    if (!key || fieldErrors[key]) continue;
-    fieldErrors[key] = issue.code === "too_small" ? "required" : "invalid";
-  }
+  const fieldErrors = toFieldErrors(parsed.error.issues);
   return { ok: false as const, fieldErrors };
 }
 
@@ -111,7 +115,7 @@ export async function registerCandidateUploadAction(
       origin: "OPERATOR",
       createdById: user.id,
     });
-    await logAudit({
+    await safeAudit({
       userId: user.id,
       organizationId: user.organizationId,
       action: "candidate_import.create",
@@ -164,7 +168,7 @@ export async function confirmCandidateImportAction(
       userId: user.id,
       fields: parsed.fields,
     });
-    await logAudit({
+    await safeAudit({
       userId: user.id,
       organizationId: user.organizationId,
       action: "candidate.create",
@@ -203,7 +207,7 @@ export async function createCandidateManuallyAction(
       fields: parsed.fields,
       userId: user.id,
     });
-    await logAudit({
+    await safeAudit({
       userId: user.id,
       organizationId: user.organizationId,
       action: "candidate.create",

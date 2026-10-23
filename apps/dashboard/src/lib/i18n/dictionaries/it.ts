@@ -467,7 +467,7 @@ export const it = {
       INTERNAL_ERROR: "Si è verificato un errore. Riprova.",
       INVALID_POOL: "Il pool selezionato non è disponibile.",
       VALIDATION: "Controlla i campi evidenziati.",
-      NOT_FOUND: "Import non trovato.",
+      NOT_FOUND: "Importazione non trovata.",
     },
   },
   authErrors: {

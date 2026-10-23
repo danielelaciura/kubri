@@ -186,6 +186,14 @@ describe("importId validation", () => {
   });
 });
 
+describe("audit failures", () => {
+  it("do not fail a successful manual creation", async () => {
+    m(createCandidateManually).mockResolvedValueOnce({ candidateId: "c-2" });
+    m(logAudit).mockRejectedValueOnce(new Error("audit down"));
+    expect(await createCandidateManuallyAction("pool-1", VALUES)).toEqual({ ok: true, data: { candidateId: "c-2" } });
+  });
+});
+
 describe("createCandidateManuallyAction", () => {
   it("rejects an invalid pool", async () => {
     const r = await createCandidateManuallyAction("other", VALUES);

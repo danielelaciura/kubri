@@ -4,6 +4,9 @@ import { z } from "zod/v4";
 import { revalidatePath } from "next/cache";
 import { candidateFieldsSchema } from "@kubri/contracts";
 import { toFieldErrors, type FieldErrors } from "@/lib/candidates/field-errors";
+// Don't re-export types from this "use server" file (`export type { X }`):
+// Turbopack's server-action transform treats them as runtime exports and
+// crashes with "X is not defined". Import shared types from their own module.
 import { requireOrganization } from "@/lib/auth-utils";
 import { getOrgWritablePools } from "@/lib/pools/access";
 import { logAudit } from "@/lib/audit";
@@ -29,8 +32,6 @@ export type CreateCandidateErrorCode =
   | "INVALID_POOL"
   | "VALIDATION"
   | "NOT_FOUND";
-
-export type { FieldErrors };
 
 export type ActionResult<T> =
   | { ok: true; data: T }

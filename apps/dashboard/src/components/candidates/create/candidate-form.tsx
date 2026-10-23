@@ -11,7 +11,8 @@ import { LoadingButton } from "@/components/shared/loading-button";
 import { useProgressTransition } from "@/components/layout/route-progress";
 import { useT } from "@/lib/i18n/provider";
 import { cn } from "@/lib/utils";
-import type { ActionResult, FieldErrors } from "@/app/(dashboard)/dashboard/candidates/new/actions";
+import type { ActionResult } from "@/app/(dashboard)/dashboard/candidates/new/actions";
+import type { FieldErrors } from "@/lib/candidates/field-errors";
 import { toFormState, toSubmission, validateFormState, type FormState, type TriState } from "./form-state";
 
 export interface PoolOption {

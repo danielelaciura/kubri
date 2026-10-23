@@ -34,6 +34,7 @@ function makeCandidate(
     interviewLanguage: "it",
     sourceOrganization: "",
     channel: "telegram",
+    createdVia: null,
     consent: true,
     cvPdfLink: "",
     cvDocLink: "",

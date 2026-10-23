@@ -39,6 +39,7 @@ function makeCandidate(id: string, overrides: Partial<Candidate> = {}): Candidat
     interviewLanguage: "",
     sourceOrganization: "",
     channel: "telegram",
+    createdVia: null,
     consent: false,
     cvPdfLink: "",
     cvDocLink: "",

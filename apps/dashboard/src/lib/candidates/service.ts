@@ -39,6 +39,8 @@ function dbCandidateToApp(c: DbCandidate): Candidate {
     interviewLanguage: c.interviewLanguage ?? c.language ?? "",
     sourceOrganization: c.sourceOrganization ?? "",
     channel,
+    createdVia:
+      c.channel === "dashboard_form" || c.channel === "dashboard_cv" ? c.channel : null,
     consent: false,
     cvPdfLink: "",
     cvDocLink: "",

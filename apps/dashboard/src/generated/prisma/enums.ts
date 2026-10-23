@@ -46,3 +46,31 @@ export const CandidateStatusValue = {
 } as const
 
 export type CandidateStatusValue = (typeof CandidateStatusValue)[keyof typeof CandidateStatusValue]
+
+
+export const CandidateImportOrigin = {
+  OPERATOR: 'OPERATOR',
+  PUBLIC_LINK: 'PUBLIC_LINK',
+  BULK: 'BULK'
+} as const
+
+export type CandidateImportOrigin = (typeof CandidateImportOrigin)[keyof typeof CandidateImportOrigin]
+
+
+export const CandidateImportStatus = {
+  UPLOADED: 'UPLOADED',
+  EXTRACTING: 'EXTRACTING',
+  READY: 'READY',
+  COMPLETED: 'COMPLETED',
+  FAILED: 'FAILED',
+  DISCARDED: 'DISCARDED'
+} as const
+
+export type CandidateImportStatus = (typeof CandidateImportStatus)[keyof typeof CandidateImportStatus]
+
+
+export const CandidateDocumentKind = {
+  CV: 'CV'
+} as const
+
+export type CandidateDocumentKind = (typeof CandidateDocumentKind)[keyof typeof CandidateDocumentKind]

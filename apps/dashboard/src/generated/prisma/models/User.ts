@@ -245,6 +245,8 @@ export type UserWhereInput = {
   candidateLists?: Prisma.CandidateListListRelationFilter
   listMembershipsAdded?: Prisma.CandidateListMembershipListRelationFilter
   candidateStatusUpdates?: Prisma.CandidateStatusListRelationFilter
+  candidateImports?: Prisma.CandidateImportListRelationFilter
+  candidateDocuments?: Prisma.CandidateDocumentListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -267,6 +269,8 @@ export type UserOrderByWithRelationInput = {
   candidateLists?: Prisma.CandidateListOrderByRelationAggregateInput
   listMembershipsAdded?: Prisma.CandidateListMembershipOrderByRelationAggregateInput
   candidateStatusUpdates?: Prisma.CandidateStatusOrderByRelationAggregateInput
+  candidateImports?: Prisma.CandidateImportOrderByRelationAggregateInput
+  candidateDocuments?: Prisma.CandidateDocumentOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -292,6 +296,8 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   candidateLists?: Prisma.CandidateListListRelationFilter
   listMembershipsAdded?: Prisma.CandidateListMembershipListRelationFilter
   candidateStatusUpdates?: Prisma.CandidateStatusListRelationFilter
+  candidateImports?: Prisma.CandidateImportListRelationFilter
+  candidateDocuments?: Prisma.CandidateDocumentListRelationFilter
 }, "id" | "email">
 
 export type UserOrderByWithAggregationInput = {
@@ -349,6 +355,8 @@ export type UserCreateInput = {
   candidateLists?: Prisma.CandidateListCreateNestedManyWithoutCreatedByInput
   listMembershipsAdded?: Prisma.CandidateListMembershipCreateNestedManyWithoutAddedByInput
   candidateStatusUpdates?: Prisma.CandidateStatusCreateNestedManyWithoutUpdatedByInput
+  candidateImports?: Prisma.CandidateImportCreateNestedManyWithoutCreatedByInput
+  candidateDocuments?: Prisma.CandidateDocumentCreateNestedManyWithoutUploadedByInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -370,6 +378,8 @@ export type UserUncheckedCreateInput = {
   candidateLists?: Prisma.CandidateListUncheckedCreateNestedManyWithoutCreatedByInput
   listMembershipsAdded?: Prisma.CandidateListMembershipUncheckedCreateNestedManyWithoutAddedByInput
   candidateStatusUpdates?: Prisma.CandidateStatusUncheckedCreateNestedManyWithoutUpdatedByInput
+  candidateImports?: Prisma.CandidateImportUncheckedCreateNestedManyWithoutCreatedByInput
+  candidateDocuments?: Prisma.CandidateDocumentUncheckedCreateNestedManyWithoutUploadedByInput
 }
 
 export type UserUpdateInput = {
@@ -391,6 +401,8 @@ export type UserUpdateInput = {
   candidateLists?: Prisma.CandidateListUpdateManyWithoutCreatedByNestedInput
   listMembershipsAdded?: Prisma.CandidateListMembershipUpdateManyWithoutAddedByNestedInput
   candidateStatusUpdates?: Prisma.CandidateStatusUpdateManyWithoutUpdatedByNestedInput
+  candidateImports?: Prisma.CandidateImportUpdateManyWithoutCreatedByNestedInput
+  candidateDocuments?: Prisma.CandidateDocumentUpdateManyWithoutUploadedByNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -412,6 +424,8 @@ export type UserUncheckedUpdateInput = {
   candidateLists?: Prisma.CandidateListUncheckedUpdateManyWithoutCreatedByNestedInput
   listMembershipsAdded?: Prisma.CandidateListMembershipUncheckedUpdateManyWithoutAddedByNestedInput
   candidateStatusUpdates?: Prisma.CandidateStatusUncheckedUpdateManyWithoutUpdatedByNestedInput
+  candidateImports?: Prisma.CandidateImportUncheckedUpdateManyWithoutCreatedByNestedInput
+  candidateDocuments?: Prisma.CandidateDocumentUncheckedUpdateManyWithoutUploadedByNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -668,6 +682,38 @@ export type UserUpdateOneWithoutCandidateStatusUpdatesNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutCandidateStatusUpdatesInput, Prisma.UserUpdateWithoutCandidateStatusUpdatesInput>, Prisma.UserUncheckedUpdateWithoutCandidateStatusUpdatesInput>
 }
 
+export type UserCreateNestedOneWithoutCandidateImportsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutCandidateImportsInput, Prisma.UserUncheckedCreateWithoutCandidateImportsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutCandidateImportsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneWithoutCandidateImportsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutCandidateImportsInput, Prisma.UserUncheckedCreateWithoutCandidateImportsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutCandidateImportsInput
+  upsert?: Prisma.UserUpsertWithoutCandidateImportsInput
+  disconnect?: Prisma.UserWhereInput | boolean
+  delete?: Prisma.UserWhereInput | boolean
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutCandidateImportsInput, Prisma.UserUpdateWithoutCandidateImportsInput>, Prisma.UserUncheckedUpdateWithoutCandidateImportsInput>
+}
+
+export type UserCreateNestedOneWithoutCandidateDocumentsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutCandidateDocumentsInput, Prisma.UserUncheckedCreateWithoutCandidateDocumentsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutCandidateDocumentsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneWithoutCandidateDocumentsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutCandidateDocumentsInput, Prisma.UserUncheckedCreateWithoutCandidateDocumentsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutCandidateDocumentsInput
+  upsert?: Prisma.UserUpsertWithoutCandidateDocumentsInput
+  disconnect?: Prisma.UserWhereInput | boolean
+  delete?: Prisma.UserWhereInput | boolean
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutCandidateDocumentsInput, Prisma.UserUpdateWithoutCandidateDocumentsInput>, Prisma.UserUncheckedUpdateWithoutCandidateDocumentsInput>
+}
+
 export type UserCreateWithoutOrganizationInput = {
   id: string
   email: string
@@ -686,6 +732,8 @@ export type UserCreateWithoutOrganizationInput = {
   candidateLists?: Prisma.CandidateListCreateNestedManyWithoutCreatedByInput
   listMembershipsAdded?: Prisma.CandidateListMembershipCreateNestedManyWithoutAddedByInput
   candidateStatusUpdates?: Prisma.CandidateStatusCreateNestedManyWithoutUpdatedByInput
+  candidateImports?: Prisma.CandidateImportCreateNestedManyWithoutCreatedByInput
+  candidateDocuments?: Prisma.CandidateDocumentCreateNestedManyWithoutUploadedByInput
 }
 
 export type UserUncheckedCreateWithoutOrganizationInput = {
@@ -706,6 +754,8 @@ export type UserUncheckedCreateWithoutOrganizationInput = {
   candidateLists?: Prisma.CandidateListUncheckedCreateNestedManyWithoutCreatedByInput
   listMembershipsAdded?: Prisma.CandidateListMembershipUncheckedCreateNestedManyWithoutAddedByInput
   candidateStatusUpdates?: Prisma.CandidateStatusUncheckedCreateNestedManyWithoutUpdatedByInput
+  candidateImports?: Prisma.CandidateImportUncheckedCreateNestedManyWithoutCreatedByInput
+  candidateDocuments?: Prisma.CandidateDocumentUncheckedCreateNestedManyWithoutUploadedByInput
 }
 
 export type UserCreateOrConnectWithoutOrganizationInput = {
@@ -770,6 +820,8 @@ export type UserCreateWithoutCandidateNotesInput = {
   candidateLists?: Prisma.CandidateListCreateNestedManyWithoutCreatedByInput
   listMembershipsAdded?: Prisma.CandidateListMembershipCreateNestedManyWithoutAddedByInput
   candidateStatusUpdates?: Prisma.CandidateStatusCreateNestedManyWithoutUpdatedByInput
+  candidateImports?: Prisma.CandidateImportCreateNestedManyWithoutCreatedByInput
+  candidateDocuments?: Prisma.CandidateDocumentCreateNestedManyWithoutUploadedByInput
 }
 
 export type UserUncheckedCreateWithoutCandidateNotesInput = {
@@ -790,6 +842,8 @@ export type UserUncheckedCreateWithoutCandidateNotesInput = {
   candidateLists?: Prisma.CandidateListUncheckedCreateNestedManyWithoutCreatedByInput
   listMembershipsAdded?: Prisma.CandidateListMembershipUncheckedCreateNestedManyWithoutAddedByInput
   candidateStatusUpdates?: Prisma.CandidateStatusUncheckedCreateNestedManyWithoutUpdatedByInput
+  candidateImports?: Prisma.CandidateImportUncheckedCreateNestedManyWithoutCreatedByInput
+  candidateDocuments?: Prisma.CandidateDocumentUncheckedCreateNestedManyWithoutUploadedByInput
 }
 
 export type UserCreateOrConnectWithoutCandidateNotesInput = {
@@ -826,6 +880,8 @@ export type UserUpdateWithoutCandidateNotesInput = {
   candidateLists?: Prisma.CandidateListUpdateManyWithoutCreatedByNestedInput
   listMembershipsAdded?: Prisma.CandidateListMembershipUpdateManyWithoutAddedByNestedInput
   candidateStatusUpdates?: Prisma.CandidateStatusUpdateManyWithoutUpdatedByNestedInput
+  candidateImports?: Prisma.CandidateImportUpdateManyWithoutCreatedByNestedInput
+  candidateDocuments?: Prisma.CandidateDocumentUpdateManyWithoutUploadedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCandidateNotesInput = {
@@ -846,6 +902,8 @@ export type UserUncheckedUpdateWithoutCandidateNotesInput = {
   candidateLists?: Prisma.CandidateListUncheckedUpdateManyWithoutCreatedByNestedInput
   listMembershipsAdded?: Prisma.CandidateListMembershipUncheckedUpdateManyWithoutAddedByNestedInput
   candidateStatusUpdates?: Prisma.CandidateStatusUncheckedUpdateManyWithoutUpdatedByNestedInput
+  candidateImports?: Prisma.CandidateImportUncheckedUpdateManyWithoutCreatedByNestedInput
+  candidateDocuments?: Prisma.CandidateDocumentUncheckedUpdateManyWithoutUploadedByNestedInput
 }
 
 export type UserCreateWithoutAuditLogsInput = {
@@ -866,6 +924,8 @@ export type UserCreateWithoutAuditLogsInput = {
   candidateLists?: Prisma.CandidateListCreateNestedManyWithoutCreatedByInput
   listMembershipsAdded?: Prisma.CandidateListMembershipCreateNestedManyWithoutAddedByInput
   candidateStatusUpdates?: Prisma.CandidateStatusCreateNestedManyWithoutUpdatedByInput
+  candidateImports?: Prisma.CandidateImportCreateNestedManyWithoutCreatedByInput
+  candidateDocuments?: Prisma.CandidateDocumentCreateNestedManyWithoutUploadedByInput
 }
 
 export type UserUncheckedCreateWithoutAuditLogsInput = {
@@ -886,6 +946,8 @@ export type UserUncheckedCreateWithoutAuditLogsInput = {
   candidateLists?: Prisma.CandidateListUncheckedCreateNestedManyWithoutCreatedByInput
   listMembershipsAdded?: Prisma.CandidateListMembershipUncheckedCreateNestedManyWithoutAddedByInput
   candidateStatusUpdates?: Prisma.CandidateStatusUncheckedCreateNestedManyWithoutUpdatedByInput
+  candidateImports?: Prisma.CandidateImportUncheckedCreateNestedManyWithoutCreatedByInput
+  candidateDocuments?: Prisma.CandidateDocumentUncheckedCreateNestedManyWithoutUploadedByInput
 }
 
 export type UserCreateOrConnectWithoutAuditLogsInput = {
@@ -922,6 +984,8 @@ export type UserUpdateWithoutAuditLogsInput = {
   candidateLists?: Prisma.CandidateListUpdateManyWithoutCreatedByNestedInput
   listMembershipsAdded?: Prisma.CandidateListMembershipUpdateManyWithoutAddedByNestedInput
   candidateStatusUpdates?: Prisma.CandidateStatusUpdateManyWithoutUpdatedByNestedInput
+  candidateImports?: Prisma.CandidateImportUpdateManyWithoutCreatedByNestedInput
+  candidateDocuments?: Prisma.CandidateDocumentUpdateManyWithoutUploadedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAuditLogsInput = {
@@ -942,6 +1006,8 @@ export type UserUncheckedUpdateWithoutAuditLogsInput = {
   candidateLists?: Prisma.CandidateListUncheckedUpdateManyWithoutCreatedByNestedInput
   listMembershipsAdded?: Prisma.CandidateListMembershipUncheckedUpdateManyWithoutAddedByNestedInput
   candidateStatusUpdates?: Prisma.CandidateStatusUncheckedUpdateManyWithoutUpdatedByNestedInput
+  candidateImports?: Prisma.CandidateImportUncheckedUpdateManyWithoutCreatedByNestedInput
+  candidateDocuments?: Prisma.CandidateDocumentUncheckedUpdateManyWithoutUploadedByNestedInput
 }
 
 export type UserCreateWithoutJobDescriptionsInput = {
@@ -962,6 +1028,8 @@ export type UserCreateWithoutJobDescriptionsInput = {
   candidateLists?: Prisma.CandidateListCreateNestedManyWithoutCreatedByInput
   listMembershipsAdded?: Prisma.CandidateListMembershipCreateNestedManyWithoutAddedByInput
   candidateStatusUpdates?: Prisma.CandidateStatusCreateNestedManyWithoutUpdatedByInput
+  candidateImports?: Prisma.CandidateImportCreateNestedManyWithoutCreatedByInput
+  candidateDocuments?: Prisma.CandidateDocumentCreateNestedManyWithoutUploadedByInput
 }
 
 export type UserUncheckedCreateWithoutJobDescriptionsInput = {
@@ -982,6 +1050,8 @@ export type UserUncheckedCreateWithoutJobDescriptionsInput = {
   candidateLists?: Prisma.CandidateListUncheckedCreateNestedManyWithoutCreatedByInput
   listMembershipsAdded?: Prisma.CandidateListMembershipUncheckedCreateNestedManyWithoutAddedByInput
   candidateStatusUpdates?: Prisma.CandidateStatusUncheckedCreateNestedManyWithoutUpdatedByInput
+  candidateImports?: Prisma.CandidateImportUncheckedCreateNestedManyWithoutCreatedByInput
+  candidateDocuments?: Prisma.CandidateDocumentUncheckedCreateNestedManyWithoutUploadedByInput
 }
 
 export type UserCreateOrConnectWithoutJobDescriptionsInput = {
@@ -1018,6 +1088,8 @@ export type UserUpdateWithoutJobDescriptionsInput = {
   candidateLists?: Prisma.CandidateListUpdateManyWithoutCreatedByNestedInput
   listMembershipsAdded?: Prisma.CandidateListMembershipUpdateManyWithoutAddedByNestedInput
   candidateStatusUpdates?: Prisma.CandidateStatusUpdateManyWithoutUpdatedByNestedInput
+  candidateImports?: Prisma.CandidateImportUpdateManyWithoutCreatedByNestedInput
+  candidateDocuments?: Prisma.CandidateDocumentUpdateManyWithoutUploadedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutJobDescriptionsInput = {
@@ -1038,6 +1110,8 @@ export type UserUncheckedUpdateWithoutJobDescriptionsInput = {
   candidateLists?: Prisma.CandidateListUncheckedUpdateManyWithoutCreatedByNestedInput
   listMembershipsAdded?: Prisma.CandidateListMembershipUncheckedUpdateManyWithoutAddedByNestedInput
   candidateStatusUpdates?: Prisma.CandidateStatusUncheckedUpdateManyWithoutUpdatedByNestedInput
+  candidateImports?: Prisma.CandidateImportUncheckedUpdateManyWithoutCreatedByNestedInput
+  candidateDocuments?: Prisma.CandidateDocumentUncheckedUpdateManyWithoutUploadedByNestedInput
 }
 
 export type UserCreateWithoutCandidateListsInput = {
@@ -1058,6 +1132,8 @@ export type UserCreateWithoutCandidateListsInput = {
   jobDescriptions?: Prisma.JobDescriptionCreateNestedManyWithoutCreatedByInput
   listMembershipsAdded?: Prisma.CandidateListMembershipCreateNestedManyWithoutAddedByInput
   candidateStatusUpdates?: Prisma.CandidateStatusCreateNestedManyWithoutUpdatedByInput
+  candidateImports?: Prisma.CandidateImportCreateNestedManyWithoutCreatedByInput
+  candidateDocuments?: Prisma.CandidateDocumentCreateNestedManyWithoutUploadedByInput
 }
 
 export type UserUncheckedCreateWithoutCandidateListsInput = {
@@ -1078,6 +1154,8 @@ export type UserUncheckedCreateWithoutCandidateListsInput = {
   jobDescriptions?: Prisma.JobDescriptionUncheckedCreateNestedManyWithoutCreatedByInput
   listMembershipsAdded?: Prisma.CandidateListMembershipUncheckedCreateNestedManyWithoutAddedByInput
   candidateStatusUpdates?: Prisma.CandidateStatusUncheckedCreateNestedManyWithoutUpdatedByInput
+  candidateImports?: Prisma.CandidateImportUncheckedCreateNestedManyWithoutCreatedByInput
+  candidateDocuments?: Prisma.CandidateDocumentUncheckedCreateNestedManyWithoutUploadedByInput
 }
 
 export type UserCreateOrConnectWithoutCandidateListsInput = {
@@ -1114,6 +1192,8 @@ export type UserUpdateWithoutCandidateListsInput = {
   jobDescriptions?: Prisma.JobDescriptionUpdateManyWithoutCreatedByNestedInput
   listMembershipsAdded?: Prisma.CandidateListMembershipUpdateManyWithoutAddedByNestedInput
   candidateStatusUpdates?: Prisma.CandidateStatusUpdateManyWithoutUpdatedByNestedInput
+  candidateImports?: Prisma.CandidateImportUpdateManyWithoutCreatedByNestedInput
+  candidateDocuments?: Prisma.CandidateDocumentUpdateManyWithoutUploadedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCandidateListsInput = {
@@ -1134,6 +1214,8 @@ export type UserUncheckedUpdateWithoutCandidateListsInput = {
   jobDescriptions?: Prisma.JobDescriptionUncheckedUpdateManyWithoutCreatedByNestedInput
   listMembershipsAdded?: Prisma.CandidateListMembershipUncheckedUpdateManyWithoutAddedByNestedInput
   candidateStatusUpdates?: Prisma.CandidateStatusUncheckedUpdateManyWithoutUpdatedByNestedInput
+  candidateImports?: Prisma.CandidateImportUncheckedUpdateManyWithoutCreatedByNestedInput
+  candidateDocuments?: Prisma.CandidateDocumentUncheckedUpdateManyWithoutUploadedByNestedInput
 }
 
 export type UserCreateWithoutListMembershipsAddedInput = {
@@ -1154,6 +1236,8 @@ export type UserCreateWithoutListMembershipsAddedInput = {
   jobDescriptions?: Prisma.JobDescriptionCreateNestedManyWithoutCreatedByInput
   candidateLists?: Prisma.CandidateListCreateNestedManyWithoutCreatedByInput
   candidateStatusUpdates?: Prisma.CandidateStatusCreateNestedManyWithoutUpdatedByInput
+  candidateImports?: Prisma.CandidateImportCreateNestedManyWithoutCreatedByInput
+  candidateDocuments?: Prisma.CandidateDocumentCreateNestedManyWithoutUploadedByInput
 }
 
 export type UserUncheckedCreateWithoutListMembershipsAddedInput = {
@@ -1174,6 +1258,8 @@ export type UserUncheckedCreateWithoutListMembershipsAddedInput = {
   jobDescriptions?: Prisma.JobDescriptionUncheckedCreateNestedManyWithoutCreatedByInput
   candidateLists?: Prisma.CandidateListUncheckedCreateNestedManyWithoutCreatedByInput
   candidateStatusUpdates?: Prisma.CandidateStatusUncheckedCreateNestedManyWithoutUpdatedByInput
+  candidateImports?: Prisma.CandidateImportUncheckedCreateNestedManyWithoutCreatedByInput
+  candidateDocuments?: Prisma.CandidateDocumentUncheckedCreateNestedManyWithoutUploadedByInput
 }
 
 export type UserCreateOrConnectWithoutListMembershipsAddedInput = {
@@ -1210,6 +1296,8 @@ export type UserUpdateWithoutListMembershipsAddedInput = {
   jobDescriptions?: Prisma.JobDescriptionUpdateManyWithoutCreatedByNestedInput
   candidateLists?: Prisma.CandidateListUpdateManyWithoutCreatedByNestedInput
   candidateStatusUpdates?: Prisma.CandidateStatusUpdateManyWithoutUpdatedByNestedInput
+  candidateImports?: Prisma.CandidateImportUpdateManyWithoutCreatedByNestedInput
+  candidateDocuments?: Prisma.CandidateDocumentUpdateManyWithoutUploadedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutListMembershipsAddedInput = {
@@ -1230,6 +1318,8 @@ export type UserUncheckedUpdateWithoutListMembershipsAddedInput = {
   jobDescriptions?: Prisma.JobDescriptionUncheckedUpdateManyWithoutCreatedByNestedInput
   candidateLists?: Prisma.CandidateListUncheckedUpdateManyWithoutCreatedByNestedInput
   candidateStatusUpdates?: Prisma.CandidateStatusUncheckedUpdateManyWithoutUpdatedByNestedInput
+  candidateImports?: Prisma.CandidateImportUncheckedUpdateManyWithoutCreatedByNestedInput
+  candidateDocuments?: Prisma.CandidateDocumentUncheckedUpdateManyWithoutUploadedByNestedInput
 }
 
 export type UserCreateWithoutCandidateStatusUpdatesInput = {
@@ -1250,6 +1340,8 @@ export type UserCreateWithoutCandidateStatusUpdatesInput = {
   jobDescriptions?: Prisma.JobDescriptionCreateNestedManyWithoutCreatedByInput
   candidateLists?: Prisma.CandidateListCreateNestedManyWithoutCreatedByInput
   listMembershipsAdded?: Prisma.CandidateListMembershipCreateNestedManyWithoutAddedByInput
+  candidateImports?: Prisma.CandidateImportCreateNestedManyWithoutCreatedByInput
+  candidateDocuments?: Prisma.CandidateDocumentCreateNestedManyWithoutUploadedByInput
 }
 
 export type UserUncheckedCreateWithoutCandidateStatusUpdatesInput = {
@@ -1270,6 +1362,8 @@ export type UserUncheckedCreateWithoutCandidateStatusUpdatesInput = {
   jobDescriptions?: Prisma.JobDescriptionUncheckedCreateNestedManyWithoutCreatedByInput
   candidateLists?: Prisma.CandidateListUncheckedCreateNestedManyWithoutCreatedByInput
   listMembershipsAdded?: Prisma.CandidateListMembershipUncheckedCreateNestedManyWithoutAddedByInput
+  candidateImports?: Prisma.CandidateImportUncheckedCreateNestedManyWithoutCreatedByInput
+  candidateDocuments?: Prisma.CandidateDocumentUncheckedCreateNestedManyWithoutUploadedByInput
 }
 
 export type UserCreateOrConnectWithoutCandidateStatusUpdatesInput = {
@@ -1306,6 +1400,8 @@ export type UserUpdateWithoutCandidateStatusUpdatesInput = {
   jobDescriptions?: Prisma.JobDescriptionUpdateManyWithoutCreatedByNestedInput
   candidateLists?: Prisma.CandidateListUpdateManyWithoutCreatedByNestedInput
   listMembershipsAdded?: Prisma.CandidateListMembershipUpdateManyWithoutAddedByNestedInput
+  candidateImports?: Prisma.CandidateImportUpdateManyWithoutCreatedByNestedInput
+  candidateDocuments?: Prisma.CandidateDocumentUpdateManyWithoutUploadedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCandidateStatusUpdatesInput = {
@@ -1326,6 +1422,216 @@ export type UserUncheckedUpdateWithoutCandidateStatusUpdatesInput = {
   jobDescriptions?: Prisma.JobDescriptionUncheckedUpdateManyWithoutCreatedByNestedInput
   candidateLists?: Prisma.CandidateListUncheckedUpdateManyWithoutCreatedByNestedInput
   listMembershipsAdded?: Prisma.CandidateListMembershipUncheckedUpdateManyWithoutAddedByNestedInput
+  candidateImports?: Prisma.CandidateImportUncheckedUpdateManyWithoutCreatedByNestedInput
+  candidateDocuments?: Prisma.CandidateDocumentUncheckedUpdateManyWithoutUploadedByNestedInput
+}
+
+export type UserCreateWithoutCandidateImportsInput = {
+  id: string
+  email: string
+  name: string
+  role?: $Enums.Role
+  language?: string
+  createdAt?: Date | string
+  lastLoginAt?: Date | string | null
+  termsAcceptedAt?: Date | string | null
+  notifyEnabled?: boolean
+  notifyFrequency?: $Enums.NotifyFrequency
+  lastNotifiedAt?: Date | string | null
+  organization?: Prisma.OrganizationCreateNestedOneWithoutUsersInput
+  candidateNotes?: Prisma.CandidateNoteCreateNestedManyWithoutUserInput
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
+  jobDescriptions?: Prisma.JobDescriptionCreateNestedManyWithoutCreatedByInput
+  candidateLists?: Prisma.CandidateListCreateNestedManyWithoutCreatedByInput
+  listMembershipsAdded?: Prisma.CandidateListMembershipCreateNestedManyWithoutAddedByInput
+  candidateStatusUpdates?: Prisma.CandidateStatusCreateNestedManyWithoutUpdatedByInput
+  candidateDocuments?: Prisma.CandidateDocumentCreateNestedManyWithoutUploadedByInput
+}
+
+export type UserUncheckedCreateWithoutCandidateImportsInput = {
+  id: string
+  email: string
+  name: string
+  role?: $Enums.Role
+  language?: string
+  organizationId?: string | null
+  createdAt?: Date | string
+  lastLoginAt?: Date | string | null
+  termsAcceptedAt?: Date | string | null
+  notifyEnabled?: boolean
+  notifyFrequency?: $Enums.NotifyFrequency
+  lastNotifiedAt?: Date | string | null
+  candidateNotes?: Prisma.CandidateNoteUncheckedCreateNestedManyWithoutUserInput
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
+  jobDescriptions?: Prisma.JobDescriptionUncheckedCreateNestedManyWithoutCreatedByInput
+  candidateLists?: Prisma.CandidateListUncheckedCreateNestedManyWithoutCreatedByInput
+  listMembershipsAdded?: Prisma.CandidateListMembershipUncheckedCreateNestedManyWithoutAddedByInput
+  candidateStatusUpdates?: Prisma.CandidateStatusUncheckedCreateNestedManyWithoutUpdatedByInput
+  candidateDocuments?: Prisma.CandidateDocumentUncheckedCreateNestedManyWithoutUploadedByInput
+}
+
+export type UserCreateOrConnectWithoutCandidateImportsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutCandidateImportsInput, Prisma.UserUncheckedCreateWithoutCandidateImportsInput>
+}
+
+export type UserUpsertWithoutCandidateImportsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutCandidateImportsInput, Prisma.UserUncheckedUpdateWithoutCandidateImportsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutCandidateImportsInput, Prisma.UserUncheckedCreateWithoutCandidateImportsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutCandidateImportsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutCandidateImportsInput, Prisma.UserUncheckedUpdateWithoutCandidateImportsInput>
+}
+
+export type UserUpdateWithoutCandidateImportsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  language?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  termsAcceptedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notifyEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  notifyFrequency?: Prisma.EnumNotifyFrequencyFieldUpdateOperationsInput | $Enums.NotifyFrequency
+  lastNotifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  organization?: Prisma.OrganizationUpdateOneWithoutUsersNestedInput
+  candidateNotes?: Prisma.CandidateNoteUpdateManyWithoutUserNestedInput
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
+  jobDescriptions?: Prisma.JobDescriptionUpdateManyWithoutCreatedByNestedInput
+  candidateLists?: Prisma.CandidateListUpdateManyWithoutCreatedByNestedInput
+  listMembershipsAdded?: Prisma.CandidateListMembershipUpdateManyWithoutAddedByNestedInput
+  candidateStatusUpdates?: Prisma.CandidateStatusUpdateManyWithoutUpdatedByNestedInput
+  candidateDocuments?: Prisma.CandidateDocumentUpdateManyWithoutUploadedByNestedInput
+}
+
+export type UserUncheckedUpdateWithoutCandidateImportsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  language?: Prisma.StringFieldUpdateOperationsInput | string
+  organizationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  termsAcceptedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notifyEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  notifyFrequency?: Prisma.EnumNotifyFrequencyFieldUpdateOperationsInput | $Enums.NotifyFrequency
+  lastNotifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  candidateNotes?: Prisma.CandidateNoteUncheckedUpdateManyWithoutUserNestedInput
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
+  jobDescriptions?: Prisma.JobDescriptionUncheckedUpdateManyWithoutCreatedByNestedInput
+  candidateLists?: Prisma.CandidateListUncheckedUpdateManyWithoutCreatedByNestedInput
+  listMembershipsAdded?: Prisma.CandidateListMembershipUncheckedUpdateManyWithoutAddedByNestedInput
+  candidateStatusUpdates?: Prisma.CandidateStatusUncheckedUpdateManyWithoutUpdatedByNestedInput
+  candidateDocuments?: Prisma.CandidateDocumentUncheckedUpdateManyWithoutUploadedByNestedInput
+}
+
+export type UserCreateWithoutCandidateDocumentsInput = {
+  id: string
+  email: string
+  name: string
+  role?: $Enums.Role
+  language?: string
+  createdAt?: Date | string
+  lastLoginAt?: Date | string | null
+  termsAcceptedAt?: Date | string | null
+  notifyEnabled?: boolean
+  notifyFrequency?: $Enums.NotifyFrequency
+  lastNotifiedAt?: Date | string | null
+  organization?: Prisma.OrganizationCreateNestedOneWithoutUsersInput
+  candidateNotes?: Prisma.CandidateNoteCreateNestedManyWithoutUserInput
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
+  jobDescriptions?: Prisma.JobDescriptionCreateNestedManyWithoutCreatedByInput
+  candidateLists?: Prisma.CandidateListCreateNestedManyWithoutCreatedByInput
+  listMembershipsAdded?: Prisma.CandidateListMembershipCreateNestedManyWithoutAddedByInput
+  candidateStatusUpdates?: Prisma.CandidateStatusCreateNestedManyWithoutUpdatedByInput
+  candidateImports?: Prisma.CandidateImportCreateNestedManyWithoutCreatedByInput
+}
+
+export type UserUncheckedCreateWithoutCandidateDocumentsInput = {
+  id: string
+  email: string
+  name: string
+  role?: $Enums.Role
+  language?: string
+  organizationId?: string | null
+  createdAt?: Date | string
+  lastLoginAt?: Date | string | null
+  termsAcceptedAt?: Date | string | null
+  notifyEnabled?: boolean
+  notifyFrequency?: $Enums.NotifyFrequency
+  lastNotifiedAt?: Date | string | null
+  candidateNotes?: Prisma.CandidateNoteUncheckedCreateNestedManyWithoutUserInput
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
+  jobDescriptions?: Prisma.JobDescriptionUncheckedCreateNestedManyWithoutCreatedByInput
+  candidateLists?: Prisma.CandidateListUncheckedCreateNestedManyWithoutCreatedByInput
+  listMembershipsAdded?: Prisma.CandidateListMembershipUncheckedCreateNestedManyWithoutAddedByInput
+  candidateStatusUpdates?: Prisma.CandidateStatusUncheckedCreateNestedManyWithoutUpdatedByInput
+  candidateImports?: Prisma.CandidateImportUncheckedCreateNestedManyWithoutCreatedByInput
+}
+
+export type UserCreateOrConnectWithoutCandidateDocumentsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutCandidateDocumentsInput, Prisma.UserUncheckedCreateWithoutCandidateDocumentsInput>
+}
+
+export type UserUpsertWithoutCandidateDocumentsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutCandidateDocumentsInput, Prisma.UserUncheckedUpdateWithoutCandidateDocumentsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutCandidateDocumentsInput, Prisma.UserUncheckedCreateWithoutCandidateDocumentsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutCandidateDocumentsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutCandidateDocumentsInput, Prisma.UserUncheckedUpdateWithoutCandidateDocumentsInput>
+}
+
+export type UserUpdateWithoutCandidateDocumentsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  language?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  termsAcceptedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notifyEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  notifyFrequency?: Prisma.EnumNotifyFrequencyFieldUpdateOperationsInput | $Enums.NotifyFrequency
+  lastNotifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  organization?: Prisma.OrganizationUpdateOneWithoutUsersNestedInput
+  candidateNotes?: Prisma.CandidateNoteUpdateManyWithoutUserNestedInput
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
+  jobDescriptions?: Prisma.JobDescriptionUpdateManyWithoutCreatedByNestedInput
+  candidateLists?: Prisma.CandidateListUpdateManyWithoutCreatedByNestedInput
+  listMembershipsAdded?: Prisma.CandidateListMembershipUpdateManyWithoutAddedByNestedInput
+  candidateStatusUpdates?: Prisma.CandidateStatusUpdateManyWithoutUpdatedByNestedInput
+  candidateImports?: Prisma.CandidateImportUpdateManyWithoutCreatedByNestedInput
+}
+
+export type UserUncheckedUpdateWithoutCandidateDocumentsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  language?: Prisma.StringFieldUpdateOperationsInput | string
+  organizationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  termsAcceptedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  notifyEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  notifyFrequency?: Prisma.EnumNotifyFrequencyFieldUpdateOperationsInput | $Enums.NotifyFrequency
+  lastNotifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  candidateNotes?: Prisma.CandidateNoteUncheckedUpdateManyWithoutUserNestedInput
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
+  jobDescriptions?: Prisma.JobDescriptionUncheckedUpdateManyWithoutCreatedByNestedInput
+  candidateLists?: Prisma.CandidateListUncheckedUpdateManyWithoutCreatedByNestedInput
+  listMembershipsAdded?: Prisma.CandidateListMembershipUncheckedUpdateManyWithoutAddedByNestedInput
+  candidateStatusUpdates?: Prisma.CandidateStatusUncheckedUpdateManyWithoutUpdatedByNestedInput
+  candidateImports?: Prisma.CandidateImportUncheckedUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserCreateManyOrganizationInput = {
@@ -1360,6 +1666,8 @@ export type UserUpdateWithoutOrganizationInput = {
   candidateLists?: Prisma.CandidateListUpdateManyWithoutCreatedByNestedInput
   listMembershipsAdded?: Prisma.CandidateListMembershipUpdateManyWithoutAddedByNestedInput
   candidateStatusUpdates?: Prisma.CandidateStatusUpdateManyWithoutUpdatedByNestedInput
+  candidateImports?: Prisma.CandidateImportUpdateManyWithoutCreatedByNestedInput
+  candidateDocuments?: Prisma.CandidateDocumentUpdateManyWithoutUploadedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutOrganizationInput = {
@@ -1380,6 +1688,8 @@ export type UserUncheckedUpdateWithoutOrganizationInput = {
   candidateLists?: Prisma.CandidateListUncheckedUpdateManyWithoutCreatedByNestedInput
   listMembershipsAdded?: Prisma.CandidateListMembershipUncheckedUpdateManyWithoutAddedByNestedInput
   candidateStatusUpdates?: Prisma.CandidateStatusUncheckedUpdateManyWithoutUpdatedByNestedInput
+  candidateImports?: Prisma.CandidateImportUncheckedUpdateManyWithoutCreatedByNestedInput
+  candidateDocuments?: Prisma.CandidateDocumentUncheckedUpdateManyWithoutUploadedByNestedInput
 }
 
 export type UserUncheckedUpdateManyWithoutOrganizationInput = {
@@ -1408,6 +1718,8 @@ export type UserCountOutputType = {
   candidateLists: number
   listMembershipsAdded: number
   candidateStatusUpdates: number
+  candidateImports: number
+  candidateDocuments: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1417,6 +1729,8 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   candidateLists?: boolean | UserCountOutputTypeCountCandidateListsArgs
   listMembershipsAdded?: boolean | UserCountOutputTypeCountListMembershipsAddedArgs
   candidateStatusUpdates?: boolean | UserCountOutputTypeCountCandidateStatusUpdatesArgs
+  candidateImports?: boolean | UserCountOutputTypeCountCandidateImportsArgs
+  candidateDocuments?: boolean | UserCountOutputTypeCountCandidateDocumentsArgs
 }
 
 /**
@@ -1471,6 +1785,20 @@ export type UserCountOutputTypeCountCandidateStatusUpdatesArgs<ExtArgs extends r
   where?: Prisma.CandidateStatusWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountCandidateImportsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.CandidateImportWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountCandidateDocumentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.CandidateDocumentWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1492,6 +1820,8 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   candidateLists?: boolean | Prisma.User$candidateListsArgs<ExtArgs>
   listMembershipsAdded?: boolean | Prisma.User$listMembershipsAddedArgs<ExtArgs>
   candidateStatusUpdates?: boolean | Prisma.User$candidateStatusUpdatesArgs<ExtArgs>
+  candidateImports?: boolean | Prisma.User$candidateImportsArgs<ExtArgs>
+  candidateDocuments?: boolean | Prisma.User$candidateDocumentsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -1551,6 +1881,8 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   candidateLists?: boolean | Prisma.User$candidateListsArgs<ExtArgs>
   listMembershipsAdded?: boolean | Prisma.User$listMembershipsAddedArgs<ExtArgs>
   candidateStatusUpdates?: boolean | Prisma.User$candidateStatusUpdatesArgs<ExtArgs>
+  candidateImports?: boolean | Prisma.User$candidateImportsArgs<ExtArgs>
+  candidateDocuments?: boolean | Prisma.User$candidateDocumentsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1570,6 +1902,8 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     candidateLists: Prisma.$CandidateListPayload<ExtArgs>[]
     listMembershipsAdded: Prisma.$CandidateListMembershipPayload<ExtArgs>[]
     candidateStatusUpdates: Prisma.$CandidateStatusPayload<ExtArgs>[]
+    candidateImports: Prisma.$CandidateImportPayload<ExtArgs>[]
+    candidateDocuments: Prisma.$CandidateDocumentPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1985,6 +2319,8 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   candidateLists<T extends Prisma.User$candidateListsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$candidateListsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CandidateListPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   listMembershipsAdded<T extends Prisma.User$listMembershipsAddedArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$listMembershipsAddedArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CandidateListMembershipPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   candidateStatusUpdates<T extends Prisma.User$candidateStatusUpdatesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$candidateStatusUpdatesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CandidateStatusPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  candidateImports<T extends Prisma.User$candidateImportsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$candidateImportsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CandidateImportPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  candidateDocuments<T extends Prisma.User$candidateDocumentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$candidateDocumentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CandidateDocumentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2587,6 +2923,54 @@ export type User$candidateStatusUpdatesArgs<ExtArgs extends runtime.Types.Extens
   take?: number
   skip?: number
   distinct?: Prisma.CandidateStatusScalarFieldEnum | Prisma.CandidateStatusScalarFieldEnum[]
+}
+
+/**
+ * User.candidateImports
+ */
+export type User$candidateImportsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the CandidateImport
+   */
+  select?: Prisma.CandidateImportSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the CandidateImport
+   */
+  omit?: Prisma.CandidateImportOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CandidateImportInclude<ExtArgs> | null
+  where?: Prisma.CandidateImportWhereInput
+  orderBy?: Prisma.CandidateImportOrderByWithRelationInput | Prisma.CandidateImportOrderByWithRelationInput[]
+  cursor?: Prisma.CandidateImportWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.CandidateImportScalarFieldEnum | Prisma.CandidateImportScalarFieldEnum[]
+}
+
+/**
+ * User.candidateDocuments
+ */
+export type User$candidateDocumentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the CandidateDocument
+   */
+  select?: Prisma.CandidateDocumentSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the CandidateDocument
+   */
+  omit?: Prisma.CandidateDocumentOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CandidateDocumentInclude<ExtArgs> | null
+  where?: Prisma.CandidateDocumentWhereInput
+  orderBy?: Prisma.CandidateDocumentOrderByWithRelationInput | Prisma.CandidateDocumentOrderByWithRelationInput[]
+  cursor?: Prisma.CandidateDocumentWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.CandidateDocumentScalarFieldEnum | Prisma.CandidateDocumentScalarFieldEnum[]
 }
 
 /**

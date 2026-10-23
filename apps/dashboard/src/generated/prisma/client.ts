@@ -101,3 +101,13 @@ export type CandidateStatus = Prisma.CandidateStatusModel
  * 
  */
 export type JobMatch = Prisma.JobMatchModel
+/**
+ * Model CandidateImport
+ * A document → candidate conversion in progress (process record, prunable).
+ */
+export type CandidateImport = Prisma.CandidateImportModel
+/**
+ * Model CandidateDocument
+ * A file permanently attached to a candidate (today: the uploaded CV).
+ */
+export type CandidateDocument = Prisma.CandidateDocumentModel

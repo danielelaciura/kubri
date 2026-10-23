@@ -1,4 +1,4 @@
-import { LLMError } from "./errors";
+import { LLMError, LLMTimeoutError } from "./errors";
 
 const MISTRAL_URL = "https://api.mistral.ai/v1/chat/completions";
 const DEFAULT_TIMEOUT_MS = 30000;
@@ -52,6 +52,9 @@ export async function chatCompletion(opts: ChatCompletionOptions): Promise<strin
       signal: controller.signal,
     });
   } catch (e) {
+    if (controller.signal.aborted) {
+      throw new LLMTimeoutError("Mistral request timed out", e);
+    }
     throw new LLMError("Mistral request failed", e);
   } finally {
     clearTimeout(timer);

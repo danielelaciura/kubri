@@ -65,6 +65,8 @@ function parseFields(values: unknown) {
   return { ok: false as const, fieldErrors };
 }
 
+const importIdSchema = z.string().uuid();
+
 const uploadRequestSchema = z.object({
   poolId: z.string().min(1),
   fileName: z.string().min(1).max(255),
@@ -127,9 +129,15 @@ export async function runCandidateImportExtractionAction(
   importId: string,
 ): Promise<ActionResult<null>> {
   const user = await session();
-  const imp = await getImportForOrg(importId, user.organizationId);
+  const id = importIdSchema.safeParse(importId);
+  if (!id.success) return { ok: false, error: "VALIDATION" };
+  const imp = await getImportForOrg(id.data, user.organizationId);
   if (!imp) return { ok: false, error: "NOT_FOUND" };
-  await runExtraction(importId);
+  try {
+    await runExtraction(imp.id);
+  } catch (e) {
+    return fail(e);
+  }
   return { ok: true, data: null };
 }
 
@@ -138,10 +146,12 @@ export async function confirmCandidateImportAction(
   values: unknown,
 ): Promise<ActionResult<{ candidateId: string }>> {
   const user = await session();
+  const id = importIdSchema.safeParse(importId);
+  if (!id.success) return { ok: false, error: "VALIDATION" };
   const parsed = parseFields(values);
   if (!parsed.ok) return { ok: false, error: "VALIDATION", fieldErrors: parsed.fieldErrors };
 
-  const imp = await getImportForOrg(importId, user.organizationId);
+  const imp = await getImportForOrg(id.data, user.organizationId);
   if (!imp) return { ok: false, error: "NOT_FOUND" };
   if (!(await writablePool(user.organizationId, imp.poolId))) {
     return { ok: false, error: "INVALID_POOL" };
@@ -149,7 +159,7 @@ export async function confirmCandidateImportAction(
 
   try {
     const { candidateId } = await confirmImport({
-      importId,
+      importId: imp.id,
       organizationId: user.organizationId,
       userId: user.id,
       fields: parsed.fields,
@@ -160,14 +170,14 @@ export async function confirmCandidateImportAction(
       action: "candidate.create",
       resourceType: "candidate",
       resourceId: candidateId,
-      metadata: { mode: "cv", importId },
+      metadata: { mode: "cv", importId: imp.id },
     });
     revalidatePath("/dashboard/candidates");
     return { ok: true, data: { candidateId } };
   } catch (e) {
     if (e instanceof ImportStateError) {
       // A concurrent confirm (double click, second tab) won the race.
-      const current = await getImportForOrg(importId, user.organizationId);
+      const current = await getImportForOrg(imp.id, user.organizationId);
       if (current?.status === "COMPLETED" && current.candidateId) {
         return { ok: true, data: { candidateId: current.candidateId } };
       }
@@ -210,6 +220,10 @@ export async function createCandidateManuallyAction(
 
 export async function discardCandidateImportAction(importId: string): Promise<ActionResult<null>> {
   const user = await session();
-  const done = await discardImport(importId, user.organizationId);
+  const id = importIdSchema.safeParse(importId);
+  if (!id.success) return { ok: false, error: "VALIDATION" };
+  const imp = await getImportForOrg(id.data, user.organizationId);
+  if (!imp) return { ok: false, error: "NOT_FOUND" };
+  const done = await discardImport(imp.id, user.organizationId);
   return done ? { ok: true, data: null } : { ok: false, error: "NOT_FOUND" };
 }

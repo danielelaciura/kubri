@@ -54,6 +54,7 @@ import {
   createUploadTicket,
   discardImport,
   discardStaleImports,
+  getImportForOrg,
   registerUpload,
   runExtraction,
 } from "@/lib/candidate-imports/service";
@@ -136,7 +137,7 @@ describe("runExtraction", () => {
 
   it("does nothing when the import cannot be claimed", async () => {
     m(prisma.candidateImport.updateMany).mockResolvedValueOnce({ count: 0 });
-    await runExtraction("imp-1");
+    await runExtraction("22222222-2222-4222-8222-222222222222");
     expect(m(downloadCandidateDocument)).not.toHaveBeenCalled();
   });
 
@@ -149,7 +150,7 @@ describe("runExtraction", () => {
     m(extractDocumentText).mockResolvedValueOnce({ text: "CV", method: "pdf", pageCount: 1 });
     m(extractCandidateDraft).mockResolvedValueOnce(DRAFT);
 
-    await runExtraction("imp-1");
+    await runExtraction("22222222-2222-4222-8222-222222222222");
 
     const claim = m(prisma.candidateImport.updateMany).mock.calls[0]![0];
     expect(claim.data.status).toBe("EXTRACTING");
@@ -157,7 +158,7 @@ describe("runExtraction", () => {
     const claimedAt = claim.data.updatedAt;
     expect(claimedAt).toBeInstanceOf(Date);
     const fin = m(prisma.candidateImport.updateMany).mock.calls[1]![0];
-    expect(fin.where).toEqual({ id: "imp-1", status: "EXTRACTING", updatedAt: claimedAt });
+    expect(fin.where).toEqual({ id: "22222222-2222-4222-8222-222222222222", status: "EXTRACTING", updatedAt: claimedAt });
     expect(fin.data).toEqual({
       status: "READY", extractedText: "CV", extractionMethod: "pdf", draft: DRAFT, errorCode: null,
     });
@@ -172,7 +173,7 @@ describe("runExtraction", () => {
     m(downloadCandidateDocument).mockResolvedValueOnce(PDF);
     m(extractDocumentText).mockResolvedValueOnce({ text: "fattura", method: "pdf", pageCount: 1 });
     m(extractCandidateDraft).mockResolvedValueOnce({ ...DRAFT, isCv: false });
-    await runExtraction("imp-1");
+    await runExtraction("22222222-2222-4222-8222-222222222222");
     expect(m(prisma.candidateImport.updateMany).mock.calls[1]![0].data).toMatchObject({
       status: "READY", errorCode: "NOT_A_CV",
     });
@@ -186,9 +187,9 @@ describe("runExtraction", () => {
     m(downloadCandidateDocument).mockResolvedValueOnce(PDF);
     m(extractDocumentText).mockResolvedValueOnce({ text: "CV", method: "pdf", pageCount: 1 });
     m(extractCandidateDraft).mockRejectedValueOnce(new LLMTimeoutError("t"));
-    await runExtraction("imp-1");
+    await runExtraction("22222222-2222-4222-8222-222222222222");
     const fin = m(prisma.candidateImport.updateMany).mock.calls[1]![0];
-    expect(fin.where).toMatchObject({ id: "imp-1", status: "EXTRACTING" });
+    expect(fin.where).toMatchObject({ id: "22222222-2222-4222-8222-222222222222", status: "EXTRACTING" });
     expect(fin.data).toEqual({ status: "FAILED", errorCode: "LLM_TIMEOUT" });
   });
 
@@ -201,10 +202,10 @@ describe("runExtraction", () => {
     m(downloadCandidateDocument).mockResolvedValueOnce(PDF);
     m(extractDocumentText).mockResolvedValueOnce({ text: "CV", method: "pdf", pageCount: 1 });
     m(extractCandidateDraft).mockResolvedValueOnce(DRAFT);
-    await expect(runExtraction("imp-1")).resolves.toBeUndefined();
+    await expect(runExtraction("22222222-2222-4222-8222-222222222222")).resolves.toBeUndefined();
     expect(warn).toHaveBeenCalledWith(
       "[candidate import] extraction result dropped: import changed state",
-      { importId: "imp-1" },
+      { importId: "22222222-2222-4222-8222-222222222222" },
     );
   });
 
@@ -216,7 +217,7 @@ describe("runExtraction", () => {
     m(downloadCandidateDocument).mockResolvedValueOnce(PDF);
     m(extractDocumentText).mockResolvedValueOnce({ text: "C\u0000V", method: "pdf", pageCount: 1 });
     m(extractCandidateDraft).mockResolvedValueOnce(DRAFT);
-    await runExtraction("imp-1");
+    await runExtraction("22222222-2222-4222-8222-222222222222");
     expect(m(extractCandidateDraft)).toHaveBeenCalledWith("CV");
     expect(m(prisma.candidateImport.updateMany).mock.calls[1]![0].data.extractedText).toBe("CV");
   });
@@ -225,7 +226,7 @@ describe("runExtraction", () => {
 describe("confirmImport", () => {
   const FIELDS = { firstName: "Ahmed", lastName: "Benali" } as never;
   const IMPORT = {
-    id: "imp-1", status: "READY", candidateId: null, storagePath: "p/imp-1/cv.pdf",
+    id: "22222222-2222-4222-8222-222222222222", status: "READY", candidateId: null, storagePath: "p/22222222-2222-4222-8222-222222222222/cv.pdf",
     fileName: "cv.pdf", mimeType: "application/pdf", fileSize: 10, createdById: "u",
     draft: DRAFT, pool: { id: "p", isGlobal: false, globalSharing: "WEBHOOK" },
   };
@@ -237,20 +238,20 @@ describe("confirmImport", () => {
     tx.candidateImport.updateMany.mockResolvedValueOnce({ count: 1 });
     m(upsertCandidate).mockResolvedValueOnce({ id: "c-1" });
 
-    const r = await confirmImport({ importId: "imp-1", organizationId: "o", userId: "u", fields: FIELDS });
+    const r = await confirmImport({ importId: "22222222-2222-4222-8222-222222222222", organizationId: "o", userId: "u", fields: FIELDS });
 
     expect(r).toEqual({ candidateId: "c-1" });
-    expect(tx.candidateImport.findFirst.mock.calls[0]![0].where).toEqual({ id: "imp-1", organizationId: "o" });
+    expect(tx.candidateImport.findFirst.mock.calls[0]![0].where).toEqual({ id: "22222222-2222-4222-8222-222222222222", organizationId: "o" });
     expect(tx.candidateImport.updateMany.mock.calls[0]![0]).toEqual({
-      where: { id: "imp-1", status: { in: ["READY", "FAILED"] } },
+      where: { id: "22222222-2222-4222-8222-222222222222", status: { in: ["READY", "FAILED"] } },
       data: { status: "COMPLETED" },
     });
     const [data, client] = m(upsertCandidate).mock.calls[0]!;
     expect(data.channel).toBe("dashboard_cv");
-    expect(data.rawPayload).toMatchObject({ mode: "cv", importId: "imp-1", draft: DRAFT, submitted: FIELDS });
+    expect(data.rawPayload).toMatchObject({ mode: "cv", importId: "22222222-2222-4222-8222-222222222222", draft: DRAFT, submitted: FIELDS });
     expect(client).toBe(tx);
     expect(tx.candidateDocument.create.mock.calls[0]![0].data).toMatchObject({
-      candidateId: "c-1", kind: "CV", storagePath: "p/imp-1/cv.pdf",
+      candidateId: "c-1", kind: "CV", storagePath: "p/22222222-2222-4222-8222-222222222222/cv.pdf",
     });
     expect(tx.candidateImport.update.mock.calls[0]![0].data).toEqual({ candidateId: "c-1" });
     expect(m(refreshCandidateEmbedding)).toHaveBeenCalledWith({ id: "c-1" }, "candidate import");
@@ -258,7 +259,7 @@ describe("confirmImport", () => {
 
   it("is idempotent for an already completed import", async () => {
     tx.candidateImport.findFirst.mockResolvedValueOnce({ ...IMPORT, status: "COMPLETED", candidateId: "c-9" });
-    const r = await confirmImport({ importId: "imp-1", organizationId: "o", userId: "u", fields: FIELDS });
+    const r = await confirmImport({ importId: "22222222-2222-4222-8222-222222222222", organizationId: "o", userId: "u", fields: FIELDS });
     expect(r).toEqual({ candidateId: "c-9" });
     expect(m(upsertCandidate)).not.toHaveBeenCalled();
   });
@@ -267,14 +268,14 @@ describe("confirmImport", () => {
     tx.candidateImport.findFirst.mockResolvedValueOnce(IMPORT);
     tx.candidateImport.updateMany.mockResolvedValueOnce({ count: 0 });
     await expect(
-      confirmImport({ importId: "imp-1", organizationId: "o", userId: "u", fields: FIELDS }),
+      confirmImport({ importId: "22222222-2222-4222-8222-222222222222", organizationId: "o", userId: "u", fields: FIELDS }),
     ).rejects.toBeInstanceOf(ImportStateError);
   });
 
   it("does not find another org's import", async () => {
     tx.candidateImport.findFirst.mockResolvedValueOnce(null);
     await expect(
-      confirmImport({ importId: "imp-1", organizationId: "other", userId: "u", fields: FIELDS }),
+      confirmImport({ importId: "22222222-2222-4222-8222-222222222222", organizationId: "other", userId: "u", fields: FIELDS }),
     ).rejects.toThrow();
   });
 });
@@ -285,9 +286,9 @@ describe("discardImport / discardStaleImports", () => {
   it("discards an open import of the org and removes its file", async () => {
     m(prisma.candidateImport.findFirst).mockResolvedValueOnce({ storagePath: "p/i/cv.pdf" });
     m(prisma.candidateImport.updateMany).mockResolvedValueOnce({ count: 1 });
-    await expect(discardImport("imp-1", "o")).resolves.toBe(true);
+    await expect(discardImport("22222222-2222-4222-8222-222222222222", "o")).resolves.toBe(true);
     expect(m(prisma.candidateImport.updateMany).mock.calls[0]![0].where).toEqual({
-      id: "imp-1", organizationId: "o", status: { in: ["UPLOADED", "EXTRACTING", "READY", "FAILED"] },
+      id: "22222222-2222-4222-8222-222222222222", organizationId: "o", status: { in: ["UPLOADED", "EXTRACTING", "READY", "FAILED"] },
     });
     expect(m(removeCandidateDocuments)).toHaveBeenCalledWith(["p/i/cv.pdf"]);
   });
@@ -329,4 +330,23 @@ it("removes files only for rows actually discarded", async () => {
 
 it("ImportError carries its code", () => {
   expect(new ImportError("NO_TEXT").code).toBe("NO_TEXT");
+});
+
+describe("non-UUID import ids never reach the database", () => {
+  const bad = [{ not: "x" } as never, "abc" as never];
+  beforeEach(() => vi.clearAllMocks());
+
+  it("getImportForOrg returns null", async () => {
+    for (const id of bad) await expect(getImportForOrg(id, "o")).resolves.toBeNull();
+    expect(prisma.candidateImport.findFirst).not.toHaveBeenCalled();
+  });
+  it("discardImport returns false", async () => {
+    for (const id of bad) await expect(discardImport(id, "o")).resolves.toBe(false);
+    expect(prisma.candidateImport.findFirst).not.toHaveBeenCalled();
+    expect(prisma.candidateImport.updateMany).not.toHaveBeenCalled();
+  });
+  it("runExtraction returns early", async () => {
+    for (const id of bad) await expect(runExtraction(id)).resolves.toBeUndefined();
+    expect(prisma.candidateImport.updateMany).not.toHaveBeenCalled();
+  });
 });

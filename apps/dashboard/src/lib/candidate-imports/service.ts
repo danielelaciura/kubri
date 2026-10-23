@@ -31,6 +31,10 @@ const STALE_EXTRACTION_MS = 2 * 60 * 1000;
 const STALE_IMPORT_MS = 7 * 24 * 60 * 60 * 1000;
 const OPEN_STATUSES = ["UPLOADED", "EXTRACTING", "READY", "FAILED"] as const;
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** Server-action arguments are untrusted: an object here would become a Prisma operator. */
+const isUuid = (v: unknown): v is string => typeof v === "string" && UUID_RE.test(v);
+
 export interface UploadTicket {
   importId: string;
   storagePath: string;
@@ -123,6 +127,7 @@ export async function registerUpload(input: RegisterUploadInput): Promise<{ impo
  * organization first (see getImportForOrg).
  */
 export async function runExtraction(importId: string): Promise<void> {
+  if (!isUuid(importId)) return;
   const claimedAt = new Date();
   const claimed = await prisma.candidateImport.updateMany({
     where: {
@@ -245,6 +250,7 @@ export async function confirmImport(input: ConfirmImportInput): Promise<{ candid
 
 /** Discard an open import of the organization and delete its file. */
 export async function discardImport(importId: string, organizationId: string): Promise<boolean> {
+  if (!isUuid(importId)) return false;
   const imp = await prisma.candidateImport.findFirst({
     where: { id: importId, organizationId },
     select: { storagePath: true },
@@ -298,6 +304,7 @@ export async function discardStaleImports(now = new Date(), batchSize = 100): Pr
 
 /** Everything the review page needs, scoped to the organization. */
 export async function getImportForOrg(importId: string, organizationId: string) {
+  if (!isUuid(importId)) return null;
   return prisma.candidateImport.findFirst({
     where: { id: importId, organizationId },
     select: {

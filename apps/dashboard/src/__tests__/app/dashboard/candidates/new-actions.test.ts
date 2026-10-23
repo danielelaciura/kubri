@@ -22,6 +22,7 @@ import {
   confirmImport,
   createUploadTicket,
   getImportForOrg,
+  discardImport,
   registerUpload,
   runExtraction,
 } from "@/lib/candidate-imports/service";
@@ -32,8 +33,10 @@ import {
   registerCandidateUploadAction,
   requestCandidateUploadAction,
   runCandidateImportExtractionAction,
+  discardCandidateImportAction,
 } from "@/app/(dashboard)/dashboard/candidates/new/actions";
 
+const IMP = "22222222-2222-4222-8222-222222222222";
 const m = <T>(f: T) => f as unknown as ReturnType<typeof vi.fn>;
 const USER = { id: "u-1", organizationId: "org-1", role: "ORG_MEMBER" };
 const POOL = { id: "pool-1", name: "Coop", isGlobal: false, globalSharing: "WEBHOOK" };
@@ -90,57 +93,96 @@ describe("registerCandidateUploadAction", () => {
 describe("runCandidateImportExtractionAction", () => {
   it("refuses an import of another org", async () => {
     m(getImportForOrg).mockResolvedValueOnce(null);
-    const r = await runCandidateImportExtractionAction("imp-x");
+    const r = await runCandidateImportExtractionAction("33333333-3333-4333-8333-333333333333");
     expect(r).toEqual({ ok: false, error: "NOT_FOUND" });
     expect(m(runExtraction)).not.toHaveBeenCalled();
   });
 
   it("runs the extraction for an own import", async () => {
-    m(getImportForOrg).mockResolvedValueOnce({ id: "imp-1" });
-    await expect(runCandidateImportExtractionAction("imp-1")).resolves.toEqual({ ok: true, data: null });
-    expect(m(runExtraction)).toHaveBeenCalledWith("imp-1");
+    m(getImportForOrg).mockResolvedValueOnce({ id: "22222222-2222-4222-8222-222222222222" });
+    await expect(runCandidateImportExtractionAction("22222222-2222-4222-8222-222222222222")).resolves.toEqual({ ok: true, data: null });
+    expect(m(runExtraction)).toHaveBeenCalledWith("22222222-2222-4222-8222-222222222222");
   });
 });
 
 describe("confirmCandidateImportAction", () => {
   it("returns field errors without calling the service", async () => {
-    const r = await confirmCandidateImportAction("imp-1", { ...VALUES, lastName: "" });
+    const r = await confirmCandidateImportAction("22222222-2222-4222-8222-222222222222", { ...VALUES, lastName: "" });
     expect(r).toEqual({ ok: false, error: "VALIDATION", fieldErrors: { lastName: "required" } });
     expect(m(confirmImport)).not.toHaveBeenCalled();
   });
 
   it("returns INVALID_POOL when the import's pool is no longer writable", async () => {
-    m(getImportForOrg).mockResolvedValueOnce({ ...{ id: "imp-1", poolId: "pool-1", status: "READY", candidateId: null }, poolId: "pool-gone" });
-    const r = await confirmCandidateImportAction("imp-1", VALUES);
+    m(getImportForOrg).mockResolvedValueOnce({ ...{ id: "22222222-2222-4222-8222-222222222222", poolId: "pool-1", status: "READY", candidateId: null }, poolId: "pool-gone" });
+    const r = await confirmCandidateImportAction("22222222-2222-4222-8222-222222222222", VALUES);
     expect(r).toEqual({ ok: false, error: "INVALID_POOL" });
     expect(m(confirmImport)).not.toHaveBeenCalled();
   });
 
   it("returns NOT_FOUND for an import of another org", async () => {
     m(getImportForOrg).mockResolvedValueOnce(null);
-    const r = await confirmCandidateImportAction("imp-x", VALUES);
+    const r = await confirmCandidateImportAction("33333333-3333-4333-8333-333333333333", VALUES);
     expect(r).toEqual({ ok: false, error: "NOT_FOUND" });
     expect(m(confirmImport)).not.toHaveBeenCalled();
   });
 
   it("confirms and logs candidate.create with mode cv", async () => {
-    m(getImportForOrg).mockResolvedValueOnce({ id: "imp-1", poolId: "pool-1", status: "READY", candidateId: null });
+    m(getImportForOrg).mockResolvedValueOnce({ id: "22222222-2222-4222-8222-222222222222", poolId: "pool-1", status: "READY", candidateId: null });
     m(confirmImport).mockResolvedValueOnce({ candidateId: "c-1" });
-    const r = await confirmCandidateImportAction("imp-1", VALUES);
+    const r = await confirmCandidateImportAction("22222222-2222-4222-8222-222222222222", VALUES);
     expect(r).toEqual({ ok: true, data: { candidateId: "c-1" } });
-    expect(m(confirmImport).mock.calls[0]![0]).toMatchObject({ importId: "imp-1", organizationId: "org-1", userId: "u-1" });
+    expect(m(confirmImport).mock.calls[0]![0]).toMatchObject({ importId: "22222222-2222-4222-8222-222222222222", organizationId: "org-1", userId: "u-1" });
     expect(m(logAudit).mock.calls[0]![0]).toMatchObject({
-      action: "candidate.create", resourceId: "c-1", metadata: { mode: "cv", importId: "imp-1" },
+      action: "candidate.create", resourceId: "c-1", metadata: { mode: "cv", importId: "22222222-2222-4222-8222-222222222222" },
     });
   });
 
   it("returns the existing candidate when a concurrent confirm won", async () => {
     m(getImportForOrg)
-      .mockResolvedValueOnce({ id: "imp-1", poolId: "pool-1", status: "READY", candidateId: null })
-      .mockResolvedValueOnce({ id: "imp-1", poolId: "pool-1", status: "COMPLETED", candidateId: "c-9" });
+      .mockResolvedValueOnce({ id: "22222222-2222-4222-8222-222222222222", poolId: "pool-1", status: "READY", candidateId: null })
+      .mockResolvedValueOnce({ id: "22222222-2222-4222-8222-222222222222", poolId: "pool-1", status: "COMPLETED", candidateId: "c-9" });
     m(confirmImport).mockRejectedValueOnce(new ImportStateError("COMPLETED"));
-    const r = await confirmCandidateImportAction("imp-1", VALUES);
+    const r = await confirmCandidateImportAction("22222222-2222-4222-8222-222222222222", VALUES);
     expect(r).toEqual({ ok: true, data: { candidateId: "c-9" } });
+  });
+});
+
+describe("importId validation", () => {
+  for (const bad of [{ not: "x" } as never, "abc"]) {
+    const label = typeof bad === "string" ? bad : "object";
+    it(`run/confirm/discard reject ${label} without touching the service`, async () => {
+      expect(await runCandidateImportExtractionAction(bad)).toEqual({ ok: false, error: "VALIDATION" });
+      expect(await confirmCandidateImportAction(bad, VALUES)).toEqual({ ok: false, error: "VALIDATION" });
+      expect(await discardCandidateImportAction(bad)).toEqual({ ok: false, error: "VALIDATION" });
+      for (const f of [getImportForOrg, runExtraction, confirmImport, discardImport]) {
+        expect(m(f)).not.toHaveBeenCalled();
+      }
+    });
+  }
+
+  it("run uses the id resolved from the database", async () => {
+    m(getImportForOrg).mockResolvedValueOnce({ id: "44444444-4444-4444-8444-444444444444" });
+    await runCandidateImportExtractionAction(IMP);
+    expect(m(runExtraction)).toHaveBeenCalledWith("44444444-4444-4444-8444-444444444444");
+  });
+
+  it("run maps a thrown error instead of throwing", async () => {
+    m(getImportForOrg).mockResolvedValueOnce({ id: IMP });
+    m(runExtraction).mockRejectedValueOnce(new Error("boom"));
+    expect(await runCandidateImportExtractionAction(IMP)).toEqual({ ok: false, error: "INTERNAL_ERROR" });
+  });
+
+  it("discard happy path uses the resolved id", async () => {
+    m(getImportForOrg).mockResolvedValueOnce({ id: IMP });
+    m(discardImport).mockResolvedValueOnce(true);
+    expect(await discardCandidateImportAction(IMP)).toEqual({ ok: true, data: null });
+    expect(m(discardImport)).toHaveBeenCalledWith(IMP, "org-1");
+  });
+
+  it("discard returns NOT_FOUND for an unknown import", async () => {
+    m(getImportForOrg).mockResolvedValueOnce(null);
+    expect(await discardCandidateImportAction(IMP)).toEqual({ ok: false, error: "NOT_FOUND" });
+    expect(m(discardImport)).not.toHaveBeenCalled();
   });
 });
 

@@ -376,6 +376,7 @@ These supersede the corresponding statements above (see the three plans in
 - **Document access** goes through API routes that check access, audit-log
   and 307-redirect to a 60 s signed URL, instead of embedding signed URLs in pages.
 - **Cleanup** runs inside the existing nightly `regenerate-embeddings` cron.
+- **CV files stay with the uploading org.** If a dashboard-created candidate's profile is shared with the Global pool (pool mode `ALWAYS`), other orgs can see the profile but not the CV file. Document download and the Documents card are scoped to the org's own non-global pools; `ADMIN_KUBRI` keeps access.
 
 ## Known limitations (accepted for V1)
 

@@ -34,6 +34,9 @@
 - **Audit action names follow the codebase's dotted style**: `candidate.create` (metadata `mode`), `candidate_import.create`, `candidate_document.download`.
 - **Document links go through API routes** that check access, write the audit log and redirect to a 60 s signed URL. This avoids embedding signed URLs in the page, where they would expire while it is open.
 
+- **Re-check the pool when confirming.** `confirmCandidateImportAction` verifies again that the import's pool is still writable by the org (it may have been unlinked since the upload). If it isn't, return `INVALID_POOL`. *(From the plan-2 code review.)*
+- **Extraction that looks stuck.** If an import has been `EXTRACTING` for more than 2 minutes when the review page renders, the page shows the failed-state UI with "Riprova". `runExtraction` can re-claim it. *(From the plan-2 code review.)*
+
 ## File map
 
 | File | Action | Responsibility |

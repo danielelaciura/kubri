@@ -377,6 +377,18 @@ These supersede the corresponding statements above (see the three plans in
   and 307-redirect to a 60 s signed URL, instead of embedding signed URLs in pages.
 - **Cleanup** runs inside the existing nightly `regenerate-embeddings` cron.
 
+## Known limitations (accepted for V1)
+
+- **Storage orphans.** These cases can leave objects in the bucket with no matching row:
+  - an upload ticket is issued but never registered;
+  - a register fails after the upload;
+  - a file removal fails on discard;
+  - a re-upload is made through a still-valid signed token.
+
+  A later sweep can list bucket prefixes older than ~24 h that have no `CandidateImport` / `CandidateDocument` row.
+- **Stuck `EXTRACTING`.** If the DB write that ends an extraction itself fails, the import stays `EXTRACTING`. It can be re-claimed after 2 minutes; the review page offers a retry. Otherwise the 7-day cleanup removes it.
+- **Pool deletion blocked by import rows.** `CandidateImport.pool` uses `onDelete: Restrict`. A pool that has (discarded) import rows can't be deleted until those rows are removed.
+
 ## Follow-ups this design enables
 
 - **Public upload link:** add `CandidateImportLink` (token hash, `poolId`,

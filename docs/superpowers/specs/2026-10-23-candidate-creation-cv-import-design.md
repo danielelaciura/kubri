@@ -349,6 +349,34 @@ them to dictionary strings.
 
 No new environment variables (`MISTRAL_API_KEY` already exists).
 
+## Refinements made during implementation planning
+
+These supersede the corresponding statements above (see the three plans in
+`docs/superpowers/plans/2026-10-23-candidate-creation-*.md`):
+
+- **Upload path:** Vercel caps function request bodies at 4.5 MB, below the
+  10 MB limit. The browser uploads straight to Supabase Storage with a signed
+  upload URL. The server then downloads the object and verifies its real size
+  and magic bytes before creating the `UPLOADED` import
+  (`createUploadTicket` → `uploadToSignedUrl` → `registerUpload`).
+- **Extraction trigger:** extraction runs in its own server action, triggered
+  by the review page, so upload and extraction each get their own time budget.
+  An import stuck in `EXTRACTING` for more than 2 minutes can be re-claimed.
+- **`italianLevel`** stays free text (as stored today); only the three booleans
+  are closed-set.
+- **`sharedWithGlobal`** follows the pool's `globalSharing` mode with consent
+  = `false` (`WEBHOOK` → `false`, `ALWAYS` → `true`), consistent with webhook
+  candidates.
+- **Audit action names** use the codebase's dotted style:
+  `candidate.create`, `candidate_import.create`, `candidate_document.download`.
+- **Entry point:** a single "Nuovo candidato" button. The `/new` page
+  offers both modes, so a menu is unnecessary. **No toast** (no toast library
+  in the project); the redirect to the new candidate is the confirmation.
+- **Duplicate warning** only on the CV review page (not on the manual form).
+- **Document access** goes through API routes that check access, audit-log
+  and 307-redirect to a 60 s signed URL, instead of embedding signed URLs in pages.
+- **Cleanup** runs inside the existing nightly `regenerate-embeddings` cron.
+
 ## Follow-ups this design enables
 
 - **Public upload link:** add `CandidateImportLink` (token hash, `poolId`,

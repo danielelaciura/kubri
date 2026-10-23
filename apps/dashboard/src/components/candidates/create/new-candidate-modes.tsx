@@ -16,11 +16,11 @@ export function NewCandidateModes({ mode, pools }: { mode: "upload" | "manual"; 
 
   return (
     <div className="space-y-6">
-      <div className="inline-flex rounded-md border border-border p-1" role="tablist">
-        <Link href="/dashboard/candidates/new" role="tab" aria-selected={mode === "upload"}>
+      <div className="inline-flex rounded-md border border-border p-1">
+        <Link href="/dashboard/candidates/new" aria-current={mode === "upload" ? "page" : undefined}>
           <Button type="button" size="sm" variant={mode === "upload" ? "default" : "ghost"}>{tc.modeUpload}</Button>
         </Link>
-        <Link href="/dashboard/candidates/new?mode=manual" role="tab" aria-selected={mode === "manual"}>
+        <Link href="/dashboard/candidates/new?mode=manual" aria-current={mode === "manual" ? "page" : undefined}>
           <Button type="button" size="sm" variant={mode === "manual" ? "default" : "ghost"}>{tc.modeManual}</Button>
         </Link>
       </div>

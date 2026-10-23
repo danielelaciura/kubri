@@ -36,8 +36,9 @@ export function ImportReview({
 
   const discard = () =>
     startDiscard(async () => {
-      await discardCandidateImportAction(importId);
-      router.push("/dashboard/candidates/new");
+      const res = await discardCandidateImportAction(importId);
+      if (res.ok) router.push("/dashboard/candidates/new");
+      else router.refresh();
     });
 
   return (
@@ -51,8 +52,14 @@ export function ImportReview({
           <img src={fileUrl} alt={fileName} className="w-full rounded-md border" />
         ) : (
           <div className="space-y-2 rounded-md border bg-muted/30 p-3">
-            <p className="text-xs text-muted-foreground">{tc.previewUnavailable}</p>
-            <pre className="max-h-[70vh] overflow-auto whitespace-pre-wrap text-xs">{extractedText}</pre>
+            {extractedText ? (
+              <>
+                <p className="text-xs text-muted-foreground">{tc.previewUnavailable}</p>
+                <pre className="max-h-[70vh] overflow-auto whitespace-pre-wrap text-xs">{extractedText}</pre>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground">{tc.previewUnavailableNoText}</p>
+            )}
           </div>
         )}
       </div>
@@ -91,6 +98,7 @@ export function ImportReview({
         <CandidateForm
           initialValues={draft?.fields ?? emptyCandidateDraftFields()}
           uncertain={draft?.uncertain ?? []}
+          // The pool is fixed at upload time, so the selector stays hidden (one entry).
           pools={[{ id: poolId, name: "" }]}
           onSubmit={(_poolId, values) => confirmCandidateImportAction(importId, values)}
           onSuccess={(id) => router.push(`/dashboard/candidates/${id}`)}

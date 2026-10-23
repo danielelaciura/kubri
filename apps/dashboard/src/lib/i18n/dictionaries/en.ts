@@ -422,6 +422,7 @@ export const en = {
     fillManually: "Fill in manually",
     failedTitle: "The CV couldn't be read",
     previewUnavailable: "No preview for this format. Extracted text:",
+    previewUnavailableNoText: "No preview for this format.",
     sectionPersonal: "Personal details",
     sectionJob: "Desired job",
     sectionExperience: "Experience and education",

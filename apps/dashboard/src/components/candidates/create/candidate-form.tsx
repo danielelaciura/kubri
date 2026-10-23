@@ -66,7 +66,7 @@ export function CandidateForm({
       !errors[key] && uncertain.includes(key) && "border-amber-400 bg-amber-50/40",
     );
 
-  const FieldLabel = ({ k, required }: { k: CandidateFieldKey; required?: boolean }) => (
+  const label = (k: CandidateFieldKey, required?: boolean) => (
     <Label htmlFor={`cf-${k}`} className="flex items-center gap-1 text-sm">
       {tc.fields[k]}
       {required && <span aria-hidden="true">*</span>}
@@ -76,7 +76,7 @@ export function CandidateForm({
     </Label>
   );
 
-  const FieldError = ({ k }: { k: CandidateFieldKey }) =>
+  const fieldError = (k: CandidateFieldKey) =>
     errors[k] ? (
       <p className="text-xs text-destructive">
         {errors[k] === "required" ? tc.fieldRequired : tc.fieldInvalid}
@@ -85,22 +85,23 @@ export function CandidateForm({
 
   const text = (k: TextKey, opts: { required?: boolean; multiline?: boolean; type?: string } = {}) => (
     <div className="space-y-1.5">
-      <FieldLabel k={k} required={opts.required} />
+      {label(k, opts.required)}
       {opts.multiline ? (
-        <Textarea id={`cf-${k}`} value={state[k]} onChange={(e) => set(k, e.target.value)} className={fieldClass(k)} rows={2} />
+        <Textarea id={`cf-${k}`} value={state[k]} onChange={(e) => set(k, e.target.value)} className={fieldClass(k)} aria-invalid={!!errors[k]} rows={2} />
       ) : (
-        <Input id={`cf-${k}`} type={opts.type ?? "text"} value={state[k]} onChange={(e) => set(k, e.target.value)} className={fieldClass(k)} />
+        <Input id={`cf-${k}`} type={opts.type ?? "text"} value={state[k]} onChange={(e) => set(k, e.target.value)} className={fieldClass(k)} aria-invalid={!!errors[k]} />
       )}
-      <FieldError k={k} />
+      {fieldError(k)}
     </div>
   );
 
   const bool = (k: BoolKey) => (
     <div className="space-y-1.5">
-      <FieldLabel k={k} />
+      {label(k)}
       <select
         id={`cf-${k}`}
         value={state[k]}
+        aria-invalid={!!errors[k]}
         onChange={(e) => set(k, e.target.value as TriState)}
         className={cn("h-9 w-full rounded-md border border-input bg-white px-2 text-sm", fieldClass(k))}
       >
@@ -108,17 +109,19 @@ export function CandidateForm({
         <option value="true">{tc.yes}</option>
         <option value="false">{tc.no}</option>
       </select>
+      {fieldError(k)}
     </div>
   );
 
   const list = (k: ListKey) => (
     <div className="space-y-1.5">
-      <FieldLabel k={k} />
+      {label(k)}
       <div className={cn("space-y-2 rounded-md", uncertain.includes(k) && "ring-1 ring-amber-400 p-2")}>
         {state[k].map((item, i) => (
           <div key={i} className="flex items-center gap-2">
             <Input
               aria-label={`${tc.fields[k]} ${i + 1}`}
+              aria-invalid={!!errors[k]}
               value={item}
               onChange={(e) => set(k, state[k].map((v, j) => (j === i ? e.target.value : v)))}
             />
@@ -135,6 +138,7 @@ export function CandidateForm({
           {tc.addItem}
         </Button>
       </div>
+      {fieldError(k)}
     </div>
   );
 

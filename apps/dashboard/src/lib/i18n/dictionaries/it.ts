@@ -420,6 +420,7 @@ export const it = {
     fillManually: "Compila manualmente",
     failedTitle: "Non è stato possibile leggere il CV",
     previewUnavailable: "Anteprima non disponibile per questo formato. Testo estratto:",
+    previewUnavailableNoText: "Anteprima non disponibile per questo formato.",
     sectionPersonal: "Anagrafica",
     sectionJob: "Lavoro desiderato",
     sectionExperience: "Esperienze e formazione",

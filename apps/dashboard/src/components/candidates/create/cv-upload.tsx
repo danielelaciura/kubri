@@ -17,6 +17,7 @@ import {
 import type { PoolOption } from "./candidate-form";
 
 const ACCEPT = ".pdf,.docx,.jpg,.jpeg,.png,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png";
+const ALLOWED_EXTENSIONS = [".pdf", ".docx", ".jpg", ".jpeg", ".png"];
 const MAX_BYTES = 10 * 1024 * 1024;
 const BUCKET = "candidate-documents";
 
@@ -33,6 +34,11 @@ export function CvUpload({ pools }: { pools: PoolOption[] }) {
 
   async function upload(file: File) {
     setError(null);
+    const name = file.name.toLowerCase();
+    if (!ALLOWED_EXTENSIONS.some((ext) => name.endsWith(ext))) {
+      setError(tc.errors.UNSUPPORTED_TYPE);
+      return;
+    }
     if (file.size > MAX_BYTES) {
       setError(tc.errors.FILE_TOO_LARGE);
       return;
@@ -103,7 +109,7 @@ export function CvUpload({ pools }: { pools: PoolOption[] }) {
         <p className="font-medium">{busy ? tc.uploading : tc.dropzoneTitle}</p>
         <p className="text-sm text-muted-foreground">{tc.dropzoneHint}</p>
         <input
-          ref={inputRef} type="file" accept={ACCEPT} className="sr-only"
+          ref={inputRef} type="file" accept={ACCEPT} className="sr-only" tabIndex={-1}
           onChange={(e) => { const f = e.target.files?.[0]; if (f) void upload(f); e.target.value = ""; }}
         />
         <Button type="button" variant="outline" disabled={busy} onClick={() => inputRef.current?.click()}>

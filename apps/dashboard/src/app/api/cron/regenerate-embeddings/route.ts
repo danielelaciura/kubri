@@ -32,6 +32,13 @@ export async function GET(req: Request): Promise<Response> {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  let discardedImports = 0;
+  try {
+    discardedImports = await discardStaleImports();
+  } catch (e) {
+    console.error("[cron] stale candidate import cleanup failed", e);
+  }
+
   let candidates = 0;
   const candBatch = await prisma.$queryRaw<CandidateRow[]>`
     SELECT id::text AS id, "skillsAndCompetences", "workExperience",
@@ -81,13 +88,6 @@ export async function GET(req: Request): Promise<Response> {
     } catch (e) {
       console.error("[cron] job embedding failed", j.id, e);
     }
-  }
-
-  let discardedImports = 0;
-  try {
-    discardedImports = await discardStaleImports();
-  } catch (e) {
-    console.error("[cron] stale candidate import cleanup failed", e);
   }
 
   return NextResponse.json({ candidates, jobs, discardedImports });

@@ -26,34 +26,39 @@ async function main() {
   let matched = 0;
 
   for (const file of files) {
-    const bytes = new Uint8Array(await readFile(path.join(dir, file)));
-    const kind = detectDocumentKind(bytes);
-    if (!kind) {
-      console.log(`SKIP ${file}: unsupported type`);
-      continue;
-    }
-    const started = Date.now();
-    const text = await extractDocumentText(bytes, kind);
-    const draft = await extractCandidateDraft(text.text);
-    console.log(`\n== ${file} (${text.method}, ${Date.now() - started} ms, isCv=${draft.isCv})`);
-    console.log(`uncertain: ${draft.uncertain.join(", ") || "-"}`);
-
-    const expectedPath = path.join(dir, `${path.parse(file).name}.expected.json`);
-    let expected: Record<string, unknown> | null = null;
     try {
-      expected = JSON.parse(await readFile(expectedPath, "utf8")) as Record<string, unknown>;
-    } catch {
-      console.log(JSON.stringify(draft.fields, null, 2));
-      continue;
-    }
-    for (const [key, want] of Object.entries(expected)) {
-      const got = (draft.fields as Record<string, unknown>)[key];
-      const ok = norm(got) === norm(want);
-      checked++;
-      if (ok) matched++;
-      console.log(`${ok ? "OK  " : "DIFF"} ${key}: got=${JSON.stringify(got)} want=${JSON.stringify(want)}`);
+      const bytes = new Uint8Array(await readFile(path.join(dir, file)));
+      const kind = detectDocumentKind(bytes);
+      if (!kind) {
+        console.log(`SKIP ${file}: unsupported type`);
+        continue;
+      }
+      const started = Date.now();
+      const text = await extractDocumentText(bytes, kind);
+      const draft = await extractCandidateDraft(text.text);
+      console.log(`\n== ${file} (${text.method}, ${Date.now() - started} ms, isCv=${draft.isCv})`);
+      console.log(`uncertain: ${draft.uncertain.join(", ") || "-"}`);
+
+      const expectedPath = path.join(dir, `${path.parse(file).name}.expected.json`);
+      let expected: Record<string, unknown> | null = null;
+      try {
+        expected = JSON.parse(await readFile(expectedPath, "utf8")) as Record<string, unknown>;
+      } catch {
+        console.log(JSON.stringify(draft.fields, null, 2));
+        continue;
+      }
+      for (const [key, want] of Object.entries(expected)) {
+        const got = (draft.fields as Record<string, unknown>)[key];
+        const ok = norm(got) === norm(want);
+        checked++;
+        if (ok) matched++;
+        console.log(`${ok ? "OK  " : "DIFF"} ${key}: got=${JSON.stringify(got)} want=${JSON.stringify(want)}`);
+      }
+    } catch (e) {
+      console.log(`FAIL ${file}: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
+
   if (checked > 0) console.log(`\nfield accuracy: ${matched}/${checked}`);
 }
 

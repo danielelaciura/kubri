@@ -141,7 +141,9 @@ describe("runExtraction", () => {
   });
 
   it("claims, extracts and stores the draft as READY", async () => {
-    m(prisma.candidateImport.updateMany).mockResolvedValueOnce({ count: 1 });
+    m(prisma.candidateImport.updateMany)
+      .mockResolvedValueOnce({ count: 1 })
+      .mockResolvedValueOnce({ count: 1 });
     m(prisma.candidateImport.findUniqueOrThrow).mockResolvedValueOnce({ storagePath: "p/i/cv.pdf" });
     m(downloadCandidateDocument).mockResolvedValueOnce(PDF);
     m(extractDocumentText).mockResolvedValueOnce({ text: "CV", method: "pdf", pageCount: 1 });
@@ -150,34 +152,73 @@ describe("runExtraction", () => {
     await runExtraction("imp-1");
 
     const claim = m(prisma.candidateImport.updateMany).mock.calls[0]![0];
-    expect(claim.data).toEqual({ status: "EXTRACTING", errorCode: null });
-    expect(m(prisma.candidateImport.update).mock.calls[0]![0].data).toEqual({
+    expect(claim.data.status).toBe("EXTRACTING");
+    expect(claim.data.errorCode).toBeNull();
+    const claimedAt = claim.data.updatedAt;
+    expect(claimedAt).toBeInstanceOf(Date);
+    const fin = m(prisma.candidateImport.updateMany).mock.calls[1]![0];
+    expect(fin.where).toEqual({ id: "imp-1", status: "EXTRACTING", updatedAt: claimedAt });
+    expect(fin.data).toEqual({
       status: "READY", extractedText: "CV", extractionMethod: "pdf", draft: DRAFT, errorCode: null,
     });
+    expect(m(prisma.candidateImport.update)).not.toHaveBeenCalled();
   });
 
   it("stores NOT_A_CV as a READY warning", async () => {
-    m(prisma.candidateImport.updateMany).mockResolvedValueOnce({ count: 1 });
+    m(prisma.candidateImport.updateMany)
+      .mockResolvedValueOnce({ count: 1 })
+      .mockResolvedValueOnce({ count: 1 });
     m(prisma.candidateImport.findUniqueOrThrow).mockResolvedValueOnce({ storagePath: "x" });
     m(downloadCandidateDocument).mockResolvedValueOnce(PDF);
     m(extractDocumentText).mockResolvedValueOnce({ text: "fattura", method: "pdf", pageCount: 1 });
     m(extractCandidateDraft).mockResolvedValueOnce({ ...DRAFT, isCv: false });
     await runExtraction("imp-1");
-    expect(m(prisma.candidateImport.update).mock.calls[0]![0].data).toMatchObject({
+    expect(m(prisma.candidateImport.updateMany).mock.calls[1]![0].data).toMatchObject({
       status: "READY", errorCode: "NOT_A_CV",
     });
   });
 
   it("marks FAILED with a mapped code on error", async () => {
-    m(prisma.candidateImport.updateMany).mockResolvedValueOnce({ count: 1 });
+    m(prisma.candidateImport.updateMany)
+      .mockResolvedValueOnce({ count: 1 })
+      .mockResolvedValueOnce({ count: 1 });
     m(prisma.candidateImport.findUniqueOrThrow).mockResolvedValueOnce({ storagePath: "x" });
     m(downloadCandidateDocument).mockResolvedValueOnce(PDF);
     m(extractDocumentText).mockResolvedValueOnce({ text: "CV", method: "pdf", pageCount: 1 });
     m(extractCandidateDraft).mockRejectedValueOnce(new LLMTimeoutError("t"));
     await runExtraction("imp-1");
-    expect(m(prisma.candidateImport.update).mock.calls[0]![0].data).toEqual({
-      status: "FAILED", errorCode: "LLM_TIMEOUT",
-    });
+    const fin = m(prisma.candidateImport.updateMany).mock.calls[1]![0];
+    expect(fin.where).toMatchObject({ id: "imp-1", status: "EXTRACTING" });
+    expect(fin.data).toEqual({ status: "FAILED", errorCode: "LLM_TIMEOUT" });
+  });
+
+  it("drops the result without throwing when the import changed state", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    m(prisma.candidateImport.updateMany)
+      .mockResolvedValueOnce({ count: 1 })
+      .mockResolvedValueOnce({ count: 0 });
+    m(prisma.candidateImport.findUniqueOrThrow).mockResolvedValueOnce({ storagePath: "x" });
+    m(downloadCandidateDocument).mockResolvedValueOnce(PDF);
+    m(extractDocumentText).mockResolvedValueOnce({ text: "CV", method: "pdf", pageCount: 1 });
+    m(extractCandidateDraft).mockResolvedValueOnce(DRAFT);
+    await expect(runExtraction("imp-1")).resolves.toBeUndefined();
+    expect(warn).toHaveBeenCalledWith(
+      "[candidate import] extraction result dropped: import changed state",
+      { importId: "imp-1" },
+    );
+  });
+
+  it("strips NUL characters from the extracted text", async () => {
+    m(prisma.candidateImport.updateMany)
+      .mockResolvedValueOnce({ count: 1 })
+      .mockResolvedValueOnce({ count: 1 });
+    m(prisma.candidateImport.findUniqueOrThrow).mockResolvedValueOnce({ storagePath: "x" });
+    m(downloadCandidateDocument).mockResolvedValueOnce(PDF);
+    m(extractDocumentText).mockResolvedValueOnce({ text: "C\u0000V", method: "pdf", pageCount: 1 });
+    m(extractCandidateDraft).mockResolvedValueOnce(DRAFT);
+    await runExtraction("imp-1");
+    expect(m(extractCandidateDraft)).toHaveBeenCalledWith("CV");
+    expect(m(prisma.candidateImport.updateMany).mock.calls[1]![0].data.extractedText).toBe("CV");
   });
 });
 
@@ -258,11 +299,32 @@ describe("discardImport / discardStaleImports", () => {
       { id: "b", storagePath: "p/b/cv.pdf" },
     ]);
     m(prisma.candidateImport.updateMany).mockResolvedValueOnce({ count: 2 });
+    m(prisma.candidateImport.findMany).mockResolvedValueOnce([
+      { storagePath: "p/a/cv.pdf" },
+      { storagePath: "p/b/cv.pdf" },
+    ]);
     await expect(discardStaleImports(now)).resolves.toBe(2);
     const where = m(prisma.candidateImport.findMany).mock.calls[0]![0].where;
     expect(where.updatedAt.lt).toEqual(new Date("2026-10-16T03:00:00Z"));
     expect(m(removeCandidateDocuments)).toHaveBeenCalledWith(["p/a/cv.pdf", "p/b/cv.pdf"]);
   });
+});
+
+it("removes files only for rows actually discarded", async () => {
+  m(prisma.candidateImport.findMany)
+    .mockResolvedValueOnce([
+      { id: "a", storagePath: "p/a/cv.pdf" },
+      { id: "b", storagePath: "p/b/cv.pdf" },
+    ])
+    .mockResolvedValueOnce([{ storagePath: "p/a/cv.pdf" }]);
+  m(prisma.candidateImport.updateMany).mockResolvedValueOnce({ count: 1 });
+  m(removeCandidateDocuments).mockClear();
+  await expect(discardStaleImports(new Date())).resolves.toBe(1);
+  expect(m(prisma.candidateImport.findMany).mock.calls[1]![0]).toEqual({
+    where: { id: { in: ["a", "b"] }, status: "DISCARDED" },
+    select: { storagePath: true },
+  });
+  expect(m(removeCandidateDocuments)).toHaveBeenCalledWith(["p/a/cv.pdf"]);
 });
 
 it("ImportError carries its code", () => {

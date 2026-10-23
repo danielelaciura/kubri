@@ -21,7 +21,11 @@ import {
   toImportErrorCode,
 } from "./errors";
 
-/** An EXTRACTING import older than this was killed mid-run and may be re-claimed. */
+/**
+ * An EXTRACTING import older than this was killed mid-run and may be
+ * re-claimed. Derived from the timeouts: OCR 25 s + LLM 2x30 s ~= 85 s, so
+ * 2 min leaves headroom.
+ */
 const STALE_EXTRACTION_MS = 2 * 60 * 1000;
 /** Open imports untouched for this long are discarded by the nightly cron. */
 const STALE_IMPORT_MS = 7 * 24 * 60 * 60 * 1000;
@@ -114,8 +118,12 @@ export async function registerUpload(input: RegisterUploadInput): Promise<{ impo
  * concurrent or repeated calls are no-ops; re-claims retryable failures and
  * extractions that were killed mid-run. Never throws for pipeline errors —
  * they end up as status FAILED + errorCode.
+ *
+ * Not org-scoped: callers must verify the import belongs to the user's
+ * organization first (see getImportForOrg).
  */
 export async function runExtraction(importId: string): Promise<void> {
+  const claimedAt = new Date();
   const claimed = await prisma.candidateImport.updateMany({
     where: {
       id: importId,
@@ -125,7 +133,7 @@ export async function runExtraction(importId: string): Promise<void> {
         { status: "EXTRACTING", updatedAt: { lt: new Date(Date.now() - STALE_EXTRACTION_MS) } },
       ],
     },
-    data: { status: "EXTRACTING", errorCode: null },
+    data: { status: "EXTRACTING", errorCode: null, updatedAt: claimedAt },
   });
   if (claimed.count === 0) return;
 
@@ -134,29 +142,36 @@ export async function runExtraction(importId: string): Promise<void> {
     select: { storagePath: true },
   });
 
+  // Final writes only apply while the import is still the one we claimed.
+  const finish = async (data: Prisma.CandidateImportUpdateManyMutationInput) => {
+    const res = await prisma.candidateImport.updateMany({
+      where: { id: importId, status: "EXTRACTING", updatedAt: claimedAt },
+      data,
+    });
+    if (res.count === 0) {
+      console.warn("[candidate import] extraction result dropped: import changed state", { importId });
+    }
+  };
+
   try {
     const bytes = await downloadCandidateDocument(imp.storagePath);
     const kind = detectDocumentKind(bytes);
     if (!kind) throw new ImportError("FILE_UNREADABLE");
     const extracted = await extractDocumentText(bytes, kind);
-    const draft = await extractCandidateDraft(extracted.text);
-    await prisma.candidateImport.update({
-      where: { id: importId },
-      data: {
-        status: "READY",
-        extractedText: extracted.text,
-        extractionMethod: extracted.method,
-        draft: draft as unknown as Prisma.InputJsonValue,
-        errorCode: draft.isCv ? null : "NOT_A_CV",
-      },
+    // Postgres text/jsonb reject NUL, which unpdf can emit.
+    const text = extracted.text.replace(/\u0000/g, "");
+    const draft = await extractCandidateDraft(text);
+    await finish({
+      status: "READY",
+      extractedText: text,
+      extractionMethod: extracted.method,
+      draft: draft as unknown as Prisma.InputJsonValue,
+      errorCode: draft.isCv ? null : "NOT_A_CV",
     });
   } catch (e) {
     const code = toImportErrorCode(e);
     console.error("[candidate import] extraction failed", { importId, code, error: e });
-    await prisma.candidateImport.update({
-      where: { id: importId },
-      data: { status: "FAILED", errorCode: code },
-    });
+    await finish({ status: "FAILED", errorCode: code });
   }
 }
 
@@ -269,8 +284,12 @@ export async function discardStaleImports(now = new Date(), batchSize = 100): Pr
     where: { id: { in: stale.map((s) => s.id) }, status: { in: [...OPEN_STATUSES] } },
     data: { status: "DISCARDED" },
   });
+  const discarded = await prisma.candidateImport.findMany({
+    where: { id: { in: stale.map((s) => s.id) }, status: "DISCARDED" },
+    select: { storagePath: true },
+  });
   try {
-    await removeCandidateDocuments(stale.map((s) => s.storagePath));
+    await removeCandidateDocuments(discarded.map((d) => d.storagePath));
   } catch (e) {
     console.error("[candidate import] stale file removal failed", e);
   }

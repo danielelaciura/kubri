@@ -3,7 +3,7 @@
 import { z } from "zod/v4";
 import { revalidatePath } from "next/cache";
 import { candidateFieldsSchema } from "@kubri/contracts";
-import { toFieldErrors, type FieldErrors } from "@/components/candidates/create/form-state";
+import { toFieldErrors, type FieldErrors } from "@/lib/candidates/field-errors";
 import { requireOrganization } from "@/lib/auth-utils";
 import { getOrgWritablePools } from "@/lib/pools/access";
 import { logAudit } from "@/lib/audit";

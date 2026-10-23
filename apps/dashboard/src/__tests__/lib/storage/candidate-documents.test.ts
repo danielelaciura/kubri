@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 const bucket = {
-  upload: vi.fn(),
   createSignedUploadUrl: vi.fn(),
   download: vi.fn(),
   createSignedUrl: vi.fn(),
@@ -22,7 +21,6 @@ import {
   downloadCandidateDocument,
   removeCandidateDocuments,
   sanitizeFileName,
-  uploadCandidateDocument,
 } from "@/lib/storage/candidate-documents";
 
 describe("candidate-documents storage", () => {
@@ -50,23 +48,6 @@ describe("candidate-documents storage", () => {
 
   it("builds pool/import scoped paths", () => {
     expect(buildDocumentPath("pool-1", "imp-1", "cv.pdf")).toBe("pool-1/imp-1/cv.pdf");
-  });
-
-  it("uploads with content type and no upsert", async () => {
-    bucket.upload.mockResolvedValueOnce({ data: {}, error: null });
-    await uploadCandidateDocument("p/i/cv.pdf", new Uint8Array([1]), "application/pdf");
-    expect(from).toHaveBeenCalledWith(CANDIDATE_DOCUMENTS_BUCKET);
-    expect(bucket.upload).toHaveBeenCalledWith("p/i/cv.pdf", expect.any(Uint8Array), {
-      contentType: "application/pdf",
-      upsert: false,
-    });
-  });
-
-  it("wraps Supabase errors in StorageError", async () => {
-    bucket.upload.mockResolvedValueOnce({ data: null, error: { message: "boom" } });
-    await expect(
-      uploadCandidateDocument("p", new Uint8Array([1]), "application/pdf"),
-    ).rejects.toBeInstanceOf(StorageError);
   });
 
   it("downloads as bytes", async () => {

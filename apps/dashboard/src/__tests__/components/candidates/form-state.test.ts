@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { emptyCandidateDraftFields } from "@kubri/contracts";
-import { toFieldErrors, toFormState, toSubmission, validateFormState } from "@/components/candidates/create/form-state";
+import { toFormState, toSubmission, validateFormState } from "@/components/candidates/create/form-state";
 
 describe("form-state", () => {
   it("round-trips draft fields", () => {
@@ -37,16 +37,5 @@ describe("form-state", () => {
   it("returns no errors for a valid state", () => {
     const state = toFormState({ ...emptyCandidateDraftFields(), firstName: "A", lastName: "B" });
     expect(validateFormState(state)).toEqual({});
-  });
-
-  it("maps issues to field errors, first issue per field wins", () => {
-    expect(
-      toFieldErrors([
-        { code: "too_small", path: ["lastName"] },
-        { code: "invalid_format", path: ["lastName"] },
-        { code: "invalid_format", path: ["email"] },
-        { code: "custom", path: [] },
-      ]),
-    ).toEqual({ lastName: "required", email: "invalid" });
   });
 });

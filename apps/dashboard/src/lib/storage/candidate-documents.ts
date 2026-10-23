@@ -33,15 +33,6 @@ function bucket() {
   return createSupabaseAdminClient().storage.from(CANDIDATE_DOCUMENTS_BUCKET);
 }
 
-export async function uploadCandidateDocument(
-  path: string,
-  bytes: Uint8Array,
-  contentType: string,
-): Promise<void> {
-  const { error } = await bucket().upload(path, bytes, { contentType, upsert: false });
-  if (error) throw new StorageError(`upload failed: ${error.message}`);
-}
-
 /**
  * Signed upload token for one exact path: the browser uploads the file
  * straight to Storage (bypassing Vercel's 4.5 MB request-body cap) with

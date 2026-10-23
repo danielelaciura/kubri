@@ -45,4 +45,28 @@ describe("ocrDocument", () => {
     delete process.env["MISTRAL_API_KEY"];
     await expect(ocrDocument(new Uint8Array([1]), "image/png")).rejects.toBeInstanceOf(LLMError);
   });
+
+  it("throws LLMError on a null JSON body", async () => {
+    fetchMock.mockResolvedValueOnce(new Response("null"));
+    await expect(ocrDocument(new Uint8Array([1]), "image/png")).rejects.toBeInstanceOf(LLMError);
+  });
+
+  it("skips non-object page entries", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ pages: [null, { markdown: "ok" }, 3] })),
+    );
+    const r = await ocrDocument(new Uint8Array([1]), "image/png");
+    expect(r.text).toBe("ok");
+  });
+
+  it("limits PDFs to the first 10 pages and sends no pages for images", async () => {
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ pages: [] })));
+    await ocrDocument(new Uint8Array([1]), "application/pdf");
+    const pdfBody = JSON.parse(fetchMock.mock.calls[0]![1].body);
+    expect(pdfBody.pages).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ pages: [] })));
+    await ocrDocument(new Uint8Array([1]), "image/png");
+    const imgBody = JSON.parse(fetchMock.mock.calls[1]![1].body);
+    expect(imgBody.pages).toBeUndefined();
+  });
 });

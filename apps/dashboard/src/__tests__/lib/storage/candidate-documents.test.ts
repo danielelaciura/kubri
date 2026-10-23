@@ -41,8 +41,9 @@ describe("candidate-documents storage", () => {
 
   it("sanitizes file names", () => {
     expect(sanitizeFileName("CV Ahmed Benali (2024).pdf")).toBe("CV_Ahmed_Benali_2024_.pdf");
-    expect(sanitizeFileName("../../etc/passwd")).toBe(".._.._etc_passwd");
-    expect(sanitizeFileName("???")).toBe("_");
+    expect(sanitizeFileName("../../etc/passwd")).toBe("_.._etc_passwd");
+    for (const n of ["..", ".", "...", "???"]) expect(sanitizeFileName(n)).toBe("document");
+    expect(sanitizeFileName(".bashrc")).toBe("bashrc");
     expect(sanitizeFileName("")).toBe("document");
     expect(sanitizeFileName("à".repeat(300)).length).toBeLessThanOrEqual(100);
   });

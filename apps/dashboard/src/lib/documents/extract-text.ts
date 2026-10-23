@@ -4,8 +4,8 @@ import { DOCUMENT_MIME, type DocumentKind } from "./detect";
 import { DocumentError } from "./errors";
 import { ocrDocument } from "./ocr";
 
-/** Below this many non-whitespace chars a PDF is treated as scanned. */
-const MIN_PDF_TEXT_CHARS = 200;
+/** Per page; below this a PDF's text layer is treated as scanned. */
+const MIN_TEXT_CHARS_PER_PAGE = 100;
 
 export interface ExtractedText {
   text: string;
@@ -29,16 +29,28 @@ export async function extractDocumentText(
       try {
         // getDocumentProxy takes ownership of the buffer: pass a copy.
         const pdf = await getDocumentProxy(new Uint8Array(bytes));
-        const r = await extractPdfText(pdf, { mergePages: true });
-        text = r.text.trim();
-        pageCount = r.totalPages;
+        try {
+          const r = await extractPdfText(pdf, { mergePages: true });
+          text = r.text.trim();
+          pageCount = r.totalPages;
+        } finally {
+          // PDFDocumentProxy has no destroy(); the loading task owns the worker.
+          await pdf.loadingTask.destroy();
+        }
       } catch (e) {
         throw new DocumentError("FILE_UNREADABLE", e);
       }
-      if (text.replace(/\s+/g, "").length >= MIN_PDF_TEXT_CHARS) {
+      if (text.replace(/\s+/g, "").length >= MIN_TEXT_CHARS_PER_PAGE * Math.max(1, pageCount)) {
         return { text, method: "pdf", pageCount };
       }
-      return ocrOrThrow(bytes, kind);
+      // Thin or empty text layer: prefer OCR, but keep the local text as a
+      // safety net if OCR fails or finds nothing.
+      try {
+        return await ocrOrThrow(bytes, kind);
+      } catch (e) {
+        if (text) return { text, method: "pdf", pageCount };
+        throw e;
+      }
     }
     case "docx": {
       let text: string;

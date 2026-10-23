@@ -14,6 +14,7 @@ const proxy = getDocumentProxy as unknown as ReturnType<typeof vi.fn>;
 const pdfText = extractText as unknown as ReturnType<typeof vi.fn>;
 const docx = mammoth.extractRawText as unknown as ReturnType<typeof vi.fn>;
 const ocr = ocrDocument as unknown as ReturnType<typeof vi.fn>;
+const destroy = vi.fn();
 const BYTES = new Uint8Array([1, 2, 3]);
 const LONG = "Esperienza magazziniere ".repeat(20);
 
@@ -21,7 +22,7 @@ describe("extractDocumentText", () => {
   beforeEach(() => vi.resetAllMocks());
 
   it("uses the PDF text layer when it has enough text", async () => {
-    proxy.mockResolvedValueOnce({});
+    proxy.mockResolvedValueOnce({ loadingTask: { destroy } });
     pdfText.mockResolvedValueOnce({ totalPages: 2, text: LONG });
     const r = await extractDocumentText(BYTES, "pdf");
     expect(r).toEqual({ text: LONG.trim(), method: "pdf", pageCount: 2 });
@@ -29,7 +30,7 @@ describe("extractDocumentText", () => {
   });
 
   it("falls back to OCR for a scanned PDF (near-empty text layer)", async () => {
-    proxy.mockResolvedValueOnce({});
+    proxy.mockResolvedValueOnce({ loadingTask: { destroy } });
     pdfText.mockResolvedValueOnce({ totalPages: 1, text: "  \n " });
     ocr.mockResolvedValueOnce({ text: "Mario Rossi", pageCount: 1 });
     const r = await extractDocumentText(BYTES, "pdf");
@@ -61,5 +62,37 @@ describe("extractDocumentText", () => {
     await expect(p).rejects.toBeInstanceOf(DocumentError);
     await expect(p).rejects.toMatchObject({ code: "NO_TEXT" });
     expect(ocr).toHaveBeenCalledWith(BYTES, "image/jpeg");
+  });
+
+  it("sends a multi-page PDF with a thin text layer to OCR and frees pdf.js", async () => {
+    proxy.mockResolvedValueOnce({ loadingTask: { destroy } });
+    pdfText.mockResolvedValueOnce({ totalPages: 3, text: "a".repeat(250) });
+    ocr.mockResolvedValueOnce({ text: "scanned", pageCount: 3 });
+    const r = await extractDocumentText(BYTES, "pdf");
+    expect(r.method).toBe("ocr");
+    expect(destroy).toHaveBeenCalled();
+  });
+
+  it("falls back to the local text when OCR fails", async () => {
+    proxy.mockResolvedValueOnce({ loadingTask: { destroy } });
+    pdfText.mockResolvedValueOnce({ totalPages: 1, text: "b".repeat(50) });
+    ocr.mockRejectedValueOnce(new Error("ocr down"));
+    const r = await extractDocumentText(BYTES, "pdf");
+    expect(r).toEqual({ text: "b".repeat(50), method: "pdf", pageCount: 1 });
+  });
+
+  it("falls back to the local text when OCR returns nothing", async () => {
+    proxy.mockResolvedValueOnce({ loadingTask: { destroy } });
+    pdfText.mockResolvedValueOnce({ totalPages: 1, text: "b".repeat(50) });
+    ocr.mockResolvedValueOnce({ text: "", pageCount: 1 });
+    const r = await extractDocumentText(BYTES, "pdf");
+    expect(r.method).toBe("pdf");
+  });
+
+  it("throws NO_TEXT when both the text layer and OCR are empty", async () => {
+    proxy.mockResolvedValueOnce({ loadingTask: { destroy } });
+    pdfText.mockResolvedValueOnce({ totalPages: 1, text: "" });
+    ocr.mockResolvedValueOnce({ text: "", pageCount: 1 });
+    await expect(extractDocumentText(BYTES, "pdf")).rejects.toMatchObject({ code: "NO_TEXT" });
   });
 });

@@ -12,14 +12,16 @@ export const CANDIDATE_DOCUMENTS_BUCKET = "candidate-documents";
 
 const MAX_NAME_LENGTH = 100;
 
-/** Storage-safe file name: ASCII word chars, dot and dash only, ≤100 chars. */
+/** Storage-safe file name: ASCII word chars, dot and dash only, up to 100 chars. */
 export function sanitizeFileName(name: string): string {
   const cleaned = name
     .normalize("NFKD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^\w.-]+/g, "_")
-    .replace(/_+/g, "_");
-  if (!cleaned) return "document";
+    .replace(/_+/g, "_")
+    // Leading dots would make hidden / traversal-like names ("..", ".env").
+    .replace(/^\.+/, "");
+  if (!cleaned || /^[._-]*$/.test(cleaned)) return "document";
   return cleaned.length > MAX_NAME_LENGTH ? cleaned.slice(-MAX_NAME_LENGTH) : cleaned;
 }
 

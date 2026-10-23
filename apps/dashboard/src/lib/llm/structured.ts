@@ -40,7 +40,6 @@ export async function extractStructured<T>(opts: ExtractStructuredOptions<T>): P
       });
     } catch (e) {
       lastErr = e;
-      messages = baseMessages;
       continue;
     }
 

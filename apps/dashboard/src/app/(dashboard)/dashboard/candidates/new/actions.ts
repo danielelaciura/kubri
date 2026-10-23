@@ -47,18 +47,23 @@ async function writablePool(organizationId: string, poolId: string) {
   return pools.find((p) => p.id === poolId) ?? null;
 }
 
+// Errors can embed candidate data (LLM output, DB values): log name + message only.
+function errorSummary(e: unknown) {
+  return e instanceof Error ? { name: e.name, message: e.message } : { message: String(e) };
+}
+
 async function safeAudit(params: Parameters<typeof logAudit>[0]) {
   try {
     await logAudit(params);
   } catch (e) {
-    console.error("[create candidate] audit log failed", e);
+    console.error("[create candidate] audit log failed", errorSummary(e));
   }
 }
 
 function fail(e: unknown): { ok: false; error: CreateCandidateErrorCode } {
   if (e instanceof ImportError) return { ok: false, error: e.code };
   if (e instanceof ImportNotFoundError) return { ok: false, error: "NOT_FOUND" };
-  console.error("[create candidate] unexpected error", e);
+  console.error("[create candidate] unexpected error", errorSummary(e));
   return { ok: false, error: "INTERNAL_ERROR" };
 }
 
@@ -73,16 +78,26 @@ const importIdSchema = z.string().uuid();
 
 const uploadRequestSchema = z.object({
   poolId: z.string().min(1),
-  fileName: z.string().min(1).max(255),
-  fileSize: z.number().int().positive(),
+  fileName: z.string().min(1),
+  fileSize: z.number().int().nonnegative(),
 });
+
+/**
+ * Keep the tail (the extension survives). Applied identically in the request
+ * and register steps because the storage path is derived from the name.
+ */
+const MAX_FILE_NAME_LENGTH = 255;
+const clampFileName = (name: unknown) =>
+  typeof name === "string" ? name.slice(-MAX_FILE_NAME_LENGTH) : name;
 
 export async function requestCandidateUploadAction(
   input: z.input<typeof uploadRequestSchema>,
 ): Promise<ActionResult<UploadTicket>> {
   const user = await session();
-  const parsed = uploadRequestSchema.safeParse(input);
+  const parsed = uploadRequestSchema.safeParse({ ...input, fileName: clampFileName(input.fileName) });
   if (!parsed.success) return { ok: false, error: "VALIDATION" };
+  // The upload screen has no fields to highlight: an empty file is a bad file.
+  if (parsed.data.fileSize === 0) return { ok: false, error: "UNSUPPORTED_TYPE" };
   if (!(await writablePool(user.organizationId, parsed.data.poolId))) {
     return { ok: false, error: "INVALID_POOL" };
   }
@@ -96,14 +111,14 @@ export async function requestCandidateUploadAction(
 const registerSchema = z.object({
   importId: z.string().uuid(),
   poolId: z.string().min(1),
-  fileName: z.string().min(1).max(255),
+  fileName: z.string().min(1),
 });
 
 export async function registerCandidateUploadAction(
   input: z.input<typeof registerSchema>,
 ): Promise<ActionResult<{ importId: string }>> {
   const user = await session();
-  const parsed = registerSchema.safeParse(input);
+  const parsed = registerSchema.safeParse({ ...input, fileName: clampFileName(input.fileName) });
   if (!parsed.success) return { ok: false, error: "VALIDATION" };
   if (!(await writablePool(user.organizationId, parsed.data.poolId))) {
     return { ok: false, error: "INVALID_POOL" };

@@ -194,6 +194,21 @@ describe("runExtraction", () => {
     expect(fin.data).toEqual({ status: "FAILED", errorCode: "LLM_TIMEOUT" });
   });
 
+  it("logs only the error message, never the cause chain (may hold CV data)", async () => {
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    m(prisma.candidateImport.updateMany)
+      .mockResolvedValueOnce({ count: 1 })
+      .mockResolvedValueOnce({ count: 1 });
+    m(prisma.candidateImport.findUniqueOrThrow).mockResolvedValueOnce({ storagePath: "x" });
+    m(downloadCandidateDocument).mockResolvedValueOnce(PDF);
+    m(extractDocumentText).mockResolvedValueOnce({ text: "CV", method: "pdf", pageCount: 1 });
+    m(extractCandidateDraft).mockRejectedValueOnce(new LLMTimeoutError("t", new Error("Mario Rossi, via Roma 1")));
+    await runExtraction("22222222-2222-4222-8222-222222222222");
+    expect(err).toHaveBeenCalledWith("[candidate import] extraction failed", {
+      importId: "22222222-2222-4222-8222-222222222222", code: "LLM_TIMEOUT", message: "t",
+    });
+  });
+
   it("drops the result without throwing when the import changed state", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     m(prisma.candidateImport.updateMany)

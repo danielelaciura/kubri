@@ -18,6 +18,12 @@ export async function GET(
   const imp = await getImportForOrg(importId, user.organizationId);
   if (!imp || imp.status === "DISCARDED") return new Response(null, { status: 404 });
 
-  const url = await createDocumentSignedUrl(imp.storagePath);
+  let url: string;
+  try {
+    url = await createDocumentSignedUrl(imp.storagePath);
+  } catch (e) {
+    console.error("[candidate file] signed url failed", e instanceof Error ? e.message : String(e));
+    return new Response(null, { status: 502 });
+  }
   return NextResponse.redirect(url, 307);
 }

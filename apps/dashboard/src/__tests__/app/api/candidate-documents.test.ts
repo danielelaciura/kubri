@@ -19,6 +19,8 @@ import { GET as downloadGET } from "@/app/api/candidates/[id]/documents/[documen
 
 const m = <T>(f: T) => f as unknown as ReturnType<typeof vi.fn>;
 const req = new Request("http://localhost/x");
+const C = "33333333-3333-4333-8333-333333333333";
+const D = "44444444-4444-4444-8444-444444444444";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -33,6 +35,15 @@ describe("GET /api/candidate-imports/[importId]/file", () => {
     expect(res.status).toBe(404);
   });
 
+  it("502s when the signed URL fails", async () => {
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    m(getImportForOrg).mockResolvedValueOnce({ storagePath: "p/i/cv.pdf", status: "READY" });
+    m(createDocumentSignedUrl).mockRejectedValueOnce(new Error("storage down"));
+    const res = await previewGET(req, { params: Promise.resolve({ importId: "i" }) });
+    expect(res.status).toBe(502);
+    expect(err).toHaveBeenCalledWith(expect.any(String), "storage down");
+  });
+
   it("redirects to an inline signed URL", async () => {
     m(getImportForOrg).mockResolvedValueOnce({ storagePath: "p/i/cv.pdf", status: "READY" });
     const res = await previewGET(req, { params: Promise.resolve({ importId: "i" }) });
@@ -43,35 +54,52 @@ describe("GET /api/candidate-imports/[importId]/file", () => {
 });
 
 describe("GET /api/candidates/[id]/documents/[documentId]", () => {
+  it("404s on malformed ids without querying", async () => {
+    for (const params of [{ id: "c", documentId: D }, { id: C, documentId: "d" }]) {
+      const res = await downloadGET(req, { params: Promise.resolve(params) });
+      expect(res.status).toBe(404);
+    }
+    expect(m(prisma.candidateDocument.findFirst)).not.toHaveBeenCalled();
+  });
+
+  it("502s without leaking the error when the signed URL fails", async () => {
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    m(prisma.candidateDocument.findFirst).mockResolvedValueOnce({ id: D, storagePath: "p/i/cv.pdf", fileName: "cv.pdf" });
+    m(createDocumentSignedUrl).mockRejectedValueOnce(new Error("storage down"));
+    const res = await downloadGET(req, { params: Promise.resolve({ id: C, documentId: D }) });
+    expect(res.status).toBe(502);
+    expect(err).toHaveBeenCalledWith(expect.any(String), "storage down");
+  });
+
   it("404s when the document is not visible", async () => {
     m(prisma.candidateDocument.findFirst).mockResolvedValueOnce(null);
-    const res = await downloadGET(req, { params: Promise.resolve({ id: "c", documentId: "d" }) });
+    const res = await downloadGET(req, { params: Promise.resolve({ id: C, documentId: D }) });
     expect(res.status).toBe(404);
     expect(m(logAudit)).not.toHaveBeenCalled();
   });
 
   it("scopes non-admins to the org's own non-global pools", async () => {
     m(prisma.candidateDocument.findFirst).mockResolvedValueOnce(null);
-    await downloadGET(req, { params: Promise.resolve({ id: "c", documentId: "d" }) });
+    await downloadGET(req, { params: Promise.resolve({ id: C, documentId: D }) });
     expect(m(prisma.candidateDocument.findFirst).mock.calls[0]![0].where).toEqual({
-      id: "d", candidateId: "c", candidate: { id: "c", poolId: { in: ["pool-1", "pool-2"] } },
+      id: D, candidateId: C, candidate: { id: C, poolId: { in: ["pool-1", "pool-2"] } },
     });
   });
 
   it("lets ADMIN_KUBRI bypass pool scoping", async () => {
     m(requireOrganization).mockResolvedValueOnce({ id: "u", organizationId: "o", role: "ADMIN_KUBRI" });
     m(prisma.candidateDocument.findFirst).mockResolvedValueOnce(null);
-    await downloadGET(req, { params: Promise.resolve({ id: "c", documentId: "d" }) });
-    expect(m(prisma.candidateDocument.findFirst).mock.calls[0]![0].where.candidate).toEqual({ id: "c" });
+    await downloadGET(req, { params: Promise.resolve({ id: C, documentId: D }) });
+    expect(m(prisma.candidateDocument.findFirst).mock.calls[0]![0].where.candidate).toEqual({ id: C });
   });
 
   it("logs the download and redirects with a download file name", async () => {
-    m(prisma.candidateDocument.findFirst).mockResolvedValueOnce({ id: "d", storagePath: "p/i/cv.pdf", fileName: "cv.pdf" });
-    const res = await downloadGET(req, { params: Promise.resolve({ id: "c", documentId: "d" }) });
+    m(prisma.candidateDocument.findFirst).mockResolvedValueOnce({ id: D, storagePath: "p/i/cv.pdf", fileName: "cv.pdf" });
+    const res = await downloadGET(req, { params: Promise.resolve({ id: C, documentId: D }) });
     expect(res.status).toBe(307);
     expect(m(createDocumentSignedUrl)).toHaveBeenCalledWith("p/i/cv.pdf", { downloadAs: "cv.pdf" });
     expect(m(logAudit).mock.calls[0]![0]).toMatchObject({
-      action: "candidate_document.download", resourceId: "d", metadata: { candidateId: "c" },
+      action: "candidate_document.download", resourceId: D, metadata: { candidateId: C },
     });
   });
 });

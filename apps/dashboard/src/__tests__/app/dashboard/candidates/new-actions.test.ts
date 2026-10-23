@@ -67,6 +67,20 @@ describe("requestCandidateUploadAction", () => {
     expect(r).toEqual({ ok: true, data: { importId: "i", storagePath: "p", token: "t" } });
   });
 
+  it("reports a 0-byte file as an unsupported type, not a field error", async () => {
+    const r = await requestCandidateUploadAction({ poolId: "pool-1", fileName: "cv.pdf", fileSize: 0 });
+    expect(r).toEqual({ ok: false, error: "UNSUPPORTED_TYPE" });
+    expect(m(createUploadTicket)).not.toHaveBeenCalled();
+  });
+
+  it("truncates a long file name to its last 255 chars instead of rejecting it", async () => {
+    m(createUploadTicket).mockResolvedValueOnce({ importId: "i", storagePath: "p", token: "t" });
+    const fileName = "a".repeat(300) + ".pdf";
+    const r = await requestCandidateUploadAction({ poolId: "pool-1", fileName, fileSize: 10 });
+    expect(r.ok).toBe(true);
+    expect(m(createUploadTicket).mock.calls[0]![0].fileName).toBe(fileName.slice(-255));
+  });
+
   it("maps ImportError codes", async () => {
     m(createUploadTicket).mockRejectedValueOnce(new ImportError("FILE_TOO_LARGE"));
     const r = await requestCandidateUploadAction({ poolId: "pool-1", fileName: "cv.pdf", fileSize: 1e9 });
@@ -75,6 +89,13 @@ describe("requestCandidateUploadAction", () => {
 });
 
 describe("registerCandidateUploadAction", () => {
+  it("truncates a long file name the same way as the request step", async () => {
+    m(registerUpload).mockResolvedValueOnce({ importId: "i" });
+    const fileName = "a".repeat(300) + ".pdf";
+    await registerCandidateUploadAction({ importId: IMP, poolId: "pool-1", fileName });
+    expect(m(registerUpload).mock.calls[0]![0].fileName).toBe(fileName.slice(-255));
+  });
+
   it("registers with the user's org and logs the audit event", async () => {
     m(registerUpload).mockResolvedValueOnce({ importId: "i" });
     const r = await registerCandidateUploadAction({

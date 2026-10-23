@@ -176,7 +176,12 @@ export async function runExtraction(importId: string): Promise<void> {
     });
   } catch (e) {
     const code = toImportErrorCode(e);
-    console.error("[candidate import] extraction failed", { importId, code, error: e });
+    // Log the message only: an error's cause chain can carry LLM output (candidate data).
+    console.error("[candidate import] extraction failed", {
+      importId,
+      code,
+      message: e instanceof Error ? e.message : String(e),
+    });
     await finish({ status: "FAILED", errorCode: code });
   }
 }

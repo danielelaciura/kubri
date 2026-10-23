@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
+import { z } from "zod/v4";
 import { requireOrganization } from "@/lib/auth-utils";
 import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 import { getOrgWritablePools } from "@/lib/pools/access";
 import { createDocumentSignedUrl } from "@/lib/storage/candidate-documents";
+
+const UUID = z.string().uuid();
 
 /** Download a candidate's document. Access-checked and audit-logged (GDPR). */
 export async function GET(
@@ -17,6 +20,9 @@ export async function GET(
     return new Response(null, { status: 401 });
   }
   const { id, documentId } = await params;
+  if (!UUID.safeParse(id).success || !UUID.safeParse(documentId).success) {
+    return new Response(null, { status: 404 });
+  }
 
   // The raw CV file stays with the org that owns the candidate's pool: a
   // globally-shared profile does not expose the uploading org's document.
@@ -45,6 +51,12 @@ export async function GET(
     metadata: { candidateId: id },
   });
 
-  const url = await createDocumentSignedUrl(doc.storagePath, { downloadAs: doc.fileName });
+  let url: string;
+  try {
+    url = await createDocumentSignedUrl(doc.storagePath, { downloadAs: doc.fileName });
+  } catch (e) {
+    console.error("[candidate file] signed url failed", e instanceof Error ? e.message : String(e));
+    return new Response(null, { status: 502 });
+  }
   return NextResponse.redirect(url, 307);
 }

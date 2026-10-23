@@ -13,8 +13,6 @@ vi.mock("@/lib/supabase/admin", () => ({
 }));
 
 import {
-  CANDIDATE_DOCUMENTS_BUCKET,
-  StorageError,
   buildDocumentPath,
   createDocumentSignedUrl,
   createDocumentUploadUrl,

@@ -75,6 +75,14 @@ export function resolvePlaceCoords(label: string): LatLng | null {
   return null;
 }
 
+/** "20100 Milano (MI)" → "Milano": drop a leading CAP and a trailing "(PROV)". */
+function stripPostcodeAndProvince(token: string): string {
+  return token
+    .replace(/\s*\(\s*[A-Za-z]{2}\s*\)\s*$/, "")
+    .replace(/^\d{5}\s+/, "")
+    .trim();
+}
+
 /**
  * Best-effort geocoding from a free-form Italian street address.
  *
@@ -87,7 +95,7 @@ export function geocodeFromAddress(address: string | null | undefined): LatLng |
   if (!address) return null;
   const parts = address.split(",").map((s) => s.trim()).filter((s) => s.length > 0);
   if (parts.length === 0) return null;
-  const last = parts[parts.length - 1]!;
+  const last = stripPostcodeAndProvince(parts[parts.length - 1]!);
   return resolvePlaceCoords(last);
 }
 

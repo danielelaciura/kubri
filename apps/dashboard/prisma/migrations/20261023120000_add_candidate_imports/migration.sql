@@ -1,7 +1,6 @@
 -- Candidate creation from the dashboard: import process records + attached documents.
 -- Additive only; no existing rows touched.
 
-◇ injecting env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
 -- CreateEnum
 CREATE TYPE "CandidateImportOrigin" AS ENUM ('OPERATOR', 'PUBLIC_LINK', 'BULK');
 

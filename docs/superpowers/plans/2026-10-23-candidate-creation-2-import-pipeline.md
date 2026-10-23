@@ -2749,7 +2749,7 @@ gh pr create --base main --title "feat: candidate import pipeline (CV → draft 
 Spec: docs/superpowers/specs/2026-10-23-candidate-creation-cv-import-design.md
 
 ## Before merge
-- [ ] Bucket `candidate-documents` created (private) in **prod** Supabase
+- [ ] Bucket `candidate-documents` created in **prod** Supabase: private, file size limit 10 MB, allowed MIME types `application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document, image/jpeg, image/png` (second guard behind the signed upload URL)
 - [ ] Migration `20261023120000_add_candidate_imports` applied to prod (`prisma migrate deploy`)
 - [ ] Mistral DPA / retention confirmed to cover `/v1/ocr`
 

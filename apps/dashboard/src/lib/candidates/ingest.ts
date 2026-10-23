@@ -37,7 +37,7 @@ export async function upsertCandidate(
 
 /**
  * Regenerate the candidate's embedding. Best-effort: on failure it logs and
- * leaves `embedding` null for the nightly cron to retry. Never throws.
+ * leaves `embedding` null for the nightly cron to retry. Embedding failures never propagate.
  * Call it after any surrounding transaction has committed.
  */
 export async function refreshCandidateEmbedding(

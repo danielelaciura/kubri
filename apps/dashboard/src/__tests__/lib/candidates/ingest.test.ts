@@ -14,6 +14,7 @@ vi.mock("@/lib/embeddings/client", () => ({
 
 import { prisma } from "@/lib/db";
 import { generateEmbedding } from "@/lib/embeddings/client";
+import { buildCandidateEmbeddingText } from "@/lib/embeddings/text";
 import {
   ingestCandidate,
   refreshCandidateEmbedding,
@@ -77,6 +78,18 @@ describe("refreshCandidateEmbedding", () => {
     await refreshCandidateEmbedding(ROW, "test");
     expect(embedMock).toHaveBeenCalledTimes(1);
     expect(execMock).toHaveBeenCalledTimes(1);
+    const expectedText = buildCandidateEmbeddingText({
+      skillsAndCompetences: ROW.skillsAndCompetences,
+      workExperience: ROW.workExperience,
+      educationAndTraining: ROW.educationAndTraining,
+      desiredJob: ROW.desiredJob,
+      jobConstraints: ROW.jobConstraints,
+    });
+    expect(execMock.mock.calls[0]!.slice(1)).toEqual([
+      "[0.1,0.2]",
+      expectedText,
+      ROW.id,
+    ]);
   });
 
   it("skips when the embedding text is empty", async () => {
@@ -85,6 +98,19 @@ describe("refreshCandidateEmbedding", () => {
       "test",
     );
     expect(embedMock).not.toHaveBeenCalled();
+    expect(execMock).not.toHaveBeenCalled();
+  });
+
+  it("logs and swallows a failed DB write", async () => {
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    embedMock.mockResolvedValueOnce([0.1]);
+    execMock.mockRejectedValueOnce(new Error("db write"));
+    await expect(refreshCandidateEmbedding(ROW, "t")).resolves.toBeUndefined();
+    expect(err).toHaveBeenCalledWith(
+      "[t] embedding failed",
+      expect.objectContaining({ candidateId: ROW.id }),
+    );
+    err.mockRestore();
   });
 
   it("logs and swallows embedding failures", async () => {

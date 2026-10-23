@@ -131,7 +131,7 @@ This is the ingestion path. The Make scenario POSTs a candidate payload here whe
 5. Generates the embedding via the Supabase Edge Function and writes `embedding` / `embeddingText` / `embeddingUpdatedAt`
 6. Returns 200
 
-The webhook is the **only** sanctioned write path for candidate data. The dashboard's UI is read-only on candidate profile fields (notes and tags are separate models).
+Every write to `Candidate` goes through `src/lib/candidates/ingest.ts` (`upsertCandidate` / `ingestCandidate`). Sanctioned callers: the Make webhook, the assessment webhook, dashboard candidate creation (manual form and CV import, `src/lib/candidates/dashboard-create.ts` and `src/lib/candidate-imports/`), and backfill scripts. Editing existing candidates from the UI is not supported.
 
 ### Legacy `src/lib/make/` module
 
@@ -182,9 +182,9 @@ Conventions:
 - Use Prisma transactions for multi-step operations
 
 ### Candidate ingestion
-- The Make webhook is the canonical write path for `Candidate` rows. Do not write to `Candidate` from anywhere else (except backfill scripts under `scripts/`)
+- All `Candidate` writes go through `ingestCandidate` / `upsertCandidate`. Never call `prisma.candidate.create/update/upsert` directly elsewhere (backfill scripts under `scripts/` excepted)
 - The webhook handler is responsible for upserting **and** for regenerating the embedding (sync). If embedding fails, log and leave `embedding = null`; a nightly cron will retry
-- Never expose write endpoints for candidate profile fields to the dashboard UI
+- The dashboard may create candidates (form or CV import) but never edit existing profile fields
 
 ### Semantic search (embeddings)
 - Embeddings are generated via a Supabase Edge Function running `gte-small` (multilingual, 384-dim, free, EU-hosted). Never send candidate text to an external embedding provider
@@ -381,7 +381,7 @@ Social cooperatives, employment agencies (APL), public employment centers. They 
 
 ## Things NOT To Do
 
-- Do NOT bypass the Make webhook to write `Candidate` rows from the UI or from server actions — backfill scripts are the only exception
+- Do NOT write `Candidate` rows outside `ingestCandidate` / `upsertCandidate`
 - Do NOT build the chatbot — it is out of scope, it stays on Make
 - Do NOT integrate WhatsApp Business API — that is Phase 2
 - Do NOT build an interview question editor — that is Phase 2
@@ -403,6 +403,7 @@ Done or in progress:
 7. Organization management (invites, roles, pools)
 8. JD creation and basic matching (location filter live, semantic matching in design)
 9. Terms acceptance modal
+10. Candidate creation from the dashboard (manual form + CV import with Mistral OCR/LLM)
 
 Next:
 

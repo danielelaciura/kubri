@@ -325,7 +325,7 @@ export const en = {
     retryButton: "Try again",
     emptyTitle: "No candidates found",
     emptyWithFilters: "Try adjusting the search filters.",
-    emptyNoFilters: "Candidates will appear here once the chatbot collects profiles.",
+    emptyNoFilters: "Candidates will appear here once the chatbot collects profiles or when you add them.",
     backToList: "Back to list",
     notFoundTitle: "Candidate not found",
     notFoundDescription: "The requested profile does not exist or is not accessible.",

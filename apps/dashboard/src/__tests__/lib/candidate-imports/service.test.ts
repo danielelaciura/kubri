@@ -38,6 +38,7 @@ vi.mock("@/lib/candidates/ingest", () => ({
 }));
 
 import { prisma } from "@/lib/db";
+import { Prisma } from "@/generated/prisma/client";
 import {
   createDocumentUploadUrl,
   downloadCandidateDocument,
@@ -259,7 +260,9 @@ describe("confirmImport", () => {
     expect(tx.candidateDocument.create.mock.calls[0]![0].data).toMatchObject({
       candidateId: "c-1", kind: "CV", storagePath: "p/22222222-2222-4222-8222-222222222222/cv.pdf",
     });
-    expect(tx.candidateImport.update.mock.calls[0]![0].data).toEqual({ candidateId: "c-1" });
+    expect(tx.candidateImport.update.mock.calls[0]![0].data).toEqual({
+      candidateId: "c-1", extractedText: null, draft: Prisma.DbNull,
+    });
     expect(m(refreshCandidateEmbedding)).toHaveBeenCalledWith({ id: "c-1" }, "candidate import");
   });
 
@@ -307,6 +310,9 @@ describe("discardImport / discardStaleImports", () => {
     expect(m(prisma.candidateImport.updateMany).mock.calls[0]![0].where).toEqual({
       id: "22222222-2222-4222-8222-222222222222", organizationId: "o", status: { in: ["UPLOADED", "EXTRACTING", "READY", "FAILED"] },
     });
+    expect(m(prisma.candidateImport.updateMany).mock.calls[0]![0].data).toEqual({
+      status: "DISCARDED", extractedText: null, draft: Prisma.DbNull,
+    });
     expect(m(removeCandidateDocuments)).toHaveBeenCalledWith(["p/i/cv.pdf"]);
   });
 
@@ -324,6 +330,9 @@ describe("discardImport / discardStaleImports", () => {
     await expect(discardStaleImports(now)).resolves.toBe(2);
     const where = m(prisma.candidateImport.findMany).mock.calls[0]![0].where;
     expect(where.updatedAt.lt).toEqual(new Date("2026-10-16T03:00:00Z"));
+    expect(m(prisma.candidateImport.updateMany).mock.calls[0]![0].data).toEqual({
+      status: "DISCARDED", extractedText: null, draft: Prisma.DbNull,
+    });
     expect(m(removeCandidateDocuments)).toHaveBeenCalledWith(["p/a/cv.pdf", "p/b/cv.pdf"]);
   });
 });

@@ -123,7 +123,7 @@ export async function extractCandidateDraft(text: string): Promise<CandidateDraf
     system,
     user,
     temperature: 0.1,
-    timeoutMs: 30000,
+    timeoutMs: 15000,
   });
   return normalizeLlmDraft(raw);
 }

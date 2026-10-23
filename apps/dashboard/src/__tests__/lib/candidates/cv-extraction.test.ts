@@ -94,7 +94,7 @@ describe("extractCandidateDraft", () => {
     const d = await extractCandidateDraft("CV text");
     expect(d.fields.firstName).toBe("A");
     expect(extract).toHaveBeenCalledWith(
-      expect.objectContaining({ temperature: 0.1, timeoutMs: 30000 }),
+      expect.objectContaining({ temperature: 0.1, timeoutMs: 15000 }),
     );
   });
 });

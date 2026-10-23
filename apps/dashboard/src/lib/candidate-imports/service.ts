@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { CandidateFields } from "@kubri/contracts";
 import { prisma } from "@/lib/db";
-import type { CandidateImportOrigin, Prisma } from "@/generated/prisma/client";
+import { Prisma, type CandidateImportOrigin } from "@/generated/prisma/client";
 import { detectDocumentKind, DOCUMENT_MIME, MAX_DOCUMENT_BYTES } from "@/lib/documents/detect";
 import { extractDocumentText } from "@/lib/documents/extract-text";
 import { extractCandidateDraft } from "@/lib/candidates/cv-extraction";
@@ -23,8 +23,9 @@ import {
 
 /**
  * An EXTRACTING import older than this was killed mid-run and may be
- * re-claimed. Derived from the timeouts: OCR 25 s + LLM 2x30 s ~= 85 s, so
- * 2 min leaves headroom.
+ * re-claimed. Derived from the timeouts: OCR 20 s + LLM 2x15 s ~= 50 s, plus
+ * download and parse, which fits the review page's 60 s maxDuration; 2 min
+ * leaves headroom.
  */
 const STALE_EXTRACTION_MS = 2 * 60 * 1000;
 /** Open imports untouched for this long are discarded by the nightly cron. */
@@ -246,7 +247,7 @@ export async function confirmImport(input: ConfirmImportInput): Promise<{ candid
     });
     await tx.candidateImport.update({
       where: { id: imp.id },
-      data: { candidateId: row.id },
+      data: { candidateId: row.id, extractedText: null, draft: Prisma.DbNull },
     });
     return { candidateId: row.id, row };
   });
@@ -266,7 +267,7 @@ export async function discardImport(importId: string, organizationId: string): P
 
   const res = await prisma.candidateImport.updateMany({
     where: { id: importId, organizationId, status: { in: [...OPEN_STATUSES] } },
-    data: { status: "DISCARDED" },
+    data: { status: "DISCARDED", extractedText: null, draft: Prisma.DbNull },
   });
   if (res.count === 0) return false;
 
@@ -295,7 +296,7 @@ export async function discardStaleImports(now = new Date(), batchSize = 100): Pr
 
   const res = await prisma.candidateImport.updateMany({
     where: { id: { in: stale.map((s) => s.id) }, status: { in: [...OPEN_STATUSES] } },
-    data: { status: "DISCARDED" },
+    data: { status: "DISCARDED", extractedText: null, draft: Prisma.DbNull },
   });
   const discarded = await prisma.candidateImport.findMany({
     where: { id: { in: stale.map((s) => s.id) }, status: "DISCARDED" },

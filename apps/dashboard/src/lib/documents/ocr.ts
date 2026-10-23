@@ -2,7 +2,7 @@ import { LLMError, LLMTimeoutError } from "@/lib/llm/errors";
 
 const OCR_URL = "https://api.mistral.ai/v1/ocr";
 const OCR_MODEL = "mistral-ocr-latest";
-const DEFAULT_TIMEOUT_MS = 25000;
+const DEFAULT_TIMEOUT_MS = 20000;
 /** A CV rarely needs more; keeps long scans inside the request budget. */
 const MAX_OCR_PAGES = 10;
 

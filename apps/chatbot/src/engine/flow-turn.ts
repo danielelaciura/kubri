@@ -16,6 +16,11 @@ export function handleFlowTurn(turn: Turn, event: UserTurnEvent): void {
     nonAnswer(turn, null);
     return;
   }
+  // Not answers: nothing extracted from them is saved, and no clarification is used up (D43).
+  if (interpretation.intent === "off_topic" || interpretation.intent === "help") {
+    nonAnswer(turn, interpretation);
+    return;
+  }
   const { step, index } = currentStep(turn);
   const currentField = step.type === "questions" ? currentQuestion(turn, step).field : undefined;
   const fieldBefore =

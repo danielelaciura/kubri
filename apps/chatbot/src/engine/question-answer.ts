@@ -4,7 +4,7 @@ import { advanceFromQuestion, askQuestion } from "./advance";
 import { askConfirmation } from "./confirmations";
 import type { Interpretation } from "./interpretation";
 import { fieldState, isFieldFilled, withField, type FieldState } from "./profile-snapshot";
-import { currentQuestion, nonAnswer } from "./replies";
+import { currentQuestion } from "./replies";
 import { emit, setState, type Turn } from "./turn";
 
 /** What the turn's patch did to the current question's field. */
@@ -26,10 +26,6 @@ export function answerQuestion(
   const question = currentQuestion(turn, step);
   if (lowConfidence) {
     askConfirmation(turn, lowConfidence);
-    return;
-  }
-  if (interpretation.intent === "off_topic" || interpretation.intent === "help") {
-    nonAnswer(turn, interpretation);
     return;
   }
   if (interpretation.intent === "refusal" && !question.required) {

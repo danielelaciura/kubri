@@ -1,7 +1,7 @@
 import type { Question, QuestionsStep } from "../campaigns/schema/steps";
 import { consentTextRef, questionTextRef } from "./advance";
 import type { Interpretation } from "./interpretation";
-import { stepTextRef } from "./text-ref";
+import { stepTextRef, type TextRef } from "./text-ref";
 import { currentStep, incoherent, say, systemText, type Turn } from "./turn";
 
 export function currentQuestion(turn: Turn, step: QuestionsStep): Question {
@@ -31,8 +31,18 @@ export function repromptCurrent(turn: Turn): void {
   }
 }
 
-/** Not an answer to the current step: say so, then ask again. */
-export function nonAnswer(turn: Turn, _interpretation: Interpretation | null): void {
-  say(turn, systemText("system.not_understood"));
+/** Not an answer to the current step: a short lead text, then the question again (§7.2 p. 4). */
+export function nonAnswer(turn: Turn, interpretation: Interpretation | null): void {
+  say(turn, leadText(interpretation));
   repromptCurrent(turn);
+}
+
+function leadText(interpretation: Interpretation | null): TextRef {
+  if (interpretation?.intent === "off_topic") {
+    return interpretation.offTopicReply
+      ? { kind: "generated", text: interpretation.offTopicReply }
+      : systemText("system.off_topic");
+  }
+  if (interpretation?.intent === "help") return systemText("system.help");
+  return systemText("system.not_understood");
 }

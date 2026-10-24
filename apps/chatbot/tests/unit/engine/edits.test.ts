@@ -55,6 +55,34 @@ describe("edit requests during the flow", () => {
     });
   });
 
+  it("keeps a pending follow-up question after a confirmed edit of another field", () => {
+    const state = atQuestion("nome", {
+      clarifications: 1,
+      profile: { firstName: inferred("Mario") },
+      pendingConfirmation: {
+        kind: "edit",
+        field: "drivingLicense",
+        oldValue: null,
+        newValue: true,
+      },
+    });
+    const result = step(state, userTurn("sì", choice("yes")), c);
+
+    expect(others(result.effects)).toEqual(["ApplyPatch:edit:drivingLicense"]);
+    expect(sent(result.effects)).toEqual(["system.edit_saved", "anagrafica.nome"]);
+    expect(result.state).toMatchObject({ questionId: "nome", clarifications: 1 });
+  });
+
+  it("moves on after a confirmed edit of the current question's field", () => {
+    const state = atQuestion("nome", {
+      profile: { firstName: inferred("Mario") },
+      pendingConfirmation: pending,
+    });
+    const result = step(state, userTurn("sì", choice("yes")), c);
+
+    expect(sent(result.effects)).toEqual(["system.edit_saved", "anagrafica.patente"]);
+  });
+
   it("cancels on no, then resumes the current question", () => {
     const state = { ...atPatente, pendingConfirmation: pending };
     const result = step(state, userTurn("no", choice("no")), c);

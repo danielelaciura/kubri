@@ -54,7 +54,9 @@ export function resolvePendingInFlow(turn: Turn, event: UserTurnEvent): boolean 
     case "edit":
       if (yes) {
         saveEdit(turn, pending);
-        resumeFlow(turn);
+        // Editing another field must not skip a follow-up still pending on the current one.
+        if (pending.field === currentField(turn)) resumeFlow(turn);
+        else repromptCurrent(turn);
         return true;
       }
       if (no) {
@@ -78,6 +80,12 @@ export function resolvePendingInFlow(turn: Turn, event: UserTurnEvent): boolean 
 export function dropStaleConfirmation(turn: Turn): void {
   setState(turn, { pendingConfirmation: null });
   emit(turn, { type: "FlagSession", reason: "stale_confirmation", needsAttention: true });
+}
+
+/** The field of the question waiting for an answer, if the current step is a questions block. */
+function currentField(turn: Turn): string | undefined {
+  const { step } = currentStep(turn);
+  return step.type === "questions" ? currentQuestion(turn, step).field : undefined;
 }
 
 /** Moves on if the current question is now answered, otherwise asks it again. */

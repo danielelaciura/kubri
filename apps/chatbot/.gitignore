@@ -1,0 +1,14 @@
+node_modules/
+coverage/
+src/generated/
+*.log
+.DS_Store
+
+# env files hold secrets; only the example and the local test config are committed
+.env*
+!.env.example
+!.env.test
+
+# local eval runs; committed baselines live in evals/reports/baselines/
+evals/reports/*
+!evals/reports/baselines/

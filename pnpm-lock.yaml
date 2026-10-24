@@ -56,6 +56,10 @@ importers:
         version: 5.9.3
 
   apps/chatbot:
+    dependencies:
+      zod:
+        specifier: ^4.3.6
+        version: 4.3.6
     devDependencies:
       '@eslint/js':
         specifier: ^9.39.4

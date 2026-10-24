@@ -1,8 +1,11 @@
 import { z } from "zod";
 import { targetsBotSchema } from "./database-url";
 
+export const NodeEnvSchema = z.enum(["development", "test", "production"]).default("development");
+export type NodeEnv = z.infer<typeof NodeEnvSchema>;
+
 const EnvSchema = z.object({
-  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+  NODE_ENV: NodeEnvSchema,
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
   DATABASE_URL: z.string({ error: "DATABASE_URL is required" }).refine(targetsBotSchema, {
     // The database is shared with the Kubri dashboard: never default to its schema.
@@ -21,6 +24,15 @@ export function parseEnv(source: Readonly<Record<string, string | undefined>>): 
       .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
       .join("; ");
     throw new Error(`Invalid environment: ${details}`);
+  }
+  return result.data;
+}
+
+/** NODE_ENV alone, for commands that run without a database (e.g. `campaigns validate`). */
+export function parseNodeEnv(value: string | undefined): NodeEnv {
+  const result = NodeEnvSchema.safeParse(value);
+  if (!result.success) {
+    throw new Error("Invalid environment: NODE_ENV must be development, test or production");
   }
   return result.data;
 }

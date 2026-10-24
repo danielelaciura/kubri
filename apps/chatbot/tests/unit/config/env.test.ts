@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseEnv } from "../../../src/config/env";
+import { parseEnv, parseNodeEnv } from "../../../src/config/env";
 
 const VALID_URL = "postgresql://postgres:postgres@localhost:54329/kubri_bot_dev?schema=bot";
 
@@ -38,5 +38,19 @@ describe("parseEnv", () => {
     }
     expect(message).toMatch(/DATABASE_URL/);
     expect(message).not.toContain("s3cr3t");
+  });
+});
+
+describe("parseNodeEnv", () => {
+  it("defaults to development", () => {
+    expect(parseNodeEnv(undefined)).toBe("development");
+  });
+
+  it("accepts production", () => {
+    expect(parseNodeEnv("production")).toBe("production");
+  });
+
+  it("rejects unknown values", () => {
+    expect(() => parseNodeEnv("prod")).toThrow(/NODE_ENV/);
   });
 });

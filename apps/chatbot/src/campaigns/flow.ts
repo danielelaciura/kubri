@@ -1,3 +1,4 @@
+import { evaluateCondition, type ConditionContext } from "./conditions/evaluate";
 import type { Step, Target } from "./schema/steps";
 
 /** The outcomes a step can produce. `end` produces none: it closes the session. */
@@ -47,4 +48,20 @@ function defaultTarget(step: Step, outcome: string, nextStepId: string | undefin
   if (step.type === "questions" && outcome === "terminated") return "@stop";
   if (step.type === "consent" && outcome === "declined" && !step.optional) return "@stop";
   return nextStepId ?? "@end";
+}
+
+/**
+ * Index of the first step at or after `fromIndex` whose `when` holds (or that has none).
+ * Skipped steps produce no outcome. Undefined when the flow runs out.
+ */
+export function nextEligibleStep(
+  flow: readonly Step[],
+  fromIndex: number,
+  ctx: ConditionContext,
+): number | undefined {
+  for (let index = fromIndex; index < flow.length; index++) {
+    const step = flow[index];
+    if (step && (!step.when || evaluateCondition(step.when, ctx))) return index;
+  }
+  return undefined;
 }

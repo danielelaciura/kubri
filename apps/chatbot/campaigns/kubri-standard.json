@@ -107,7 +107,7 @@
           "prompt": {
             "it": "Come parli l'italiano? Per niente, poco, abbastanza bene, bene, oppure è la tua lingua madre?"
           },
-          "hint": "Per niente → nessuno; poco → base; abbastanza bene → intermedio; bene o molto bene → avanzato; lingua madre → madrelingua. In caso di dubbio scegli il livello più basso tra quelli plausibili."
+          "hint": "Per niente → nessuno; poco → base; abbastanza bene → intermedio; bene o molto bene → avanzato; lingua madre → madrelingua."
         },
         {
           "id": "altre_lingue",
@@ -168,7 +168,8 @@
           "prompt": {
             "it": "Che scuole o corsi hai fatto? Dimmi anche in che anni e in quale Paese, se te lo ricordi."
           },
-          "hint": "Una voce per titolo o corso, nella forma \"anno - anno Istituto (Paese): Titolo\". Se mancano gli anni scrivi solo quello che il candidato ha detto, senza inventarli. Il nome dell'istituto resta nella lingua originale."
+          "required": false,
+          "hint": "Una voce per titolo o corso, nella forma \"anno - anno Istituto (Paese): Titolo\". Se mancano gli anni scrivi solo quello che il candidato ha detto, senza inventarli. Il nome dell'istituto resta nella lingua originale. Se dice di non avere titoli o di non aver fatto scuole o corsi, nessun valore: non inventarne."
         },
         {
           "id": "lavori",
@@ -176,7 +177,8 @@
           "prompt": {
             "it": "Che lavori hai fatto finora? Vanno bene anche lavori senza contratto o all'estero. Per ognuno dimmi cosa facevi, dove e per quanto tempo."
           },
-          "hint": "Una voce per esperienza, nella forma \"anno - anno Luogo (Paese): Ruolo\", con il ruolo in italiano. Conta anche il lavoro informale o in famiglia. Non inventare date: se il candidato dice \"due anni\" senza date, scrivi la durata nel ruolo."
+          "required": false,
+          "hint": "Una voce per esperienza, nella forma \"anno - anno Luogo (Paese): Ruolo\", con il ruolo in italiano. Conta anche il lavoro informale o in famiglia. Non inventare date: se il candidato dice \"due anni\" senza date, scrivi la durata nel ruolo. Se dice di non avere esperienze di lavoro, nessun valore: non inventarne."
         },
         {
           "id": "competenze",
@@ -203,7 +205,8 @@
         {
           "id": "esperienza_desiderato",
           "field": "jobPreferences.hasDesiredJobExperience",
-          "prompt": { "it": "Hai già esperienza in questo lavoro? Se sì, quanta?" },
+          "prompt": { "it": "Hai già fatto questo lavoro? Per quanto tempo?" },
+          "required": false,
           "hint": "Sintetizza in italiano, es. \"sì, 2 anni in Marocco\" oppure \"no\". Se ha già raccontato questa esperienza tra i lavori fatti, riassumila senza chiederla di nuovo."
         },
         {
@@ -216,7 +219,7 @@
           "id": "part_time",
           "field": "jobPreferences.partTime",
           "prompt": { "it": "Preferisci un lavoro part-time o a tempo pieno?" },
-          "hint": "Part-time → true; tempo pieno → false. Se va bene entrambi, chiedi cosa preferisce; se resta indifferente, false."
+          "hint": "Part-time → true; tempo pieno → false. Se dice che va bene entrambi o è indifferente, non dedurre alcun valore: lascia il campo vuoto."
         },
         {
           "id": "vincoli",
@@ -225,7 +228,7 @@
             "it": "Ci sono orari, turni o giorni in cui non puoi lavorare? Per esempio per la famiglia o per la salute."
           },
           "required": false,
-          "hint": "Riassumi i vincoli in italiano (es. \"no turni notturni\", \"solo mattina\"). Per motivi di salute riporta solo il vincolo, non la diagnosi. Se dice che non ha vincoli, scrivi \"nessuno\"."
+          "hint": "Riassumi i vincoli in italiano (es. \"no turni notturni\", \"solo mattina\"). Per motivi di salute riporta solo il vincolo, non la diagnosi. Se dice che non ha vincoli, lascia il campo vuoto: non scrivere \"nessuno\"."
         }
       ]
     },

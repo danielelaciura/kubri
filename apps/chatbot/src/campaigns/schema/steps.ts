@@ -104,3 +104,8 @@ export const StepSchema = z.discriminatedUnion("type", [
 ]);
 export type Step = z.infer<typeof StepSchema>;
 export type StepType = Step["type"];
+
+export type ChoiceStep = z.infer<typeof ChoiceStepSchema>;
+export type ConsentStep = z.infer<typeof ConsentStepSchema>;
+export type QuestionsStep = z.infer<typeof QuestionsStepSchema>;
+export type CvOfferStep = z.infer<typeof CvOfferStepSchema>;

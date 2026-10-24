@@ -81,7 +81,7 @@ Oggi il chatbot di Kubri vive su Make.com. L'analisi dello scenario ha evidenzia
 | D27 | Opzioni di `choice` | Oggetti `{ id, description }`; la descrizione guida l'LLM. |
 | D28 | Esiti predefiniti | `questions.terminated` e `consent.declined` (non facoltativo) → `@stop`; gli altri → passaggio successivo o `@end`. |
 | D29 | Campi di sistema | `lat`, `lng`, `phone` sono `systemOnly`: non si chiedono e non si estraggono. |
-| D30 | Soglia dei consensi nel validatore | Ogni campagna ha almeno un consenso obbligatorio, non condizionato (`when` vietato), e il suo rifiuto porta sempre a `@stop`. |
+| D30 | Soglia dei consensi nel validatore | Ogni campagna ha almeno un consenso obbligatorio, non condizionato (`when` vietato), e il suo rifiuto porta sempre a `@stop`, e nessun blocco `questions`/`cv_offer` è raggiungibile senza passare da un consenso obbligatorio. |
 
 ---
 
@@ -223,7 +223,8 @@ apps/chatbot/
   "onStop": { "data": "delete" },
   "customFields": [
     { "key": "vat_openness", "type": "enum", "options": ["si", "no", "da_valutare"],
-      "label": { "it": "Disponibilità ad aprire P.IVA" } }
+      "label": { "it": "Disponibilità ad aprire P.IVA" },
+      "description": "Se il candidato è disposto ad aprire una partita IVA." }
   ],
   "texts": {
     "cv_explain": { "it": "Un CV (curriculum vitae) è un documento che…" }
@@ -264,7 +265,6 @@ apps/chatbot/
   "required": true,
   "hint": "Se dice di avere la patente ma scaduta, è false.",
   "when": { "field": "transport", "neq": "auto" },
-  "terminateIf": null,
   "maxClarifications": 2
 }
 ```
@@ -838,6 +838,7 @@ Risolte (2026-10-24): chiave del candidato → D20; pool → D21; `source_organi
 10. **Template del CV:** unico o per cliente?
 11. **Proprietà degli account WhatsApp Business in produzione:** numeri tutti sotto un account Kubri oppure account dei clienti? Incide su provisioning e Twilio.
 12. **Fornitore di hosting in UE e provider LLM definitivo** (dopo i primi evals).
+13. **Campagne senza passaggio `end` o con più `end`:** cosa fa `@end`?
 
 ---
 

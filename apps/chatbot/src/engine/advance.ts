@@ -102,7 +102,15 @@ export function endFlow(turn: Turn): void {
   completeSession(turn, systemText("system.closing"));
 }
 
+/**
+ * Closing the flow. Before the consent threshold no candidate exists on Kubri and nothing may
+ * be kept (D24): the closing text is sent and the session stops with deletion.
+ */
 function completeSession(turn: Turn, closing: TextRef): void {
+  if (!turn.state.consentsAccepted) {
+    stopSession(turn, "ended_before_consent", { goodbye: closing, dataPolicy: "delete" });
+    return;
+  }
   say(turn, closing);
   emit(
     turn,

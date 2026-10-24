@@ -210,7 +210,7 @@ describe("followOutcome", () => {
           text: { it: "A presto!" },
         });
       });
-      const turn = turnFor(flowState({ stepId: "cv_info" }), c);
+      const turn = turnFor(flowState({ stepId: "cv_info", consentsAccepted: true }), c);
       followOutcome(turn, 1, "no");
 
       expect(sent(turn.effects)).toEqual(["fine"]);
@@ -219,6 +219,18 @@ describe("followOutcome", () => {
         "EnqueueJob:kubri-webhook:interview.completed",
       ]);
       expect(turn.state).toMatchObject({ phase: "post_completion", stepId: null });
+    });
+
+    it("before the consent threshold closes and deletes instead of completing (D24)", () => {
+      const c = endOn((input) => {
+        input.onStop = { data: "keep" };
+      });
+      const turn = turnFor(flowState({ stepId: "cv_info" }), c);
+      followOutcome(turn, 1, "no");
+
+      expect(sent(turn.effects)).toEqual(["fine"]);
+      expect(others(turn.effects)).toEqual(["StopSession:ended_before_consent:delete"]);
+      expect(turn.state).toMatchObject({ phase: "closed", stepId: null });
     });
 
     it("picks an earlier end step when its when holds", () => {
@@ -240,7 +252,7 @@ describe("followOutcome", () => {
       const c = endOn((input) => {
         input.flow.pop();
       });
-      const turn = turnFor(flowState({ stepId: "cv_info" }), c);
+      const turn = turnFor(flowState({ stepId: "cv_info", consentsAccepted: true }), c);
       followOutcome(turn, 1, "no");
 
       expect(sent(turn.effects)).toEqual(["system.closing"]);
@@ -248,6 +260,18 @@ describe("followOutcome", () => {
         "CompleteSession",
         "EnqueueJob:kubri-webhook:interview.completed",
       ]);
+    });
+
+    it("before the threshold, with no end step, closes with the system closing and deletes", () => {
+      const c = endOn((input) => {
+        input.flow.pop();
+      });
+      const turn = turnFor(flowState({ stepId: "cv_info" }), c);
+      followOutcome(turn, 1, "no");
+
+      expect(sent(turn.effects)).toEqual(["system.closing"]);
+      expect(others(turn.effects)).toEqual(["StopSession:ended_before_consent:delete"]);
+      expect(turn.state.phase).toBe("closed");
     });
   });
 
@@ -259,6 +283,7 @@ describe("followOutcome", () => {
     enterStep(turn, 0);
 
     expect(sent(turn.effects)).toEqual(["intro", "system.closing"]);
+    expect(others(turn.effects)).toEqual(["StopSession:ended_before_consent:delete"]);
   });
 
   it("treats an unknown target as an incoherent state", () => {

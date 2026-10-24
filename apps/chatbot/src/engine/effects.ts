@@ -18,7 +18,12 @@ export type SendPurpose = "clarify" | "rephrase";
 export type PatchSource = "extraction" | "edit";
 export type DataPolicy = "delete" | "keep";
 export type StopReason =
-  "consent_declined" | "terminated" | "flow_stop" | "opt_out" | "delete_data";
+  | "consent_declined"
+  | "terminated"
+  | "flow_stop"
+  | "ended_before_consent"
+  | "opt_out"
+  | "delete_data";
 export type FlagReason =
   "unresolved_field" | "auto_advance_limit" | "incoherent_state" | "outbound_failed";
 

@@ -7,6 +7,7 @@ export const KUBRI_GLOBAL_CONSENT = "kubri_global";
 export function checkConsents(c: CampaignDefinition): CampaignIssue[] {
   const issues: CampaignIssue[] = [];
   let mandatorySeen = false;
+  const firstMandatory = c.flow.findIndex((step) => step.type === "consent" && !step.optional);
 
   c.flow.forEach((step, i) => {
     if (step.type !== "consent") return;
@@ -32,6 +33,22 @@ export function checkConsents(c: CampaignDefinition): CampaignIssue[] {
           `flow[${i}].optional`,
           "kubri_global_not_optional",
           "The kubri_global consent must be optional (spec §7.3)",
+        ),
+      );
+    }
+
+    // D54: sharing with the global pool only makes sense once the candidate exists (D24).
+    if (
+      step.consentKey === KUBRI_GLOBAL_CONSENT &&
+      step.optional &&
+      firstMandatory >= 0 &&
+      i < firstMandatory
+    ) {
+      issues.push(
+        issue(
+          `flow[${i}]`,
+          "kubri_global_before_mandatory_consent",
+          `The kubri_global consent "${step.id}" must come after the mandatory consent in the flow`,
         ),
       );
     }

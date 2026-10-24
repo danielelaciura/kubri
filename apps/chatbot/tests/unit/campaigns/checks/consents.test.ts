@@ -28,6 +28,45 @@ describe("checkConsents", () => {
     ]);
   });
 
+  it("requires kubri_global to come after the mandatory consent (D54)", () => {
+    const input = minimalCampaign();
+    input.flow.splice(2, 0, {
+      id: "kubri_consent",
+      type: "consent",
+      consentKey: "kubri_global",
+      textVersion: "2026-10",
+      text: { it: "Vuoi che il tuo profilo sia visibile ad altre aziende?" },
+      optional: true,
+    });
+
+    expect(
+      checkConsents(parsed(input)).filter(
+        (i) => i.code === "kubri_global_before_mandatory_consent",
+      ),
+    ).toEqual([
+      {
+        path: "flow[2]",
+        code: "kubri_global_before_mandatory_consent",
+        message:
+          'The kubri_global consent "kubri_consent" must come after the mandatory consent in the flow',
+      },
+    ]);
+  });
+
+  it("accepts kubri_global after the mandatory consent", () => {
+    const input = minimalCampaign();
+    input.flow.splice(3, 0, {
+      id: "kubri_consent",
+      type: "consent",
+      consentKey: "kubri_global",
+      textVersion: "2026-10",
+      text: { it: "Vuoi che il tuo profilo sia visibile ad altre aziende?" },
+      optional: true,
+    });
+
+    expect(checkConsents(parsed(input))).toEqual([]);
+  });
+
   it("allows only one mandatory consent (spec D48)", () => {
     const input = minimalCampaign();
     input.flow.splice(3, 0, {

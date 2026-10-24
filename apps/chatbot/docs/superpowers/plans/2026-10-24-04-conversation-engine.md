@@ -6147,7 +6147,10 @@ git commit -m "docs(chatbot): record conversation engine decisions in the spec"
   `tests/scenarios/kubri-standard/partial-answers.yaml`,
   `tests/scenarios/kubri-standard/early-answer.yaml`,
   `tests/scenarios/kubri-standard/post-completion-edit.yaml`,
-  `tests/scenarios/kubri-standard/cv-yes-no.yaml`
+  `tests/scenarios/kubri-standard/cv-no.yaml`,
+  `tests/scenarios/kubri-standard/global-declined.yaml`,
+  `tests/scenarios/kubri-standard/optional-and-conditional.yaml`,
+  `tests/scenarios/kubri-standard/optional-no-value.yaml`
 
 - [x] **Step 1: Verificare il prerequisito e stampare la struttura della campagna**
 
@@ -6171,12 +6174,12 @@ Expected: `present`, poi una riga per passaggio (id, tipo, `[when]` se condizion
 blocchi `questions` l'elenco `id:campo`, con `?` = condizionata, `!` = `terminateIf`, `(opt)` =
 facoltativa). Se `validateCampaign` fallisce, fermarsi: va corretto il piano 03, non questo.
 
-- [x] **Step 2: Scrivere i sei scenari**
+- [x] **Step 2: Scrivere gli scenari**
 
-Per ciascun file, partire dallo scenario omonimo della campagna di test
-(`tests/scenarios/test-campaign/`; per `cv-yes-no.yaml` unire `happy-path.yaml`, che termina con
-il CV sì, e `cv-no.yaml`, usando due sessioni separate in due file se più leggibile: in quel caso
-creare `cv-yes.yaml` e `cv-no.yaml` al posto di `cv-yes-no.yaml`), cambiare
+Per ciascun file elencato in **Files** (nove scenari), partire dallo scenario omonimo della
+campagna di test (`tests/scenarios/test-campaign/`) quando esiste; `global-declined`,
+`optional-and-conditional` e `optional-no-value` sono propri della campagna standard. Il CV sì
+è nel percorso di `happy-path.yaml`, il CV no in `cv-no.yaml`. Cambiare
 `campaign:` in `campaigns/kubri-standard.json` e sostituire id e campi con quelli stampati allo
 Step 1. Calcolare gli attesi con queste regole del motore:
 

@@ -7,7 +7,10 @@ import { fakeCli } from "./fake-deps";
 
 /** A database whose transaction fails the way Prisma reports a lost race. */
 function racingDatabase(code: string): Database {
-  const failure = Object.assign(new Error("transaction failed"), { code });
+  return failingDatabase(Object.assign(new Error("transaction failed"), { code }));
+}
+
+function failingDatabase(failure: Error): Database {
   return { $transaction: () => Promise.reject(failure) } as unknown as Database;
 }
 
@@ -30,6 +33,24 @@ describe("campaigns import: concurrent imports", () => {
     expect(error).toBeInstanceOf(CliError);
     expect((error as CliError).message).toContain("import concorrente, riprova");
     expect((error as CliError).exitCode).toBe(1);
+  });
+
+  it.each([
+    { kind: "TransactionWriteConflict" },
+    { kind: "postgres", originalCode: "40001" },
+    { kind: "UniqueConstraintViolation", constraint: { fields: ["version"] } },
+    { kind: "postgres", originalCode: "23505" },
+  ])("tells the user to retry on a driver adapter error %j", async (cause) => {
+    // The Prisma pg adapter throws a DriverAdapterError: no `code`, the detail is in `cause`.
+    const failure = Object.assign(new Error("TransactionWriteConflict"), {
+      name: "DriverAdapterError",
+      cause,
+    });
+
+    const { error } = await importWith(failingDatabase(failure));
+
+    expect(error).toBeInstanceOf(CliError);
+    expect((error as CliError).message).toContain("import concorrente, riprova");
   });
 
   it("does not hide unrelated database failures", async () => {

@@ -13,16 +13,34 @@ const SERIALIZATION_FAILURE = "P2034";
 /** Prisma: unique constraint violated (e.g. two imports creating the same version number). */
 const UNIQUE_VIOLATION = "P2002";
 
-function prismaErrorCode(error: unknown): string | undefined {
-  if (typeof error !== "object" || error === null || !("code" in error)) return undefined;
-  const { code } = error;
-  return typeof code === "string" ? code : undefined;
+function stringProperty(value: unknown, key: string): string | undefined {
+  if (typeof value !== "object" || value === null || !(key in value)) return undefined;
+  const found = (value as Record<string, unknown>)[key];
+  return typeof found === "string" ? found : undefined;
 }
 
-/** Two imports of the same campaign raced: the loser is told to retry, not shown a stack. */
+/** SQLSTATE: serialization_failure and unique_violation, as the pg driver reports them. */
+const PG_SERIALIZATION_FAILURE = "40001";
+const PG_UNIQUE_VIOLATION = "23505";
+
+/**
+ * Two imports of the same campaign raced: the loser is told to retry, not shown a stack.
+ * Prisma reports the race as `code` P2034/P2002, but the pg driver adapter throws a
+ * `DriverAdapterError` with no `code`: the detail is in `cause` (`kind` / `originalCode`).
+ */
 function isConcurrentImportError(error: unknown): boolean {
-  const code = prismaErrorCode(error);
-  return code === SERIALIZATION_FAILURE || code === UNIQUE_VIOLATION;
+  const code = stringProperty(error, "code");
+  if (code === SERIALIZATION_FAILURE || code === UNIQUE_VIOLATION) return true;
+  const cause =
+    typeof error === "object" && error !== null && "cause" in error ? error.cause : null;
+  const kind = stringProperty(cause, "kind");
+  const originalCode = stringProperty(cause, "originalCode");
+  return (
+    kind === "TransactionWriteConflict" ||
+    kind === "UniqueConstraintViolation" ||
+    originalCode === PG_SERIALIZATION_FAILURE ||
+    originalCode === PG_UNIQUE_VIOLATION
+  );
 }
 
 export function registerCampaignCommands(program: Command, deps: CliDeps): void {

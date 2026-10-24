@@ -42,8 +42,8 @@ describe("parseEnv", () => {
 });
 
 describe("parseNodeEnv", () => {
-  it("defaults to development", () => {
-    expect(parseNodeEnv(undefined)).toBe("development");
+  it("returns undefined when unset (callers must treat it as strict)", () => {
+    expect(parseNodeEnv(undefined)).toBeUndefined();
   });
 
   it("accepts production", () => {

@@ -34,7 +34,7 @@ describe("kubri-standard campaign", () => {
       { key: "privacy_interview", optional: false, version: "placeholder-2026-10" },
       { key: "kubri_global", optional: true, version: "placeholder-2026-10" },
     ]);
-    expect(placeholderConsentIssues(campaign)).toHaveLength(2);
+    expect(placeholderConsentIssues(campaign)).toHaveLength(4);
   });
 
   it("asks every standard field that is not system-only", () => {

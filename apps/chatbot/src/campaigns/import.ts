@@ -8,7 +8,8 @@ import { validateCampaign } from "./validate";
 
 export interface ImportCampaignOptions {
   readonly activate: boolean;
-  readonly nodeEnv: NodeEnv;
+  /** `undefined` (unset NODE_ENV) is treated as production by the placeholder guard. */
+  readonly nodeEnv: NodeEnv | undefined;
   readonly importedBy?: string | null;
 }
 

@@ -22,7 +22,50 @@ describe("placeholderConsentIssues", () => {
   });
 });
 
+describe("placeholderConsentIssues (hardening)", () => {
+  function consentOf(input: ReturnType<typeof minimalCampaign>) {
+    const consent = input.flow[2];
+    if (consent?.type !== "consent") throw new Error("fixture: flow[2] must be the consent");
+    return consent;
+  }
+
+  it("matches the placeholder- prefix case-insensitively", () => {
+    const input = minimalCampaign();
+    consentOf(input).textVersion = "Placeholder-2026-10";
+
+    expect(placeholderConsentIssues(parsed(input)).map((i) => i.path)).toEqual([
+      "flow[2].textVersion",
+    ]);
+  });
+
+  it("flags the [TESTO SEGNAPOSTO] marker in any locale, case-insensitively", () => {
+    const input = minimalCampaign();
+    consentOf(input).text = { it: "Accetti?", en: "[testo segnaposto] Do you accept?" };
+
+    expect(placeholderConsentIssues(parsed(input))).toEqual([
+      expect.objectContaining({ path: "flow[2].text.en", code: "placeholder_consent" }),
+    ]);
+  });
+
+  it("flags the marker in a text referenced through texts[ref]", () => {
+    const input = minimalCampaign();
+    input.texts = { ...input.texts, privacy_text: { it: "[TESTO SEGNAPOSTO] Accetti?" } };
+    consentOf(input).text = { ref: "privacy_text" };
+
+    expect(placeholderConsentIssues(parsed(input))).toEqual([
+      expect.objectContaining({ path: "texts.privacy_text.it", code: "placeholder_consent" }),
+    ]);
+  });
+});
+
 describe("checkPublishable", () => {
+  it("treats an unset NODE_ENV as production", () => {
+    const result = checkPublishable(withPlaceholderConsent(), undefined);
+
+    expect(result.errors.map((i) => i.code)).toEqual(["placeholder_consent"]);
+    expect(result.warnings).toEqual([]);
+  });
+
   it("blocks placeholder consents in production", () => {
     const result = checkPublishable(withPlaceholderConsent(), "production");
 

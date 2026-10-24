@@ -33,7 +33,19 @@ describe("importCampaign", () => {
     expect(result.ok && result.warnings.map((w) => w.code)).toEqual([
       "placeholder_consent",
       "placeholder_consent",
+      "placeholder_consent",
+      "placeholder_consent",
     ]);
+  });
+
+  it("treats an unset NODE_ENV as production for placeholder consents", async () => {
+    const result = await importCampaign(db, loadStandardCampaign(), {
+      activate: true,
+      nodeEnv: undefined,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(await db.campaign.count()).toBe(0);
   });
 
   it("refuses placeholder consents in production, writing nothing", async () => {
@@ -44,6 +56,8 @@ describe("importCampaign", () => {
 
     expect(result.ok).toBe(false);
     expect(!result.ok && result.issues.map((i) => i.code)).toEqual([
+      "placeholder_consent",
+      "placeholder_consent",
       "placeholder_consent",
       "placeholder_consent",
     ]);

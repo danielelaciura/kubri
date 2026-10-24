@@ -28,8 +28,13 @@ export function parseEnv(source: Readonly<Record<string, string | undefined>>): 
   return result.data;
 }
 
-/** NODE_ENV alone, for commands that run without a database (e.g. `campaigns validate`). */
-export function parseNodeEnv(value: string | undefined): NodeEnv {
+/**
+ * NODE_ENV alone, for commands that run without a database (e.g. `campaigns validate`).
+ * Unset stays `undefined` (no silent default): the placeholder-consent guard treats it
+ * as production.
+ */
+export function parseNodeEnv(value: string | undefined): NodeEnv | undefined {
+  if (value === undefined || value === "") return undefined;
   const result = NodeEnvSchema.safeParse(value);
   if (!result.success) {
     throw new Error("Invalid environment: NODE_ENV must be development, test or production");

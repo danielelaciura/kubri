@@ -4,7 +4,8 @@ import { REGENERATE_CV_CHOICE } from "../engine/post-completion";
 import { fieldState, isFieldSettled, type ProfileSnapshot } from "../engine/profile-snapshot";
 import type { Phase, SessionState } from "../engine/state";
 import type { LanguageCode } from "../i18n/localized-text";
-import type { FieldType } from "../profile/field-definition";
+import { KUBRI_GLOBAL_CONSENT } from "../campaigns/checks/consents";
+import type { FieldFormat, FieldType } from "../profile/field-definition";
 import { resolveField } from "../profile/field-ref";
 import type { InterpretRequest } from "./interpreter";
 import { isWithheldField, scrubHistory } from "./minimize";
@@ -15,6 +16,8 @@ export interface FieldBrief {
   /** Normalization guidance (spec §6), read by the LLM. */
   readonly description: string;
   readonly options?: readonly string[];
+  /** A code the value must be ("iso-country", "email", …). */
+  readonly format?: FieldFormat;
 }
 
 export interface QuestionBrief extends FieldBrief {
@@ -44,11 +47,27 @@ export type CollectedBrief =
   | { readonly field: string; readonly description: string; readonly value: unknown }
   | { readonly field: string; readonly description: string; readonly withheld: true };
 
+export type StepBrief =
+  | {
+      readonly id: string;
+      readonly type: Exclude<StepType, "consent">;
+      /** The reference wording, in Italian (D86): choice and cv_offer only. */
+      readonly prompt?: string;
+    }
+  | {
+      readonly id: string;
+      readonly type: "consent";
+      readonly consentKey: string;
+      readonly optional: boolean;
+      /** What the candidate is agreeing to, in a few Italian words (see consentPurpose). */
+      readonly purpose: string;
+    };
+
 /** Spec §8.2. Serialized as is into the `interpret` prompt (and into eval cases, plan 07). */
 export interface InterpretContext {
   readonly phase: Phase;
   readonly sessionLanguage: LanguageCode | null;
-  readonly step: { readonly id: string; readonly type: StepType; readonly prompt?: string } | null;
+  readonly step: StepBrief | null;
   readonly question: QuestionBrief | null;
   readonly openFields: readonly FieldBrief[];
   readonly collected: readonly CollectedBrief[];
@@ -82,8 +101,13 @@ function italian(value: TextValue, campaign: CampaignDefinition): string {
 function fieldBrief(ref: string, campaign: CampaignDefinition): FieldBrief | undefined {
   const def = resolveField(ref, campaign.customFields);
   if (!def || def.systemOnly) return undefined;
-  const brief = { field: ref, type: def.type, description: def.description };
-  return def.options ? { ...brief, options: def.options } : brief;
+  return {
+    field: ref,
+    type: def.type,
+    description: def.description,
+    ...(def.options ? { options: def.options } : {}),
+    ...(def.format ? { format: def.format } : {}),
+  };
 }
 
 function questionBrief(
@@ -104,10 +128,35 @@ function questionBrief(
   };
 }
 
-function stepBrief(step: Step, campaign: CampaignDefinition): InterpretContext["step"] {
-  return step.type === "choice" || step.type === "cv_offer"
-    ? { id: step.id, type: step.type, prompt: italian(step.prompt, campaign) }
-    : { id: step.id, type: step.type };
+/**
+ * Derived from the consent's role, not from its text: D48 allows exactly two consents (the
+ * company's mandatory notice and the optional kubri_global), and a legal text's first sentence
+ * ("Ai sensi dell'art. 13 GDPR…", or a placeholder) says little about what is being agreed.
+ */
+function consentPurpose(consentKey: string, campaign: CampaignDefinition): string {
+  return consentKey === KUBRI_GLOBAL_CONSENT
+    ? "visibilità del profilo ad altre organizzazioni del pool global di Kubri"
+    : `informativa privacy di ${campaign.dataController.name}, l'azienda di questa candidatura`;
+}
+
+function stepBrief(step: Step, campaign: CampaignDefinition): StepBrief {
+  switch (step.type) {
+    case "choice":
+    case "cv_offer":
+      return { id: step.id, type: step.type, prompt: italian(step.prompt, campaign) };
+    case "consent":
+      return {
+        id: step.id,
+        type: step.type,
+        consentKey: step.consentKey,
+        optional: step.optional,
+        purpose: consentPurpose(step.consentKey, campaign),
+      };
+    case "message":
+    case "questions":
+    case "end":
+      return { id: step.id, type: step.type };
+  }
 }
 
 /**

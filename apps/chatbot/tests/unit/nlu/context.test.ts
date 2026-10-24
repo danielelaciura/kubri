@@ -39,13 +39,54 @@ describe("buildInterpretContext", () => {
   it("offers accepted/declined and the fields on a consent step (D50)", () => {
     const context = build(flowState({ stepId: "privacy" }));
 
-    expect(context.step).toEqual({ id: "privacy", type: "consent" });
+    expect(context.step).toEqual({
+      id: "privacy",
+      type: "consent",
+      consentKey: "acme_privacy",
+      optional: false,
+      purpose: "informativa privacy di ACME S.r.l., l'azienda di questa candidatura",
+    });
     expect(context.expectedChoices.map((choice) => choice.id)).toEqual(["accepted", "declined"]);
     expect(context.openFields.map((f) => f.field)).toEqual([
       "firstName",
       "drivingLicense",
       "custom.night_shifts",
     ]);
+  });
+
+  it("explains the optional kubri_global consent in plain words (D48)", () => {
+    const withGlobal = campaign((input) => {
+      input.flow.splice(3, 0, {
+        id: "globale",
+        type: "consent",
+        consentKey: "kubri_global",
+        textVersion: "2026-10",
+        text: { it: "Vuoi essere visibile anche ad altre organizzazioni?" },
+        optional: true,
+      });
+    });
+
+    expect(build(flowState({ stepId: "globale" }), [], withGlobal).step).toEqual({
+      id: "globale",
+      type: "consent",
+      consentKey: "kubri_global",
+      optional: true,
+      purpose: "visibilità del profilo ad altre organizzazioni del pool global di Kubri",
+    });
+  });
+
+  it("gives the field format when the field has one", () => {
+    const withEmail = campaign((input) => {
+      const step = input.flow.find((s) => s.id === "anagrafica");
+      if (step?.type !== "questions") throw new Error("fixture changed");
+      step.questions.push({ id: "mail", field: "email", prompt: { it: "La tua email?" } });
+    });
+
+    expect(build(atQuestion("mail"), [], withEmail).question).toMatchObject({
+      field: "email",
+      type: "text",
+      format: "email",
+    });
   });
 
   it("describes the current question and the campaign's other open fields (D86)", () => {

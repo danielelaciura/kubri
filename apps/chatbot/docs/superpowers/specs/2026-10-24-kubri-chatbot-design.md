@@ -76,6 +76,12 @@ Oggi il chatbot di Kubri vive su Make.com. L'analisi dello scenario ha evidenzia
 | D22 | Canale esplicito | Il payload verso Kubri porta sempre un campo **`channel` esplicito** (`whatsapp`, in futuro `telegram`…), servirà anche per il contatto proattivo. `source_organization` vale `kubri-chatbot` e non è più usato per ricavare il canale; la dashboard va adeguata per leggere `channel` (vedi §12.1). |
 | D23 | Consensi per campagna | Ogni campagna, compresa la standard Kubri, ha i propri testi di consenso, versioni e titolare. Fino ai testi ufficiali si usano testi **segnaposto** marcati come tali (`textVersion` `placeholder-…`), che non devono andare in produzione. |
 | D24 | Abbandono e `@stop` | Si distingue per **soglia**: prima dell'accettazione dei consensi obbligatori non si conserva nulla oltre alla prova minima del rifiuto; dopo l'accettazione la sessione abbandonata resta in attesa per il **follow-up** (da definire, §17) e viene cancellata solo dopo un periodo di conservazione configurabile (durata da definire, §18). Vedi §10.6. |
+| D25 | Forma del profilo | Mappa piatta con chiavi puntate (`jobPreferences.preferredJob`); la struttura annidata esiste solo nella mappatura verso Kubri. |
+| D26 | Versione della campagna | Non sta nel file JSON: la assegna l'import. |
+| D27 | Opzioni di `choice` | Oggetti `{ id, description }`; la descrizione guida l'LLM. |
+| D28 | Esiti predefiniti | `questions.terminated` e `consent.declined` (non facoltativo) → `@stop`; gli altri → passaggio successivo o `@end`. |
+| D29 | Campi di sistema | `lat`, `lng`, `phone` sono `systemOnly`: non si chiedono e non si estraggono. |
+| D30 | Soglia dei consensi nel validatore | Ogni campagna ha almeno un consenso obbligatorio, non condizionato (`when` vietato), e il suo rifiuto porta sempre a `@stop`. |
 
 ---
 
@@ -210,7 +216,6 @@ apps/chatbot/
 {
   "campaign": "culligan-vendita",
   "organization": "culligan",
-  "version": 3,
   "externalKey": "culligan",
   "trigger": { "sender": "kubri-main", "keywords": ["culligan"] },
   "defaultLanguage": "it",
@@ -228,7 +233,7 @@ apps/chatbot/
 }
 ```
 
-- `campaign`: slug univoco. `version`: progressivo, assegnato all'import.
+- `campaign`: slug univoco. `version`: progressivo, assegnato all'import (non è nel file JSON, D26).
 - `externalKey`: la chiave del pool lato Kubri, inviata nel webhook.
 - `trigger.sender`: il numero (SenderNumber) su cui la campagna è attiva. `keywords`: parole chiave che, nel primo messaggio, instradano su questa campagna.
 - `dataController`: il titolare del trattamento, citato nei consensi.

@@ -46,8 +46,10 @@ export function answerQuestion(
   const changed = after !== undefined && !holdsValue(fieldBefore, after.value);
   const answeredNow = filled && (changed || completeness === "complete");
   // D56: "none" ("non ho studiato") is a complete answer to an optional question even with no
-  // value; a required question still needs a value.
-  const noneToOptional = completeness === "complete" && !question.required;
+  // value; a required question still needs a value. A value that was extracted but rejected
+  // by validation is not "none": the question is asked again.
+  const extractedForField = interpretation.patch.some((entry) => entry.field === question.field);
+  const noneToOptional = completeness === "complete" && !question.required && !extractedForField;
   if (answeredNow || noneToOptional) {
     advanceFromQuestion(turn, index, step, question);
     return;

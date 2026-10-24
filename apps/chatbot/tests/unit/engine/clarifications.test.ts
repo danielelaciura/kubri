@@ -163,6 +163,18 @@ describe("clarifications", () => {
     expect(result.state.profile.firstName).toBeUndefined();
   });
 
+  it("re-asks an optional question whose extracted value was rejected (D56)", () => {
+    const interp = interpretation({
+      patch: [{ field: "firstName", value: 42, confidence: 0.95, evidence: "42" }],
+      currentQuestion: { completeness: "complete" },
+    });
+    const result = step(atQuestion("nome"), userTurn("42", interp), optionalNome(2));
+
+    expect(sent(result.effects)).not.toContain("anagrafica.patente");
+    expect(result.state).toMatchObject({ questionId: "nome", clarifications: 1 });
+    expect(result.state.profile.firstName).toBeUndefined();
+  });
+
   it("still clarifies a required question answered complete with no value (D56)", () => {
     const interp = interpretation({ currentQuestion: { completeness: "complete" } });
     const result = step(atQuestion("nome"), userTurn("non ce l'ho", interp), c);

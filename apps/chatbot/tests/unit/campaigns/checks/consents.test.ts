@@ -17,11 +17,35 @@ describe("checkConsents", () => {
       text: { it: "Vuoi che il tuo profilo sia visibile ad altre aziende?" },
     });
 
-    expect(checkConsents(parsed(input))).toEqual([
+    expect(
+      checkConsents(parsed(input)).filter((i) => i.code === "kubri_global_not_optional"),
+    ).toEqual([
       {
         path: "flow[4].optional",
         code: "kubri_global_not_optional",
         message: "The kubri_global consent must be optional (spec §7.3)",
+      },
+    ]);
+  });
+
+  it("allows only one mandatory consent (spec D48)", () => {
+    const input = minimalCampaign();
+    input.flow.splice(3, 0, {
+      id: "second_privacy",
+      type: "consent",
+      consentKey: "acme_health",
+      textVersion: "2026-10",
+      text: { it: "Accetti il trattamento dei dati sulla salute?" },
+    });
+
+    expect(
+      checkConsents(parsed(input)).filter((i) => i.code === "multiple_mandatory_consents"),
+    ).toEqual([
+      {
+        path: "flow[3].optional",
+        code: "multiple_mandatory_consents",
+        message:
+          'Step "second_privacy" is a second mandatory consent: a campaign has exactly one (the only other consent is the optional kubri_global)',
       },
     ]);
   });

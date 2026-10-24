@@ -6,9 +6,25 @@ export const KUBRI_GLOBAL_CONSENT = "kubri_global";
 
 export function checkConsents(c: CampaignDefinition): CampaignIssue[] {
   const issues: CampaignIssue[] = [];
+  let mandatorySeen = false;
 
   c.flow.forEach((step, i) => {
     if (step.type !== "consent") return;
+
+    // D48: one mandatory consent (the requesting organization's privacy); the only other
+    // consent is the optional kubri_global, whose refusal keeps the candidate in this pool.
+    if (!step.optional) {
+      if (mandatorySeen) {
+        issues.push(
+          issue(
+            `flow[${i}].optional`,
+            "multiple_mandatory_consents",
+            `Step "${step.id}" is a second mandatory consent: a campaign has exactly one (the only other consent is the optional kubri_global)`,
+          ),
+        );
+      }
+      mandatorySeen = true;
+    }
 
     if (step.consentKey === KUBRI_GLOBAL_CONSENT && !step.optional) {
       issues.push(

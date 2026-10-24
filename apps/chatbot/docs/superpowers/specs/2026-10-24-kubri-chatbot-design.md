@@ -82,6 +82,7 @@ Oggi il chatbot di Kubri vive su Make.com. L'analisi dello scenario ha evidenzia
 | D28 | Esiti predefiniti | `questions.terminated` e `consent.declined` (non facoltativo) → `@stop`; gli altri → passaggio successivo o `@end`. |
 | D29 | Campi di sistema | `lat`, `lng`, `phone` sono `systemOnly`: non si chiedono e non si estraggono. |
 | D30 | Soglia dei consensi nel validatore | Ogni campagna ha almeno un consenso obbligatorio, non condizionato (`when` vietato), e il suo rifiuto porta sempre a `@stop`, e nessun blocco `questions`/`cv_offer` è raggiungibile senza passare da un consenso obbligatorio. |
+| D48 | Consensi di una campagna | **Esattamente un consenso obbligatorio** per campagna: l'informativa del titolare dell'azienda che ha richiesto il questionario. L'unico altro consenso è `kubri_global`, **facoltativo**: se accettato il candidato diventa visibile anche nel pool global (`is_kubri_privacy_accepted` → `sharedWithGlobal`), se rifiutato resta conservato e visibile solo nel pool della campagna. Il validatore rifiuta un secondo consenso obbligatorio (`multiple_mandatory_consents`). (Numerata D48 perché D31–D47 sono riservate al piano 04, che le inserisce prima di questa riga.) |
 
 ---
 

@@ -6039,7 +6039,7 @@ Lo stato della scheda 04 nella roadmap lo aggiorna il controller, non questo tas
 
 - [ ] **Step 1: Aggiungere le decisioni al registro (§2)**
 
-In fondo alla tabella del §2 aggiungere:
+Nella tabella del §2 aggiungere, **subito dopo la riga D30 e prima della riga D48** (già presente: un solo consenso obbligatorio per campagna):
 
 ```markdown
 | D31 | Profilo nello stato del motore | `SessionState.profile` è un'istantanea campo → valore, confidenza, stato. Il runtime la idrata da `CandidateProfile` (fonte di verità) prima di `step()` e salva gli `ApplyPatch`; la firma resta a tre argomenti e pura. |
@@ -6049,7 +6049,7 @@ In fondo alla tabella del §2 aggiungere:
 | D35 | Applicazione delle patch | Solo dopo la soglia dei consensi; l'estrazione non sovrascrive un campo valorizzato tranne quello della domanda corrente; le altre modifiche passano da `edit_request`. Sotto soglia: conferma solo per il campo della domanda corrente, gli altri valori si scartano. |
 | D36 | Conferme sì/no | "sì" applica, "no" annulla e ripete la domanda, ogni altra risposta fa decadere la conferma ed è elaborata come risposta normale. |
 | D37 | `@end` | Va al primo passaggio `end` con `when` vera o assente; se non ce n'è, chiusura di sistema e `CompleteSession`. Vale anche quando il `flow` finisce. |
-| D38 | Soglia D24 nel motore | `consentsAccepted` diventa vero al primo consenso obbligatorio accettato (evento `consents.accepted`); il rifiuto di un obbligatorio lo riporta a falso prima del `@stop`. |
+| D38 | Soglia D24 nel motore | `consentsAccepted` diventa vero al primo consenso obbligatorio accettato (evento `consents.accepted`); il rifiuto di un obbligatorio lo riporta a falso prima del `@stop`. Con D48 il consenso obbligatorio è uno solo, quindi "primo" e "ultimo" coincidono. |
 | D39 | Dati alla chiusura | `@stop`: `delete` prima della soglia, `onStop.data` dopo. `delete_data`: sempre `delete` + job `delete-contact`. `opt_out` dopo il completamento: solo `OptOut`, i dati restano. |
 | D40 | Intenti globali deterministici | Il messaggio intero normalizzato deve coincidere con una frase dell'elenco; la parola chiave vince sull'LLM; valgono in ogni fase, anche a sessione chiusa. |
 | D41 | Fase della lingua | Nome di lingua nel testo → lingua rilevata dall'LLM con confidenza ≥ 0,8 → `defaultLanguage` della campagna. Il punto 3 del §5.6 è rinviato al piano 06. |

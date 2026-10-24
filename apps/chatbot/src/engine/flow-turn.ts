@@ -2,8 +2,9 @@ import { answerChoice, answerCvOffer } from "./choice-answers";
 import { answerConsent } from "./consent-answer";
 import type { UserTurnEvent } from "./events";
 import { applyExtractedPatch } from "./patches";
+import { answerQuestion } from "./question-answer";
 import { currentQuestion, nonAnswer } from "./replies";
-import { currentStep, type Turn } from "./turn";
+import { currentStep, incoherent, type Turn } from "./turn";
 
 /** A user turn while the flow waits on a step (spec §7.2). */
 export function handleFlowTurn(turn: Turn, event: UserTurnEvent): void {
@@ -25,7 +26,11 @@ export function handleFlowTurn(turn: Turn, event: UserTurnEvent): void {
     case "cv_offer":
       answerCvOffer(turn, index, interpretation);
       return;
-    default:
-      nonAnswer(turn, interpretation);
+    case "questions":
+      answerQuestion(turn, index, step, interpretation);
+      return;
+    case "message":
+    case "end":
+      incoherent(`step "${step.id}" (${step.type}) never waits for an answer`);
   }
 }

@@ -118,6 +118,16 @@ Oggi il chatbot di Kubri vive su Make.com. L'analisi dello scenario ha evidenzia
 | D67 | Stato iniziale del numero | `senders add` crea il numero `active` (provisioning manuale); default del DB `provisioning`. |
 | D68 | Definizione memorizzata | `CampaignVersion.definition` = definizione parsata in forma canonica; alla lettura si ri-parsa con lo schema (`LoadedCampaign`). |
 | D69 | Campagna standard v1 | Costruita dal §6 (export di Make non disponibile, testi da rifinire sul questionario "global"); consensi dell'Appendice A con titolare e link per esteso; `privacyUrl` provvisorio da confermare (§18, punto 5). |
+| D70 | Traduzione dei testi | Si traduce il modello italiano con i segnaposto, poi si interpolano i parametri: i valori del candidato non vanno mai al traduttore e la cache vale per tutti. Le etichette dei campi sono testi tradotti a loro volta. |
+| D71 | Segnaposto | `{nome}` (lettere, cifre, `_`, `.`); senza parametro resta visibile ed è riportato in `missingParams`; un valore inserito non viene riletto; una traduzione che non conserva esattamente l'insieme dei segnaposto è scartata. |
+| D72 | Ripiego sull'italiano | Traduttore in errore o traduzione scartata → testo italiano, non salvato in cache; un errore della cache non blocca mai la risposta. |
+| D73 | `isCurated` | Vero per l'originale italiano, una traduzione curata della campagna o una voce di cache `reviewed`; falso per ogni traduzione LLM non rivista. È `Consent.textShownIsCurated`. |
+| D74 | Testi critici | I testi dei passaggi `consent` (inline o per `ref`), riconosciuti da i18n dalla campagna. Non curati → traduzione + riga con il link al testo ufficiale (`link` del passaggio, altrimenti `privacyUrl`). `requireCurated` rinviato. |
+| D75 | Parametri del catalogo | Tipizzati (`text`, `number`, `field`, `value`, `flag`): `field` → etichetta leggibile, `value` → sì/no, "(nessun valore)", elenco con virgole, data gg/mm/aaaa; `flag` sceglie solo la variante. |
+| D76 | `purpose` dei testi | `clarify` con `missing` → riga "Mi serve ancora un dettaglio: {missing}" + domanda, in un messaggio; `rephrase` → riga introduttiva + domanda. `missing` è scritto dall'NLU nella lingua della sessione. Riformulazione LLM rinviata. |
+| D77 | Lingua di risoluzione | `state.language ?? defaultLanguage`, letta dopo `step()`; il benvenuto esce nella lingua di default con la riga in inglese. |
+| D78 | Cache delle traduzioni | Interfaccia `TranslationCache` in i18n, chiave (sha256 dell'italiano, lingua); in memoria fino al piano 08, che crea la tabella. i18n non importa `nlu` né `store` (regola di lint). |
+| D79 | Simulatore | `campaigns simulate <file>` senza database; interprete `naive` deterministico più comandi `/…` che forzano ogni interpretazione e valgono con qualunque interprete; traduttore finto `[xx] …`; interfaccia `Interpreter` in `src/nlu/interpreter.ts`. |
 
 ---
 
@@ -501,6 +511,13 @@ interface Interpretation {
 - **Testi critici** (consensi, informative): se manca una traduzione curata si invia la traduzione LLM **insieme al link del testo ufficiale**. In `Consent` si registra quale testo è stato mostrato. Una campagna può rendere obbligatoria la traduzione curata per alcune lingue (`requireCurated: ["ar", …]`).
 - Le lingue e le domande che hanno bisogno di traduzioni curate si individuano **con gli evals** (§15).
 - I valori del profilo vengono normalizzati in italiano a prescindere dalla lingua della conversazione.
+- **Modelli e parametri (D70, D71, D75).** Si traduce il testo italiano con i segnaposto `{…}`,
+  poi si inseriscono i parametri. Le etichette dei campi standard sono in
+  `src/i18n/field-labels.ts`; quelle dei campi personalizzati sono il `label` della campagna.
+- **Ripiego (D72).** Se la traduzione non è disponibile o rompe i segnaposto si invia
+  l'italiano. Mai silenzio.
+- **Testi critici (D74).** Riconosciuti dal passaggio `consent`; il runtime salva in `Consent`
+  il testo risolto e `isCurated` (D73).
 
 ---
 

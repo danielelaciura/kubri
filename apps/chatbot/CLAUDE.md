@@ -230,6 +230,7 @@ pnpm cli senders add <slug> --phone <e164> --name <name> [--org <slug>] \
 pnpm cli campaigns validate <file>   # no database; exits 1 on issues
 pnpm cli campaigns import <file> [--activate] [--imported-by <name>]
 pnpm cli campaigns list
+pnpm cli campaigns simulate <file> [--nlu naive] [--translator fake] [--history 3]
 ```
 
 - `campaigns import` creates a new immutable `CampaignVersion` only when the parsed file's
@@ -239,6 +240,12 @@ pnpm cli campaigns list
   they are errors. Always run the CLI against prod with `NODE_ENV=production` (set it in
   `.env.prod`).
 - `--token-secret` takes the **name** of the env var holding the Meta token, never the token.
+- `campaigns simulate` runs an interview in the terminal on a campaign file, without database
+  or WhatsApp. Plain answers go to the interpreter (`naive` = deterministic yes/no, option
+  ids, typed values); `/…` commands force any interpretation (`/?` lists them). Texts are
+  resolved by `i18n` exactly as runtime will; the fake translator shows `[en] <Italian>`.
+  Piped stdin works for scripted runs (`pnpm cli campaigns simulate <file> < transcript.txt`):
+  the input lines are echoed so the output reads as a transcript.
 
 - Local DB: Docker Postgres on port 54329, databases `kubri_bot_dev` and `kubri_bot_test`.
   Both contain simulated dashboard tables in `public`, which the bot must never touch.

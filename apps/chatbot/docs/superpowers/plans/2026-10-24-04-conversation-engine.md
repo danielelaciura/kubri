@@ -6137,18 +6137,9 @@ git commit -m "docs(chatbot): record conversation engine decisions in the spec"
 > **Stato (2026-10-24): fatto.** Scenari in `tests/scenarios/kubri-standard/`: `happy-path`,
 > `declined-consent`, `global-declined` (D50 + `kubri_global` rifiutato), `partial-answers`,
 > `early-answer`, `optional-and-conditional` (rifiuto delle facoltative, `when` di
-> `tipi_patente` e `quale_corso`), `post-completion-edit` (modifica, rigenerazione CV,
-> cancellazione), `cv-no` (il CV sì è nel percorso ideale). **Aperto:**
-> `optional-no-value.yaml` fallisce di proposito: su una domanda facoltativa "non ho studiato"
-> (`completeness: complete`, nessun valore, come chiedono gli `hint` della campagna) il motore
-> ripete la domanda invece di avanzare (§7.2 punto 3). Da decidere: motore (avanzare su
-> `complete` senza valore per le facoltative) oppure NLU (mappare "non ne ho" su `refusal`).
-
-> **Prerequisito bloccante:** il piano 03 deve aver creato `campaigns/kubri-standard.json` sul
-> branch. Se il file non c'è, il task si ferma qui e si riprende dopo il piano 03. Il contenuto
-> della campagna (id dei passaggi, delle domande e dei campi) lo decide il piano 03, che è scritto
-> in parallelo: per questo gli scenari sotto si costruiscono **leggendo la campagna reale**, con
-> la procedura e le regole indicate, invece di essere copiati da qui.
+> `tipi_patente` e `quale_corso`), `optional-no-value` (risposta completa senza valore su una
+> facoltativa, D56), `post-completion-edit` (modifica, rigenerazione CV, cancellazione), `cv-no`
+> (il CV sì è nel percorso ideale).
 
 **Files:**
 - Create: `tests/scenarios/kubri-standard/happy-path.yaml`,

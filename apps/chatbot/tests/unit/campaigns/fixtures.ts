@@ -1,4 +1,8 @@
-import type { CampaignInput } from "../../../src/campaigns/schema/campaign";
+import {
+  CampaignDefinitionSchema,
+  type CampaignDefinition,
+  type CampaignInput,
+} from "../../../src/campaigns/schema/campaign";
 
 /** A small but complete valid campaign. Tests clone it and break one thing at a time. */
 export function minimalCampaign(): CampaignInput {
@@ -57,4 +61,9 @@ export function minimalCampaign(): CampaignInput {
       { id: "fine", type: "end", text: { it: "Grazie!" } },
     ],
   };
+}
+
+/** Parses an input that is schema-valid on purpose, to exercise semantic checks. */
+export function parsed(input: CampaignInput): CampaignDefinition {
+  return CampaignDefinitionSchema.parse(input);
 }

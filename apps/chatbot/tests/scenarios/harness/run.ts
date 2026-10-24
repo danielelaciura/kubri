@@ -54,7 +54,8 @@ function observe(
     profile: Object.fromEntries(
       Object.keys(expected.profile ?? {}).map((field) => [
         field,
-        fieldState(state.profile, field)?.value,
+        // YAML has no undefined: an absent field reads as null, like an unresolved one.
+        fieldState(state.profile, field)?.value ?? null,
       ]),
     ),
     outcomes: Object.fromEntries(

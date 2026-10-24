@@ -1,0 +1,28 @@
+description: Stop deterministico a metà intervista, con l'LLM non disponibile
+campaign: tests/scenarios/campaigns/test-campaign.json
+turns:
+  - start: true
+    expect: { sent: [system.welcome] }
+
+  - user: "italiano"
+    expect: { step: privacy }
+
+  - user: "accetto"
+    nlu: { intent: choice, choice: accepted }
+    expect: { step: kubri_global, consentsAccepted: true }
+
+  - user: "no"
+    nlu: { intent: choice, choice: declined }
+    expect: { question: nome, effects: ["RecordConsent:kubri_global:declined"] }
+
+  - user: "Mario"
+    expect: { question: nome, sent: [system.not_understood, anagrafica.nome], effects: [] }
+
+  - user: "STOP"
+    expect:
+      phase: closed
+      sent: [system.opt_out_confirm]
+      effects: ["StopSession:opt_out:delete", "OptOut"]
+
+  - user: "ciao"
+    expect: { sent: [system.session_closed] }

@@ -1,0 +1,28 @@
+description: Permesso di lavoro assente, il blocco termina l'intervista (terminateIf)
+campaign: tests/scenarios/campaigns/test-campaign.json
+turns:
+  - start: true
+    expect: { sent: [system.welcome] }
+
+  - user: "italiano"
+    expect: { step: privacy }
+
+  - user: "accetto"
+    nlu: { intent: choice, choice: accepted }
+    expect: { step: kubri_global }
+
+  - user: "no"
+    nlu: { intent: choice, choice: declined }
+    expect: { question: nome }
+
+  - user: "Mario"
+    nlu: { patch: { firstName: Mario } }
+    expect: { question: permesso, sent: [anagrafica.permesso] }
+
+  - user: "no, non ce l'ho"
+    nlu: { patch: { workingPermit: false } }
+    expect:
+      phase: closed
+      sent: [system.stopped]
+      effects: ["ApplyPatch:extraction:workingPermit", "StopSession:terminated:delete"]
+      outcomes: { anagrafica: terminated }

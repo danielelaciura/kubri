@@ -50,7 +50,7 @@ const ExpectationSchema = z.strictObject({
   sent: z.array(z.string()).optional(),
   /** The other effects (describeEffect), exact and ordered. */
   effects: z.array(z.string()).optional(),
-  /** Values of the listed fields only. */
+  /** Values of the listed fields only; null = absent or unresolved. */
   profile: z.record(z.string(), z.unknown()).optional(),
   /** Outcomes of the listed steps only. */
   outcomes: z.record(z.string(), z.string()).optional(),

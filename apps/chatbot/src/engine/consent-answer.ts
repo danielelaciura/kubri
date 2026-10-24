@@ -41,7 +41,7 @@ export function answerConsent(
   // consent is kept (the consent is given in that same message), and the next block skips the
   // questions it answers. Before the threshold, or after a decline, it is still dropped.
   applyExtractedPatch(turn, interpretation.patch, undefined);
-  followOutcome(turn, index, outcome, "consent_declined");
+  followOutcome(turn, index, outcome, outcome === "declined" ? "consent_declined" : "flow_stop");
 }
 
 /**

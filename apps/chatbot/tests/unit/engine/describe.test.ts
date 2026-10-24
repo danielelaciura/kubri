@@ -28,6 +28,16 @@ describe("describeEffect", () => {
       },
       "RecordPatchRejections:phone=system_only_field",
     ],
+    [
+      {
+        type: "RecordPatchRejections",
+        rejected: [
+          { field: "Mario Rossi via Roma 1", reason: "unknown_field" },
+          { field: "firstName", reason: "invalid_value" },
+        ],
+      },
+      "RecordPatchRejections:<unknown>=unknown_field,firstName=invalid_value",
+    ],
     [{ type: "MarkFieldUnresolved", field: "firstName" }, "MarkFieldUnresolved:firstName"],
     [
       {

@@ -60,6 +60,18 @@ describe("answering the current question", () => {
     ]);
   });
 
+  it("reports flow_stop when a completed block leads to @stop", () => {
+    const stopAfter = campaign((input) => {
+      const block = input.flow[3];
+      if (block?.type !== "questions") throw new Error("anagrafica is not a questions block");
+      block.on = { completed: "@stop" };
+    });
+    const state = atQuestion("patente", { profile: { firstName: inferred("Mario") } });
+    const result = step(state, userTurn("no", answer("drivingLicense", false)), stopAfter);
+
+    expect(others(result.effects)).toContain("StopSession:flow_stop:delete");
+  });
+
   it("terminates the block when the answer meets terminateIf", () => {
     const withTerminate = campaign((input) => {
       input.flow[3] = {

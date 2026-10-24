@@ -1,3 +1,4 @@
+import type { RejectedPatchEntry } from "../profile/patch";
 import type { Effect } from "./effects";
 import { describeTextRef } from "./text-ref";
 
@@ -9,7 +10,7 @@ export function describeEffect(effect: Effect): string {
     case "ApplyPatch":
       return `ApplyPatch:${effect.source}:${effect.fields.map((f) => f.field).join(",")}`;
     case "RecordPatchRejections":
-      return `RecordPatchRejections:${effect.rejected.map((r) => `${r.field}=${r.reason}`).join(",")}`;
+      return `RecordPatchRejections:${effect.rejected.map(describeRejection).join(",")}`;
     case "MarkFieldUnresolved":
       return `MarkFieldUnresolved:${effect.field}`;
     case "RecordConsent":
@@ -31,4 +32,9 @@ export function describeEffect(effect: Effect): string {
         ? `FlagSession:${effect.reason}:${effect.field}`
         : `FlagSession:${effect.reason}`;
   }
+}
+
+/** An unknown field name is free text written by the LLM: it may echo personal data. */
+function describeRejection(r: RejectedPatchEntry): string {
+  return `${r.reason === "unknown_field" ? "<unknown>" : r.field}=${r.reason}`;
 }

@@ -91,6 +91,17 @@ describe("consent answers", () => {
     expect(sent(result.effects)).toEqual(["system.not_understood", "privacy"]);
   });
 
+  it("reports flow_stop, not consent_declined, when an accepted consent leads to @stop", () => {
+    const stopOnAccept = campaign((input) => {
+      const privacy = input.flow[2];
+      if (privacy?.type !== "consent") throw new Error("privacy is not a consent");
+      privacy.on = { accepted: "@stop" };
+    });
+    const result = step(atPrivacy, userTurn("accetto", choice("accepted")), stopOnAccept);
+
+    expect(others(result.effects)).toContain("StopSession:flow_stop:delete");
+  });
+
   it("stops and deletes on a declined mandatory consent", () => {
     const result = step(atPrivacy, userTurn("no", choice("declined")), campaign());
 

@@ -1,0 +1,47 @@
+description: Spiegazione del CV (reply + @repeat), poi CV rifiutato
+campaign: tests/scenarios/campaigns/test-campaign.json
+turns:
+  - start: true
+    expect: { sent: [system.welcome] }
+
+  - user: "italiano"
+    expect: { step: privacy }
+
+  - user: "accetto"
+    nlu: { intent: choice, choice: accepted }
+    expect: { step: kubri_global }
+
+  - user: "no"
+    nlu: { intent: choice, choice: declined }
+    expect: { question: nome }
+
+  - user: "Sono Mario, ho il permesso e non ho la patente"
+    nlu: { patch: { firstName: Mario, workingPermit: true, drivingLicense: false } }
+    expect: { question: notte }
+
+  - user: "sì, muletto base, cameriere dal 2020 al 2021"
+    nlu:
+      patch:
+        custom.night_shifts: true
+        custom.forklift: base
+        workExperience: ["2020 - 2021 Hotel Sole (IT): Cameriere"]
+    expect: { step: cv_info, sent: [cv_info] }
+
+  - user: "cos'è un cv?"
+    nlu: { intent: choice, choice: idk }
+    expect:
+      step: cv_info
+      sent: [texts.cv_explain, cv_info]
+      outcomes: { cv_info: idk }
+
+  - user: "ah ok, sì"
+    nlu: { intent: choice, choice: "yes" }
+    expect: { step: cv, sent: [cv], outcomes: { cv_info: "yes" } }
+
+  - user: "no grazie"
+    nlu: { intent: choice, choice: "no" }
+    expect:
+      phase: post_completion
+      sent: [fine]
+      effects: ["CompleteSession", "EnqueueJob:kubri-webhook:interview.completed"]
+      outcomes: { cv: "no" }

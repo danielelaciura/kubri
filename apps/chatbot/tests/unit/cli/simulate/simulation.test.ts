@@ -131,6 +131,30 @@ describe("simulation", () => {
     expect(requests.every((r) => r.turnId === null)).toBe(true);
   });
 
+  it("keeps in the history the copy redacted with the patch evidence", async () => {
+    const requests: InterpretRequest[] = [];
+    const spy: Interpreter = {
+      interpret: (request) => {
+        requests.push(request);
+        return Promise.resolve({
+          language: { code: "it", confidence: 1 },
+          intent: "answer",
+          patch: [
+            { field: "firstName", value: "Mariangela", confidence: 0.4, evidence: "Mariangela" },
+          ],
+          currentQuestion: { completeness: "complete" },
+        });
+      },
+    };
+    const sim = simulate(campaign(), spy);
+    await sim.start();
+
+    await sim.handle("mi chiamo Mariangela");
+    await sim.handle("ok");
+
+    expect(requests.map((r) => r.history)).toEqual([[], ["mi chiamo [firstName]"]]);
+  });
+
   it("treats a failing interpreter as an unavailable NLU", async () => {
     const sim = simulate(campaign(), { interpret: () => Promise.reject(new Error("boom")) });
     await sim.start();

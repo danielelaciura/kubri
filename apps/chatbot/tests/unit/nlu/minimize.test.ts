@@ -2,8 +2,13 @@ import { describe, expect, it } from "vitest";
 import type { ProfileSnapshot } from "../../../src/engine/profile-snapshot";
 import type { PendingConfirmation } from "../../../src/engine/state";
 import type { CustomFieldDefinition } from "../../../src/profile/custom-fields";
-import { isWithheldField, scrubHistory, WITHHELD_FIELDS } from "../../../src/nlu/minimize";
-import { inferred } from "../engine/helpers";
+import {
+  isWithheldField,
+  redactWithEvidence,
+  scrubHistory,
+  WITHHELD_FIELDS,
+} from "../../../src/nlu/minimize";
+import { inferred, interpretation } from "../engine/helpers";
 
 const CUSTOM: CustomFieldDefinition[] = [
   {
@@ -81,6 +86,13 @@ describe("scrubHistory", () => {
     ).toEqual(["ho un'[custom.disability], e [jobPreferences.constraints]"]);
   });
 
+  it("scrubs two-letter names as whole words, never longer values shorter than three", () => {
+    expect(scrub(["Li Wei, vivo a Linate"], { lastName: inferred("Li") })).toEqual([
+      "[lastName] Wei, vivo a Linate",
+    ]);
+    expect(scrub(["sono di Bo"], { address: inferred("Bo") })).toEqual(["sono di Bo"]);
+  });
+
   it("matches whole words only, so other words keep their meaning", () => {
     expect(scrub(["Ada, sono adatta"], { firstName: inferred("Ada") })).toEqual([
       "[firstName], sono adatta",
@@ -136,5 +148,59 @@ describe("scrubHistory", () => {
       ),
     ).toEqual(["vado in bici"]);
     expect(scrub(["vado in bici"], {}, { kind: "delete_data" })).toEqual(["vado in bici"]);
+  });
+});
+
+const entry = (field: string, value: unknown, evidence: string, confidence = 0.95) => ({
+  field,
+  value,
+  confidence,
+  evidence,
+});
+
+describe("redactWithEvidence", () => {
+  it("replaces the evidence of personal and sensitive fields, whatever was saved", () => {
+    const result = redactWithEvidence(
+      "Mi chiamo Mariangela, ho il permesso di soggiorno e vado in bici",
+      interpretation({
+        patch: [
+          // Low confidence: the engine will only ask to confirm it; still redacted.
+          entry("firstName", "Mariangela", "Mariangela", 0.5),
+          entry("workingPermit", true, "ho il permesso di soggiorno"),
+          entry("transport", "bicicletta", "in bici"),
+        ],
+      }),
+      CUSTOM,
+    );
+
+    expect(result).toBe("Mi chiamo [firstName], [workingPermit] e vado in bici");
+  });
+
+  it("also replaces the written value when the evidence does not match the message", () => {
+    expect(
+      redactWithEvidence(
+        "scrivete a mb@example.com",
+        interpretation({ patch: [entry("email", "mb@example.com", "la mia mail")] }),
+        CUSTOM,
+      ),
+    ).toBe("scrivete a [email]");
+  });
+
+  it("covers the evidence and value of custom sensitive fields and the edit target", () => {
+    expect(
+      redactWithEvidence(
+        "ho un'invalidità al 40%. Il cognome giusto è Rossini",
+        interpretation({
+          intent: "edit_request",
+          patch: [entry("custom.disability", "invalidità al 40%", "invalidità al 40%")],
+          editTarget: { field: "lastName", newValue: "Rossini" },
+        }),
+        CUSTOM,
+      ),
+    ).toBe("ho un'[custom.disability]. Il cognome giusto è [lastName]");
+  });
+
+  it("leaves the message alone without an interpretation", () => {
+    expect(redactWithEvidence("mi chiamo Mario", null, CUSTOM)).toBe("mi chiamo Mario");
   });
 });

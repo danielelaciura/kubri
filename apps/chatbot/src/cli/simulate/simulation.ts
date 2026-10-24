@@ -12,6 +12,7 @@ import {
   type TextSource,
 } from "../../i18n/resolve";
 import type { Interpreter } from "../../nlu/interpreter";
+import { redactWithEvidence } from "../../nlu/minimize";
 import { parseInput, USAGE } from "./commands";
 
 export interface SimulationOptions {
@@ -130,7 +131,8 @@ export function createSimulation(options: SimulationOptions): Simulation {
           });
         case "text": {
           const [interpretation, notes] = await interpret(input.text);
-          history.push(input.text);
+          // Like runtime (plan 08): later turns see the copy without personal spans.
+          history.push(redactWithEvidence(input.text, interpretation, campaign.customFields));
           const lines = await run({
             type: "user_turn",
             at: options.now(),

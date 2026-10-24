@@ -18,5 +18,105 @@ model Organization {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
+  senderNumbers SenderNumber[]
+  campaigns     Campaign[]
+
+  @@schema("bot")
+}
+
+enum Channel {
+  whatsapp
+
+  @@schema("bot")
+}
+
+enum SenderProvider {
+  meta
+  twilio
+
+  @@schema("bot")
+}
+
+enum SenderStatus {
+  provisioning
+  active
+  suspended
+
+  @@schema("bot")
+}
+
+model SenderNumber {
+  id             String         @id @default(uuid()) @db.Uuid
+  /// Referenced by campaign files as `trigger.sender` (spec §5.1).
+  slug           String         @unique
+  /// Owner of the number; null for numbers shared by several organizations.
+  organizationId String?        @db.Uuid
+  channel        Channel        @default(whatsapp)
+  provider       SenderProvider
+  phoneE164      String
+  displayName    String
+  /// Provider identifiers and names of secrets (spec §10.1): never credentials.
+  providerConfig Json           @default("{}")
+  status         SenderStatus   @default(provisioning)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  organization Organization? @relation(fields: [organizationId], references: [id])
+  campaigns    Campaign[]
+
+  @@unique([channel, phoneE164])
+  @@schema("bot")
+}
+
+enum CampaignStatus {
+  active
+  paused
+  archived
+
+  @@schema("bot")
+}
+
+model Campaign {
+  id              String         @id @default(uuid()) @db.Uuid
+  slug            String         @unique
+  organizationId  String         @db.Uuid
+  // Routing columns: copied from the active version (or from the latest import while the
+  // campaign has never been activated). The definition in CampaignVersion stays the truth.
+  senderNumberId  String         @db.Uuid
+  keywords        String[]
+  isDefault       Boolean        @default(false)
+  externalKey     String
+  status          CampaignStatus @default(paused)
+  activeVersionId String?        @unique @db.Uuid
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  organization  Organization      @relation(fields: [organizationId], references: [id])
+  senderNumber  SenderNumber      @relation(fields: [senderNumberId], references: [id])
+  activeVersion CampaignVersion?  @relation("ActiveVersion", fields: [activeVersionId], references: [id])
+  versions      CampaignVersion[] @relation("Versions")
+
+  @@index([senderNumberId, status])
+  @@schema("bot")
+}
+
+/// Immutable (CLAUDE.md): rows are inserted by the import and never updated.
+model CampaignVersion {
+  id         String   @id @default(uuid()) @db.Uuid
+  campaignId String   @db.Uuid
+  /// Assigned by the import, 1, 2, 3… per campaign (spec D26).
+  version    Int
+  /// The parsed definition (Zod defaults applied), in canonical form.
+  definition Json
+  /// sha256 of the canonical JSON of `definition`.
+  checksum   String
+  importedAt DateTime @default(now())
+  importedBy String?
+
+  campaign  Campaign  @relation("Versions", fields: [campaignId], references: [id])
+  activeFor Campaign? @relation("ActiveVersion")
+
+  @@unique([campaignId, version])
+  @@unique([campaignId, checksum])
   @@schema("bot")
 }

@@ -107,6 +107,16 @@ Oggi il chatbot di Kubri vive su Make.com. L'analisi dello scenario ha evidenzia
 | D53 | Conferme in sospeso | Un sì/no deterministico (parole chiave, messaggio intero) prevale sull'interpretazione dell'LLM per ogni tipo di conferma; dopo una cancellazione confermata il profilo viene svuotato anche nello stato del motore; una conferma incoerente con la fase viene scartata con `FlagSession`, senza bloccare la sessione. |
 | D54 | Posizione di `kubri_global` | `kubri_global` deve seguire il consenso obbligatorio nel flusso. |
 | D55 | Ripresa dopo conferme e approfondimenti | Dopo una modifica confermata (o annullata) di un altro campo si ripete la domanda corrente, così un approfondimento in sospeso non si perde; solo la modifica del campo della domanda corrente fa avanzare. Una nuova estrazione identica al valore salvato non è una risposta e non produce `ApplyPatch` (confronto per valore, non per riferimento). La richiesta di conferma di un valore incerto e il "no" a quella conferma consumano un approfondimento: al limite la domanda si chiude come da §7.2 punto 3 (`unresolved` + `FlagSession` se obbligatoria). Il motivo dello stop è `consent_declined` solo dopo un rifiuto; nei log un campo sconosciuto proposto dall'LLM compare come `<unknown>`. |
+| D60 | Slug del numero | `SenderNumber.slug` univoco, citato da `trigger.sender`; il numero è univoco per (`channel`, `phoneE164`). |
+| D61 | Checksum della versione | sha256 del JSON canonico (chiavi ordinate) della definizione parsata, default inclusi. Stesso checksum → nessuna versione nuova; un file uguale a una versione precedente la riusa (con `--activate` è un rollback). |
+| D62 | Attivazione | Campagna nuova `paused`; import senza `--activate` non cambia la versione attiva; `--activate` imposta `activeVersionId` e `status = active`. Le colonne di instradamento di `Campaign` copiano la versione attiva (o l'ultima importata finché non ce n'è una). |
+| D63 | Collisioni | Parole chiave confrontate in modo esatto (dopo trim e minuscolo) e al più una campagna di default per numero, solo contro le campagne `active` dello stesso numero, a ogni import, in una transazione serializzabile. Le campagne in pausa non collidono. Due import concorrenti della stessa campagna possono fallire con conflitto di serializzazione o di unicità: la CLI risponde "import concorrente, riprova" ed esce con codice non zero. |
+| D64 | Organizzazione della campagna | Fissa tra le versioni (`organization_mismatch`); il numero può cambiare. |
+| D65 | Consensi segnaposto | Una `textVersion` `placeholder-…` o un testo di consenso che contiene il marcatore `[TESTO SEGNAPOSTO]` è un **avviso** solo con `NODE_ENV` esplicitamente `development` o `test`; con `production`, con `NODE_ENV` non impostato o con qualunque altro valore è un **errore** (nessun default silenzioso). Vale sia per `campaigns import` sia per `campaigns validate`, che stampano l'ambiente effettivo accanto ai problemi. La CLI contro prod gira con `NODE_ENV=production` (da impostare in `.env.prod`). |
+| D66 | `providerConfig` | Solo identificativi e nomi di segreti (`phoneNumberId`, `wabaId`, `accessTokenSecret` in UPPER_SNAKE_CASE), schema strict in `src/channels/provider-config.ts`; v1 solo `meta`. |
+| D67 | Stato iniziale del numero | `senders add` crea il numero `active` (provisioning manuale); default del DB `provisioning`. |
+| D68 | Definizione memorizzata | `CampaignVersion.definition` = definizione parsata in forma canonica; alla lettura si ri-parsa con lo schema (`LoadedCampaign`). |
+| D69 | Campagna standard v1 | Costruita dal §6 (export di Make non disponibile, testi da rifinire sul questionario "global"); consensi dell'Appendice A con titolare e link per esteso; `privacyUrl` provvisorio da confermare (§18, punto 5). |
 
 ---
 
@@ -501,7 +511,7 @@ Schema Postgres **`bot`**, nello stesso progetto Supabase della dashboard. Tutte
 
 - **Organization**: `id`, `slug`, `name`, `kubriOrganizationId?` (collegamento futuro alla dashboard), `createdAt`.
 - **SenderNumber**:
-  - `id`, `organizationId?`, `channel` (`whatsapp`), `provider` (`meta` | `twilio`), `phoneE164`, `displayName`;
+  - `id`, `slug` (citato da `trigger.sender`, D60), `organizationId?`, `channel` (`whatsapp`), `provider` (`meta` | `twilio`), `phoneE164`, `displayName`;
   - `providerConfig` (identificativi come `phoneNumberId` e `wabaId`; **le credenziali sono riferimenti a segreti, mai in chiaro**);
   - `status` (`provisioning` | `active` | `suspended`), `createdAt`.
 - **Campaign**: `id`, `slug`, `organizationId`, `senderNumberId`, `keywords[]`, `externalKey`, `activeVersionId`, `status` (`active` | `paused` | `archived`), `isDefault` (la campagna standard Kubri del numero).

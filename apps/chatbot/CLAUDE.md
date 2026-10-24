@@ -224,7 +224,21 @@ pnpm test                    # unit tests
 pnpm test:integration        # integration tests (needs pnpm db:up)
 pnpm typecheck && pnpm lint && pnpm format:check
 pnpm cli --help              # kubri-bot CLI
+pnpm cli orgs add <slug> --name <name>
+pnpm cli senders add <slug> --phone <e164> --name <name> [--org <slug>] \
+  --phone-number-id <id> --waba-id <id> --token-secret <SECRET_NAME>
+pnpm cli campaigns validate <file>   # no database; exits 1 on issues
+pnpm cli campaigns import <file> [--activate] [--imported-by <name>]
+pnpm cli campaigns list
 ```
+
+- `campaigns import` creates a new immutable `CampaignVersion` only when the parsed file's
+  checksum is new; without `--activate` the active version does not change. Placeholder
+  consents (`placeholder-…` versions, `[TESTO SEGNAPOSTO]` texts) are only warnings when
+  `NODE_ENV` is explicitly `development` or `test`; with `production`, unset or anything else
+  they are errors. Always run the CLI against prod with `NODE_ENV=production` (set it in
+  `.env.prod`).
+- `--token-secret` takes the **name** of the env var holding the Meta token, never the token.
 
 - Local DB: Docker Postgres on port 54329, databases `kubri_bot_dev` and `kubri_bot_test`.
   Both contain simulated dashboard tables in `public`, which the bot must never touch.

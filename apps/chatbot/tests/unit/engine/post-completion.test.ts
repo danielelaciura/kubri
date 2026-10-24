@@ -75,6 +75,19 @@ describe("post-completion edits", () => {
     expect(result.state.pendingConfirmation).toBeNull();
   });
 
+  it("replaces a pending edit with a corrected value and asks to confirm again", () => {
+    const state = { ...completed, pendingConfirmation: pending };
+    const corrected = interpretation({
+      intent: "edit_request",
+      editTarget: { field: "firstName", newValue: "Marcello" },
+    });
+    const result = step(state, userTurn("no, è Marcello", corrected), c);
+
+    expect(sent(result.effects)).toEqual(["system.confirm_edit"]);
+    expect(others(result.effects)).toEqual([]);
+    expect(result.state.pendingConfirmation).toEqual({ ...pending, newValue: "Marcello" });
+  });
+
   it("refuses edits when the campaign does not allow them", () => {
     const noEdits = campaign((input) => {
       input.afterCompletion = { allowEdits: false };

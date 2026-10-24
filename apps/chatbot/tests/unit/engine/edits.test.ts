@@ -91,6 +91,16 @@ describe("edit requests during the flow", () => {
     expect(result.state.profile.firstName?.value).toBe("Mario");
   });
 
+  it("replaces a pending edit with a corrected value and asks to confirm again", () => {
+    const state = { ...atPatente, pendingConfirmation: pending };
+    const result = step(state, userTurn("no, è Marcello", edit("firstName", "Marcello")), c);
+
+    expect(sent(result.effects)).toEqual(["system.confirm_edit"]);
+    expect(others(result.effects)).toEqual([]);
+    expect(result.state.pendingConfirmation).toEqual({ ...pending, newValue: "Marcello" });
+    expect(result.state.profile.firstName?.value).toBe("Mario");
+  });
+
   it("rejects an invalid value and resumes", () => {
     const result = step(atPatente, userTurn("cambia", edit("drivingLicense", "forse")), c);
     expect(sent(result.effects)).toEqual(["system.edit_invalid", "anagrafica.patente"]);

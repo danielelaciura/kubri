@@ -20,7 +20,7 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:status": "prisma migrate status",
-    "cli": "tsx --env-file=.env src/cli/main.ts"
+    "cli": "tsx --env-file-if-exists=.env src/cli/main.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",

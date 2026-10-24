@@ -513,7 +513,8 @@ Schema Postgres **`bot`**, nello stesso progetto Supabase della dashboard. Tutte
 ### 10.5 Ruoli database
 
 - `bot_app`: lettura e scrittura solo sugli schemi `bot` e `bot_queue`.
-- `bot_migrator`: DDL sugli schemi `bot` e `bot_queue`.
+- `bot_migrator`: proprietario dello schema `bot`, esegue le migrazioni Prisma (DDL).
+- `bot_queue` è di proprietà di `bot_app`, perché pg-boss crea e aggiorna da solo le proprie tabelle all'avvio del worker.
 - In futuro `dashboard_reader`: lettura su tabelle selezionate di `bot` (es. `Message`, `Session`) per mostrare lo storico in dashboard.
 - **Nessuno dei ruoli del bot può toccare lo schema della dashboard, e viceversa.**
 

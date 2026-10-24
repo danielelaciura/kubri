@@ -3,11 +3,18 @@ import tseslint from "typescript-eslint";
 
 // Module boundaries from CLAUDE.md, enforced mechanically.
 const ENGINE_FORBIDDEN_IMPORTS = [
+  // Both "dir" (index import) and "dir/**" (deep import) forms.
+  "**/store",
   "**/store/**",
+  "**/channels",
   "**/channels/**",
+  "**/nlu",
   "**/nlu/**",
+  "**/integrations",
   "**/integrations/**",
+  "**/runtime",
   "**/runtime/**",
+  "**/ingress",
   "**/ingress/**",
   "**/generated/**",
   "@prisma/*",

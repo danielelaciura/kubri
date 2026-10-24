@@ -6,10 +6,19 @@ on:
       - "apps/chatbot/**"
       - "packages/**"
       - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "package.json"
       - ".github/workflows/chatbot-ci.yml"
   push:
     branches: [main]
     paths: *chatbot-paths
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chatbot-ci-${{ github.ref }}
+  cancel-in-progress: true
 
 defaults:
   run:

@@ -44,9 +44,9 @@ describe("runProgram", () => {
       new Error("\nInvalid `db.campaign.findMany()` invocation in\n/a/b.ts:1\n\n→ 153  code"),
       { name: "PrismaClientKnownRequestError", code: "ECONNREFUSED" },
     );
-    cli.deps.withDatabase = () => Promise.reject(failure);
+    const deps = { ...cli.deps, withDatabase: () => Promise.reject(failure) };
 
-    expect(await runProgram(cli.deps, ORGS_ADD, false)).toBe(1);
+    expect(await runProgram(deps, ORGS_ADD, false)).toBe(1);
     expect(cli.stderr).toEqual([
       "PrismaClientKnownRequestError: database request failed (ECONNREFUSED)",
     ]);
@@ -54,9 +54,12 @@ describe("runProgram", () => {
 
   it("keeps the last line of any other multi-line error", async () => {
     const cli = fakeCli();
-    cli.deps.withDatabase = () => Promise.reject(new Error("first\nsecond\n\nthe reason"));
+    const deps = {
+      ...cli.deps,
+      withDatabase: () => Promise.reject(new Error("first\nsecond\n\nthe reason")),
+    };
 
-    expect(await runProgram(cli.deps, ORGS_ADD, false)).toBe(1);
+    expect(await runProgram(deps, ORGS_ADD, false)).toBe(1);
     expect(cli.stderr).toEqual(["Error: the reason"]);
   });
 
@@ -70,8 +73,8 @@ describe("runProgram", () => {
 
   it("keeps the exit code of a CliError", async () => {
     const cli = fakeCli();
-    cli.deps.withDatabase = () => Promise.reject(new CliError("nope", 3));
-    expect(await runProgram(cli.deps, ORGS_ADD, false)).toBe(3);
+    const deps = { ...cli.deps, withDatabase: () => Promise.reject(new CliError("nope", 3)) };
+    expect(await runProgram(deps, ORGS_ADD, false)).toBe(3);
     expect(cli.stderr).toEqual(["nope"]);
   });
 });

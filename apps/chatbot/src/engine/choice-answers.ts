@@ -23,10 +23,16 @@ export function answerChoice(
   nonAnswer(turn, interpretation);
 }
 
+/** The yes/no picked for a cv_offer, if any. */
+export function chosenYesNo(interpretation: Interpretation | null): "yes" | "no" | undefined {
+  const option = chosen(interpretation);
+  return option === "yes" || option === "no" ? option : undefined;
+}
+
 /** Spec §12.2: `yes` enqueues the CV generation. */
 export function answerCvOffer(turn: Turn, index: number, interpretation: Interpretation): void {
-  const option = chosen(interpretation);
-  if (option !== "yes" && option !== "no") {
+  const option = chosenYesNo(interpretation);
+  if (option === undefined) {
     nonAnswer(turn, interpretation);
     return;
   }

@@ -1,5 +1,5 @@
 import type { CvOfferStep } from "../campaigns/schema/steps";
-import { chosen } from "./choice-answers";
+import { chosenYesNo } from "./choice-answers";
 import { dropStaleConfirmation } from "./confirmations";
 import { requestEdit, saveEdit } from "./edits";
 import type { UserTurnEvent } from "./events";
@@ -74,8 +74,8 @@ function resolvePendingEdit(turn: Turn, event: UserTurnEvent): boolean {
 
 /** The answer to a cv_offer re-proposed after completion: no transitions are followed. */
 function answerCvRegeneration(turn: Turn, interpretation: Interpretation | null): void {
-  const option = chosen(interpretation);
-  if (option !== "yes" && option !== "no") {
+  const option = chosenYesNo(interpretation);
+  if (option === undefined) {
     nonAnswer(turn, interpretation);
     return;
   }

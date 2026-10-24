@@ -2,7 +2,7 @@ import { stopSession } from "./advance";
 import type { UserTurnEvent } from "./events";
 import { confirmationAnswer, globalIntentOf, type GlobalIntent } from "./global-intents";
 import { repromptCurrent } from "./replies";
-import { emit, say, setState, systemText, type Turn } from "./turn";
+import { emit, enterRestingPhase, say, setState, systemText, type Turn } from "./turn";
 
 /**
  * Spec §7.2 point 1, D39, D40: global intents and a pending deletion are handled before the
@@ -76,13 +76,7 @@ function optOut(turn: Turn): void {
 
 /** A completed or closed session is closed without a StopSession (its data policy stands). */
 function closeQuietly(turn: Turn): void {
-  setState(turn, {
-    phase: "closed",
-    stepId: null,
-    questionId: null,
-    clarifications: 0,
-    pendingConfirmation: null,
-  });
+  enterRestingPhase(turn, "closed");
 }
 
 /** Back to where the conversation was before the deletion request. */

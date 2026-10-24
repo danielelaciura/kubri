@@ -11,6 +11,7 @@ import {
   EngineError,
   MAX_AUTO_ADVANCES,
   emit,
+  enterRestingPhase,
   incoherent,
   say,
   setState,
@@ -121,13 +122,7 @@ function completeSession(turn: Turn, closing: TextRef): void {
     { type: "CompleteSession", at: turn.at },
     { type: "EnqueueJob", job: { name: "kubri-webhook", event: "interview.completed" } },
   );
-  setState(turn, {
-    phase: "post_completion",
-    stepId: null,
-    questionId: null,
-    clarifications: 0,
-    pendingConfirmation: null,
-  });
+  enterRestingPhase(turn, "post_completion");
 }
 
 export interface StopOptions {
@@ -141,13 +136,7 @@ export function stopSession(turn: Turn, reason: StopReason, options: StopOptions
     options.dataPolicy ?? (turn.state.consentsAccepted ? turn.campaign.onStop.data : "delete");
   say(turn, options.goodbye ?? systemText("system.stopped"));
   emit(turn, { type: "StopSession", reason, dataPolicy, at: turn.at });
-  setState(turn, {
-    phase: "closed",
-    stepId: null,
-    questionId: null,
-    clarifications: 0,
-    pendingConfirmation: null,
-  });
+  enterRestingPhase(turn, "closed");
 }
 
 export function consentTextRef(turn: Turn, step: ConsentStep): TextRef {

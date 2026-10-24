@@ -29,7 +29,7 @@ export function askConfirmation(turn: Turn, entry: PatchEntry): void {
 /**
  * D36, during the flow: yes applies, no cancels and asks again, anything else drops the
  * confirmation. Returns true when the turn was handled; false means "process the message as a
- * normal answer". `delete_data` is resolved before the phase switch (step.ts), never here.
+ * normal answer". `delete_data` is resolved before the phase switch (global-turn.ts).
  */
 export function resolvePendingInFlow(turn: Turn, event: UserTurnEvent): boolean {
   const pending = turn.state.pendingConfirmation;

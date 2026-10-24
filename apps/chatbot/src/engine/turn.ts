@@ -53,6 +53,20 @@ export function setState(turn: Turn, changes: Partial<SessionState>): void {
   turn.state = { ...turn.state, ...changes };
 }
 
+/**
+ * Moves to a phase with no step waiting: the position, clarifications and any pending
+ * confirmation are cleared.
+ */
+export function enterRestingPhase(turn: Turn, phase: "post_completion" | "closed"): void {
+  setState(turn, {
+    phase,
+    stepId: null,
+    questionId: null,
+    clarifications: 0,
+    pendingConfirmation: null,
+  });
+}
+
 export function say(turn: Turn, text: TextRef, purpose?: SendPurpose): void {
   emit(turn, purpose ? { type: "SendText", text, purpose } : { type: "SendText", text });
 }

@@ -1,6 +1,6 @@
 import { config } from "dotenv";
 import { defineConfig } from "prisma/config";
-import { targetsBotSchema } from "./src/store/connection-string";
+import { targetsBotSchema } from "./src/config/database-url";
 
 // Already-set variables win (dotenv does not override): integration tests and CI pass
 // their own DATABASE_URL explicitly.

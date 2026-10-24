@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { targetsBotSchema } from "../store/connection-string";
+import { targetsBotSchema } from "./database-url";
 
 const EnvSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),

@@ -275,6 +275,51 @@ describe("followOutcome", () => {
     });
   });
 
+  describe("end steps are searched from the current position on", () => {
+    const withEarlyBye = (edit?: (input: CampaignInput) => void): CampaignDefinition =>
+      campaign((input) => {
+        const cvInfo = input.flow[1];
+        if (cvInfo?.type === "choice") cvInfo.on = { yes: "privacy", no: "bye" };
+        input.flow.splice(2, 0, { id: "bye", type: "end", text: { it: "Ciao!" } });
+        input.flow[5] = {
+          id: "fine",
+          type: "end",
+          when: { step: "cv_info", outcome: "no" },
+          text: { it: "Grazie!" },
+        };
+        edit?.(input);
+      });
+    const finishing = atQuestion("patente", {
+      profile: { firstName: inferred("Mario"), drivingLicense: inferred(false) },
+    });
+
+    it("never jumps back to an earlier end step when the flow runs out", () => {
+      const c = withEarlyBye();
+      const block = questionsStep(c, "anagrafica");
+      const turn = turnFor(finishing, c);
+      advanceFromQuestion(turn, 4, block, questionOf(block, "patente"));
+
+      expect(sent(turn.effects)).toEqual(["system.closing"]);
+      expect(others(turn.effects)).toEqual([
+        "EnqueueJob:kubri-webhook:block.completed",
+        "CompleteSession",
+        "EnqueueJob:kubri-webhook:interview.completed",
+      ]);
+    });
+
+    it("never jumps back to an earlier end step on @end", () => {
+      const c = withEarlyBye((input) => {
+        const block = input.flow[4];
+        if (block?.type === "questions") block.on = { completed: "@end" };
+      });
+      const block = questionsStep(c, "anagrafica");
+      const turn = turnFor(finishing, c);
+      advanceFromQuestion(turn, 4, block, questionOf(block, "patente"));
+
+      expect(sent(turn.effects)).toEqual(["system.closing"]);
+    });
+  });
+
   it("running past the last step behaves like @end", () => {
     const c = campaign((input) => {
       input.flow = [{ id: "intro", type: "message", text: { it: "Ciao!" } }];

@@ -22,7 +22,7 @@ import {
 export function enterStep(turn: Turn, fromIndex: number): void {
   const index = nextEligibleStep(turn.campaign.flow, fromIndex, conditionContext(turn.state));
   if (index === undefined) {
-    endFlow(turn);
+    endFlow(turn, fromIndex);
     return;
   }
   runStep(turn, index);
@@ -77,7 +77,7 @@ function goTo(turn: Turn, target: Target, fromIndex: number, stopReason: StopRea
     return;
   }
   if (target === "@end") {
-    endFlow(turn);
+    endFlow(turn, fromIndex);
     return;
   }
   if (target === "@repeat") {
@@ -89,11 +89,14 @@ function goTo(turn: Turn, target: Target, fromIndex: number, stopReason: StopRea
   enterStep(turn, index);
 }
 
-/** `@end` and running out of steps: the first eligible `end` step, else a system closing (D37). */
-export function endFlow(turn: Turn): void {
+/**
+ * `@end` and running out of steps: the first eligible `end` step at or after `fromIndex`
+ * (never an earlier one), else a system closing (D37).
+ */
+export function endFlow(turn: Turn, fromIndex: number): void {
   const ctx = conditionContext(turn.state);
   const index = turn.campaign.flow.findIndex(
-    (s) => s.type === "end" && (!s.when || evaluateCondition(s.when, ctx)),
+    (s, i) => i >= fromIndex && s.type === "end" && (!s.when || evaluateCondition(s.when, ctx)),
   );
   if (index >= 0) {
     runStep(turn, index);

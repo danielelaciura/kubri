@@ -68,9 +68,11 @@ solo formattazione, non cambia il codice.
   corrente; gli altri valori sotto soglia si scartano (il campo verrà chiesto più avanti).
 - **D36 — Conferme sì/no.** "sì" applica; "no" annulla e ripete la domanda; qualunque altra
   risposta fa decadere la conferma e il messaggio viene elaborato come una risposta normale.
-- **D37 — `@end`** (risolve §18.13): va al **primo passaggio `end` idoneo** (con `when` vera o
-  assente) nell'ordine del `flow`; se non ce n'è nessuno, il motore chiude con il testo di sistema
-  `system.closing` ed emette `CompleteSession`. La stessa regola vale quando il `flow` finisce.
+- **D37 — `@end`** (risolve §18.13): `@end` va al **primo `end` idoneo** (con `when` vera o
+  assente) **dalla posizione corrente in avanti**; se non c'è, `system.closing` (con
+  `CompleteSession`). La stessa regola vale quando il `flow` finisce. Prima della soglia dei
+  consensi `@end` non crea un candidato: testo di chiusura + stop con cancellazione
+  (`StopSession { reason: "ended_before_consent", dataPolicy: "delete" }`).
 - **D38 — Soglia D24 nel motore.** `consentsAccepted` diventa vero al primo consenso
   obbligatorio accettato, ed è lì che parte l'evento `consents.accepted` verso Kubri. Il rifiuto
   di un consenso obbligatorio lo riporta a falso prima del `@stop`, quindi i dati si cancellano.
@@ -4602,7 +4604,7 @@ git commit -m "feat(chatbot): confirm and apply edit requests during the flow"
 
 ### Task 21: Gestione degli intenti globali (`opt_out`, `delete_data`)
 
-> **Decisione del proprietario (2026-10-24), prevale sul codice qui sotto:** `delete_data` **chiede conferma** prima di cancellare, sia quando arriva dall'LLM sia dalle parole chiave deterministiche. Il primo `delete_data` imposta `pendingConfirmation = { kind: "delete_data" }` e invia la chiave di sistema `system.delete_confirm` (da aggiungere all'unione delle chiavi di sistema); nessun dato viene toccato. Al turno successivo: un "sì" (scelta `yes` o parola chiave di conferma) produce `StopSession { dataPolicy: "delete" }` + `EnqueueJob delete-contact` + `system.delete_done`; qualsiasi altra risposta annulla la richiesta, invia `system.delete_cancelled` e riprende da dove si era. `opt_out` dopo il completamento conserva i dati (solo `OptOut`). Adeguare test e implementazione di questo task di conseguenza.
+> **Decisione del proprietario (2026-10-24), prevale sul codice qui sotto:** `delete_data` **chiede conferma** prima di cancellare, sia quando arriva dall'LLM sia dalle parole chiave deterministiche. Il primo `delete_data` imposta `pendingConfirmation = { kind: "delete_data" }` e invia la chiave di sistema `system.delete_confirm` (da aggiungere all'unione delle chiavi di sistema); nessun dato viene toccato. Al turno successivo: un "sì" (scelta `yes` o parola chiave di conferma) produce `StopSession { dataPolicy: "delete" }` + `EnqueueJob delete-contact` + `system.delete_done`; qualsiasi altra risposta annulla la richiesta, invia `system.delete_cancelled` e riprende da dove si era. `opt_out` dopo il completamento conserva i dati (solo `OptOut`). Adeguare test e implementazione di questo task di conseguenza. Prima dello switch sulle fasi in `handleUserTurn`, controllare gli intenti globali anche in fase `closed` (D40); nei task 18/20/22 gestire `pendingConfirmation.kind === "delete_data"` prima del ramo value/edit.
 
 Valutati per primi, in ogni fase (D39, D40).
 
@@ -6050,7 +6052,7 @@ Nella tabella del §2 aggiungere, **subito dopo la riga D30 e prima della riga D
 | D34 | Soglia di confidenza | Unica, 0,7. Campo valorizzato = non `unresolved` e confidenza ≥ 0,7. Soglie per campo in futuro. |
 | D35 | Applicazione delle patch | Solo dopo la soglia dei consensi; l'estrazione non sovrascrive un campo valorizzato tranne quello della domanda corrente; le altre modifiche passano da `edit_request`. Sotto soglia: conferma solo per il campo della domanda corrente, gli altri valori si scartano. |
 | D36 | Conferme sì/no | "sì" applica, "no" annulla e ripete la domanda, ogni altra risposta fa decadere la conferma ed è elaborata come risposta normale. |
-| D37 | `@end` | Va al primo passaggio `end` con `when` vera o assente; se non ce n'è, chiusura di sistema e `CompleteSession`. Vale anche quando il `flow` finisce. |
+| D37 | `@end` | `@end` va al primo `end` idoneo dalla posizione corrente in avanti; se non c'è, `system.closing`. Prima della soglia dei consensi `@end` non crea un candidato: testo di chiusura + stop con cancellazione. Vale anche quando il `flow` finisce. |
 | D38 | Soglia D24 nel motore | `consentsAccepted` diventa vero al primo consenso obbligatorio accettato (evento `consents.accepted`); il rifiuto di un obbligatorio lo riporta a falso prima del `@stop`. Con D48 il consenso obbligatorio è uno solo, quindi "primo" e "ultimo" coincidono. |
 | D39 | Dati alla chiusura | `@stop`: `delete` prima della soglia, `onStop.data` dopo. `delete_data`: chiede conferma; solo dopo un sì `delete` + job `delete-contact`, altrimenti si riprende. `opt_out` dopo il completamento: solo `OptOut`, i dati restano. |
 | D40 | Intenti globali deterministici | Il messaggio intero normalizzato deve coincidere con una frase dell'elenco; la parola chiave vince sull'LLM; valgono in ogni fase, anche a sessione chiusa. |

@@ -1,8 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { parseEnv, parseNodeEnv } from "../config/env";
 import { createDatabase } from "../store/db";
-import { CliError, type CliDeps } from "./deps";
-import { createProgram } from "./program";
+import type { CliDeps } from "./deps";
+import { runProgram } from "./run";
 
 const deps: CliDeps = {
   out: (line) => process.stdout.write(`${line}\n`),
@@ -19,10 +19,4 @@ const deps: CliDeps = {
   },
 };
 
-try {
-  await createProgram(deps).parseAsync(process.argv);
-} catch (error: unknown) {
-  if (!(error instanceof CliError)) throw error;
-  process.stderr.write(`${error.message}\n`);
-  process.exitCode = error.exitCode;
-}
+process.exitCode = await runProgram(deps, process.argv, process.env["KUBRI_BOT_DEBUG"] === "1");

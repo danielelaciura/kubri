@@ -8,9 +8,24 @@ describe("normalizeText", () => {
     expect(normalizeText("  STOP!!  ")).toBe("stop");
   });
 
-  it("keeps accented letters and combining marks", () => {
-    expect(normalizeText("Supprimer mes DONNÉES.")).toBe("supprimer mes données");
+  it("folds accents and keeps non-Latin letters", () => {
+    expect(normalizeText("Supprimer mes DONNÉES.")).toBe("supprimer mes donnees");
     expect(normalizeText("বাংলা")).toBe("বাংলা");
+  });
+
+  it("folds Latin diacritics for lookup", () => {
+    expect(normalizeText("Supprimer mes DONNÉES")).toBe(normalizeText("supprimer mes donnees"));
+    expect(normalizeText("inglés")).toBe("ingles");
+  });
+
+  it("strips Arabic tashkeel and tatweel", () => {
+    expect(normalizeText("توقّف")).toBe("توقف");
+    expect(normalizeText("تـوقـف")).toBe("توقف");
+  });
+
+  it("keeps the combining marks of Indic scripts", () => {
+    expect(normalizeText("बन्द")).toBe("बन्द");
+    expect(normalizeText("বন্ধ")).toBe("বন্ধ");
   });
 });
 
@@ -22,16 +37,38 @@ describe("detectGlobalIntent", () => {
     ["Cancella i miei dati", "delete_data"],
     ["delete my data", "delete_data"],
     ["احذف بياناتي", "delete_data"],
+    ["Ｓｔｏｐ", "opt_out"],
+    ["STOP 🛑", "opt_out"],
+    ["توقّف", "opt_out"],
+    ["Стоп!", "opt_out"],
+    ["بند", "opt_out"],
+    ["বন্ধ", "opt_out"],
+    ["opreste", "opt_out"],
+    ["oprește", "opt_out"],
+    ["parar", "opt_out"],
+    ["no mas", "opt_out"],
+    ["no más", "opt_out"],
+    ["Supprimer mes données", "delete_data"],
+    ["supprimer mes donnees", "delete_data"],
+    ["borrar mis datos", "delete_data"],
+    ["șterge datele mele", "delete_data"],
+    ["sterge datele mele", "delete_data"],
+    ["Arrêt", "opt_out"],
   ])("%j → %s", (text, intent) => {
     expect(detectGlobalIntent(text)).toBe(intent);
   });
 
-  it.each(["basta così grazie", "stoppato", "non cancellare i miei dati", ""])(
-    "ignores %j: the whole message must match",
-    (text) => {
-      expect(detectGlobalIntent(text)).toBeUndefined();
-    },
-  );
+  it.each([
+    "basta così grazie",
+    "stoppato",
+    "non cancellare i miei dati",
+    "ne supprimez pas mes données",
+    "no borrar mis datos",
+    "para",
+    "",
+  ])("ignores %j: the whole message must match", (text) => {
+    expect(detectGlobalIntent(text)).toBeUndefined();
+  });
 });
 
 describe("globalIntentOf", () => {

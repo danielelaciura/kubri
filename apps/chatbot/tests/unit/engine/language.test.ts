@@ -8,14 +8,46 @@ describe("detectLanguageName", () => {
     ["Arabo", "ar"],
     ["العربية", "ar"],
     ["english please", "en"],
-    ["vorrei parlare in français", "fr"],
+    ["parlo français", "fr"],
     ["українська", "uk"],
     ["中文", "zh"],
+    ["Inglés", "en"],
+    ["espagnol", "es"],
+    ["roumain", "ro"],
+    ["romena", "ro"],
+    ["rumena", "ro"],
+    ["ukrainien", "uk"],
+    ["russe", "ru"],
+    ["chinois", "zh"],
+    ["ucraniano", "uk"],
+    ["rumano", "ro"],
+    ["hindi", "hi"],
+    ["punjabi", "pa"],
+    ["tagalog", "tl"],
+    ["turco", "tr"],
+    ["Turkish", "tr"],
+    ["persiano", "fa"],
+    ["farsi", "fa"],
+    ["polacco", "pl"],
+    ["polish", "pl"],
+    ["bulgaro", "bg"],
+    ["tigrino", "ti"],
+    ["amarico", "am"],
+    ["somalo", "so"],
+    ["pashto", "ps"],
+    ["Français", "fr"],
   ])("%j → %s", (text, code) => {
     expect(detectLanguageName(text)).toBe(code);
   });
 
-  it.each(["ciao", "sì", ""])("returns undefined for %j", (text) => {
+  it.each([
+    "ciao",
+    "sì",
+    "",
+    "Francesca Romana",
+    "non parlo italiano ma capisco un poco",
+    "romana",
+  ])("returns undefined for %j", (text) => {
     expect(detectLanguageName(text)).toBeUndefined();
   });
 });

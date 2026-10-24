@@ -2,6 +2,7 @@ import type { CampaignDefinition } from "../campaigns/schema/campaign";
 import type { Effect } from "./effects";
 import type { EngineEvent, UserTurnEvent } from "./events";
 import { handleFlowTurn } from "./flow-turn";
+import { handleGlobalTurn } from "./global-turn";
 import { handleLanguageTurn } from "./language-phase";
 import { handlePostCompletionTurn } from "./post-completion";
 import type { SessionState } from "./state";
@@ -59,6 +60,7 @@ function dispatch(turn: Turn, event: EngineEvent): void {
 }
 
 function handleUserTurn(turn: Turn, event: UserTurnEvent): void {
+  if (handleGlobalTurn(turn, event)) return;
   switch (turn.state.phase) {
     case "closed":
       say(turn, systemText("system.session_closed"));

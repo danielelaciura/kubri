@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { detectGlobalIntent, globalIntentOf } from "../../../src/engine/global-intents";
+import {
+  detectGlobalIntent,
+  globalIntentOf,
+  isYesKeyword,
+} from "../../../src/engine/global-intents";
 import { normalizeText } from "../../../src/engine/normalize-text";
 import { interpretation } from "./helpers";
 
@@ -88,5 +92,15 @@ describe("globalIntentOf", () => {
   it("works without an interpretation", () => {
     expect(globalIntentOf("cancellami", null)).toBe("delete_data");
     expect(globalIntentOf("Mario", null)).toBeUndefined();
+  });
+});
+
+describe("isYesKeyword", () => {
+  it.each(["sì", "Si!", "YES", "ok", "confermo", "نعم"])("accepts %s", (text) => {
+    expect(isYesKeyword(text)).toBe(true);
+  });
+
+  it.each(["no", "sì ma prima", "forse", ""])("rejects %s", (text) => {
+    expect(isYesKeyword(text)).toBe(false);
   });
 });

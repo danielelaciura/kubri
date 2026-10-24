@@ -46,3 +46,14 @@ export function globalIntentOf(
   const intent = interpretation?.intent;
   return intent === "opt_out" || intent === "delete_data" ? intent : undefined;
 }
+
+// Whole-message "yes" to a pending deletion, for when the LLM is unavailable. Short on purpose:
+// a false negative only cancels the deletion, which the candidate can ask for again.
+const YES_PHRASES: ReadonlySet<string> = new Set(
+  ["si", "yes", "ok", "confermo", "oui", "sim", "da", "نعم", "да"].map(normalizeText),
+);
+
+/** Deterministic yes, used to confirm a data deletion without the LLM. */
+export function isYesKeyword(text: string): boolean {
+  return YES_PHRASES.has(normalizeText(text));
+}

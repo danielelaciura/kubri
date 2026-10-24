@@ -2,6 +2,7 @@ import { answerChoice, answerCvOffer } from "./choice-answers";
 import { answerConsent } from "./consent-answer";
 import type { UserTurnEvent } from "./events";
 import { applyExtractedPatch } from "./patches";
+import { fieldState } from "./profile-snapshot";
 import { answerQuestion } from "./question-answer";
 import { currentQuestion, nonAnswer } from "./replies";
 import { currentStep, incoherent, type Turn } from "./turn";
@@ -15,6 +16,8 @@ export function handleFlowTurn(turn: Turn, event: UserTurnEvent): void {
   }
   const { step, index } = currentStep(turn);
   const currentField = step.type === "questions" ? currentQuestion(turn, step).field : undefined;
+  const fieldBefore =
+    currentField === undefined ? undefined : fieldState(turn.state.profile, currentField);
   applyExtractedPatch(turn, interpretation.patch, currentField);
   switch (step.type) {
     case "choice":
@@ -27,7 +30,7 @@ export function handleFlowTurn(turn: Turn, event: UserTurnEvent): void {
       answerCvOffer(turn, index, interpretation);
       return;
     case "questions":
-      answerQuestion(turn, index, step, interpretation);
+      answerQuestion(turn, index, step, interpretation, fieldBefore);
       return;
     case "message":
     case "end":

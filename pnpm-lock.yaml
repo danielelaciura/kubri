@@ -55,7 +55,20 @@ importers:
         specifier: ^5
         version: 5.9.3
 
-  apps/chatbot: {}
+  apps/chatbot:
+    devDependencies:
+      '@types/node':
+        specifier: ^20.19.38
+        version: 20.19.38
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.2
+        version: 4.1.2(@types/node@20.19.38)(jsdom@29.0.1(@noble/hashes@1.8.0))(msw@2.12.14(@types/node@20.19.38)(typescript@5.9.3))(vite@8.0.3(@emnapi/core@1.9.2)(@emnapi/runtime@1.9.2)(@types/node@20.19.38)(esbuild@0.27.7)(jiti@2.6.1)(tsx@4.21.0))
 
   apps/dashboard:
     dependencies:

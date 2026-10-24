@@ -20,5 +20,11 @@
     "db:deploy": "prisma migrate deploy",
     "db:status": "prisma migrate status",
     "cli": "tsx --env-file=.env src/cli/main.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.38",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.2"
   }
 }

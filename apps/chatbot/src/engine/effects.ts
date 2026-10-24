@@ -25,7 +25,11 @@ export type StopReason =
   | "opt_out"
   | "delete_data";
 export type FlagReason =
-  "unresolved_field" | "auto_advance_limit" | "incoherent_state" | "outbound_failed";
+  | "unresolved_field"
+  | "auto_advance_limit"
+  | "incoherent_state"
+  | "outbound_failed"
+  | "stale_confirmation";
 
 export interface AppliedField {
   readonly field: string;

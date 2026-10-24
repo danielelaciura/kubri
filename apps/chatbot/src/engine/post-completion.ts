@@ -1,12 +1,13 @@
 import type { CvOfferStep } from "../campaigns/schema/steps";
 import { chosen } from "./choice-answers";
+import { dropStaleConfirmation } from "./confirmations";
 import { requestEdit, saveEdit } from "./edits";
 import type { UserTurnEvent } from "./events";
 import { confirmationAnswer } from "./global-intents";
 import { isChoice, type Interpretation } from "./interpretation";
 import { nonAnswer } from "./replies";
 import { stepTextRef, type TextRef } from "./text-ref";
-import { emit, incoherent, say, setState, systemText, type Turn } from "./turn";
+import { emit, say, setState, systemText, type Turn } from "./turn";
 
 /** The choice nlu returns, in post-completion mode, for "regenerate my CV" (D44). */
 export const REGENERATE_CV_CHOICE = "regenerate_cv";
@@ -64,9 +65,10 @@ function resolvePendingEdit(turn: Turn, event: UserTurnEvent): boolean {
       }
       return false;
     case "value":
-      return incoherent("value confirmation after completion");
     case "delete_data":
-      return incoherent("delete_data confirmation reached post-completion");
+      // A value is only asked during the flow; a deletion is resolved before the phase switch.
+      dropStaleConfirmation(turn);
+      return false;
   }
 }
 

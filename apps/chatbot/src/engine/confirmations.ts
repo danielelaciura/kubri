@@ -7,7 +7,7 @@ import { applyFields } from "./patches";
 import { isFieldFilled } from "./profile-snapshot";
 import { currentQuestion, repromptCurrent } from "./replies";
 import { toTextParam } from "./text-ref";
-import { currentStep, incoherent, say, setState, systemText, type Turn } from "./turn";
+import { currentStep, emit, say, setState, systemText, type Turn } from "./turn";
 
 /** Spec §7.2 point 2: below the threshold the value is not saved, the engine asks first. */
 export function askConfirmation(turn: Turn, entry: PatchEntry): void {
@@ -64,8 +64,20 @@ export function resolvePendingInFlow(turn: Turn, event: UserTurnEvent): boolean 
       }
       return false;
     case "delete_data":
-      return incoherent("delete_data confirmation reached the flow");
+      // Resolved before the phase switch (global-turn.ts): reaching here means a stale state.
+      dropStaleConfirmation(turn);
+      return false;
   }
+}
+
+/**
+ * D53: a pending confirmation that does not fit the phase is dropped and flagged, and the turn
+ * goes on normally, so the session never stays stuck on it (step() would otherwise keep the
+ * old state on an EngineError, forever).
+ */
+export function dropStaleConfirmation(turn: Turn): void {
+  setState(turn, { pendingConfirmation: null });
+  emit(turn, { type: "FlagSession", reason: "stale_confirmation", needsAttention: true });
 }
 
 /** Moves on if the current question is now answered, otherwise asks it again. */

@@ -102,6 +102,31 @@ describe("post-completion edits", () => {
   });
 });
 
+describe("stale confirmations after completion (D53)", () => {
+  it("drops a value confirmation, flags the session and handles the turn", () => {
+    const state = {
+      ...completed,
+      pendingConfirmation: {
+        kind: "value" as const,
+        field: "firstName",
+        value: "Mrio",
+        confidence: 0.4,
+      },
+    };
+    const result = step(state, userTurn("sì", choice("yes")), campaign());
+
+    expect(others(result.effects)).toEqual(["FlagSession:stale_confirmation"]);
+    expect(result.effects).toContainEqual({
+      type: "FlagSession",
+      reason: "stale_confirmation",
+      needsAttention: true,
+    });
+    expect(sent(result.effects)).toEqual(["system.post_completion_help"]);
+    expect(result.state).toMatchObject({ phase: "post_completion", pendingConfirmation: null });
+    expect(result.state.profile.firstName?.value).toBe("Mario");
+  });
+});
+
 describe("post-completion CV regeneration (D44)", () => {
   const c = withCv({ allowEdits: true, allowCvRegeneration: true });
 

@@ -153,6 +153,24 @@ describe("clarifications", () => {
     expect(sent(result.effects)).toEqual(["anagrafica.patente"]);
   });
 
+  it("moves on from an optional question answered complete with no value (D56)", () => {
+    const interp = interpretation({ currentQuestion: { completeness: "complete" } });
+    const result = step(atQuestion("nome"), userTurn("non ce l'ho", interp), optionalNome(2));
+
+    expect(others(result.effects)).toEqual([]);
+    expect(sent(result.effects)).toEqual(["anagrafica.patente"]);
+    expect(result.state.questionId).toBe("patente");
+    expect(result.state.profile.firstName).toBeUndefined();
+  });
+
+  it("still clarifies a required question answered complete with no value (D56)", () => {
+    const interp = interpretation({ currentQuestion: { completeness: "complete" } });
+    const result = step(atQuestion("nome"), userTurn("non ce l'ho", interp), c);
+
+    expect(result.effects).toEqual([{ type: "SendText", text: nomePrompt, purpose: "rephrase" }]);
+    expect(result.state).toMatchObject({ questionId: "nome", clarifications: 1 });
+  });
+
   it.each(["off_topic", "help"] as const)("%s does not use up a clarification", (intent) => {
     const result = step(atQuestion("nome"), userTurn("?", interpretation({ intent })), c);
 

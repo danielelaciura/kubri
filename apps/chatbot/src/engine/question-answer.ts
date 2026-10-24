@@ -45,7 +45,10 @@ export function answerQuestion(
   // A value saved earlier (e.g. a partial answer) is not an answer to this turn by itself.
   const changed = after !== undefined && !holdsValue(fieldBefore, after.value);
   const answeredNow = filled && (changed || completeness === "complete");
-  if (answeredNow) {
+  // D56: "none" ("non ho studiato") is a complete answer to an optional question even with no
+  // value; a required question still needs a value.
+  const noneToOptional = completeness === "complete" && !question.required;
+  if (answeredNow || noneToOptional) {
     advanceFromQuestion(turn, index, step, question);
     return;
   }

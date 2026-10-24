@@ -96,8 +96,8 @@ describe("resolveTemplate", () => {
     expect(cache.size).toBe(0);
   });
 
-  it.each(["Hello", "Hello {nome}", "   "])(
-    "falls back to Italian when the translation %j breaks the placeholders",
+  it.each(["", "   ", "Hello", "Hello {nome}", "Hello {name} {name2}", "Hello {name.x}"])(
+    "falls back to Italian when the translation %j is empty or breaks the placeholders",
     async (text) => {
       const { services, cache } = setup({
         translate: () => Promise.resolve({ text, provider: "p", model: "m" }),

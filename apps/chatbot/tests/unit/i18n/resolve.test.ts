@@ -3,7 +3,7 @@ import type { CampaignDefinition } from "../../../src/campaigns/schema/campaign"
 import type { TextRef } from "../../../src/engine/text-ref";
 import { FakeTranslator } from "../../../src/i18n/fake-translator";
 import { createTextResolver, outputLanguage } from "../../../src/i18n/resolve";
-import { MemoryTranslationCache } from "../../../src/i18n/translation-cache";
+import { MemoryTranslationCache, sourceHash } from "../../../src/i18n/translation-cache";
 import type { Translator } from "../../../src/i18n/translator";
 import { campaign } from "../engine/helpers";
 
@@ -273,6 +273,53 @@ describe("consent texts (critical, D74)", () => {
 
     expect(result).toMatchObject({ text: "Accetti?", language: "it", isCurated: true });
   });
+
+  it("prefers the step's link to the data controller's privacy page", async () => {
+    const c = campaign((input) => {
+      input.dataController = { ...input.dataController, privacyUrl: "https://example.com/dc" };
+      input.flow[2] = {
+        id: "privacy",
+        type: "consent",
+        consentKey: "acme_privacy",
+        textVersion: "2026-10",
+        text: { it: "Accetti?" },
+        link: "https://example.com/step-privacy",
+      };
+    });
+
+    const { text } = await resolver().resolve(consentRef(c), { campaign: c, language: "en" });
+
+    expect(text).toContain("https://example.com/step-privacy");
+    expect(text).not.toContain("https://example.com/dc");
+  });
+
+  it.each([
+    [true, false],
+    [false, true],
+  ])(
+    "adds the official link under a cached translation only if not reviewed (reviewed %s)",
+    async (reviewed, linked) => {
+      const c = withConsent({ it: "Accetti?" });
+      const translator = new FakeTranslator();
+      const cache = new MemoryTranslationCache();
+      await cache.set(sourceHash("Accetti?"), "en", {
+        text: "Do you accept?",
+        reviewed,
+        provider: "p",
+        model: "m",
+      });
+
+      const result = await createTextResolver({ translator, cache }).resolve(consentRef(c), {
+        campaign: c,
+        language: "en",
+      });
+
+      expect(result).toMatchObject({ source: "cache", isCurated: reviewed, critical: true });
+      expect(result.text.startsWith("Do you accept?")).toBe(true);
+      expect(result.text.includes("https://example.com/privacy")).toBe(linked);
+      if (reviewed) expect(translator.requests).toEqual([]);
+    },
+  );
 
   it("recognizes a consent text given by reference", async () => {
     const c = campaign((input) => {

@@ -4,7 +4,8 @@ import { describe, expect, it } from "vitest";
 import { placeholderConsentIssues } from "../../../src/campaigns/publishable";
 import { validateCampaign } from "../../../src/campaigns/validate";
 import type { CampaignDefinition } from "../../../src/campaigns/schema/campaign";
-import { STANDARD_FIELD_DEFINITIONS } from "../../../src/profile/standard-fields";
+import type { Question } from "../../../src/campaigns/schema/steps";
+import { ITALIAN_LEVELS, STANDARD_FIELD_DEFINITIONS } from "../../../src/profile/standard-fields";
 
 function loadStandard(): CampaignDefinition {
   const raw: unknown = JSON.parse(
@@ -52,6 +53,35 @@ describe("kubri-standard campaign", () => {
       step.type === "questions" ? step.questions.filter((q) => !q.hint).map((q) => q.id) : [],
     );
     expect(withoutHint).toEqual([]);
+  });
+
+  const questionFor = (field: string): Question => {
+    const found = campaign.flow
+      .flatMap((step) => (step.type === "questions" ? step.questions : []))
+      .find((q) => q.field === field);
+    if (!found) throw new Error(`no question for ${field}`);
+    return found;
+  };
+
+  it("offers Italian levels that map one by one to the enum", () => {
+    const question = questionFor("italianLevel");
+    const phrases = ["per niente", "un po'", "abbastanza bene", "bene", "è la mia lingua madre"];
+
+    if ("ref" in question.prompt) throw new Error("expected an inline prompt");
+    const prompt = question.prompt["it"]?.toLowerCase();
+    for (const phrase of phrases) expect(prompt).toContain(phrase);
+    ITALIAN_LEVELS.forEach((level, i) => {
+      expect(question.hint).toContain(`${phrases[i] ?? ""} → ${level}`);
+    });
+  });
+
+  it("asks part-time as a yes/no question, optional, empty when indifferent", () => {
+    const question = questionFor("jobPreferences.partTime");
+
+    expect(question.prompt).toEqual({ it: "Cerchi un lavoro part-time?" });
+    expect(question.required).toBe(false);
+    expect(question.hint).toMatch(/indifferente/);
+    expect(question.hint).toMatch(/vuoto/);
   });
 
   it("offers the CV and ends", () => {

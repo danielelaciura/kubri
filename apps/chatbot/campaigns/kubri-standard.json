@@ -105,9 +105,9 @@
           "id": "italiano",
           "field": "italianLevel",
           "prompt": {
-            "it": "Come parli l'italiano? Per niente, poco, abbastanza bene, bene, oppure è la tua lingua madre?"
+            "it": "Come parli l'italiano? Rispondi con una di queste: per niente, un po', abbastanza bene, bene, è la mia lingua madre."
           },
-          "hint": "Per niente → nessuno; poco → base; abbastanza bene → intermedio; bene o molto bene → avanzato; lingua madre → madrelingua."
+          "hint": "per niente → nessuno; un po' → base (anche \"poco\"); abbastanza bene → intermedio; bene → avanzato (anche \"molto bene\"); è la mia lingua madre → madrelingua (anche \"lingua madre\", \"sono italiano\")."
         },
         {
           "id": "altre_lingue",
@@ -218,9 +218,9 @@
         {
           "id": "part_time",
           "field": "jobPreferences.partTime",
-          "prompt": { "it": "Preferisci un lavoro part-time o a tempo pieno?" },
+          "prompt": { "it": "Cerchi un lavoro part-time?" },
           "required": false,
-          "hint": "Part-time → true; tempo pieno → false. Se dice che va bene entrambi o è indifferente, non dedurre alcun valore: lascia il campo vuoto."
+          "hint": "Sì / part-time → true; no / tempo pieno → false. Se dice che va bene entrambi o che è indifferente, non dedurre alcun valore: lascia il campo vuoto."
         },
         {
           "id": "vincoli",

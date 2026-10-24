@@ -37,7 +37,9 @@ describe("checkConsents", () => {
       optional: true,
     });
 
-    expect(checkConsents(parsed(input))).toEqual([
+    expect(
+      checkConsents(parsed(input)).filter((i) => i.code === "missing_mandatory_consent"),
+    ).toEqual([
       {
         path: "flow",
         code: "missing_mandatory_consent",
@@ -53,6 +55,7 @@ describe("checkConsents", () => {
 
     expect(checkConsents(parsed(input)).map((i) => [i.path, i.code])).toEqual([
       ["flow", "missing_mandatory_consent"],
+      ["flow[2]", "data_before_mandatory_consent"],
     ]);
   });
 
@@ -90,5 +93,44 @@ describe("checkConsents", () => {
     });
 
     expect(checkConsents(parsed(input))).toEqual([]);
+  });
+
+  it("reports data collection reachable around a mandatory consent", () => {
+    const input = minimalCampaign();
+    input.flow[1] = {
+      id: "cv_info",
+      type: "choice",
+      prompt: { it: "Sai cos'è un CV?" },
+      options: [
+        { id: "yes", description: "sì" },
+        { id: "no", description: "no" },
+        { id: "idk", description: "non so" },
+      ],
+      on: { yes: "anagrafica", no: "@stop", idk: "privacy" },
+    };
+
+    expect(checkConsents(parsed(input))).toEqual([
+      {
+        path: "flow[3]",
+        code: "data_before_mandatory_consent",
+        message:
+          'Step "anagrafica" (questions) can be reached without passing through a mandatory consent',
+      },
+    ]);
+  });
+
+  it("reports data collection placed before the mandatory consent", () => {
+    const input = minimalCampaign();
+    // Swap "privacy" and "anagrafica": order becomes intro, cv_info, anagrafica, privacy, fine.
+    input.flow.splice(3, 0, ...input.flow.splice(2, 1));
+
+    expect(checkConsents(parsed(input)).map((i) => [i.path, i.code])).toEqual([
+      ["flow[2]", "data_before_mandatory_consent"],
+    ]);
+  });
+
+  it("allows message and choice steps before the mandatory consent", () => {
+    // The minimal campaign already has intro and cv_info before "privacy".
+    expect(checkConsents(parsed(minimalCampaign()))).toEqual([]);
   });
 });

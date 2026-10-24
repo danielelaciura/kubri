@@ -57,4 +57,19 @@ describe("validateCampaign", () => {
   it("rejects non-object input", () => {
     expect(validateCampaign("not a campaign").ok).toBe(false);
   });
+
+  it("reports data collection reachable without a mandatory consent", () => {
+    const input = minimalCampaign();
+    // Swap "privacy" and "anagrafica": order becomes intro, cv_info, anagrafica, privacy, fine.
+    input.flow.splice(3, 0, ...input.flow.splice(2, 1));
+
+    const result = validateCampaign(input);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.issues).toContainEqual(
+        expect.objectContaining({ path: "flow[2]", code: "data_before_mandatory_consent" }),
+      );
+    }
+  });
 });

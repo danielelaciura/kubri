@@ -62,4 +62,23 @@ describe("valueSchemaFor", () => {
     expect(accepts(def, valid)).toBe(true);
     expect(accepts(def, invalid)).toBe(false);
   });
+
+  it("trims format values before checking them", () => {
+    const country = valueSchemaFor(field({ type: "text", format: "iso-country" }));
+    expect(country.parse(" IT ")).toBe("IT");
+    expect(valueSchemaFor(field({ type: "text", format: "email" })).parse(" a@example.com ")).toBe(
+      "a@example.com",
+    );
+    expect(valueSchemaFor(field({ type: "text", format: "e164" })).parse(" +393331234567 ")).toBe(
+      "+393331234567",
+    );
+    expect(valueSchemaFor(field({ type: "text", format: "iso-language" })).parse(" ar ")).toBe(
+      "ar",
+    );
+  });
+
+  it("date: rejects years before 1900", () => {
+    expect(accepts(field({ type: "date" }), "1899-12-31")).toBe(false);
+    expect(accepts(field({ type: "date" }), "1900-01-01")).toBe(true);
+  });
 });

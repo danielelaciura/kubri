@@ -53,7 +53,7 @@ describe("validatePatch", () => {
     expect(result.rejected[0]?.reason).toBe("invalid_confidence");
   });
 
-  it("rejects every entry of a field that appears twice", () => {
+  it("rejects every entry of a field that appears twice with conflicting values", () => {
     const result = validatePatch(
       [entry("firstName", "Mario"), entry("firstName", "Luigi")],
       custom,
@@ -63,5 +63,42 @@ describe("validatePatch", () => {
       { field: "firstName", reason: "duplicate_field" },
       { field: "firstName", reason: "duplicate_field" },
     ]);
+  });
+
+  it("collapses duplicates with identical values, keeping the highest confidence", () => {
+    const result = validatePatch(
+      [
+        entry("firstName", "Mario", 0.6),
+        entry("firstName", " Mario ", 0.95),
+        entry("firstName", "Mario", 0.8),
+      ],
+      custom,
+    );
+    expect(result.rejected).toEqual([]);
+    expect(result.accepted).toHaveLength(1);
+    expect(result.accepted[0]).toMatchObject({
+      field: "firstName",
+      value: "Mario",
+      confidence: 0.95,
+    });
+  });
+
+  it("collapses identical list values by deep equality", () => {
+    const result = validatePatch(
+      [
+        entry("drivingLicenseTypes", ["B", "C"], 0.7),
+        entry("drivingLicenseTypes", ["B", "C"], 0.9),
+      ],
+      custom,
+    );
+    expect(result.rejected).toEqual([]);
+    expect(result.accepted).toHaveLength(1);
+    expect(result.accepted[0]?.confidence).toBe(0.9);
+  });
+
+  it("truncates the field name of rejections to 64 characters", () => {
+    const long = "x".repeat(500);
+    const result = validatePatch([entry(long, "v")], custom);
+    expect(result.rejected).toEqual([{ field: "x".repeat(64), reason: "unknown_field" }]);
   });
 });

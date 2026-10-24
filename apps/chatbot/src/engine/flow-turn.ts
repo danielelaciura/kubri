@@ -1,4 +1,5 @@
 import { answerChoice, answerCvOffer } from "./choice-answers";
+import { resolvePendingInFlow } from "./confirmations";
 import { answerConsent } from "./consent-answer";
 import type { UserTurnEvent } from "./events";
 import { applyExtractedPatch } from "./patches";
@@ -10,6 +11,7 @@ import { currentStep, incoherent, type Turn } from "./turn";
 /** A user turn while the flow waits on a step (spec §7.2). */
 export function handleFlowTurn(turn: Turn, event: UserTurnEvent): void {
   const interpretation = event.interpretation;
+  if (resolvePendingInFlow(turn, interpretation)) return;
   if (!interpretation) {
     nonAnswer(turn, null);
     return;
@@ -18,7 +20,7 @@ export function handleFlowTurn(turn: Turn, event: UserTurnEvent): void {
   const currentField = step.type === "questions" ? currentQuestion(turn, step).field : undefined;
   const fieldBefore =
     currentField === undefined ? undefined : fieldState(turn.state.profile, currentField);
-  applyExtractedPatch(turn, interpretation.patch, currentField);
+  const lowConfidence = applyExtractedPatch(turn, interpretation.patch, currentField);
   switch (step.type) {
     case "choice":
       answerChoice(turn, index, step, interpretation);
@@ -30,7 +32,7 @@ export function handleFlowTurn(turn: Turn, event: UserTurnEvent): void {
       answerCvOffer(turn, index, interpretation);
       return;
     case "questions":
-      answerQuestion(turn, index, step, interpretation, fieldBefore);
+      answerQuestion(turn, index, step, interpretation, { fieldBefore, lowConfidence });
       return;
     case "message":
     case "end":

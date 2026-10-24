@@ -1,22 +1,33 @@
 import type { Question, QuestionsStep } from "../campaigns/schema/steps";
+import type { PatchEntry } from "../profile/patch";
 import { advanceFromQuestion, askQuestion } from "./advance";
+import { askConfirmation } from "./confirmations";
 import type { Interpretation } from "./interpretation";
 import { fieldState, isFieldFilled, withField, type FieldState } from "./profile-snapshot";
 import { currentQuestion, nonAnswer } from "./replies";
 import { emit, setState, type Turn } from "./turn";
 
-/**
- * Spec §7.2 point 3 and D43. Runs after the turn's patch has been applied; `fieldBefore` is
- * the current field's state before it, so an answer is told apart from a stale saved value.
- */
+/** What the turn's patch did to the current question's field. */
+export interface PatchOutcome {
+  /** The field's state before the patch: tells an answer apart from a stale saved value. */
+  readonly fieldBefore: FieldState | undefined;
+  /** A value for the field below the confidence threshold: it needs a confirmation. */
+  readonly lowConfidence: PatchEntry | undefined;
+}
+
+/** Spec §7.2 points 2–3 and D43. Runs after the turn's patch has been applied. */
 export function answerQuestion(
   turn: Turn,
   index: number,
   step: QuestionsStep,
   interpretation: Interpretation,
-  fieldBefore: FieldState | undefined,
+  { fieldBefore, lowConfidence }: PatchOutcome,
 ): void {
   const question = currentQuestion(turn, step);
+  if (lowConfidence) {
+    askConfirmation(turn, lowConfidence);
+    return;
+  }
   if (interpretation.intent === "off_topic" || interpretation.intent === "help") {
     nonAnswer(turn, interpretation);
     return;

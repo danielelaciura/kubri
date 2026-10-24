@@ -1,7 +1,7 @@
 import type { CampaignDefinition } from "../campaigns/schema/campaign";
 import type { Question, Step, StepType, TextValue } from "../campaigns/schema/steps";
 import { REGENERATE_CV_CHOICE } from "../engine/post-completion";
-import { isFieldSettled } from "../engine/profile-snapshot";
+import { fieldState, isFieldSettled, type ProfileSnapshot } from "../engine/profile-snapshot";
 import type { Phase, SessionState } from "../engine/state";
 import type { LanguageCode } from "../i18n/localized-text";
 import type { FieldType } from "../profile/field-definition";
@@ -23,6 +23,12 @@ export interface QuestionBrief extends FieldBrief {
   readonly prompt: string;
   readonly hint?: string;
   readonly required: boolean;
+  /**
+   * The value already saved for this field, e.g. the first part of a partial answer, so the
+   * LLM can merge "12, Bologna" with "Via Garibaldi". Sent even for a withheld field: this
+   * turn needs it (spec §8.2), and only for the current question.
+   */
+  readonly savedValue?: unknown;
 }
 
 export interface ChoiceBrief {
@@ -80,15 +86,21 @@ function fieldBrief(ref: string, campaign: CampaignDefinition): FieldBrief | und
   return def.options ? { ...brief, options: def.options } : brief;
 }
 
-function questionBrief(question: Question, campaign: CampaignDefinition): QuestionBrief | null {
+function questionBrief(
+  question: Question,
+  campaign: CampaignDefinition,
+  profile: ProfileSnapshot,
+): QuestionBrief | null {
   const field = fieldBrief(question.field, campaign);
   if (!field) return null;
+  const saved = fieldState(profile, question.field);
   return {
     id: question.id,
     ...field,
     prompt: italian(question.prompt, campaign),
     ...(question.hint ? { hint: question.hint } : {}),
     required: question.required,
+    ...(saved && saved.status !== "unresolved" ? { savedValue: saved.value } : {}),
   };
 }
 
@@ -182,7 +194,7 @@ export function buildInterpretContext(
     phase: state.phase,
     sessionLanguage: state.language,
     step: step ? stepBrief(step, campaign) : null,
-    question: question ? questionBrief(question, campaign) : null,
+    question: question ? questionBrief(question, campaign, state.profile) : null,
     openFields: openFields(state, campaign, step, question?.field),
     collected: collected(state, campaign),
     pendingConfirmation: pendingBrief(state),

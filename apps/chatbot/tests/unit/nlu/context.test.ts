@@ -151,6 +151,38 @@ describe("buildInterpretContext", () => {
     expect(JSON.stringify(context)).not.toContain("40%");
   });
 
+  it("sends the saved part of a partial answer to the current question only (§8.2)", () => {
+    const withAddress = campaign((input) => {
+      const step = input.flow.find((s) => s.id === "anagrafica");
+      if (step?.type !== "questions") throw new Error("fixture changed");
+      step.questions.unshift({
+        id: "indirizzo",
+        field: "address",
+        prompt: { it: "Dove abiti? Via, numero e comune." },
+      });
+    });
+    const profile = {
+      address: inferred("Via Garibaldi"),
+      firstName: inferred("Mariangela"),
+    };
+
+    const atAddress = build(atQuestion("indirizzo", { profile }), [], withAddress);
+    const atName = build(
+      atQuestion("nome", { profile: { address: profile.address } }),
+      [],
+      withAddress,
+    );
+
+    expect(atAddress.question?.savedValue).toBe("Via Garibaldi");
+    expect(atAddress.collected).toContainEqual(
+      expect.objectContaining({ field: "address", withheld: true }),
+    );
+    expect(JSON.stringify(atAddress)).not.toContain("Mariangela");
+    // Elsewhere the address is not needed: it stays withheld.
+    expect(atName.question).not.toHaveProperty("savedValue");
+    expect(JSON.stringify(atName)).not.toContain("Garibaldi");
+  });
+
   it("carries a pending value confirmation without its value, and expects yes/no (D84)", () => {
     const context = build(
       atQuestion("nome", {

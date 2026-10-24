@@ -20,7 +20,12 @@ export interface EditConfirmation {
   readonly newValue: unknown;
 }
 
-export type PendingConfirmation = ValueConfirmation | EditConfirmation;
+/** A data-deletion request waiting for a yes/no (owner decision, plan 04 Task 21). */
+export interface DeleteConfirmation {
+  readonly kind: "delete_data";
+}
+
+export type PendingConfirmation = ValueConfirmation | EditConfirmation | DeleteConfirmation;
 
 /** Spec §7.1. Serializable: runtime stores it as Session.engineState (plan 08). */
 export interface SessionState {

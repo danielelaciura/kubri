@@ -89,6 +89,17 @@ describe("evaluateCondition", () => {
   });
 });
 
+describe("evaluateCondition with prototype-like ids", () => {
+  it("treats field and step ids such as constructor as absent", () => {
+    expect(evaluate({ field: "constructor", notExists: true })).toBe(true);
+    expect(evaluate({ field: "toString", exists: true })).toBe(false);
+    expect(evaluate({ step: "constructor", outcome: "yes" })).toBe(false);
+    expect(
+      evaluateCondition({ step: "toString", outcome: "undefined" }, { values: {}, outcomes: {} }),
+    ).toBe(false);
+  });
+});
+
 describe("conditionRefs", () => {
   it("collects field and step references from nested conditions", () => {
     const refs = conditionRefs({

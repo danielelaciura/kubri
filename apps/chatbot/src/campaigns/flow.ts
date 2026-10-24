@@ -33,7 +33,11 @@ export function resolveTransition(
   outcome: string,
   nextStepId: string | undefined,
 ): ResolvedTransition {
-  const explicit = step.type === "end" ? undefined : step.on?.[outcome];
+  // hasOwn: an outcome id such as "constructor" must not hit Object.prototype.
+  const explicit =
+    step.type === "end" || !step.on || !Object.hasOwn(step.on, outcome)
+      ? undefined
+      : step.on[outcome];
   if (explicit === undefined) return { target: defaultTarget(step, outcome, nextStepId) };
   if (typeof explicit === "string") return { target: explicit };
   return { reply: explicit.reply, target: explicit.then };

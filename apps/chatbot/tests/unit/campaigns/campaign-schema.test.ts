@@ -73,4 +73,24 @@ describe("CampaignDefinitionSchema", () => {
     };
     expect(CampaignDefinitionSchema.safeParse(input).success).toBe(false);
   });
+
+  it.each(["javascript:alert(1)", "http://example.com/privacy", "ftp://example.com/privacy"])(
+    "rejects a non-https privacy url (%s)",
+    (url) => {
+      const input = minimalCampaign();
+      input.dataController.privacyUrl = url;
+      expect(CampaignDefinitionSchema.safeParse(input).success).toBe(false);
+    },
+  );
+
+  it.each(["javascript:alert(1)", "http://example.com/privacy", "ftp://example.com/privacy"])(
+    "rejects a non-https consent link (%s)",
+    (url) => {
+      const input = minimalCampaign();
+      const consent = input.flow[2];
+      if (consent?.type !== "consent") throw new Error("fixture changed");
+      consent.link = url;
+      expect(CampaignDefinitionSchema.safeParse(input).success).toBe(false);
+    },
+  );
 });

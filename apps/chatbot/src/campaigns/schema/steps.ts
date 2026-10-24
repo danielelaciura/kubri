@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { LocalizedTextSchema } from "../../i18n/localized-text";
 import { ConditionSchema } from "./conditions";
-import { IdSchema } from "./ids";
+import { HttpsUrlSchema, IdSchema } from "./ids";
 
 // A text is either inline or a reference to the campaign's `texts` map.
 // The ref object comes first: a {ref} object is not a valid LocalizedText anyway.
@@ -54,7 +54,7 @@ export const ConsentStepSchema = z.strictObject({
   consentKey: IdSchema,
   textVersion: z.string().trim().min(1),
   text: TextValueSchema,
-  link: z.url().optional(),
+  link: HttpsUrlSchema.optional(),
   optional: z.boolean().default(false),
   on: OnSchema,
 });

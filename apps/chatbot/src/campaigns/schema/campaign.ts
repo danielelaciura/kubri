@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { LanguageCodeSchema, LocalizedTextSchema } from "../../i18n/localized-text";
 import { CustomFieldDefinitionSchema } from "../../profile/custom-fields";
-import { IdSchema, SlugSchema } from "./ids";
+import { HttpsUrlSchema, IdSchema, SlugSchema } from "./ids";
 import { StepSchema } from "./steps";
 
 // Spec §5.1. `version` is not part of the file: the import assigns it (plan 03).
@@ -19,7 +19,7 @@ export const CampaignDefinitionSchema = z.strictObject({
   defaultLanguage: LanguageCodeSchema.default("it"),
   dataController: z.strictObject({
     name: z.string().trim().min(1),
-    privacyUrl: z.url(),
+    privacyUrl: HttpsUrlSchema,
   }),
   onStop: z.strictObject({ data: z.enum(["delete", "keep"]) }).default({ data: "delete" }),
   customFields: z.array(CustomFieldDefinitionSchema).default([]),

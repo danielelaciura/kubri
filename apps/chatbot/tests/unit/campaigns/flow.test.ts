@@ -61,4 +61,21 @@ describe("resolveTransition", () => {
       target: "@stop",
     });
   });
+
+  it("does not resolve outcome ids against Object.prototype", () => {
+    const input = minimalCampaign();
+    input.flow[1] = {
+      id: "cv_info",
+      type: "choice",
+      prompt: { it: "?" },
+      options: [
+        { id: "constructor", description: "uno" },
+        { id: "no", description: "due" },
+      ],
+      on: { no: "@stop" },
+    };
+    const choice = CampaignDefinitionSchema.parse(input).flow[1] as Step;
+
+    expect(resolveTransition(choice, "constructor", "privacy")).toEqual({ target: "privacy" });
+  });
 });

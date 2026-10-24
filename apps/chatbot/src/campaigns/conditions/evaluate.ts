@@ -11,9 +11,9 @@ export function evaluateCondition(c: Condition, ctx: ConditionContext): boolean 
   if ("all" in c) return c.all.every((inner) => evaluateCondition(inner, ctx));
   if ("any" in c) return c.any.some((inner) => evaluateCondition(inner, ctx));
   if ("not" in c) return !evaluateCondition(c.not, ctx);
-  if ("step" in c) return ctx.outcomes[c.step] === c.outcome;
+  if ("step" in c) return lookup(ctx.outcomes, c.step) === c.outcome;
 
-  const value = ctx.values[c.field];
+  const value = lookup(ctx.values, c.field);
   if ("exists" in c) return isPresent(value);
   if ("notExists" in c) return !isPresent(value);
   if (!isPresent(value)) return "neq" in c || "notIn" in c;
@@ -23,6 +23,11 @@ export function evaluateCondition(c: Condition, ctx: ConditionContext): boolean 
   if ("notIn" in c) return !c.notIn.some((expected) => matches(value, expected));
   if ("gt" in c) return typeof value === "number" && value > c.gt;
   return typeof value === "number" && value < c.lt;
+}
+
+/** Own-property lookup: ids such as "constructor" must not resolve to prototype members. */
+function lookup<T>(record: Readonly<Record<string, T>>, key: string): T | undefined {
+  return Object.hasOwn(record, key) ? record[key] : undefined;
 }
 
 function isPresent(value: unknown): boolean {

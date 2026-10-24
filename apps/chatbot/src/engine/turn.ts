@@ -4,7 +4,10 @@ import type { Effect, SendPurpose } from "./effects";
 import type { SessionState } from "./state";
 import type { SystemTextKey, TextParams, TextRef } from "./text-ref";
 
-/** Spec §7.2 point 9: at most 20 automatic step entries per turn. */
+/**
+ * Spec §7.2 point 9: at most 20 automatic step entries per turn. Counts every step entered,
+ * including the one that ends up waiting for an answer.
+ */
 export const MAX_AUTO_ADVANCES = 20;
 
 export type EngineErrorReason = "auto_advance_limit" | "incoherent_state";

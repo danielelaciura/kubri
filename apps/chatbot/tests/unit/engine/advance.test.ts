@@ -358,4 +358,14 @@ describe("advanceFromQuestion", () => {
     expect(sent(turn.effects)).toEqual(["anagrafica.patente"]);
     expect(turn.state).toMatchObject({ questionId: "patente", clarifications: 0 });
   });
+
+  it("treats a question outside the block as an incoherent state", () => {
+    const c = campaign();
+    const block = questionsStep(c, "anagrafica");
+    const stranger = { ...questionOf(block, "nome"), id: "ghost" };
+    const error = thrown(() => {
+      advanceFromQuestion(turnFor(atQuestion("nome"), c), 3, block, stranger);
+    });
+    expect(error).toMatchObject({ reason: "incoherent_state" });
+  });
 });

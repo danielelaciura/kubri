@@ -209,6 +209,7 @@ export function advanceFromQuestion(
     return;
   }
   const position = step.questions.findIndex((q) => q.id === question.id);
+  if (position < 0) incoherent(`question "${question.id}" is not in block "${step.id}"`);
   const next = nextAskableQuestion(step, position + 1, turn.state);
   if (next.kind !== "ask") {
     finishBlock(turn, index, next.kind);

@@ -200,13 +200,15 @@ export function createTextResolver(services: TemplateServices): TextResolver {
 
   async function resolveSend(effect: SendTextEffect, target: TextTarget): Promise<ResolvedText> {
     const main = await resolve(effect.text, target);
-    const pending = leadFor(effect, target);
+    // The lead follows the question's actual language, so a fallback never mixes languages.
+    const pending = leadFor(effect, { ...target, language: main.language });
     if (!pending) return main;
     const lead = await pending;
     return {
       ...main,
       text: `${lead.text}\n${main.text}`,
-      isCurated: main.isCurated && lead.isCurated,
+      // A consent's curation is the consent text's own (D73): it is what Consent records.
+      isCurated: main.critical ? main.isCurated : main.isCurated && lead.isCurated,
       missingParams: [...lead.missingParams, ...main.missingParams],
     };
   }

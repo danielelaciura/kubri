@@ -150,7 +150,7 @@ step(state, event, campaignVersion) → { state, effects }
 - `data` is the **full, current profile read from the DB after commit**, mapped to the snake_case
   keys the dashboard reads today (mapping table in spec §12.1). Booleans are real booleans
   (`is_kubri_privacy_accepted`, `driving_license`, `working_permit`).
-- Sent **only on significant events** (`session.started`, `block.completed`,
+- Sent **only on significant events** (`consents.accepted`, `block.completed`,
   `interview.completed`, `profile.updated`, `cv.generated`) — never per message.
 - 5xx/timeout → retry; 4xx → dead letter + alert. A contract test guards the mapping.
 

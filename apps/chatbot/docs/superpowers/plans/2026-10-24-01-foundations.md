@@ -73,7 +73,7 @@ Percorsi relativi ad `apps/chatbot/`, salvo le righe marcate *(root)*.
 - Create: `package.json`, `.nvmrc`, `.gitignore`, `.prettierrc.json`
 - Modify *(root)*: `package.json`, `.worktreeinclude`, `CLAUDE.md`
 
-`apps/chatbot/` contiene già `CLAUDE.md`; spec e piani stanno in `docs/superpowers/` nella root.
+`apps/chatbot/` contiene già `CLAUDE.md`; spec e piani stanno in `apps/chatbot/docs/superpowers/`.
 
 - [ ] **Step 1: Creare il branch (dalla root)**
 
@@ -1446,7 +1446,7 @@ git commit -m "docs: document commands in CLAUDE.md"
 ```bash
 git push -u origin feat/chatbot-foundations
 gh pr create --base main --title "feat(chatbot): foundations (plan 01)" \
-  --body "Piano 01 (docs/superpowers/plans/2026-10-24-chatbot-01-foundations.md)."
+  --body "Piano 01 (apps/chatbot/docs/superpowers/plans/2026-10-24-01-foundations.md)."
 ```
 
 Verificare che il workflow "Chatbot CI" parta e sia verde. Ogni piano successivo lavora su un

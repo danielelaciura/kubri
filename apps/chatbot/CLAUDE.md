@@ -20,8 +20,9 @@ dashboard; **this file is the rulebook for the chatbot** and overrides it inside
 The dashboard's conventions (Next.js, shadcn, dictionaries, `src/lib/make/`) do not apply here.
 
 **The design spec is the source of truth:**
-`docs/superpowers/specs/2026-10-24-kubri-chatbot-design.md` (repo root, in Italian). Plans are
-`docs/superpowers/plans/2026-10-24-chatbot-*.md`. Read the relevant
+`docs/superpowers/specs/2026-10-24-kubri-chatbot-design.md` (inside `apps/chatbot/`, in Italian). Plans are
+`docs/superpowers/plans/2026-10-24-*.md`, roadmap first (`…-00-roadmap.md`). Chatbot specs and plans
+live here, never in the repo-root `docs/` (that one belongs to the dashboard). Read the relevant
 section before working on a module. If code and spec disagree, raise it — don't silently
 diverge. Record new decisions in the spec's decision log (§2).
 

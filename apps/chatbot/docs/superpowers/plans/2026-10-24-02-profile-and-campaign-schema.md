@@ -2854,7 +2854,7 @@ git commit -m "feat(campaigns): add validateCampaign entry point"
 ### Task 16: Aggiornare la spec e chiudere il piano
 
 **Files:**
-- Modify: `docs/superpowers/specs/2026-10-24-kubri-chatbot-design.md`
+- Modify: `apps/chatbot/docs/superpowers/specs/2026-10-24-kubri-chatbot-design.md`
 
 - [ ] **Step 1: Aggiungere le decisioni al registro (§2)**
 
@@ -2886,9 +2886,9 @@ Expected: tutto verde.
 - [ ] **Step 4: Commit, push e PR**
 
 ```bash
-git add ../../docs/superpowers/specs/2026-10-24-kubri-chatbot-design.md
+git add docs/superpowers/specs/2026-10-24-kubri-chatbot-design.md
 git commit -m "docs: record profile and campaign schema decisions in the spec"
 git push -u origin feat/chatbot-profile-campaign-schema
 gh pr create --base main --title "feat(chatbot): profile and campaign schema with semantic validator" \
-  --body "Piano 02 (docs/superpowers/plans/2026-10-24-chatbot-02-profile-and-campaign-schema.md)."
+  --body "Piano 02 (apps/chatbot/docs/superpowers/plans/2026-10-24-02-profile-and-campaign-schema.md)."
 ```

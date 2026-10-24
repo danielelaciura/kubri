@@ -2,7 +2,7 @@
 
 > Stato: bozza da revisionare · Data: 2026-10-24
 > Origine: sessione di design a partire dall'analisi dello scenario Make "Kubri - Whatsapp Bot".
-> Posizione: `apps/chatbot/` nel monorepo `kubri` (D19). Regole di progetto: `apps/chatbot/CLAUDE.md`.
+> Posizione: `apps/chatbot/` nel monorepo `kubri` (D19). Regole di progetto: `apps/chatbot/CLAUDE.md`. Spec e piani del chatbot: `apps/chatbot/docs/superpowers/`.
 
 ---
 
@@ -157,7 +157,7 @@ kubri/
 ├── packages/
 │   └── contracts/              ← @kubri/contracts: schema Zod del payload del webhook
 │                                  candidato, condiviso da chatbot (produce) e dashboard (valida)
-└── docs/superpowers/           ← spec e piani (anche quelli del chatbot)
+└── docs/                       ← documenti della dashboard (il chatbot ha i suoi in apps/chatbot/docs)
 ```
 
 Contenuto di `apps/chatbot/`:
@@ -165,6 +165,7 @@ Contenuto di `apps/chatbot/`:
 ```
 apps/chatbot/
 ├── CLAUDE.md
+├── docs/superpowers/           ← spec e piani del chatbot (separati da quelli della dashboard)
 ├── campaigns/                  ← definizioni JSON (fonte di verità versionata)
 │   ├── kubri-standard.json
 │   └── <org>-<campagna>.json

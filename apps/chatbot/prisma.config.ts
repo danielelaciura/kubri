@@ -1,9 +1,21 @@
 import { config } from "dotenv";
 import { defineConfig } from "prisma/config";
+import { targetsBotSchema } from "./src/store/connection-string";
 
 // Already-set variables win (dotenv does not override): integration tests and CI pass
 // their own DATABASE_URL explicitly.
 config({ path: ".env" });
+
+// Prisma 7 emits unqualified SQL for a single schema, so tables land in "bot" only thanks to
+// the URL's ?schema=bot (search_path). Without it, migrations would hit the dashboard's
+// public schema: refuse any Prisma command in that case. (Unset is fine: `prisma generate`
+// runs in postinstall without a database.)
+const databaseUrl = process.env["DATABASE_URL"];
+if (databaseUrl && !targetsBotSchema(databaseUrl)) {
+  throw new Error(
+    "DATABASE_URL must target the bot schema (add ?schema=bot): refusing to run Prisma.",
+  );
+}
 
 export default defineConfig({
   schema: "prisma/schema.prisma",

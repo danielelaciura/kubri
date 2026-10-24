@@ -1,14 +1,5 @@
 import { z } from "zod";
-
-const BOT_SCHEMA = "bot";
-
-function targetsBotSchema(url: string): boolean {
-  try {
-    return new URL(url).searchParams.get("schema") === BOT_SCHEMA;
-  } catch {
-    return false;
-  }
-}
+import { targetsBotSchema } from "../store/connection-string";
 
 const EnvSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),

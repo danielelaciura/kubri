@@ -8,7 +8,7 @@ config({ path: ".env" });
 
 // Prisma 7 emits unqualified SQL for a single schema, so tables land in "bot" only thanks to
 // the URL's ?schema=bot (search_path). Without it, migrations would hit the dashboard's
-// public schema: refuse any Prisma command in that case. (Unset is fine: `prisma generate`
+// public schema: refuse any Prisma command in that case. (Unset or empty is fine: `prisma generate`
 // runs in postinstall without a database.)
 const databaseUrl = process.env["DATABASE_URL"];
 if (databaseUrl && !targetsBotSchema(databaseUrl)) {

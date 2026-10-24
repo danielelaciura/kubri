@@ -7,7 +7,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "postinstall": "prisma generate",
+    "postinstall": "DATABASE_URL= prisma generate",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "format": "prettier --write .",

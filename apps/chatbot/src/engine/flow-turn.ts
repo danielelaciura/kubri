@@ -1,4 +1,5 @@
 import { answerChoice, answerCvOffer } from "./choice-answers";
+import { answerConsent } from "./consent-answer";
 import type { UserTurnEvent } from "./events";
 import { nonAnswer } from "./replies";
 import { currentStep, type Turn } from "./turn";
@@ -14,6 +15,9 @@ export function handleFlowTurn(turn: Turn, event: UserTurnEvent): void {
   switch (step.type) {
     case "choice":
       answerChoice(turn, index, step, interpretation);
+      return;
+    case "consent":
+      answerConsent(turn, index, step, interpretation);
       return;
     case "cv_offer":
       answerCvOffer(turn, index, interpretation);

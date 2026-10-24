@@ -8,7 +8,7 @@
     "name": "Kubri S.r.l. Società Benefit",
     "privacyUrl": "https://kubri.it/privacy"
   },
-  "onStop": { "data": "delete" },
+  "onStop": { "data": "keep" },
   "flow": [
     {
       "id": "benvenuto",

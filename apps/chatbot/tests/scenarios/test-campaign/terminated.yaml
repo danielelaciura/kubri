@@ -24,5 +24,5 @@ turns:
     expect:
       phase: closed
       sent: [system.stopped]
-      effects: ["ApplyPatch:extraction:workingPermit", "StopSession:terminated:delete"]
+      effects: ["ApplyPatch:extraction:workingPermit", "StopSession:terminated:keep"]
       outcomes: { anagrafica: terminated }

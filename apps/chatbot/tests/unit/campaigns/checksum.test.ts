@@ -40,7 +40,7 @@ describe("canonicalCampaign", () => {
   it("ignores defaults spelled out explicitly", () => {
     const explicit = minimalCampaign();
     explicit.defaultLanguage = "it";
-    explicit.onStop = { data: "delete" };
+    explicit.onStop = { data: "keep" };
 
     expect(canonicalCampaign(parsed(explicit)).checksum).toBe(
       canonicalCampaign(parsed(minimalCampaign())).checksum,

@@ -134,7 +134,7 @@ describe("enterStep", () => {
     enterStep(turn, 3);
 
     expect(sent(turn.effects)).toEqual(["system.stopped"]);
-    expect(others(turn.effects)).toEqual(["StopSession:terminated:delete"]);
+    expect(others(turn.effects)).toEqual(["StopSession:terminated:keep"]);
     expect(turn.state.outcomes).toMatchObject({ anagrafica: "terminated" });
   });
 
@@ -175,14 +175,21 @@ describe("followOutcome", () => {
     expect(turn.state).toMatchObject({ phase: "closed", stepId: null });
   });
 
-  it("@stop after the threshold applies the campaign's onStop", () => {
+  it("@stop after the threshold keeps the data by default (D57)", () => {
+    const turn = turnFor(flowState({ stepId: "cv_info", consentsAccepted: true }));
+    followOutcome(turn, 1, "no");
+
+    expect(others(turn.effects)).toEqual(["StopSession:flow_stop:keep"]);
+  });
+
+  it("@stop after the threshold deletes when the campaign sets onStop delete", () => {
     const c = campaign((input) => {
-      input.onStop = { data: "keep" };
+      input.onStop = { data: "delete" };
     });
     const turn = turnFor(flowState({ stepId: "cv_info", consentsAccepted: true }), c);
     followOutcome(turn, 1, "no");
 
-    expect(others(turn.effects)).toEqual(["StopSession:flow_stop:keep"]);
+    expect(others(turn.effects)).toEqual(["StopSession:flow_stop:delete"]);
   });
 
   describe("@end (D37)", () => {

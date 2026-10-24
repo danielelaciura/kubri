@@ -18,6 +18,9 @@ const c = campaign();
 const keep = campaign((input) => {
   input.onStop = { data: "keep" };
 });
+const wipe = campaign((input) => {
+  input.onStop = { data: "delete" };
+});
 const completed = flowState({
   phase: "post_completion",
   stepId: null,
@@ -39,17 +42,30 @@ describe("opt_out", () => {
     expect(result.state.phase).toBe("closed");
   });
 
-  it("applies onStop after the threshold", () => {
+  it("keeps the data after the threshold by default (D57)", () => {
     const interp = interpretation({ intent: "opt_out" });
-    const result = step(atQuestion("nome"), userTurn("non voglio più", interp), keep);
+    const result = step(atQuestion("nome"), userTurn("non voglio più", interp), c);
 
     expect(others(result.effects)).toEqual(["StopSession:opt_out:keep", "OptOut"]);
+  });
+
+  it("deletes after the threshold when the campaign sets onStop delete", () => {
+    const interp = interpretation({ intent: "opt_out" });
+    const result = step(atQuestion("nome"), userTurn("basta", interp), wipe);
+
+    expect(others(result.effects)).toEqual(["StopSession:opt_out:delete", "OptOut"]);
+  });
+
+  it("deletes before the threshold even when onStop is keep (D24)", () => {
+    const result = step(flowState({ stepId: "cv_info" }), userTurn("STOP!"), keep);
+
+    expect(others(result.effects)).toEqual(["StopSession:opt_out:delete", "OptOut"]);
   });
 
   it("wins over an answer extracted by the LLM, which is never saved", () => {
     const result = step(atQuestion("nome"), userTurn("stop", answer("firstName", "Stop")), c);
 
-    expect(others(result.effects)).toEqual(["StopSession:opt_out:delete", "OptOut"]);
+    expect(others(result.effects)).toEqual(["StopSession:opt_out:keep", "OptOut"]);
   });
 
   it("wins over a pending value confirmation", () => {
@@ -58,7 +74,7 @@ describe("opt_out", () => {
     });
     const result = step(state, userTurn("basta"), c);
 
-    expect(others(result.effects)).toEqual(["StopSession:opt_out:delete", "OptOut"]);
+    expect(others(result.effects)).toEqual(["StopSession:opt_out:keep", "OptOut"]);
     expect(result.state.pendingConfirmation).toBeNull();
   });
 
@@ -154,7 +170,7 @@ describe("delete_data asks for a confirmation first", () => {
     const result = step(asked(atQuestion("nome")), userTurn("stop"), c);
 
     expect(sent(result.effects)).toEqual(["system.delete_cancelled", "system.opt_out_confirm"]);
-    expect(others(result.effects)).toEqual(["StopSession:opt_out:delete", "OptOut"]);
+    expect(others(result.effects)).toEqual(["StopSession:opt_out:keep", "OptOut"]);
   });
 
   it("works in the language phase", () => {

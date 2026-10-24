@@ -21,7 +21,7 @@ export const CampaignDefinitionSchema = z.strictObject({
     name: z.string().trim().min(1),
     privacyUrl: HttpsUrlSchema,
   }),
-  onStop: z.strictObject({ data: z.enum(["delete", "keep"]) }).default({ data: "delete" }),
+  onStop: z.strictObject({ data: z.enum(["delete", "keep"]) }).default({ data: "keep" }),
   customFields: z.array(CustomFieldDefinitionSchema).default([]),
   texts: z.record(IdSchema, LocalizedTextSchema).default({}),
   flow: z.array(StepSchema).min(1),

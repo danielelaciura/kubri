@@ -69,7 +69,7 @@ describe("answering the current question", () => {
     const state = atQuestion("patente", { profile: { firstName: inferred("Mario") } });
     const result = step(state, userTurn("no", answer("drivingLicense", false)), stopAfter);
 
-    expect(others(result.effects)).toContain("StopSession:flow_stop:delete");
+    expect(others(result.effects)).toContain("StopSession:flow_stop:keep");
   });
 
   it("terminates the block when the answer meets terminateIf", () => {
@@ -96,7 +96,7 @@ describe("answering the current question", () => {
 
     expect(others(result.effects)).toEqual([
       "ApplyPatch:extraction:drivingLicense",
-      "StopSession:terminated:delete",
+      "StopSession:terminated:keep",
     ]);
     expect(sent(result.effects)).toEqual(["system.stopped"]);
     expect(result.state.outcomes).toMatchObject({ anagrafica: "terminated" });

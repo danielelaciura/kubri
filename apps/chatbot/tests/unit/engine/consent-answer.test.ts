@@ -99,7 +99,7 @@ describe("consent answers", () => {
     });
     const result = step(atPrivacy, userTurn("accetto", choice("accepted")), stopOnAccept);
 
-    expect(others(result.effects)).toContain("StopSession:flow_stop:delete");
+    expect(others(result.effects)).toContain("StopSession:flow_stop:keep");
   });
 
   it("stops and deletes on a declined mandatory consent", () => {

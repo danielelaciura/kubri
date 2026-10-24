@@ -7,7 +7,7 @@ describe("CampaignDefinitionSchema", () => {
     const parsed = CampaignDefinitionSchema.parse(minimalCampaign());
 
     expect(parsed.defaultLanguage).toBe("it");
-    expect(parsed.onStop).toEqual({ data: "delete" });
+    expect(parsed.onStop).toEqual({ data: "keep" });
     expect(parsed.trigger.isDefault).toBe(false);
     expect(parsed.afterCompletion).toEqual({ allowEdits: true, allowCvRegeneration: false });
   });

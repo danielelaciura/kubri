@@ -22,7 +22,7 @@ turns:
     expect:
       phase: closed
       sent: [system.opt_out_confirm]
-      effects: ["StopSession:opt_out:delete", "OptOut"]
+      effects: ["StopSession:opt_out:keep", "OptOut"]
 
   - user: "ciao"
     expect: { sent: [system.session_closed] }

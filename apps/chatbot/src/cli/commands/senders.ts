@@ -43,6 +43,8 @@ export function registerSenderCommands(program: Command, deps: CliDeps): void {
       if (!E164.test(options.phone)) {
         throw new CliError(`Invalid phone "${options.phone}": use E.164, e.g. +393331234567`);
       }
+      const displayName = options.name.trim();
+      if (displayName === "") throw new CliError("--name cannot be empty");
       const config = MetaProviderConfigSchema.safeParse({
         phoneNumberId: options.phoneNumberId,
         wabaId: options.wabaId,
@@ -70,7 +72,7 @@ export function registerSenderCommands(program: Command, deps: CliDeps): void {
           slug,
           organizationId,
           phoneE164: options.phone,
-          displayName: options.name.trim(),
+          displayName,
           // Manual provisioning: the number is already set up on Meta (spec §17).
           status: "active",
           provider: "meta",

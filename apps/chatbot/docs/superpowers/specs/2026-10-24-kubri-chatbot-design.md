@@ -82,7 +82,28 @@ Oggi il chatbot di Kubri vive su Make.com. L'analisi dello scenario ha evidenzia
 | D28 | Esiti predefiniti | `questions.terminated` e `consent.declined` (non facoltativo) → `@stop`; gli altri → passaggio successivo o `@end`. |
 | D29 | Campi di sistema | `lat`, `lng`, `phone` sono `systemOnly`: non si chiedono e non si estraggono. |
 | D30 | Soglia dei consensi nel validatore | Ogni campagna ha almeno un consenso obbligatorio, non condizionato (`when` vietato), e il suo rifiuto porta sempre a `@stop`, e nessun blocco `questions`/`cv_offer` è raggiungibile senza passare da un consenso obbligatorio. |
+| D31 | Profilo nello stato del motore | `SessionState.profile` è un'istantanea campo → valore, confidenza, stato. Il runtime la idrata da `CandidateProfile` (fonte di verità) prima di `step()` e salva gli `ApplyPatch`; la firma resta a tre argomenti e pura. |
+| D32 | Contratto `Interpretation` | Definito dal motore in `src/engine/interpretation.ts` (schema Zod stretto), prodotto da `nlu`. `interpretation: null` = NLU non disponibile. |
+| D33 | Testi negli effetti | Per riferimento (`TextRef`): testo della campagna, testo inline di un passaggio, chiave del catalogo di sistema, testo generato dall'LLM (solo fuori contesto). La risoluzione è di `i18n`. |
+| D34 | Soglia di confidenza | Unica, 0,7. Campo valorizzato = non `unresolved` e confidenza ≥ 0,7. Soglie per campo in futuro. |
+| D35 | Applicazione delle patch | Solo dopo la soglia dei consensi; l'estrazione non sovrascrive un campo valorizzato tranne quello della domanda corrente; le altre modifiche passano da `edit_request`. Sotto soglia: conferma solo per il campo della domanda corrente, gli altri valori si scartano. |
+| D36 | Conferme sì/no | "sì" applica, "no" annulla e ripete la domanda, ogni altra risposta fa decadere la conferma ed è elaborata come risposta normale. |
+| D37 | `@end` | `@end` va al primo `end` idoneo dalla posizione corrente in avanti; se non c'è, `system.closing`. Prima della soglia dei consensi `@end` non crea un candidato: testo di chiusura + stop con cancellazione. Vale anche quando il `flow` finisce. |
+| D38 | Soglia D24 nel motore | `consentsAccepted` diventa vero al primo consenso obbligatorio accettato (evento `consents.accepted`); il rifiuto di un obbligatorio lo riporta a falso prima del `@stop`. Con D48 il consenso obbligatorio è uno solo, quindi "primo" e "ultimo" coincidono. |
+| D39 | Dati alla chiusura | `@stop`: `delete` prima della soglia, `onStop.data` dopo. `delete_data`: chiede conferma; solo dopo un sì `delete` + job `delete-contact`, altrimenti si riprende. `opt_out` dopo il completamento: solo `OptOut`, i dati restano. |
+| D40 | Intenti globali deterministici | Il messaggio intero normalizzato deve coincidere con una frase dell'elenco; la parola chiave vince sull'LLM; valgono in ogni fase, anche a sessione chiusa. |
+| D41 | Fase della lingua | Nome di lingua nel testo → lingua rilevata dall'LLM con confidenza ≥ 0,8 → `defaultLanguage` della campagna. Il punto 3 del §5.6 è rinviato al piano 06. |
+| D42 | "Sezione N di M" | M conta i blocchi `questions` la cui `when` non è falsa in quel momento: può cambiare durante l'intervista. |
+| D43 | Approfondimenti | `partial` chiede un approfondimento anche con un valore già salvato; `refusal` su una facoltativa la salta subito; `off_topic` e `help` non consumano approfondimenti. |
+| D44 | Rigenerazione del CV | In post-intervista l'NLU restituisce `choice: "regenerate_cv"`; il motore ripropone il primo `cv_offer` del `flow` (se esiste e `allowCvRegeneration`). |
+| D45 | Errori del motore | Stato incoerente o più di 20 avanzamenti: stato invariato, testo di errore generico, `FlagSession(needsAttention)`. `timeout` senza effetti nella v1. |
+| D46 | Scenari | YAML in `tests/scenarios/<campagna>/`, progetto Vitest `scenarios` incluso in `pnpm test`; NLU finta scritta nello YAML; dipendenza di sviluppo `yaml`. |
+| D47 | Evento della soglia verso Kubri | Si chiama `consents.accepted`, come nel §12.1 (in `CLAUDE.md` compare ancora `session.started`, da allineare). |
 | D48 | Consensi di una campagna | **Esattamente un consenso obbligatorio** per campagna: l'informativa del titolare dell'azienda che ha richiesto il questionario. L'unico altro consenso è `kubri_global`, **facoltativo**: se accettato il candidato diventa visibile anche nel pool global (`is_kubri_privacy_accepted` → `sharedWithGlobal`), se rifiutato resta conservato e visibile solo nel pool della campagna. Il validatore rifiuta un secondo consenso obbligatorio (`multiple_mandatory_consents`). (Numerata D48 perché D31–D47 sono riservate al piano 04, che le inserisce prima di questa riga.) |
+| D49 | Conferma della cancellazione | `delete_data` (LLM o parole chiave) non tocca nulla: imposta la conferma in sospeso e invia `system.delete_confirm`. Al turno dopo, in ogni fase (anche `closed`), un sì (scelta `yes` o parola chiave breve: "sì", "yes", "ok", "confermo", …) o la richiesta ripetuta cancella: job `delete-contact` + `system.delete_done`, più `StopSession(delete_data, delete)` nelle fasi `language` e `flow` (dopo il completamento o a sessione chiusa la sessione passa a `closed` e cancella il job). Un `opt_out` annulla la cancellazione e chiude come opt-out. Qualunque altra risposta invia `system.delete_cancelled` e riprende da dove si era senza elaborare il messaggio. |
+| D50 | Consenso e dati nello stesso messaggio | Sul passaggio `consent` la patch del turno si applica dopo la registrazione della risposta e l'aggiornamento della soglia: se il messaggio accetta il consenso obbligatorio ("sì, mi chiamo Mario") i dati si tengono e il blocco successivo salta le domande già valorizzate. Ordine: `RecordConsent` → `consents.accepted` → `ApplyPatch`. Prima della soglia, o dopo un rifiuto, i dati si scartano. |
+| D51 | Risposta alla domanda corrente | Un valore salvato in precedenza (per esempio da una risposta parziale) non vale da solo come risposta: si avanza solo se il campo è valorizzato **e** il turno l'ha cambiato oppure `completeness` è `complete`. Esauriti gli approfondimenti, un valore già salvato si conserva (niente `unresolved`). |
+| D52 | Intercettazioni prima della patch | Intenti globali, `edit_request`, `help` e `off_topic` si gestiscono prima di applicare la patch: da questi messaggi non si salva nessun dato estratto. |
 
 ---
 
@@ -368,14 +389,17 @@ I campi personalizzati (`custom.*`) hanno tipo `text`, `bool`, `number`, `date`,
 ### 7.1 Firma
 
 ```ts
-step(state: SessionState, event: EngineEvent, campaign: CampaignVersion)
+step(state: SessionState, event: EngineEvent, campaign: CampaignDefinition)
   → { state: SessionState, effects: Effect[] }
 ```
 
 - **Pura:** nessuna rete, nessun database, nessun orologio implicito (l'ora arriva nell'evento).
-- **Stato:** `{ phase, stepId, questionId, clarifications, pendingConfirmation, outcomes, language, consentsAccepted }`. `consentsAccepted` diventa `true` quando tutti i consensi obbligatori raggiunti sono stati accettati (soglia D24, §10.6). `phase` vale `language`, `flow`, `post_completion` oppure `closed`.
+- **Stato:** `{ phase, stepId, questionId, clarifications, pendingConfirmation, outcomes, language, consentsAccepted, profile }` (`profile`: istantanea del profilo, D31). `consentsAccepted` diventa `true` quando il consenso obbligatorio della campagna (uno solo, D48) è accettato, e torna `false` se viene rifiutato (soglia D24, §10.6, D38). `phase` vale `language`, `flow`, `post_completion` oppure `closed`.
 - **Eventi:** `user_turn` (con `Interpretation`), `session_started`, `timeout`, `admin_action` (futuro), `outbound_failed`.
 - **Effetti:** `SendText`, `SendChoice` (bottoni interattivi, futuro), `ApplyPatch`, `RecordConsent`, `SetLanguage`, `CompleteSession`, `StopSession`, `EnqueueJob` (`kubri-webhook`, `cv`, `geocoding`), `FlagSession`.
+- `campaign` è la definizione già validata della versione a cui la sessione è legata (piano 04).
+- Effetti aggiunti dal piano 04: `RecordPatchRejections` (valori scartati, senza il valore),
+  `MarkFieldUnresolved`, `OptOut`; job `delete-contact` (D39, D49). `SendChoice` resta futuro.
 
 ### 7.2 Semantica di un turno
 
@@ -827,7 +851,7 @@ Il motore di evals è scritto in proprio in TypeScript: dataset in JSON, misurat
 
 ## 18. Domande aperte
 
-Risolte (2026-10-24): chiave del candidato → D20; pool → D21; `source_organization` e canale → D22; consensi per campagna → D23; esito `@stop` e abbandono → D24; posizione del codice → D19; numero WhatsApp di sviluppo → app Meta di test dedicata con il suo numero, separata dall'app usata da Make; hosting → in UE (fornitore ancora da scegliere, punto 12).
+Risolte (2026-10-24): chiave del candidato → D20; pool → D21; `source_organization` e canale → D22; consensi per campagna → D23; esito `@stop` e abbandono → D24; posizione del codice → D19; numero WhatsApp di sviluppo → app Meta di test dedicata con il suo numero, separata dall'app usata da Make; hosting → in UE (fornitore ancora da scegliere, punto 12); campagne senza `end` o con più `end` → D37.
 
 1. **Seconda sessione sulla stessa campagna** (conseguenza di D20): la nuova intervista parte vuota oppure precompilata dal profilo precedente, con le domande "saltate" trasformate in conferme ("Hai ancora la patente B?")?
 4. **Altri scenari Make collegati** (follow-up con `followed_up_at` / `second_follow_up_at`, Telegram): vanno rimpiazzati nella migrazione?
@@ -839,7 +863,6 @@ Risolte (2026-10-24): chiave del candidato → D20; pool → D21; `source_organi
 10. **Template del CV:** unico o per cliente?
 11. **Proprietà degli account WhatsApp Business in produzione:** numeri tutti sotto un account Kubri oppure account dei clienti? Incide su provisioning e Twilio.
 12. **Fornitore di hosting in UE e provider LLM definitivo** (dopo i primi evals).
-13. **Campagne senza passaggio `end` o con più `end`:** cosa fa `@end`?
 
 ---
 

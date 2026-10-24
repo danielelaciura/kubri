@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import { VERSION } from "../version";
+import { registerCampaignCommands } from "./commands/campaigns";
 import { registerOrgCommands } from "./commands/orgs";
 import { registerSenderCommands } from "./commands/senders";
 import type { CliDeps } from "./deps";
@@ -12,5 +13,6 @@ export function createProgram(deps: CliDeps): Command {
     .version(VERSION);
   registerOrgCommands(program, deps);
   registerSenderCommands(program, deps);
+  registerCampaignCommands(program, deps);
   return program;
 }

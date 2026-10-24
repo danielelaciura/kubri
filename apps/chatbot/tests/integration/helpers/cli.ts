@@ -17,7 +17,7 @@ export interface CliRun {
 export async function runCli(
   db: Database,
   args: string[],
-  nodeEnv: NodeEnv | undefined = "development",
+  nodeEnv: NodeEnv | "unset" = "development",
 ): Promise<CliRun> {
   const stdout: string[] = [];
   const stderr: string[] = [];
@@ -25,7 +25,7 @@ export async function runCli(
     out: (line) => stdout.push(line),
     err: (line) => stderr.push(line),
     readFile: (path) => Promise.resolve(readFileSync(path, "utf8")),
-    nodeEnv: () => nodeEnv,
+    nodeEnv: () => (nodeEnv === "unset" ? undefined : nodeEnv),
     // The test owns the connection: commands must not disconnect it.
     withDatabase: (fn) => fn(db),
   };

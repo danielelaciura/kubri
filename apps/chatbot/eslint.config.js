@@ -23,6 +23,21 @@ const ENGINE_FORBIDDEN_IMPORTS = [
   "node:*",
 ];
 
+// i18n reaches the LLM (translator) and the database (cache) only through interfaces.
+const I18N_FORBIDDEN_IMPORTS = [
+  "**/store",
+  "**/store/**",
+  "**/nlu",
+  "**/nlu/**",
+  "**/channels",
+  "**/channels/**",
+  "**/runtime",
+  "**/runtime/**",
+  "**/generated/**",
+  "@prisma/*",
+  "pg",
+];
+
 export default tseslint.config(
   { ignores: ["node_modules/**", "src/generated/**", "coverage/**", "evals/reports/**"] },
   js.configs.recommended,
@@ -55,6 +70,23 @@ export default tseslint.config(
             {
               group: ["@prisma/*", "**/generated/**", "pg"],
               message: "Only src/store may access the database (CLAUDE.md).",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // i18n is reached by runtime and cli; it never calls nlu or store itself (plan 05, D78).
+    files: ["src/i18n/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: I18N_FORBIDDEN_IMPORTS,
+              message: "i18n uses the Translator and TranslationCache interfaces (CLAUDE.md).",
             },
           ],
         },

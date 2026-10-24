@@ -11,6 +11,13 @@ export default defineConfig({
       },
       {
         test: {
+          // Whole conversations per campaign, with a fake NLU (spec §14).
+          name: "scenarios",
+          include: ["tests/scenarios/**/*.test.ts"],
+        },
+      },
+      {
+        test: {
           name: "integration",
           include: ["tests/integration/**/*.test.ts"],
           setupFiles: ["tests/integration/setup-env.ts"],

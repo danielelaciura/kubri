@@ -12,8 +12,9 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "vitest run --project unit",
-    "test:watch": "vitest --project unit",
+    "test": "vitest run --project unit --project scenarios",
+    "test:watch": "vitest --project unit --project scenarios",
+    "test:scenarios": "vitest run --project scenarios",
     "test:integration": "vitest run --project integration",
     "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down",
@@ -33,7 +34,8 @@
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.72.0",
-    "vitest": "^4.1.2"
+    "vitest": "^4.1.2",
+    "yaml": "^2.9.1"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.6.0",

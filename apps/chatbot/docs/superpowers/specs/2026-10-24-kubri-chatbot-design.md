@@ -108,6 +108,7 @@ Oggi il chatbot di Kubri vive su Make.com. L'analisi dello scenario ha evidenzia
 | D54 | Posizione di `kubri_global` | `kubri_global` deve seguire il consenso obbligatorio nel flusso. |
 | D55 | Ripresa dopo conferme e approfondimenti | Dopo una modifica confermata (o annullata) di un altro campo si ripete la domanda corrente, così un approfondimento in sospeso non si perde; solo la modifica del campo della domanda corrente fa avanzare. Una nuova estrazione identica al valore salvato non è una risposta e non produce `ApplyPatch` (confronto per valore, non per riferimento). La richiesta di conferma di un valore incerto e il "no" a quella conferma consumano un approfondimento: al limite la domanda si chiude come da §7.2 punto 3 (`unresolved` + `FlagSession` se obbligatoria). Il motivo dello stop è `consent_declined` solo dopo un rifiuto; nei log un campo sconosciuto proposto dall'LLM compare come `<unknown>`. |
 | D56 | Facoltativa senza valore | Domanda facoltativa con risposta completa ma senza valore (es. "non ho studiato"): si avanza senza registrare nulla; per una obbligatoria resta un approfondimento. |
+| D57 | Stop dopo il consenso | `@stop` dopo la soglia dei consensi conserva i dati per impostazione predefinita (`onStop.data` = `keep`): il candidato resta in dashboard ed è candidabile al follow-up. Prima della soglia si cancella sempre (D24); la cancellazione esplicita passa solo da `delete_data` con conferma (D49). |
 | D60 | Slug del numero | `SenderNumber.slug` univoco, citato da `trigger.sender`; il numero è univoco per (`channel`, `phoneE164`). |
 | D61 | Checksum della versione | sha256 del JSON canonico (chiavi ordinate) della definizione parsata, default inclusi. Stesso checksum → nessuna versione nuova; un file uguale a una versione precedente la riusa (con `--activate` è un rollback). |
 | D62 | Attivazione | Campagna nuova `paused`; import senza `--activate` non cambia la versione attiva; `--activate` imposta `activeVersionId` e `status = active`. Le colonne di instradamento di `Campaign` copiano la versione attiva (o l'ultima importata finché non ce n'è una). |
@@ -266,7 +267,7 @@ apps/chatbot/
   "trigger": { "sender": "kubri-main", "keywords": ["culligan"] },
   "defaultLanguage": "it",
   "dataController": { "name": "Culligan Italiana S.p.A.", "privacyUrl": "https://…" },
-  "onStop": { "data": "delete" },
+  "onStop": { "data": "keep" },
   "customFields": [
     { "key": "vat_openness", "type": "enum", "options": ["si", "no", "da_valutare"],
       "label": { "it": "Disponibilità ad aprire P.IVA" },
@@ -284,7 +285,7 @@ apps/chatbot/
 - `externalKey`: la chiave del pool lato Kubri, inviata nel webhook.
 - `trigger.sender`: il numero (SenderNumber) su cui la campagna è attiva. `keywords`: parole chiave che, nel primo messaggio, instradano su questa campagna.
 - `dataController`: il titolare del trattamento, citato nei consensi.
-- `onStop.data`: cosa fare dei dati quando la sessione si chiude con `@stop`: `delete` oppure `keep`.
+- `onStop.data`: cosa fare dei dati quando la sessione si chiude con `@stop`: `keep` (predefinito) oppure `delete`.
 - `texts`: testi riutilizzabili, referenziati per chiave.
 - Ogni testo è un oggetto `{ "it": "…", "<lang>": "…" }`. L'italiano è **obbligatorio**, le altre lingue sono traduzioni curate facoltative.
 
@@ -587,7 +588,7 @@ Schema Postgres **`bot`**, nello stesso progetto Supabase della dashboard. Tutte
 
   | Caso | Prima dell'accettazione dei consensi obbligatori | Dopo l'accettazione |
   |---|---|---|
-  | `@stop` (rifiuto di un consenso obbligatorio, "no" a continuare) | si cancella tutto, resta solo la prova minima del rifiuto | si applica `onStop.data` della campagna (default `delete`) |
+  | `@stop` (rifiuto di un consenso obbligatorio, "no" a continuare) | si cancella tutto, resta solo la prova minima del rifiuto | si applica `onStop.data` della campagna (default `keep`) |
   | Abbandono (il candidato smette di rispondere) | cancellazione dopo un breve periodo (durata da definire) | sessione `abandoned`, **candidabile al follow-up** (§17); cancellata solo allo scadere del periodo di conservazione delle sessioni abbandonate (durata da definire, §18) |
 
   Il motore registra nello stato il superamento della soglia (`consentsAccepted`), così `sweep-inactive` e il futuro follow-up non devono ricostruirlo. Il webhook verso Kubri parte solo dopo la soglia: prima non esiste un candidato.

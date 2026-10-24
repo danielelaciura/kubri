@@ -212,9 +212,28 @@ step(state, event, campaignVersion) → { state, effects }
 
 ## Commands
 
-Not scaffolded yet (spec §19, phase 0). When added, document here: dev/web/worker start, tests,
-lint, typecheck, Prisma (generate / migrate dev / migrate deploy / status), and the CLI
-(`campaigns validate|import|simulate`, `evals run`, `ops session|dead-letters`).
+Run from `apps/chatbot/` (or from the repo root with `pnpm --filter @kubri/chatbot <script>`).
+
+```bash
+pnpm install                 # run at the repo root; also runs prisma generate
+pnpm db:up                   # local Postgres (simulates the db shared with the dashboard)
+pnpm db:migrate --name <x>   # new migration on the local dev db (prisma migrate dev)
+pnpm db:deploy               # apply pending migrations (prod: run manually before merging)
+pnpm db:status               # pending migrations
+pnpm test                    # unit tests
+pnpm test:integration        # integration tests (needs pnpm db:up)
+pnpm typecheck && pnpm lint && pnpm format:check
+pnpm cli --help              # kubri-bot CLI
+```
+
+- Local DB: Docker Postgres on port 54329, databases `kubri_bot_dev` and `kubri_bot_test`.
+  Both contain simulated dashboard tables in `public`, which the bot must never touch.
+- `DATABASE_URL` must always end with `?schema=bot` (enforced by `src/config/env.ts`);
+  `prisma.config.ts` also refuses to run any Prisma command when it is set without it.
+- After `pnpm db:migrate`, hand-qualify every generated object with `"bot".` (Prisma 7 emits
+  unqualified SQL); `tests/unit/store/migrations.test.ts` fails otherwise. Also check the SQL
+  only touches `"bot".` objects before committing.
+- Code runs with `tsx` in every environment; there is no JS build step.
 
 ## Things NOT to do
 

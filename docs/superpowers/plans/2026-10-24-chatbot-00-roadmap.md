@@ -1,0 +1,230 @@
+# Kubri Chatbot — Roadmap di implementazione (v1)
+
+> Spec di riferimento: `docs/superpowers/specs/2026-10-24-kubri-chatbot-design.md`
+> Regole di progetto: `apps/chatbot/CLAUDE.md`
+> Posizione del codice: `apps/chatbot/` nel monorepo `kubri` (spec D19). Ogni piano lavora su
+> un branch `feat/chatbot-…` e si chiude con una PR verso `main`.
+
+La v1 è troppo grande per un piano unico. È divisa in **11 piani**. Ognuno produce
+software funzionante e testato, e si chiude con una PR.
+
+**Regola di scrittura dei piani:** solo il piano successivo viene scritto nel dettaglio,
+cioè con codice completo e TDD passo per passo. I piani successivi sono descritti qui come
+schede (obiettivo, contenuto, criteri di completamento) e diventano piani dettagliati quando
+tocca a loro. In questo modo ogni piano si basa sul codice che esiste davvero e non su ipotesi
+che col tempo diventano false.
+
+| # | Piano | Dipende da | Stato |
+|---|---|---|---|
+| 01 | Fondamenta | — | **dettagliato** → `2026-10-24-chatbot-01-foundations.md` |
+| 02 | Schema del profilo e delle campagne (puro) | 01 | **dettagliato** → `2026-10-24-chatbot-02-profile-and-campaign-schema.md` |
+| 03 | Registro delle campagne (DB, import, CLI, campagna standard) | 02 | scheda |
+| 04 | Motore conversazionale e scenari | 02 | scheda |
+| 05 | i18n e simulatore da terminale | 04 | scheda |
+| 06 | NLU (provider LLM, interpretazione, tracce) | 04, 05 | scheda |
+| 07 | Evals | 06 | scheda |
+| 08 | Persistenza delle conversazioni e runtime del worker | 03, 06 | scheda |
+| 09 | Canale WhatsApp e ingresso web | 08 | scheda |
+| 10 | Integrazioni (webhook Kubri, CV, geocoding) | 08 | scheda |
+| 11 | Messa in produzione e migrazione da Make | 09, 10 | scheda |
+
+I piani 03 e 04 sono **indipendenti** tra loro (dipendono entrambi solo dal 02) e possono
+procedere in parallelo. Lo stesso vale per il 09 e il 10 (entrambi dipendono dall'08).
+
+```
+01 ─► 02 ─┬─► 03 ─────────────────┐
+          └─► 04 ─► 05 ─► 06 ─┬─► 08 ─┬─► 09 ─┐
+                              └─► 07   └─► 10 ─┴─► 11
+```
+
+---
+
+## 01 — Fondamenta *(dettagliato)*
+
+App `@kubri/chatbot` nel workspace pnpm, TypeScript strict, Vitest (progetti `unit` e `integration`), ESLint con regole sui
+confini dei moduli, Prettier, configurazione dell'ambiente validata con Zod, logger con
+oscuramento dei dati personali, Postgres locale in Docker che **simula il database condiviso
+con la dashboard**, Prisma 7 sullo schema `bot` con la prima tabella (`Organization`), test di
+isolamento dello schema, scheletro della CLI, CI su GitHub Actions attivata solo dai percorsi del
+chatbot, script SQL dei ruoli database per Supabase.
+
+**Fatto quando:** CI verde; il test di integrazione dimostra che le migrazioni del bot
+finiscono solo nello schema `bot` e non toccano la tabella `_prisma_migrations` della
+dashboard.
+
+## 02 — Schema del profilo e delle campagne *(dettagliato)*
+
+Tutto **puro**, senza database e senza I/O:
+- registro dei campi standard (§6);
+- campi personalizzati;
+- validazione dei valori e delle patch;
+- testi localizzati;
+- condizioni, con schema e valutatore;
+- schema Zod dei passaggi e della campagna;
+- risoluzione delle transizioni (`flow.ts`);
+- **validatore semantico** (§5.8): id, riferimenti ai testi, riferimenti ai campi,
+  transizioni, raggiungibilità, cicli, trigger, consensi.
+
+**Fatto quando:** `validateCampaign()` accetta una campagna valida e rifiuta, con un errore
+leggibile e il percorso esatto, ogni categoria di errore del §5.8 (escluse le collisioni di
+parole chiave, che richiedono il database: piano 03).
+
+## 03 — Registro delle campagne
+
+- **Modelli Prisma:** `SenderNumber`, `Campaign`, `CampaignVersion` (§10.1).
+- **JSON canonico e checksum:** se il file non è cambiato non si crea una nuova versione.
+- **`importCampaign`:** risolve organizzazione e numero, crea una versione immutabile,
+  opzionalmente la attiva, controlla le collisioni di parole chiave e di campagna di default
+  sullo stesso numero.
+- **`store/campaigns.ts`:** l'unico punto con le query.
+- **CLI:** `orgs add`, `senders add`, `campaigns validate <file>`,
+  `campaigns import <file> [--activate]`, `campaigns list`.
+- **Campagna standard Kubri** (`campaigns/kubri-standard.json`): porting del questionario
+  "global" di Make, con il consenso `kubri_global`. I testi dei consensi sono **segnaposto**
+  (`textVersion: "placeholder-…"`, spec D23) finché non arrivano quelli ufficiali; l'import
+  in un ambiente di produzione deve rifiutare le versioni `placeholder-`.
+- **Test di CI** che valida tutti i file in `campaigns/`.
+
+**Fatto quando:** su un DB locale si possono creare organizzazione, numero e campagna
+standard, e un secondo import identico non crea una versione nuova. I test di integrazione
+coprono le collisioni.
+
+## 04 — Motore conversazionale e scenari
+
+Il cuore del sistema (§7), come **funzione pura**:
+- **Tipi del motore:** `SessionState`, `EngineEvent`, `Effect`, e `Interpretation`.
+  `Interpretation` vive in `src/engine/interpretation.ts`: è il motore che ne definisce il
+  contratto e `nlu` lo implementa. Questo rispetta la regola di lint che vieta a `engine` di
+  importare da `nlu`.
+- **`step()`:**
+  - fase della lingua;
+  - esecuzione dei passaggi (`message`, `choice`, `consent`, `questions`, `cv_offer`, `end`)
+    e avanzamento automatico;
+  - transizioni e `reply`;
+  - condizioni `when` e `terminateIf`;
+  - salto dei campi già valorizzati;
+  - patch con soglia di confidenza e richiesta di conferma;
+  - approfondimenti con un massimo di tentativi e `unresolved`;
+  - fuori contesto;
+  - modifica con conferma;
+  - intenti globali (`opt_out`, `delete_data`);
+  - soglia dei consensi (`consentsAccepted`, spec D24): decide cosa succede ai dati su
+    `@stop` e abbandono;
+  - fase dopo il completamento;
+  - limite di 20 avanzamenti;
+  - `needs_attention`;
+  - calcolo dell'avanzamento "Sezione N di M".
+- **Harness per gli scenari YAML** (§14) con NLU finto, e scenari per la campagna standard.
+
+**Fatto quando:** gli scenari obbligatori del §14 passano sulla campagna standard e su una
+campagna di test con campi personalizzati e condizioni.
+
+## 05 — i18n e simulatore da terminale
+
+- **`i18n.resolve`:** traduzione curata → cache → traduttore. Il traduttore è
+  un'interfaccia; un'implementazione finta per i test.
+- **Catalogo dei testi di sistema** in italiano: benvenuto, "non ho capito", conferme,
+  errori generici, opt-out.
+- **Regole per i testi critici** (consensi): link al testo ufficiale e flag `isCurated`.
+- **CLI `campaigns simulate <file>`:** intervista in terminale usando motore e i18n, con NLU
+  da tastiera (scegli l'interpretazione) o finto. L'LLM reale arriva nel piano 06.
+
+**Fatto quando:** si può fare un'intervista completa in terminale sulla campagna standard.
+
+## 06 — NLU
+
+- **`LlmProvider`:** interfaccia, implementazione Mistral, implementazione finta, modello per
+  compito, modello di riserva.
+- **Costruzione del contesto** con minimizzazione dei dati (§8.2), con test che verificano
+  l'assenza dei dati personali.
+- **Prompt `interpret` v1 versionato** e schema Zod dell'output, con tentativo di correzione
+  e `unclear`.
+- **`translate`** con un'implementazione basata sull'LLM.
+- **Modello `NluTrace`** con scrittura delle tracce (interfaccia, implementazione in `store`).
+- **`simulate`** con l'LLM reale.
+
+**Fatto quando:** `campaigns simulate` funziona con Mistral; i test unitari coprono
+correzione, riserva e minimizzazione.
+
+## 07 — Evals
+
+Motore di evals fatto in casa (§15), costruito **un ingrediente alla volta, spiegando ogni
+concetto**:
+- formato del dataset (JSONL) e caricatore;
+- esecuzione di un compito;
+- misuratori deterministici;
+- misuratori strutturati per esperienze e titoli;
+- metriche (precisione e richiamo per campo, **tasso di invenzione**, matrice di confusione
+  degli intenti, divisione per lingua ed etichetta);
+- report JSON e Markdown;
+- confronto con l'esecuzione di riferimento;
+- soglie;
+- giudice LLM per `translation`, con taratura;
+- dataset iniziali: `extraction`, `intent`, `choice`, `language`.
+
+**Fatto quando:** `kubri-bot evals run` produce un report di riferimento salvato, e una
+modifica al prompt mostra il confronto caso per caso.
+
+## 08 — Persistenza delle conversazioni e runtime del worker
+
+- **Modelli Prisma:** `Contact`, `ContactChannelState`, `Session`, `Message`, `Turn`,
+  `CandidateProfile`, `ProfileChange`, `Consent`, `TranslationCache`, `CvDocument`,
+  `InboundDeadLetter` (§10.2–10.3).
+- **pg-boss** sullo schema `bot_queue`.
+- **`runtime`:** `process-contact`, con lock advisory per contatto, raffica e attesa breve,
+  costruzione del contesto, `nlu`, `engine`, risoluzione dei testi, **transazione unica** con
+  outbox e nuovo accodamento. Poi `send-messages` con ordine e interruzione dopo un errore
+  definitivo, usando un **canale finto**.
+
+**Fatto quando:** i test di integrazione (§14) coprono ordine, attesa breve, lock, rollback,
+ritentativi e scarti, con canale e LLM finti.
+
+## 09 — Canale WhatsApp e ingresso web
+
+- **`channels/meta-cloud`:** `verify` (firma), `parse` (tutte le entry, i messaggi e gli
+  stati), `send` (testo, conferma di lettura, "sta scrivendo"), `classifyError`.
+- **Payload reali di Meta** in `tests/fixtures/meta/`.
+- **Processo web:** `GET` di verifica, `POST` con deduplica, `InboundDeadLetter`, ricevute di
+  stato, `/health`.
+- **Finestra delle 24 ore.**
+- Risposta "per ora scrivimi in testo" per audio e documenti (`media` v1).
+
+**Fatto quando:** un'intervista completa funziona su un **numero WhatsApp di test** di dev.
+
+## 10 — Integrazioni
+
+- **Contratto condiviso:** lo schema Zod del payload candidato si sposta in `@kubri/contracts`,
+  usato dal chatbot per costruirlo e dalla dashboard per validarlo (spec D19).
+- **Webhook Kubri:** mappatura §12.1, `key` = `<Contact.id>:<Campaign.id>` (D20), `channel`
+  esplicito (D22), primo invio al superamento della soglia dei consensi (D24), eventi
+  significativi, ritentativi e scarti.
+- **Adeguamento della dashboard** (stessa PR): `normalize.ts` legge `channel` e ricade su
+  `source_organization` solo per i payload di Make.
+- **Geocoding**, con provider da scegliere.
+- **CV:** template HTML → PDF, storage privato Supabase, link firmati, `cv.generated`.
+
+**Fatto quando:** un candidato intervistato su dev compare completo nella dashboard Kubri di
+dev, con il CV scaricabile tramite link firmato.
+
+## 11 — Messa in produzione e migrazione da Make
+
+- **Osservabilità:** monitoraggio degli errori in UE, metriche, avvisi.
+- **Comandi CLI** `ops session` e `ops dead-letters`.
+- **Job `delete-contact` e conservazione dei dati**, job `sweep-inactive`.
+- **Deploy:** Dockerfile, deploy sul fornitore scelto, ruoli database applicati su dev e prod.
+- **Porting delle campagne dei clienti** (open-service, aldia, culligan, conad, activa), con i
+  loro scenari.
+- **Guida operativa della migrazione:** numero di test, poi numero Kubri, poi spegnimento di
+  Make per WhatsApp.
+
+**Fatto quando:** il numero Kubri in produzione è servito dal nuovo sistema.
+
+---
+
+## Dopo la v1 (spec §17)
+
+Telegram · provisioning dei numeri con Twilio · contatto proattivo con template · promemoria
+e follow-up · trascrizione dei vocali · import del CV (`document_import`) · bottoni
+interattivi · pannello di configurazione · storico delle conversazioni in dashboard.
+
+Ciascuno avrà la propria mini-spec e il proprio piano.

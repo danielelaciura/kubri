@@ -141,7 +141,8 @@ describe("delete_data asks for a confirmation first", () => {
 
     expect(sent(result.effects)).toEqual(["system.delete_cancelled", "anagrafica.nome"]);
     expect(others(result.effects)).toEqual([]);
-    expect(result.state).toMatchObject({ phase: "flow", pendingConfirmation: null, profile: {} });
+    expect(result.state).toMatchObject({ phase: "flow", pendingConfirmation: null });
+    expect(result.state.profile).toEqual({});
   });
 
   it("cancels on no", () => {
@@ -204,5 +205,16 @@ describe("delete_data asks for a confirmation first", () => {
 
     const cancelled = step(first.state, userTurn("ciao"), c);
     expect(sent(cancelled.effects)).toEqual(["system.delete_cancelled"]);
+  });
+
+  it.each([
+    ["flow", asked(atQuestion("nome", { profile: { firstName: inferred("Mario") } }))],
+    ["post_completion", asked(completed)],
+    ["closed", asked({ ...closed, profile: { firstName: inferred("Mario") } })],
+  ] as const)("clears the profile from the engine state when confirmed in %s", (_phase, state) => {
+    const result = step(state, userTurn("sì", choice("yes")), c);
+
+    expect(result.state).toMatchObject({ phase: "closed", pendingConfirmation: null });
+    expect(result.state.profile).toEqual({});
   });
 });

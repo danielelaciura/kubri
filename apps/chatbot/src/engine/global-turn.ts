@@ -50,6 +50,8 @@ function resolveDeletion(turn: Turn, event: UserTurnEvent, global: GlobalIntent 
 function deleteData(turn: Turn): void {
   const goodbye = systemText("system.delete_done");
   emit(turn, { type: "EnqueueJob", job: { name: "delete-contact" } });
+  // D53: the engine state must not keep what the delete-contact job removes.
+  setState(turn, { profile: {} });
   const { phase } = turn.state;
   if (phase === "language" || phase === "flow") {
     stopSession(turn, "delete_data", { goodbye, dataPolicy: "delete" });

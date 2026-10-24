@@ -101,4 +101,24 @@ describe("callWithPolicy", () => {
     expect(result.attempts[0]?.error?.kind).toBe("server");
     expect(result.attempts[0]?.error?.message).not.toContain("Mariangela");
   });
+
+  it("waits for Retry-After when it is longer than the scheduled delay", async () => {
+    const t = timing();
+    const limited = (ms: number) => new LlmError("rate_limited", "Mistral HTTP 429", 429, ms);
+    const provider = new FakeLlmProvider([limited(2000), limited(100), "ok"]);
+
+    await callWithPolicy(provider, REQUEST, "backup", t);
+
+    expect(t.slept).toEqual([2000, 1500]);
+  });
+
+  it("skips the fallback call when it names the same model", async () => {
+    const provider = new FakeLlmProvider([down(), down(), down(), "never"]);
+
+    const result = await callWithPolicy(provider, REQUEST, "primary", timing());
+
+    expect(result.response).toBeNull();
+    expect(result.attempts).toHaveLength(3);
+    expect(provider.requests).toHaveLength(3);
+  });
 });

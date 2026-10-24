@@ -65,7 +65,9 @@ export async function callWithPolicy(
 ): Promise<CallResult> {
   const attempts: CallAttempt[] = [];
   const waits = [0, ...timing.retryDelaysMs];
-  for (const [index, wait] of waits.entries()) {
+  let retryAfterMs = 0;
+  for (const [index, scheduled] of waits.entries()) {
+    const wait = index === 0 ? 0 : Math.max(scheduled, retryAfterMs);
     if (wait > 0) await timing.sleep(wait);
     const result = await attempt(
       provider,
@@ -76,7 +78,10 @@ export async function callWithPolicy(
     attempts.push(result);
     if (result.response) return { response: result.response, attempts };
     if (!result.error?.retryable) return { response: null, attempts };
+    retryAfterMs = result.error.retryAfterMs ?? 0;
   }
+  // Same model again would only repeat the failures.
+  if (fallbackModel === request.model) return { response: null, attempts };
   const fallback = await attempt(
     provider,
     { ...request, model: fallbackModel },

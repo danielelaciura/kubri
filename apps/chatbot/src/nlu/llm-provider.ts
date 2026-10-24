@@ -48,12 +48,15 @@ const RETRYABLE: ReadonlySet<LlmErrorKind> = new Set([
 export class LlmError extends Error {
   readonly kind: LlmErrorKind;
   readonly status: number | undefined;
+  /** From a 429 Retry-After header, already capped. */
+  readonly retryAfterMs: number | undefined;
 
-  constructor(kind: LlmErrorKind, message: string, status?: number) {
+  constructor(kind: LlmErrorKind, message: string, status?: number, retryAfterMs?: number) {
     super(message);
     this.name = "LlmError";
     this.kind = kind;
     this.status = status;
+    this.retryAfterMs = retryAfterMs;
   }
 
   /** D82: worth trying again, then on the fallback model. */

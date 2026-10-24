@@ -158,4 +158,58 @@ describe("createMistralProvider", () => {
       expect(error.message).not.toContain("k-secret");
     }
   });
+
+  it("reads Retry-After (seconds or date) on 429, capped at 5 s", async () => {
+    const retryAfter = async (header: string | null): Promise<number | undefined> => {
+      const headers: Record<string, string> = header === null ? {} : { "retry-after": header };
+      const { fetch } = fakeFetch(() => new Response("{}", { status: 429, headers }));
+      return (await failure(createMistralProvider({ apiKey: "k", fetch }).complete(REQUEST)))
+        .retryAfterMs;
+    };
+
+    expect(await retryAfter("2")).toBe(2000);
+    expect(await retryAfter("120")).toBe(5000);
+    expect(await retryAfter(new Date(Date.now() + 60_000).toUTCString())).toBe(5000);
+    const soon = await retryAfter(new Date(Date.now() + 3000).toUTCString());
+    expect(soon).toBeGreaterThan(0);
+    expect(soon).toBeLessThanOrEqual(3000);
+    expect(await retryAfter("garbage")).toBeUndefined();
+    expect(await retryAfter(null)).toBeUndefined();
+  });
+
+  it("classifies a timeout while reading the body as a timeout", async () => {
+    const { fetch } = fakeFetch(
+      () =>
+        ({
+          ok: true,
+          status: 200,
+          json: () => Promise.reject(new DOMException("aborted", "TimeoutError")),
+        }) as unknown as Response,
+    );
+
+    expect(
+      (await failure(createMistralProvider({ apiKey: "k", fetch }).complete(REQUEST))).kind,
+    ).toBe("timeout");
+  });
+
+  it("rejects a truncated answer (finish_reason length)", async () => {
+    const { fetch } = fakeFetch(() =>
+      json({ ...OK_BODY, choices: [{ message: { content: '{"a":' }, finish_reason: "length" }] }),
+    );
+
+    const error = await failure(createMistralProvider({ apiKey: "k", fetch }).complete(REQUEST));
+
+    expect(error.kind).toBe("invalid_response");
+    expect(error.message).not.toContain('{"a"');
+  });
+
+  it("honours baseUrl", async () => {
+    const { fetch, calls } = fakeFetch(() => json(OK_BODY));
+
+    await createMistralProvider({ apiKey: "k", fetch, baseUrl: "https://llm.internal/" }).complete(
+      REQUEST,
+    );
+
+    expect(calls[0]?.url).toBe("https://llm.internal/v1/chat/completions");
+  });
 });

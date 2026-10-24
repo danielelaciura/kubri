@@ -44,6 +44,17 @@ export function checkTransitions(c: CampaignDefinition): CampaignIssue[] {
           ),
         );
       }
+      // A block re-entered with its fields already settled finishes again at once: it would
+      // loop until the auto-advance limit.
+      if (target === "@repeat" && step.type === "questions") {
+        issues.push(
+          issue(
+            targetPath,
+            "repeat_on_questions",
+            `Step "${step.id}" is a questions block: @repeat would re-enter it with every field settled and loop`,
+          ),
+        );
+      }
       // Spec D24: a refused mandatory consent must end the conversation.
       if (
         step.type === "consent" &&

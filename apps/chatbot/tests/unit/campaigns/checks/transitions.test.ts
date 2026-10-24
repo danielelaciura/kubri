@@ -69,6 +69,23 @@ describe("checkTransitions", () => {
     expect(checkTransitions(parsed(input)).map((i) => i.code)).toEqual(["repeat_on_message"]);
   });
 
+  it.each(["completed", "terminated"])(
+    "forbids @repeat on the %s outcome of questions",
+    (outcome) => {
+      const input = minimalCampaign();
+      const block = input.flow[3];
+      if (block?.type === "questions")
+        block.on = { [outcome]: { reply: "cv_explain", then: "@repeat" } };
+
+      expect(checkTransitions(parsed(input))).toEqual([
+        expect.objectContaining({
+          path: `flow[3].on.${outcome}.then`,
+          code: "repeat_on_questions",
+        }),
+      ]);
+    },
+  );
+
   describe("mandatory consent refusal", () => {
     const consent = (
       optional: boolean,

@@ -1,5 +1,6 @@
 import type { PatchEntry } from "../profile/patch";
 import { advanceFromQuestion } from "./advance";
+import { saveEdit } from "./edits";
 import { isChoice, type Interpretation } from "./interpretation";
 import { applyFields } from "./patches";
 import { isFieldFilled } from "./profile-snapshot";
@@ -49,7 +50,17 @@ export function resolvePendingInFlow(turn: Turn, interpretation: Interpretation 
       }
       return false;
     case "edit":
-      return incoherent("edit confirmations are not handled yet");
+      if (yes) {
+        saveEdit(turn, pending);
+        resumeFlow(turn);
+        return true;
+      }
+      if (no) {
+        say(turn, systemText("system.edit_cancelled"));
+        repromptCurrent(turn);
+        return true;
+      }
+      return false;
     case "delete_data":
       return incoherent("delete_data confirmation reached the flow");
   }

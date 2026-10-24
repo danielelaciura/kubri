@@ -1,12 +1,13 @@
 import { answerChoice, answerCvOffer } from "./choice-answers";
 import { resolvePendingInFlow } from "./confirmations";
 import { answerConsent } from "./consent-answer";
+import { requestEdit } from "./edits";
 import type { UserTurnEvent } from "./events";
 import { applyExtractedPatch } from "./patches";
 import { fieldState } from "./profile-snapshot";
 import { answerQuestion } from "./question-answer";
-import { currentQuestion, nonAnswer } from "./replies";
-import { currentStep, incoherent, type Turn } from "./turn";
+import { currentQuestion, nonAnswer, repromptCurrent } from "./replies";
+import { currentStep, incoherent, say, systemText, type Turn } from "./turn";
 
 /** A user turn while the flow waits on a step (spec §7.2). */
 export function handleFlowTurn(turn: Turn, event: UserTurnEvent): void {
@@ -14,6 +15,14 @@ export function handleFlowTurn(turn: Turn, event: UserTurnEvent): void {
   if (resolvePendingInFlow(turn, interpretation)) return;
   if (!interpretation) {
     nonAnswer(turn, null);
+    return;
+  }
+  // Spec §7.2 point 5: before the patch, so the new value is only saved once confirmed.
+  if (interpretation.intent === "edit_request") {
+    if (!requestEdit(turn, interpretation)) {
+      say(turn, systemText("system.edit_invalid"));
+      repromptCurrent(turn);
+    }
     return;
   }
   // Not answers: nothing extracted from them is saved, and no clarification is used up (D43).

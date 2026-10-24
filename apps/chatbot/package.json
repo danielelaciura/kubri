@@ -22,9 +22,13 @@
     "cli": "tsx --env-file=.env src/cli/main.ts"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^20.19.38",
+    "eslint": "^9.39.4",
+    "prettier": "^3.9.10",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
+    "typescript-eslint": "^8.72.0",
     "vitest": "^4.1.2"
   }
 }

@@ -4602,6 +4602,8 @@ git commit -m "feat(chatbot): confirm and apply edit requests during the flow"
 
 ### Task 21: Gestione degli intenti globali (`opt_out`, `delete_data`)
 
+> **Decisione del proprietario (2026-10-24), prevale sul codice qui sotto:** `delete_data` **chiede conferma** prima di cancellare, sia quando arriva dall'LLM sia dalle parole chiave deterministiche. Il primo `delete_data` imposta `pendingConfirmation = { kind: "delete_data" }` e invia la chiave di sistema `system.delete_confirm` (da aggiungere all'unione delle chiavi di sistema); nessun dato viene toccato. Al turno successivo: un "sì" (scelta `yes` o parola chiave di conferma) produce `StopSession { dataPolicy: "delete" }` + `EnqueueJob delete-contact` + `system.delete_done`; qualsiasi altra risposta annulla la richiesta, invia `system.delete_cancelled` e riprende da dove si era. `opt_out` dopo il completamento conserva i dati (solo `OptOut`). Adeguare test e implementazione di questo task di conseguenza.
+
 Valutati per primi, in ogni fase (D39, D40).
 
 **Files:**
@@ -6050,7 +6052,7 @@ Nella tabella del §2 aggiungere, **subito dopo la riga D30 e prima della riga D
 | D36 | Conferme sì/no | "sì" applica, "no" annulla e ripete la domanda, ogni altra risposta fa decadere la conferma ed è elaborata come risposta normale. |
 | D37 | `@end` | Va al primo passaggio `end` con `when` vera o assente; se non ce n'è, chiusura di sistema e `CompleteSession`. Vale anche quando il `flow` finisce. |
 | D38 | Soglia D24 nel motore | `consentsAccepted` diventa vero al primo consenso obbligatorio accettato (evento `consents.accepted`); il rifiuto di un obbligatorio lo riporta a falso prima del `@stop`. Con D48 il consenso obbligatorio è uno solo, quindi "primo" e "ultimo" coincidono. |
-| D39 | Dati alla chiusura | `@stop`: `delete` prima della soglia, `onStop.data` dopo. `delete_data`: sempre `delete` + job `delete-contact`. `opt_out` dopo il completamento: solo `OptOut`, i dati restano. |
+| D39 | Dati alla chiusura | `@stop`: `delete` prima della soglia, `onStop.data` dopo. `delete_data`: chiede conferma; solo dopo un sì `delete` + job `delete-contact`, altrimenti si riprende. `opt_out` dopo il completamento: solo `OptOut`, i dati restano. |
 | D40 | Intenti globali deterministici | Il messaggio intero normalizzato deve coincidere con una frase dell'elenco; la parola chiave vince sull'LLM; valgono in ogni fase, anche a sessione chiusa. |
 | D41 | Fase della lingua | Nome di lingua nel testo → lingua rilevata dall'LLM con confidenza ≥ 0,8 → `defaultLanguage` della campagna. Il punto 3 del §5.6 è rinviato al piano 06. |
 | D42 | "Sezione N di M" | M conta i blocchi `questions` la cui `when` non è falsa in quel momento: può cambiare durante l'intervista. |

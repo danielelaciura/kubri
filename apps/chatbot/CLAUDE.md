@@ -245,7 +245,10 @@ pnpm cli campaigns simulate <file> [--nlu naive] [--translator fake] [--history 
   ids, typed values); `/…` commands force any interpretation (`/?` lists them). Texts are
   resolved by `i18n` exactly as runtime will; the fake translator shows `[en] <Italian>`.
   Piped stdin works for scripted runs (`pnpm cli campaigns simulate <file> < transcript.txt`):
-  the input lines are echoed so the output reads as a transcript.
+  the input lines are echoed so the output reads as a transcript. With `naive`, enum answers
+  must be the stored option ids (e.g. `base`, `intermedio`), not the plain phrases the prompt
+  offers ("un po'"): mapping phrases is the LLM's job (`--nlu llm`, plan 06). Typing
+  "nessuno" saves the literal text; use `/refuse` or `/nlu` for a "none" answer.
 
 - Local DB: Docker Postgres on port 54329, databases `kubri_bot_dev` and `kubri_bot_test`.
   Both contain simulated dashboard tables in `public`, which the bot must never touch.

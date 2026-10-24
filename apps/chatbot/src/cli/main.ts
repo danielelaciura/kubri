@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { createInterface } from "node:readline";
 import { parseEnv, parseNodeEnv } from "../config/env";
 import { createDatabase } from "../store/db";
 import type { CliDeps } from "./deps";
@@ -17,6 +18,27 @@ const deps: CliDeps = {
       await db.$disconnect();
     }
   },
+  openInput: () => {
+    const rl = createInterface({ input: process.stdin, crlfDelay: Infinity });
+    const lines = rl[Symbol.asyncIterator]();
+    return {
+      next: async (prompt) => {
+        process.stdout.write(prompt);
+        const line = await lines.next();
+        if (line.done) {
+          process.stdout.write("\n"); // leave the prompt's line after Ctrl-D / end of input
+          return null;
+        }
+        // Piped input (a scripted run) is not echoed by the terminal: echo it for the transcript.
+        if (!process.stdin.isTTY) process.stdout.write(`${line.value}\n`);
+        return line.value;
+      },
+      close: () => {
+        rl.close();
+      },
+    };
+  },
+  now: () => new Date().toISOString(),
 };
 
 process.exitCode = await runProgram(deps, process.argv, process.env["KUBRI_BOT_DEBUG"] === "1");

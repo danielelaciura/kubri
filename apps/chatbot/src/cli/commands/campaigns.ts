@@ -7,6 +7,7 @@ import { listCampaigns } from "../../store/campaigns";
 import { CliError, type CliDeps } from "../deps";
 import { describeEnvironment, formatIssues, hasPlaceholderIssue } from "../format-issues";
 import { readCampaignFile } from "../read-campaign-file";
+import { registerSimulateCommand } from "./simulate";
 
 /** Prisma: transaction failed on a write conflict / deadlock under SERIALIZABLE. */
 const SERIALIZATION_FAILURE = "P2034";
@@ -128,4 +129,6 @@ export function registerCampaignCommands(program: Command, deps: CliDeps): void 
         );
       }
     });
+
+  registerSimulateCommand(campaigns, deps);
 }

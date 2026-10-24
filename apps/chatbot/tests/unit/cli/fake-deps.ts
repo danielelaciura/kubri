@@ -5,18 +5,25 @@ export interface FakeCli {
   readonly deps: CliDeps;
   readonly stdout: string[];
   readonly stderr: string[];
+  /** True once a command closed the keyboard input it opened. */
+  inputClosed: () => boolean;
 }
 
 /**
- * In-memory files, captured output, and a database that must not be touched.
- * `"unset"` simulates a missing NODE_ENV (the placeholder guard treats it as production).
+ * In-memory files, captured output, scripted keyboard lines, a fixed clock, and a database
+ * that must not be touched. `"unset"` simulates a missing NODE_ENV (the placeholder guard
+ * treats it as production).
  */
 export function fakeCli(
   files: Record<string, string> = {},
   nodeEnv: NodeEnv | "unset" = "test",
+  inputs: readonly string[] = [],
 ): FakeCli {
   const stdout: string[] = [];
   const stderr: string[] = [];
+  const queue = [...inputs];
+  let closed = false;
+  let minute = 0;
   const deps: CliDeps = {
     out: (line) => stdout.push(line),
     err: (line) => stderr.push(line),
@@ -28,6 +35,13 @@ export function fakeCli(
     },
     nodeEnv: () => (nodeEnv === "unset" ? undefined : nodeEnv),
     withDatabase: () => Promise.reject(new Error("unit tests must not open the database")),
+    openInput: () => ({
+      next: () => Promise.resolve(queue.shift() ?? null),
+      close: () => {
+        closed = true;
+      },
+    }),
+    now: () => new Date(Date.UTC(2026, 9, 24, 10, minute++)).toISOString(),
   };
-  return { deps, stdout, stderr };
+  return { deps, stdout, stderr, inputClosed: () => closed };
 }

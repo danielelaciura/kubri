@@ -28,6 +28,9 @@ export async function runCli(
     nodeEnv: () => (nodeEnv === "unset" ? undefined : nodeEnv),
     // The test owns the connection: commands must not disconnect it.
     withDatabase: (fn) => fn(db),
+    // No keyboard in integration tests: simulate reads end-of-input at once.
+    openInput: () => ({ next: () => Promise.resolve(null), close: () => undefined }),
+    now: () => new Date().toISOString(),
   };
   let error: unknown;
   try {

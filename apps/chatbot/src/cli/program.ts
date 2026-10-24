@@ -1,10 +1,16 @@
 import { Command } from "commander";
 import { VERSION } from "../version";
+import { registerOrgCommands } from "./commands/orgs";
+import { registerSenderCommands } from "./commands/senders";
+import type { CliDeps } from "./deps";
 
-// Commands are registered here by later plans (campaigns, evals, ops).
-export function createProgram(): Command {
-  return new Command()
+// Later plans register more commands here (simulate, evals, ops).
+export function createProgram(deps: CliDeps): Command {
+  const program = new Command()
     .name("kubri-bot")
     .description("Kubri Chatbot operations CLI")
     .version(VERSION);
+  registerOrgCommands(program, deps);
+  registerSenderCommands(program, deps);
+  return program;
 }

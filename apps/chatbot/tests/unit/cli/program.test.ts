@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { createProgram } from "../../../src/cli/program";
 import { VERSION } from "../../../src/version";
+import { fakeCli } from "./fake-deps";
 
 function runCli(args: string[]): { output: string; error: unknown } {
   let output = "";
-  const program = createProgram()
+  const program = createProgram(fakeCli().deps)
     .exitOverride()
     .configureOutput({
       writeOut: (text) => {
@@ -29,5 +30,9 @@ describe("kubri-bot CLI", () => {
 
   it("shows its name in the help", () => {
     expect(runCli(["--help"]).output).toContain("Usage: kubri-bot");
+  });
+
+  it.each(["orgs", "senders"])("lists the %s command in the help", (name) => {
+    expect(runCli(["--help"]).output).toContain(name);
   });
 });

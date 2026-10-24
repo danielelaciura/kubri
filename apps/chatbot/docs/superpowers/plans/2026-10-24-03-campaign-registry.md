@@ -43,26 +43,26 @@ macchina: `pnpm db:up` avvia solo il servizio `postgres` di `docker-compose.yml`
 
 ---
 
-## Decisioni prese in questo piano (da riportare nella spec, §2, come D50–D59)
+## Decisioni prese in questo piano (da riportare nella spec, §2, come D60–D69)
 
-Il piano 04 usa D31–D39: questo piano parte da D50.
+Il piano 04 usa D31–D39: questo piano parte da D60.
 
-- **D50 — Slug del numero.** `SenderNumber` ha uno `slug` univoco (non previsto nel §10.1):
+- **D60 — Slug del numero.** `SenderNumber` ha uno `slug` univoco (non previsto nel §10.1):
   è ciò che i file di campagna citano in `trigger.sender`. Il numero è univoco per
   (`channel`, `phoneE164`).
-- **D51 — Checksum.** È lo sha256 del JSON canonico (chiavi ordinate a ogni livello) della
+- **D61 — Checksum.** È lo sha256 del JSON canonico (chiavi ordinate a ogni livello) della
   definizione **già parsata** da Zod, con i default applicati. Formattazione, ordine delle
   chiavi e default scritti per esteso non creano una versione nuova. Se un file coincide con
   una versione precedente, quella versione viene riusata; con `--activate` l'import diventa
   un rollback.
-- **D52 — Attivazione.**
+- **D62 — Attivazione.**
   - Una campagna nuova nasce `paused`.
   - L'import senza `--activate` crea la versione ma non cambia quella attiva.
   - `--activate` imposta `activeVersionId` e `status = active`.
   - Le colonne di instradamento di `Campaign` (`senderNumberId`, `keywords`, `isDefault`,
     `externalKey`) copiano la versione attiva, oppure l'ultima importata finché non ce n'è
     una attiva. La verità resta `CampaignVersion.definition`.
-- **D53 — Collisioni.**
+- **D63 — Collisioni.**
   - Le parole chiave si confrontano in modo esatto, dopo la normalizzazione dello schema
     (trim e minuscolo).
   - Ogni numero ha al massimo una campagna di default (`trigger.isDefault`).
@@ -70,22 +70,22 @@ Il piano 04 usa D31–D39: questo piano parte da D50.
     campagna stessa.
   - Il controllo gira a ogni import, nella stessa transazione serializzabile della
     scrittura. Le campagne in pausa non collidono.
-- **D54 — Organizzazione fissa.** Una campagna non può cambiare organizzazione tra una
+- **D64 — Organizzazione fissa.** Una campagna non può cambiare organizzazione tra una
   versione e l'altra (`organization_mismatch`). Il numero invece può cambiare.
-- **D55 — Guardia dei consensi segnaposto.** Una `textVersion` che inizia con
+- **D65 — Guardia dei consensi segnaposto.** Una `textVersion` che inizia con
   `placeholder-` è un **errore** con `NODE_ENV=production` e un **avviso** negli altri
   ambienti. La guardia vale sia per `campaigns import` sia per `campaigns validate`. La CLI
   lanciata contro prod deve avere `NODE_ENV=production` (va impostato in `.env.prod`).
-- **D56 — `providerConfig`.** Contiene solo identificativi (`phoneNumberId`, `wabaId`) e il
+- **D66 — `providerConfig`.** Contiene solo identificativi (`phoneNumberId`, `wabaId`) e il
   **nome** del segreto con il token (`accessTokenSecret`, in UPPER_SNAKE_CASE). Lo schema è
   `strict` e sta in `src/channels/provider-config.ts`. Nella v1 il provider è solo `meta`;
   l'enum prevede già `twilio`.
-- **D57 — Stato iniziale dei numeri.** `senders add` crea il numero già `active`
+- **D67 — Stato iniziale dei numeri.** `senders add` crea il numero già `active`
   (provisioning manuale, §17). Il default del database resta `provisioning`.
-- **D58 — Definizione memorizzata.** `CampaignVersion.definition` contiene la definizione
+- **D68 — Definizione memorizzata.** `CampaignVersion.definition` contiene la definizione
   parsata in forma canonica. Alla lettura viene ri-parsata con `CampaignDefinitionSchema` per
   ottenere il tipo statico (`LoadedCampaign`).
-- **D59 — Campagna standard v1.**
+- **D69 — Campagna standard v1.**
   - Costruita dai campi del §6, perché l'export di Make non è ancora disponibile.
   - Le formulazioni delle domande saranno rifinite sul questionario "global" di Make.
   - I testi dei consensi riportano titolare e link per esteso: nessuna interpolazione
@@ -620,7 +620,7 @@ git commit -m "feat(chatbot): detect keyword and default campaign collisions"
 L'export del questionario "global" di Make non è ancora disponibile: la campagna è costruita
 dai campi standard del §6, con un `hint` di estrazione per ogni domanda. Le formulazioni
 verranno rifinite quando arriva l'export di Make. Questo cambierà solo i testi, non la
-struttura (D59). Consensi: quelli dell'Appendice A, con `textVersion: "placeholder-2026-10"`.
+struttura (D69). Consensi: quelli dell'Appendice A, con `textVersion: "placeholder-2026-10"`.
 Titolare e link sono scritti per esteso, perché il motore non definisce ancora
 un'interpolazione `{dataController.*}`. Il passaggio fisso della lingua non sta nel `flow`
 (§5.6).
@@ -3189,16 +3189,16 @@ In fondo alla tabella del §2, **dopo le righe D31–D39 del piano 04** se sono 
 (altrimenti subito dopo D30, lasciando il buco: i numeri sono riservati), aggiungere:
 
 ```markdown
-| D50 | Slug del numero | `SenderNumber.slug` univoco, citato da `trigger.sender`; il numero è univoco per (`channel`, `phoneE164`). |
-| D51 | Checksum della versione | sha256 del JSON canonico (chiavi ordinate) della definizione parsata, default inclusi. Stesso checksum → nessuna versione nuova; un file uguale a una versione precedente la riusa (con `--activate` è un rollback). |
-| D52 | Attivazione | Campagna nuova `paused`; import senza `--activate` non cambia la versione attiva; `--activate` imposta `activeVersionId` e `status = active`. Le colonne di instradamento di `Campaign` copiano la versione attiva (o l'ultima importata finché non ce n'è una). |
-| D53 | Collisioni | Parole chiave confrontate in modo esatto (dopo trim e minuscolo) e al più una campagna di default per numero, solo contro le campagne `active` dello stesso numero, a ogni import, in una transazione serializzabile. Le campagne in pausa non collidono. |
-| D54 | Organizzazione della campagna | Fissa tra le versioni (`organization_mismatch`); il numero può cambiare. |
-| D55 | Consensi segnaposto | `textVersion` `placeholder-…` → errore con `NODE_ENV=production`, avviso altrove, sia in `campaigns import` sia in `campaigns validate`. La CLI contro prod gira con `NODE_ENV=production`. |
-| D56 | `providerConfig` | Solo identificativi e nomi di segreti (`phoneNumberId`, `wabaId`, `accessTokenSecret` in UPPER_SNAKE_CASE), schema strict in `src/channels/provider-config.ts`; v1 solo `meta`. |
-| D57 | Stato iniziale del numero | `senders add` crea il numero `active` (provisioning manuale); default del DB `provisioning`. |
-| D58 | Definizione memorizzata | `CampaignVersion.definition` = definizione parsata in forma canonica; alla lettura si ri-parsa con lo schema (`LoadedCampaign`). |
-| D59 | Campagna standard v1 | Costruita dal §6 (export di Make non disponibile, testi da rifinire sul questionario "global"); consensi dell'Appendice A con titolare e link per esteso; `privacyUrl` provvisorio da confermare (§18, punto 5). |
+| D60 | Slug del numero | `SenderNumber.slug` univoco, citato da `trigger.sender`; il numero è univoco per (`channel`, `phoneE164`). |
+| D61 | Checksum della versione | sha256 del JSON canonico (chiavi ordinate) della definizione parsata, default inclusi. Stesso checksum → nessuna versione nuova; un file uguale a una versione precedente la riusa (con `--activate` è un rollback). |
+| D62 | Attivazione | Campagna nuova `paused`; import senza `--activate` non cambia la versione attiva; `--activate` imposta `activeVersionId` e `status = active`. Le colonne di instradamento di `Campaign` copiano la versione attiva (o l'ultima importata finché non ce n'è una). |
+| D63 | Collisioni | Parole chiave confrontate in modo esatto (dopo trim e minuscolo) e al più una campagna di default per numero, solo contro le campagne `active` dello stesso numero, a ogni import, in una transazione serializzabile. Le campagne in pausa non collidono. |
+| D64 | Organizzazione della campagna | Fissa tra le versioni (`organization_mismatch`); il numero può cambiare. |
+| D65 | Consensi segnaposto | `textVersion` `placeholder-…` → errore con `NODE_ENV=production`, avviso altrove, sia in `campaigns import` sia in `campaigns validate`. La CLI contro prod gira con `NODE_ENV=production`. |
+| D66 | `providerConfig` | Solo identificativi e nomi di segreti (`phoneNumberId`, `wabaId`, `accessTokenSecret` in UPPER_SNAKE_CASE), schema strict in `src/channels/provider-config.ts`; v1 solo `meta`. |
+| D67 | Stato iniziale del numero | `senders add` crea il numero `active` (provisioning manuale); default del DB `provisioning`. |
+| D68 | Definizione memorizzata | `CampaignVersion.definition` = definizione parsata in forma canonica; alla lettura si ri-parsa con lo schema (`LoadedCampaign`). |
+| D69 | Campagna standard v1 | Costruita dal §6 (export di Make non disponibile, testi da rifinire sul questionario "global"); consensi dell'Appendice A con titolare e link per esteso; `privacyUrl` provvisorio da confermare (§18, punto 5). |
 ```
 
 - [ ] **Step 2: Allineare il §10.1**
@@ -3206,7 +3206,7 @@ In fondo alla tabella del §2, **dopo le righe D31–D39 del piano 04** se sono 
 Nel punto **SenderNumber** del §10.1 sostituire la prima riga dell'elenco con:
 
 ```markdown
-  - `id`, `slug` (citato da `trigger.sender`, D50), `organizationId?`, `channel` (`whatsapp`), `provider` (`meta` | `twilio`), `phoneE164`, `displayName`;
+  - `id`, `slug` (citato da `trigger.sender`, D60), `organizationId?`, `channel` (`whatsapp`), `provider` (`meta` | `twilio`), `phoneE164`, `displayName`;
 ```
 
 - [ ] **Step 3: Documentare i comandi in `CLAUDE.md`**

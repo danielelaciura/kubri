@@ -72,4 +72,37 @@ describe("validateCampaign", () => {
       );
     }
   });
+
+  it("reports an empty consent textVersion with its path", () => {
+    const input = minimalCampaign();
+    input.flow[2] = {
+      id: "privacy",
+      type: "consent",
+      consentKey: "acme_privacy",
+      textVersion: "  ",
+      text: { it: "Accetti l'informativa sulla privacy?" },
+    };
+
+    const result = validateCampaign(input);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.issues).toContainEqual(
+        expect.objectContaining({ path: "flow[2].textVersion", code: "schema" }),
+      );
+    }
+  });
+
+  it("reports a missing dataController with its path", () => {
+    const { dataController: _removed, ...input } = minimalCampaign();
+
+    const result = validateCampaign(input);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.issues).toContainEqual(
+        expect.objectContaining({ path: "dataController", code: "schema" }),
+      );
+    }
+  });
 });

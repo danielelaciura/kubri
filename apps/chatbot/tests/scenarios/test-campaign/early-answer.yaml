@@ -1,0 +1,43 @@
+description: Risposte anticipate, le domande con il campo già valorizzato vengono saltate
+campaign: tests/scenarios/campaigns/test-campaign.json
+turns:
+  - start: true
+    expect: { sent: [system.welcome] }
+
+  - user: "italiano"
+    expect: { step: privacy }
+
+  - user: "accetto"
+    nlu: { intent: choice, choice: accepted }
+    expect: { step: kubri_global }
+
+  - user: "no"
+    nlu: { intent: choice, choice: declined }
+    expect: { question: nome }
+
+  - user: "Mi chiamo Amina, ho il permesso di soggiorno e non ho la patente"
+    nlu: { patch: { firstName: Amina, workingPermit: true, drivingLicense: false } }
+    expect:
+      step: magazzino
+      question: notte
+      sent: [system.progress, magazzino.title, magazzino.notte]
+      effects:
+        - "ApplyPatch:extraction:firstName,workingPermit,drivingLicense"
+        - "EnqueueJob:kubri-webhook:block.completed"
+      outcomes: { anagrafica: completed }
+
+  - user: "sì anche di notte, e il muletto lo uso da anni"
+    nlu: { patch: { custom.night_shifts: true, custom.forklift: esperto } }
+    expect:
+      question: esperienze
+      sent: [magazzino.esperienze]
+      effects: ["ApplyPatch:extraction:custom.night_shifts,custom.forklift"]
+
+  - user: "magazziniera dal 2018 al 2023 da Verdi a Brescia"
+    nlu:
+      patch:
+        workExperience: ["2018 - 2023 Magazzino Verdi (IT): Magazziniera"]
+    expect:
+      step: cv_info
+      sent: [cv_info]
+      profile: { firstName: Amina, custom.forklift: esperto }

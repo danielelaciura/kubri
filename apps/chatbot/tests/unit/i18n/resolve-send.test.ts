@@ -43,7 +43,7 @@ describe("resolveSend", () => {
 
   it("introduces a rephrased question", async () => {
     expect((await resolver.resolveSend(send("rephrase"), target)).text).toBe(
-      "Forse non mi sono spiegato bene, te lo richiedo:\nRaccontami le tue esperienze di lavoro.",
+      "Provo a spiegarmi meglio:\nRaccontami le tue esperienze di lavoro.",
     );
   });
 
@@ -52,7 +52,7 @@ describe("resolveSend", () => {
 
     expect(result.isCurated).toBe(false);
     expect(result.text).toBe(
-      "[en] Forse non mi sono spiegato bene, te lo richiedo:\n[en] Raccontami le tue esperienze di lavoro.",
+      "[en] Provo a spiegarmi meglio:\n[en] Raccontami le tue esperienze di lavoro.",
     );
   });
 });

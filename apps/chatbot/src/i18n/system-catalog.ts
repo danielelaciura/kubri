@@ -31,7 +31,7 @@ const POST_COMPLETION = {
   },
   cv: { it: "La tua intervista è completa. Se vuoi, puoi chiedermi di rifare il CV." },
   none: {
-    it: "La tua intervista è completa. Grazie! Ti contatteremo se c'è un'opportunità adatta a te.",
+    it: "La tua intervista è completa. Grazie! Se c'è un'opportunità adatta a te, potranno contattarti.",
   },
 } as const satisfies Record<string, LocalizedText>;
 
@@ -78,7 +78,7 @@ export const SYSTEM_CATALOG: Readonly<Record<CatalogKey, CatalogEntry>> = {
   },
   "system.confirm_value": {
     params: { field: "field", value: "value" },
-    text: { it: "Per «{field}» ho capito: {value}. È corretto? Rispondi sì o no." },
+    text: { it: "Per «{field}» ho capito:\n{value}\nÈ corretto? Rispondi sì o no." },
   },
   "system.confirm_edit": {
     params: { field: "field", oldValue: "value", newValue: "value" },
@@ -109,18 +109,18 @@ export const SYSTEM_CATALOG: Readonly<Record<CatalogKey, CatalogEntry>> = {
   "system.opt_out_confirm": {
     params: {},
     text: {
-      it: "Va bene, mi fermo qui e non ti scriverò più. Se cambi idea, scrivimi quando vuoi.",
+      it: "Va bene, mi fermo qui e non ti scriverò più. Grazie per il tuo tempo.",
     },
   },
   "system.delete_confirm": {
     params: {},
     text: {
-      it: "Vuoi cancellare tutti i tuoi dati? Rispondi sì per cancellare. Con qualsiasi altra risposta non cancello nulla e continuiamo da dove eravamo.",
+      it: "Vuoi cancellare tutti i tuoi dati? Rispondi sì per cancellare. Con qualsiasi altra risposta non cancello nulla.",
     },
   },
   "system.delete_done": {
     params: {},
-    text: { it: "Fatto: i tuoi dati sono stati cancellati. Grazie e in bocca al lupo!" },
+    text: { it: "Fatto: cancelliamo tutti i tuoi dati. Grazie e buona fortuna!" },
   },
   "system.delete_cancelled": { params: {}, text: { it: "Va bene, non cancello nulla." } },
   "system.stopped": {
@@ -130,7 +130,7 @@ export const SYSTEM_CATALOG: Readonly<Record<CatalogKey, CatalogEntry>> = {
   "system.closing": {
     params: {},
     text: {
-      it: "Grazie! L'intervista è completa. Ti contatteremo se c'è un'opportunità adatta a te.",
+      it: "Grazie! L'intervista è completa. Se c'è un'opportunità adatta a te, potranno contattarti.",
     },
   },
   "system.session_closed": {
@@ -146,7 +146,7 @@ export const SYSTEM_CATALOG: Readonly<Record<CatalogKey, CatalogEntry>> = {
   },
   "send.rephrase": {
     params: {},
-    text: { it: "Forse non mi sono spiegato bene, te lo richiedo:" },
+    text: { it: "Provo a spiegarmi meglio:" },
   },
   "consent.official_link": {
     params: { link: "text" },

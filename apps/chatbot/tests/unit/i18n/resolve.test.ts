@@ -73,13 +73,13 @@ describe("system texts", () => {
   });
 
   it.each([
-    [{ field: "firstName", value: "Mario" }, "Per «nome» ho capito: Mario."],
-    [{ field: "custom.night_shifts", value: true }, "Per «Turni notturni» ho capito: sì."],
-    [{ field: "drivingLicense", value: false }, "Per «patente di guida» ho capito: no."],
-    [{ field: "birthday", value: "1990-05-12" }, "Per «data di nascita» ho capito: 12/05/1990."],
+    [{ field: "firstName", value: "Mario" }, "Per «nome» ho capito:\nMario"],
+    [{ field: "custom.night_shifts", value: true }, "Per «Turni notturni» ho capito:\nsì"],
+    [{ field: "drivingLicense", value: false }, "Per «patente di guida» ho capito:\nno"],
+    [{ field: "birthday", value: "1990-05-12" }, "Per «data di nascita» ho capito:\n12/05/1990"],
     [
       { field: "drivingLicenseTypes", value: ["B", "C"] },
-      "Per «categorie di patente» ho capito: B, C.",
+      "Per «categorie di patente» ho capito:\nB, C",
     ],
   ])("shows a readable field and value in confirm_value (%j)", async (params, expected) => {
     const { text } = await resolver().resolve(sys("system.confirm_value", params), {
@@ -87,7 +87,7 @@ describe("system texts", () => {
       language: "it",
     });
 
-    expect(text).toBe(`${expected} È corretto? Rispondi sì o no.`);
+    expect(text).toBe(`${expected}\nÈ corretto? Rispondi sì o no.`);
   });
 
   it("shows an empty old value in confirm_edit", async () => {
@@ -119,13 +119,13 @@ describe("system texts", () => {
     );
 
     expect(result).toMatchObject({
-      text: "[en] Per «[en] nome» ho capito: Mariangela. È corretto? Rispondi sì o no.",
+      text: "[en] Per «[en] nome» ho capito:\nMariangela\nÈ corretto? Rispondi sì o no.",
       language: "en",
       source: "translated",
       isCurated: false,
     });
     expect(translator.requests.map((r) => [r.kind, r.text])).toEqual([
-      ["system", "Per «{field}» ho capito: {value}. È corretto? Rispondi sì o no."],
+      ["system", "Per «{field}» ho capito:\n{value}\nÈ corretto? Rispondi sì o no."],
       ["label", "nome"],
     ]);
     expect(JSON.stringify(translator.requests)).not.toContain("Mariangela");

@@ -1,4 +1,4 @@
-description: Campagna standard — "non ho studiato" / "non ho mai lavorato" su domande facoltative, risposta completa senza valore
+description: Campagna standard — "non ho studiato", "non ho mai lavorato", part-time indifferente — risposta completa senza valore su domande facoltative (D56)
 campaign: campaigns/kubri-standard.json
 turns:
   - start: true
@@ -58,3 +58,27 @@ turns:
       sent: [esperienze.competenze]
       effects: []
       profile: { workExperience: null }
+
+  - user: "so pulire e cucinare"
+    nlu: { patch: { skillsAndCompetences: [pulizie, cucina] } }
+    expect: { step: preferenze, question: lavoro_desiderato }
+
+  - user: "addetto alle pulizie, a Roma"
+    nlu:
+      patch:
+        jobPreferences.preferredJob: addetto alle pulizie
+        jobPreferences.preferredLocation: Roma
+    expect: { question: esperienza_desiderato, sent: [preferenze.esperienza_desiderato] }
+
+  - user: "no, mai fatto"
+    nlu: { patch: { jobPreferences.hasDesiredJobExperience: "no" } }
+    expect: { question: part_time, sent: [preferenze.part_time] }
+
+  # Indifferent: the hint asks for no value, and the question is optional — no flag.
+  - user: "per me è uguale"
+    nlu: { completeness: complete }
+    expect:
+      question: vincoli
+      sent: [preferenze.vincoli]
+      effects: []
+      profile: { jobPreferences.partTime: null }

@@ -219,6 +219,7 @@
           "id": "part_time",
           "field": "jobPreferences.partTime",
           "prompt": { "it": "Preferisci un lavoro part-time o a tempo pieno?" },
+          "required": false,
           "hint": "Part-time → true; tempo pieno → false. Se dice che va bene entrambi o è indifferente, non dedurre alcun valore: lascia il campo vuoto."
         },
         {

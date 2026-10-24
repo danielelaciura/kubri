@@ -107,6 +107,35 @@ solo formattazione, non cambia il codice.
   chiama `consents.accepted` (come nel §12.1). `CLAUDE.md` lo chiama ancora `session.started`: da
   allineare.
 
+### Decisioni emerse durante i task 17–22 (da riportare nella spec, §2, come D49–D52, dopo D48)
+
+- **D49 — Conferma della cancellazione (decisione del proprietario).** `delete_data`, dall'LLM o
+  dalle parole chiave, imposta `pendingConfirmation = { kind: "delete_data" }` e invia
+  `system.delete_confirm`, senza toccare nulla. Al turno dopo, valutato prima dello switch sulle
+  fasi (anche `closed`): un sì (scelta `yes`, oppure una parola chiave di conferma breve e
+  deterministica, `isYesKeyword`: "sì", "yes", "ok", "confermo", …) **o la richiesta di
+  cancellazione ripetuta** cancella: `EnqueueJob delete-contact` + `system.delete_done`, più
+  `StopSession { reason: "delete_data", dataPolicy: "delete" }` nelle fasi `language` e `flow`
+  (dopo il completamento o a sessione chiusa la sessione passa a `closed` senza `StopSession`:
+  la cancellazione la fa il job). Un `opt_out` annulla la cancellazione (`system.delete_cancelled`)
+  e poi chiude come un normale opt-out. Qualunque altra risposta invia `system.delete_cancelled`
+  e riprende da dove si era **senza elaborare il messaggio** (flusso: domanda corrente ripetuta;
+  fase della lingua: `system.welcome`; dopo il completamento: il `cv_offer` riproposto, se c'è).
+- **D50 — Consenso e dati nello stesso messaggio.** Sul passaggio `consent` la patch del turno si
+  applica **dopo** la registrazione della risposta e l'aggiornamento della soglia, prima di
+  seguire la transizione: se il messaggio accetta il consenso obbligatorio ("sì, mi chiamo
+  Mario") i dati si tengono (il consenso è dato in quello stesso messaggio) e il blocco
+  successivo salta le domande già valorizzate. Ordine degli effetti: `RecordConsent` →
+  `consents.accepted` → `ApplyPatch`. Prima della soglia, o dopo un rifiuto, i dati si scartano.
+- **D51 — Risposta alla domanda corrente.** Un valore salvato in precedenza (per esempio da una
+  risposta parziale) non vale da solo come risposta del turno: si avanza solo se il campo è
+  valorizzato **e** questo turno l'ha cambiato oppure `completeness` è `complete`. Esauriti gli
+  approfondimenti, un valore già salvato si conserva (niente `unresolved`).
+- **D52 — Intercettazioni prima della patch.** Intenti globali, `edit_request`, `help` e
+  `off_topic` si gestiscono prima di applicare la patch: da questi messaggi non si salva nessun
+  dato estratto (un "stop" non salva mai dati prima di chiudere; un `help` con un valore estratto
+  non lo salva).
+
 ## Mappa dei file
 
 | File | Responsabilità |
@@ -6064,6 +6093,11 @@ Nella tabella del §2 aggiungere, **subito dopo la riga D30 e prima della riga D
 | D46 | Scenari | YAML in `tests/scenarios/<campagna>/`, progetto Vitest `scenarios` incluso in `pnpm test`; NLU finta scritta nello YAML; dipendenza di sviluppo `yaml`. |
 | D47 | Evento della soglia verso Kubri | Si chiama `consents.accepted`, come nel §12.1 (in `CLAUDE.md` compare ancora `session.started`, da allineare). |
 ```
+
+Poi, **subito dopo la riga D48**, aggiungere D49–D52 riassumendo le voci omonime della sezione
+"Decisioni emerse durante i task 17–22" in cima a questo piano (conferma della cancellazione,
+consenso e dati nello stesso messaggio, risposta alla domanda corrente, intercettazioni prima
+della patch).
 
 - [ ] **Step 2: Allineare il §7.1**
 

@@ -2,6 +2,7 @@ import type { ConsentStep } from "../campaigns/schema/steps";
 import { consentTextRef, followOutcome } from "./advance";
 import { chosen } from "./choice-answers";
 import type { Interpretation } from "./interpretation";
+import { applyExtractedPatch } from "./patches";
 import { nonAnswer } from "./replies";
 import { emit, incoherent, setState, type Turn } from "./turn";
 
@@ -18,6 +19,7 @@ export function answerConsent(
 ): void {
   const outcome = chosen(interpretation);
   if (outcome !== "accepted" && outcome !== "declined") {
+    applyExtractedPatch(turn, interpretation.patch, undefined);
     nonAnswer(turn, interpretation);
     return;
   }
@@ -35,6 +37,10 @@ export function answerConsent(
     at: turn.at,
   });
   if (!step.optional) updateThreshold(turn, outcome);
+  // The turn's data is applied only now: data given together with the accepted mandatory
+  // consent is kept (the consent is given in that same message), and the next block skips the
+  // questions it answers. Before the threshold, or after a decline, it is still dropped.
+  applyExtractedPatch(turn, interpretation.patch, undefined);
   followOutcome(turn, index, outcome, "consent_declined");
 }
 

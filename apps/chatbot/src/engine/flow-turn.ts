@@ -34,7 +34,11 @@ export function handleFlowTurn(turn: Turn, event: UserTurnEvent): void {
   const currentField = step.type === "questions" ? currentQuestion(turn, step).field : undefined;
   const fieldBefore =
     currentField === undefined ? undefined : fieldState(turn.state.profile, currentField);
-  const lowConfidence = applyExtractedPatch(turn, interpretation.patch, currentField);
+  // A consent step applies the patch itself, after recording the answer (same-turn consent).
+  const lowConfidence =
+    step.type === "consent"
+      ? undefined
+      : applyExtractedPatch(turn, interpretation.patch, currentField);
   switch (step.type) {
     case "choice":
       answerChoice(turn, index, step, interpretation);

@@ -52,6 +52,45 @@ describe("consent answers", () => {
     expect(result.state.consentsAccepted).toBe(true);
   });
 
+  it("keeps data given together with the accepted consent, after the crossing", () => {
+    const interp = interpretation({
+      intent: "choice",
+      choice: "accepted",
+      patch: [{ field: "firstName", value: "Mario", confidence: 0.95, evidence: "Mario" }],
+    });
+    const result = step(atPrivacy, userTurn("sì, mi chiamo Mario", interp), campaign());
+
+    expect(others(result.effects)).toEqual([
+      "RecordConsent:acme_privacy:accepted",
+      "EnqueueJob:kubri-webhook:consents.accepted",
+      "ApplyPatch:extraction:firstName",
+    ]);
+    expect(sent(result.effects)).toEqual(["system.progress", "anagrafica.patente"]);
+    expect(result.state.profile.firstName?.value).toBe("Mario");
+  });
+
+  it("drops data given with a declined consent", () => {
+    const interp = interpretation({
+      intent: "choice",
+      choice: "declined",
+      patch: [{ field: "firstName", value: "Mario", confidence: 0.95, evidence: "Mario" }],
+    });
+    const result = step(atPrivacy, userTurn("no, sono Mario", interp), campaign());
+
+    expect(others(result.effects)).not.toContain("ApplyPatch:extraction:firstName");
+    expect(result.state.profile).toEqual({});
+  });
+
+  it("drops data given before the consent is answered", () => {
+    const interp = interpretation({
+      patch: [{ field: "firstName", value: "Mario", confidence: 0.95, evidence: "Mario" }],
+    });
+    const result = step(atPrivacy, userTurn("mi chiamo Mario", interp), campaign());
+
+    expect(others(result.effects)).toEqual([]);
+    expect(sent(result.effects)).toEqual(["system.not_understood", "privacy"]);
+  });
+
   it("stops and deletes on a declined mandatory consent", () => {
     const result = step(atPrivacy, userTurn("no", choice("declined")), campaign());
 

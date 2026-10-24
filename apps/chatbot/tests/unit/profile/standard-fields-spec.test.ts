@@ -11,6 +11,8 @@ interface Expected {
   readonly type: FieldType;
   readonly format?: FieldFormat;
   readonly systemOnly?: true;
+  /** Health, family, immigration status: never sent to the LLM. */
+  readonly sensitive?: true;
 }
 
 // Spec §6, one row per standard field. A removed, added or retyped field must fail here.
@@ -31,13 +33,13 @@ const SPEC: readonly Expected[] = [
   { key: "transport", type: "text" },
   { key: "drivingLicense", type: "bool" },
   { key: "drivingLicenseTypes", type: "list" },
-  { key: "workingPermit", type: "bool" },
+  { key: "workingPermit", type: "bool", sensitive: true },
   { key: "educationAndTraining", type: "list" },
   { key: "workExperience", type: "list" },
   { key: "skillsAndCompetences", type: "list" },
   { key: "jobPreferences.preferredJob", type: "text" },
   { key: "jobPreferences.preferredLocation", type: "text" },
-  { key: "jobPreferences.constraints", type: "text" },
+  { key: "jobPreferences.constraints", type: "text", sensitive: true },
   { key: "jobPreferences.partTime", type: "bool" },
   { key: "jobPreferences.hasDesiredJobExperience", type: "text" },
   { key: "learningPreferences.isInterested", type: "bool" },
@@ -56,6 +58,7 @@ describe("standard fields match spec §6", () => {
     expect(def?.type).toBe(expected.type);
     expect(def?.format).toBe(expected.format);
     expect(def?.systemOnly === true).toBe(expected.systemOnly === true);
+    expect(def?.sensitive === true).toBe(expected.sensitive === true);
   });
 
   it("italianLevel offers the spec's levels", () => {

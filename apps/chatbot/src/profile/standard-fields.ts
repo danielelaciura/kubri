@@ -82,6 +82,8 @@ export const STANDARD_FIELDS = [
   {
     key: "workingPermit",
     type: "bool",
+    // Reveals the immigration status.
+    sensitive: true,
     description: "Può lavorare legalmente in Italia (cittadinanza UE o permesso valido) = true.",
   },
   {
@@ -112,6 +114,8 @@ export const STANDARD_FIELDS = [
   {
     key: "jobPreferences.constraints",
     type: "text",
+    // Often health or family circumstances.
+    sensitive: true,
     description: "Vincoli di orario, turni, salute o famiglia.",
   },
   {

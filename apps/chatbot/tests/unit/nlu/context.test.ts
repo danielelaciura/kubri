@@ -118,6 +118,39 @@ describe("buildInterpretContext", () => {
     expect(context.openFields).toEqual([]);
   });
 
+  it("withholds the values of sensitive fields, standard or custom", () => {
+    const sensitive = campaign((input) => {
+      input.customFields = [
+        {
+          key: "disability",
+          type: "text",
+          label: { it: "Invalidità" },
+          description: "Invalidità civile dichiarata.",
+          sensitive: true,
+        },
+      ];
+    });
+    const context = build(
+      atQuestion("patente", {
+        profile: {
+          workingPermit: inferred(false),
+          "jobPreferences.constraints": inferred("devo accudire mia madre"),
+          "custom.disability": inferred("invalidità al 40%"),
+        },
+      }),
+      [],
+      sensitive,
+    );
+
+    expect(context.collected.map((c) => [c.field, "withheld" in c])).toEqual([
+      ["workingPermit", true],
+      ["jobPreferences.constraints", true],
+      ["custom.disability", true],
+    ]);
+    expect(JSON.stringify(context)).not.toContain("madre");
+    expect(JSON.stringify(context)).not.toContain("40%");
+  });
+
   it("carries a pending value confirmation without its value, and expects yes/no (D84)", () => {
     const context = build(
       atQuestion("nome", {

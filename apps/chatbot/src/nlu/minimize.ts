@@ -1,5 +1,7 @@
 import type { ProfileSnapshot } from "../engine/profile-snapshot";
 import type { PendingConfirmation } from "../engine/state";
+import type { CustomFieldDefinition } from "../profile/custom-fields";
+import { resolveField } from "../profile/field-ref";
 
 /**
  * Spec §8.2 / D85: these values never reach the LLM, not even in the summary. `phone`,
@@ -15,6 +17,22 @@ export const WITHHELD_FIELDS: ReadonlySet<string> = new Set([
   "lat",
   "lng",
 ]);
+
+/** D85 + sensitive fields: their values are withheld from the context and the history. */
+export function isWithheldField(
+  field: string,
+  customFields: readonly CustomFieldDefinition[],
+): boolean {
+  return WITHHELD_FIELDS.has(field) || resolveField(field, customFields)?.sensitive === true;
+}
+
+export interface ScrubSources {
+  readonly profile: ProfileSnapshot;
+  /** A value waiting for its confirmation comes from an earlier message too. */
+  readonly pending: PendingConfirmation | null;
+  /** Required, so a custom sensitive field cannot be forgotten. */
+  readonly customFields: readonly CustomFieldDefinition[];
+}
 
 /** Shorter values would match inside ordinary words. */
 const MIN_SCRUB_LENGTH = 3;
@@ -59,15 +77,14 @@ function pendingValues(pending: PendingConfirmation | null): KnownValue[] {
  */
 export function scrubHistory(
   history: readonly string[],
-  profile: ProfileSnapshot,
-  pending: PendingConfirmation | null = null,
+  { profile, pending, customFields }: ScrubSources,
 ): string[] {
   const known: KnownValue[] = [
     ...Object.entries(profile).map(([field, state]) => ({ field, value: state.value })),
     ...pendingValues(pending),
   ];
   const secrets = known
-    .filter(({ field }) => WITHHELD_FIELDS.has(field))
+    .filter(({ field }) => isWithheldField(field, customFields))
     .flatMap(({ field, value }) =>
       writtenForms(field, value).map((text) => ({ field, text: text.trim() })),
     )

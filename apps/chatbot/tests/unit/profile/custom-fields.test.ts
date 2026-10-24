@@ -26,6 +26,15 @@ describe("CustomFieldDefinitionSchema", () => {
     expect(result.success).toBe(false);
   });
 
+  it("takes an optional sensitive flag, boolean only", () => {
+    expect(CustomFieldDefinitionSchema.safeParse({ ...base, sensitive: true }).success).toBe(true);
+    expect(CustomFieldDefinitionSchema.safeParse({ ...base, sensitive: "yes" }).success).toBe(
+      false,
+    );
+    // Optional, not defaulted: the parsed definition (and its checksum) stays the same.
+    expect(CustomFieldDefinitionSchema.parse(base)).not.toHaveProperty("sensitive");
+  });
+
   it("requires snake_case keys", () => {
     expect(CustomFieldDefinitionSchema.safeParse({ ...base, key: "VatOpenness" }).success).toBe(
       false,
@@ -42,5 +51,14 @@ describe("toFieldDefinition", () => {
       options: ["si", "no", "da_valutare"],
       description: "Se il candidato è disposto ad aprire una partita IVA.",
     });
+  });
+
+  it("carries the sensitive flag only when set", () => {
+    expect(
+      toFieldDefinition(CustomFieldDefinitionSchema.parse({ ...base, sensitive: true })).sensitive,
+    ).toBe(true);
+    expect(
+      toFieldDefinition(CustomFieldDefinitionSchema.parse({ ...base, sensitive: false })),
+    ).not.toHaveProperty("sensitive");
   });
 });

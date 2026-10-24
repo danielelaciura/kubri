@@ -11,4 +11,9 @@ export interface FieldDefinition {
   readonly format?: FieldFormat;
   /** Written by the system only (channel, geocoding): never asked, never extracted. */
   readonly systemOnly?: boolean;
+  /**
+   * Special-category or similarly delicate data (health, family, immigration status): saved
+   * like any other field, but its value never reaches the LLM (spec §8.2).
+   */
+  readonly sensitive?: true;
 }

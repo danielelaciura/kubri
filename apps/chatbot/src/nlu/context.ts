@@ -7,7 +7,7 @@ import type { LanguageCode } from "../i18n/localized-text";
 import type { FieldType } from "../profile/field-definition";
 import { resolveField } from "../profile/field-ref";
 import type { InterpretRequest } from "./interpreter";
-import { scrubHistory, WITHHELD_FIELDS } from "./minimize";
+import { isWithheldField, scrubHistory } from "./minimize";
 
 export interface FieldBrief {
   readonly field: string;
@@ -129,7 +129,7 @@ function collected(state: SessionState, campaign: CampaignDefinition): Collected
     if (s.status === "unresolved") return [];
     const def = resolveField(field, campaign.customFields);
     if (!def || def.systemOnly) return [];
-    return WITHHELD_FIELDS.has(field)
+    return isWithheldField(field, campaign.customFields)
       ? [{ field, description: def.description, withheld: true }]
       : [{ field, description: def.description, value: s.value }];
   });
@@ -187,6 +187,10 @@ export function buildInterpretContext(
     collected: collected(state, campaign),
     pendingConfirmation: pendingBrief(state),
     expectedChoices: expectedChoices(state, campaign, step),
-    history: scrubHistory(earlier, state.profile, state.pendingConfirmation),
+    history: scrubHistory(earlier, {
+      profile: state.profile,
+      pending: state.pendingConfirmation,
+      customFields: campaign.customFields,
+    }),
   };
 }

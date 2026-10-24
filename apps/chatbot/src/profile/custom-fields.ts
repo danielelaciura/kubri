@@ -11,6 +11,8 @@ export const CustomFieldDefinitionSchema = z
     options: z.array(z.string().trim().min(1)).min(1).optional(),
     label: LocalizedTextSchema,
     description: z.string().trim().min(1),
+    /** Health, family, immigration status…: the value never reaches the LLM. Absent = false. */
+    sensitive: z.boolean().optional(),
   })
   .superRefine((field, ctx) => {
     if (field.type === "enum" && !field.options) {
@@ -29,5 +31,6 @@ export function toFieldDefinition(field: CustomFieldDefinition): FieldDefinition
     type: field.type,
     description: field.description,
     ...(field.options ? { options: field.options } : {}),
+    ...(field.sensitive === true ? { sensitive: true as const } : {}),
   };
 }

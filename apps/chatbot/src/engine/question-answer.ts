@@ -3,7 +3,13 @@ import type { PatchEntry } from "../profile/patch";
 import { advanceFromQuestion, askQuestion } from "./advance";
 import { askConfirmation } from "./confirmations";
 import type { Interpretation } from "./interpretation";
-import { fieldState, isFieldFilled, withField, type FieldState } from "./profile-snapshot";
+import {
+  fieldState,
+  holdsValue,
+  isFieldFilled,
+  withField,
+  type FieldState,
+} from "./profile-snapshot";
 import { currentQuestion } from "./replies";
 import { emit, setState, type Turn } from "./turn";
 
@@ -41,7 +47,8 @@ export function answerQuestion(
     return;
   }
   // A value saved earlier (e.g. a partial answer) is not an answer to this turn by itself.
-  const answeredNow = filled && (after !== fieldBefore || completeness === "complete");
+  const changed = after !== undefined && !holdsValue(fieldBefore, after.value);
+  const answeredNow = filled && (changed || completeness === "complete");
   if (answeredNow) {
     advanceFromQuestion(turn, index, step, question);
     return;

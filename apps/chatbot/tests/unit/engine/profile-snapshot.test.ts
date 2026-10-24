@@ -5,6 +5,7 @@ import {
   isFieldFilled,
   isFieldSettled,
   profileValues,
+  sameValue,
   withField,
   type ProfileSnapshot,
 } from "../../../src/engine/profile-snapshot";
@@ -57,5 +58,33 @@ describe("profile snapshot", () => {
     });
     expect(next.email?.value).toBe("a@b.it");
     expect(profile).not.toHaveProperty("email");
+  });
+});
+
+describe("sameValue", () => {
+  it.each([
+    ["Mario", "Mario"],
+    [true, true],
+    [
+      ["a", "b"],
+      ["a", "b"],
+    ],
+    [
+      { city: "Roma", lat: 1 },
+      { lat: 1, city: "Roma" },
+    ],
+    [null, null],
+  ])("equal: %j and %j", (a, b) => {
+    expect(sameValue(a, b)).toBe(true);
+  });
+
+  it.each([
+    ["Mario", "Marco"],
+    [["a"], ["a", "b"]],
+    [{ city: "Roma" }, { city: "Roma", lat: 1 }],
+    [["a"], { 0: "a" }],
+    [null, {}],
+  ])("different: %j and %j", (a, b) => {
+    expect(sameValue(a, b)).toBe(false);
   });
 });

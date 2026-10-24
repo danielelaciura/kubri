@@ -1,6 +1,12 @@
 import { validatePatch, type PatchEntry } from "../profile/patch";
 import type { AppliedField, PatchSource } from "./effects";
-import { CONFIDENCE_THRESHOLD, isFieldFilled, withField } from "./profile-snapshot";
+import {
+  CONFIDENCE_THRESHOLD,
+  fieldState,
+  holdsValue,
+  isFieldFilled,
+  withField,
+} from "./profile-snapshot";
 import { emit, setState, type Turn } from "./turn";
 
 /** Changing this field triggers geocoding (spec §12.3). */
@@ -42,8 +48,12 @@ export function applyExtractedPatch(
   const { accepted, rejected } = validatePatch(entries, turn.campaign.customFields);
   if (rejected.length > 0) emit(turn, { type: "RecordPatchRejections", rejected });
 
+  const { profile } = turn.state;
   const open = accepted.filter(
-    (e) => e.field === currentField || !isFieldFilled(turn.state.profile, e.field),
+    (e) =>
+      (e.field === currentField || !isFieldFilled(profile, e.field)) &&
+      // An identical re-extraction changes nothing: no redundant ApplyPatch.
+      !holdsValue(fieldState(profile, e.field), e.value),
   );
   applyFields(
     turn,

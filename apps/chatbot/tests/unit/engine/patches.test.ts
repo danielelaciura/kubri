@@ -91,6 +91,22 @@ describe("applyExtractedPatch", () => {
     expect(others(turn.effects)).toEqual(["ApplyPatch:extraction:firstName"]);
   });
 
+  it("skips a value identical to the saved one (no redundant ApplyPatch)", () => {
+    const experience = ["2020 - 2021 Hotel Sole (IT): Cameriere"];
+    const turn = turnFor(
+      atQuestion("nome", {
+        profile: { firstName: inferred("Mario"), workExperience: inferred([...experience]) },
+      }),
+    );
+    applyExtractedPatch(
+      turn,
+      [entry("firstName", "Mario"), entry("workExperience", [...experience])],
+      "firstName",
+    );
+
+    expect(turn.effects).toEqual([]);
+  });
+
   it("fills an unresolved field", () => {
     const turn = turnFor(
       atQuestion("nome", {

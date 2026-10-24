@@ -121,6 +121,18 @@ describe("clarifications", () => {
     expect(result.state).toMatchObject({ questionId: "nome", clarifications: 2 });
   });
 
+  it("does not take an identical re-extraction as an answer", () => {
+    const state = atQuestion("nome", { profile: { firstName: inferred("Mario") } });
+    const interp = interpretation({
+      patch: [{ field: "firstName", value: "Mario", confidence: 0.95, evidence: "…" }],
+      currentQuestion: { completeness: "absent" },
+    });
+    const result = step(state, userTurn("boh", interp), c);
+
+    expect(result.effects).toEqual([{ type: "SendText", text: nomePrompt, purpose: "rephrase" }]);
+    expect(result.state.questionId).toBe("nome");
+  });
+
   it("keeps a value saved earlier once clarifications are used up", () => {
     const state = atQuestion("nome", {
       clarifications: 2,

@@ -37,14 +37,17 @@ function isStandardKey(ref: string): ref is StandardFieldKey {
   return Object.hasOwn(STANDARD_FIELD_LABELS, ref);
 }
 
-/** "firstName" → "nome", "custom.x" → the campaign label; an unknown ref is shown as is. */
+/**
+ * "firstName" → "nome", "custom.x" → the campaign label. An unknown ref has no label: the
+ * caller shows it as is and never sends it to the translator (it is not a reviewed text).
+ */
 export function fieldLabel(
   ref: string,
   customFields: readonly CustomFieldDefinition[],
-): LocalizedText {
+): LocalizedText | undefined {
   if (ref.startsWith(CUSTOM_FIELD_PREFIX)) {
     const key = ref.slice(CUSTOM_FIELD_PREFIX.length);
-    return customFields.find((field) => field.key === key)?.label ?? { it: ref };
+    return customFields.find((field) => field.key === key)?.label;
   }
-  return isStandardKey(ref) ? STANDARD_FIELD_LABELS[ref] : { it: ref };
+  return isStandardKey(ref) ? STANDARD_FIELD_LABELS[ref] : undefined;
 }

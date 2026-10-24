@@ -110,6 +110,21 @@ describe("system texts", () => {
     expect(text).toBe("La tua intervista è completa. Se vuoi, puoi chiedermi di rifare il CV.");
   });
 
+  it.each(["custom.nope", "nope"])(
+    "shows an unknown field ref %j as is, without translating it",
+    async (field) => {
+      const translator = new FakeTranslator();
+
+      const { text } = await resolver(translator).resolve(
+        sys("system.confirm_value", { field, value: "x" }),
+        { campaign: campaign(), language: "en" },
+      );
+
+      expect(text).toContain(`«${field}»`);
+      expect(translator.requests.map((r) => r.kind)).toEqual(["system"]);
+    },
+  );
+
   it("translates templates and labels, never the candidate's values (D70)", async () => {
     const translator = new FakeTranslator();
 

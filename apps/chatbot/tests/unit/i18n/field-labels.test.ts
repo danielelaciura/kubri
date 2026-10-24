@@ -13,7 +13,7 @@ const CUSTOM = [
 
 describe("field labels", () => {
   it.each(STANDARD_FIELD_DEFINITIONS.map((f) => f.key))("%s has an Italian label", (key) => {
-    expect(fieldLabel(key, [])["it"]).toMatch(/\S/);
+    expect(fieldLabel(key, [])?.["it"]).toMatch(/\S/);
   });
 
   it("has no label for a field that does not exist", () => {
@@ -29,8 +29,8 @@ describe("field labels", () => {
     });
   });
 
-  it("falls back to the raw reference for an unknown field", () => {
-    expect(fieldLabel("custom.nope", CUSTOM)).toEqual({ it: "custom.nope" });
-    expect(fieldLabel("nope", [])).toEqual({ it: "nope" });
+  it("has no label for an unknown field", () => {
+    expect(fieldLabel("custom.nope", CUSTOM)).toBeUndefined();
+    expect(fieldLabel("nope", [])).toBeUndefined();
   });
 });

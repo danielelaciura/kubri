@@ -133,7 +133,9 @@ export function createTextResolver(services: TemplateServices): TextResolver {
       if (kind === "flag" || value === undefined) continue;
       if (kind === "field" && typeof value === "string") {
         const label = fieldLabel(value, campaign.customFields);
-        values[name] = (await resolveTemplate(label, language, "label", services)).template;
+        values[name] = label
+          ? (await resolveTemplate(label, language, "label", services)).template
+          : value;
       } else {
         values[name] = await formatValue(value, kind === "value" ? field : undefined, language);
       }

@@ -1,5 +1,8 @@
+-- CreateSchema
+CREATE SCHEMA IF NOT EXISTS "bot";
+
 -- CreateTable
-CREATE TABLE "Organization" (
+CREATE TABLE "bot"."Organization" (
     "id" UUID NOT NULL,
     "slug" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -11,4 +14,4 @@ CREATE TABLE "Organization" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Organization_slug_key" ON "Organization"("slug");
+CREATE UNIQUE INDEX "Organization_slug_key" ON "bot"."Organization"("slug");

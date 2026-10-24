@@ -131,6 +131,7 @@ step(state, event, campaignVersion) → { state, effects }
 - ORM: Prisma, `schema.prisma` covers only the `bot` schema. Raw SQL is allowed only where Prisma
   can't express it (advisory locks, `ON CONFLICT DO NOTHING` dedup) and must live in `store`.
 - All IDs are UUIDs.
+- Prisma 7 emits unqualified SQL for a single schema: after `prisma migrate dev`, qualify every object with `"bot".` (a unit test enforces it).
 - Things that must happen together go in **one transaction**: session state, profile patch +
   `ProfileChange`, `Consent`, message status updates and job enqueueing (transactional outbox).
 - The worker and pg-boss use the **direct / session connection (port 5432)**, not the transaction

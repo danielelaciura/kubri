@@ -1,7 +1,6 @@
 import { stopSession } from "./advance";
 import type { UserTurnEvent } from "./events";
-import { globalIntentOf, isYesKeyword, type GlobalIntent } from "./global-intents";
-import { isChoice } from "./interpretation";
+import { confirmationAnswer, globalIntentOf, type GlobalIntent } from "./global-intents";
 import { repromptCurrent } from "./replies";
 import { emit, say, setState, systemText, type Turn } from "./turn";
 
@@ -39,11 +38,7 @@ function resolveDeletion(turn: Turn, event: UserTurnEvent, global: GlobalIntent 
     optOut(turn);
     return;
   }
-  if (
-    global === "delete_data" ||
-    isChoice(event.interpretation, "yes") ||
-    isYesKeyword(event.text)
-  ) {
+  if (global === "delete_data" || confirmationAnswer(event.text, event.interpretation) === "yes") {
     deleteData(turn);
     return;
   }

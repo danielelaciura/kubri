@@ -12,7 +12,7 @@ import { currentStep, incoherent, say, systemText, type Turn } from "./turn";
 /** A user turn while the flow waits on a step (spec §7.2). */
 export function handleFlowTurn(turn: Turn, event: UserTurnEvent): void {
   const interpretation = event.interpretation;
-  if (resolvePendingInFlow(turn, interpretation)) return;
+  if (resolvePendingInFlow(turn, event)) return;
   if (!interpretation) {
     nonAnswer(turn, null);
     return;

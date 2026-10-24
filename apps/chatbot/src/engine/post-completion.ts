@@ -2,6 +2,7 @@ import type { CvOfferStep } from "../campaigns/schema/steps";
 import { chosen } from "./choice-answers";
 import { requestEdit, saveEdit } from "./edits";
 import type { UserTurnEvent } from "./events";
+import { confirmationAnswer } from "./global-intents";
 import { isChoice, type Interpretation } from "./interpretation";
 import { nonAnswer } from "./replies";
 import { stepTextRef, type TextRef } from "./text-ref";
@@ -16,7 +17,7 @@ export const REGENERATE_CV_CHOICE = "regenerate_cv";
  */
 export function handlePostCompletionTurn(turn: Turn, event: UserTurnEvent): void {
   const interpretation = event.interpretation;
-  if (resolvePendingEdit(turn, interpretation)) return;
+  if (resolvePendingEdit(turn, event)) return;
   if (turn.state.stepId !== null) {
     answerCvRegeneration(turn, interpretation);
     return;
@@ -42,13 +43,14 @@ export function handlePostCompletionTurn(turn: Turn, event: UserTurnEvent): void
  * D36 after completion: yes saves the edit and notifies Kubri, no cancels it, anything else
  * drops it and the message is handled normally. Returns true when the turn was handled.
  */
-function resolvePendingEdit(turn: Turn, interpretation: Interpretation | null): boolean {
+function resolvePendingEdit(turn: Turn, event: UserTurnEvent): boolean {
   const pending = turn.state.pendingConfirmation;
   if (!pending) return false;
+  const answer = confirmationAnswer(event.text, event.interpretation);
   switch (pending.kind) {
     case "edit":
       setState(turn, { pendingConfirmation: null });
-      if (isChoice(interpretation, "yes")) {
+      if (answer === "yes") {
         saveEdit(turn, pending);
         emit(turn, {
           type: "EnqueueJob",
@@ -56,7 +58,7 @@ function resolvePendingEdit(turn: Turn, interpretation: Interpretation | null): 
         });
         return true;
       }
-      if (isChoice(interpretation, "no")) {
+      if (answer === "no") {
         say(turn, systemText("system.edit_cancelled"));
         return true;
       }

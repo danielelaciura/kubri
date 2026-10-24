@@ -47,13 +47,50 @@ export function globalIntentOf(
   return intent === "opt_out" || intent === "delete_data" ? intent : undefined;
 }
 
-// Whole-message "yes" to a pending deletion, for when the LLM is unavailable. Short on purpose:
-// a false negative only cancels the deletion, which the candidate can ask for again.
+// Whole-message yes/no to any pending confirmation, for when the LLM is unavailable or misreads
+// a bare "sì" as a field value. Short on purpose: a false negative only falls back to the LLM.
 const YES_PHRASES: ReadonlySet<string> = new Set(
-  ["si", "yes", "ok", "confermo", "oui", "sim", "da", "نعم", "да"].map(normalizeText),
+  ["si", "yes", "ok", "confermo", "oui", "sim", "da", "نعم", "да", "так"].map(normalizeText),
+);
+const NO_PHRASES: ReadonlySet<string> = new Set(
+  [
+    "no",
+    "non",
+    "nope",
+    "nein",
+    "nao",
+    "не",
+    "нет",
+    "ні",
+    "لا",
+    "nu",
+    "no grazie",
+    "non merci",
+    "no thanks",
+  ].map(normalizeText),
 );
 
-/** Deterministic yes, used to confirm a data deletion without the LLM. */
+/** Deterministic whole-message yes. */
 export function isYesKeyword(text: string): boolean {
   return YES_PHRASES.has(normalizeText(text));
+}
+
+/** Deterministic whole-message no. */
+export function isNoKeyword(text: string): boolean {
+  return NO_PHRASES.has(normalizeText(text));
+}
+
+/**
+ * The yes/no answer to a pending confirmation (D53): a keyword wins over the LLM, then the
+ * LLM's `choice: yes | no`; undefined means "not a yes/no".
+ */
+export function confirmationAnswer(
+  text: string,
+  interpretation: Interpretation | null,
+): "yes" | "no" | undefined {
+  if (isYesKeyword(text)) return "yes";
+  if (isNoKeyword(text)) return "no";
+  if (interpretation?.intent !== "choice") return undefined;
+  const { choice } = interpretation;
+  return choice === "yes" || choice === "no" ? choice : undefined;
 }

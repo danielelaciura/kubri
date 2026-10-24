@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   detectGlobalIntent,
   globalIntentOf,
+  isNoKeyword,
   isYesKeyword,
 } from "../../../src/engine/global-intents";
 import { normalizeText } from "../../../src/engine/normalize-text";
@@ -102,5 +103,18 @@ describe("isYesKeyword", () => {
 
   it.each(["no", "sì ma prima", "forse", ""])("rejects %s", (text) => {
     expect(isYesKeyword(text)).toBe(false);
+  });
+});
+
+describe("isNoKeyword", () => {
+  it.each(["no", "No!", "non", "nope", "nein", "не", "ні", "لا", "nu", "non merci", "no grazie"])(
+    "accepts %s",
+    (text) => {
+      expect(isNoKeyword(text)).toBe(true);
+    },
+  );
+
+  it.each(["sì", "no ma aspetta", "nome", ""])("rejects %s", (text) => {
+    expect(isNoKeyword(text)).toBe(false);
   });
 });

@@ -1,7 +1,8 @@
 import type { PatchEntry } from "../profile/patch";
 import { advanceFromQuestion } from "./advance";
 import { saveEdit } from "./edits";
-import { isChoice, type Interpretation } from "./interpretation";
+import type { UserTurnEvent } from "./events";
+import { confirmationAnswer } from "./global-intents";
 import { applyFields } from "./patches";
 import { isFieldFilled } from "./profile-snapshot";
 import { currentQuestion, repromptCurrent } from "./replies";
@@ -29,12 +30,13 @@ export function askConfirmation(turn: Turn, entry: PatchEntry): void {
  * confirmation. Returns true when the turn was handled; false means "process the message as a
  * normal answer". `delete_data` is resolved before the phase switch (step.ts), never here.
  */
-export function resolvePendingInFlow(turn: Turn, interpretation: Interpretation | null): boolean {
+export function resolvePendingInFlow(turn: Turn, event: UserTurnEvent): boolean {
   const pending = turn.state.pendingConfirmation;
   if (!pending) return false;
   setState(turn, { pendingConfirmation: null });
-  const yes = isChoice(interpretation, "yes");
-  const no = isChoice(interpretation, "no");
+  const answer = confirmationAnswer(event.text, event.interpretation);
+  const yes = answer === "yes";
+  const no = answer === "no";
   switch (pending.kind) {
     case "value":
       if (yes) {

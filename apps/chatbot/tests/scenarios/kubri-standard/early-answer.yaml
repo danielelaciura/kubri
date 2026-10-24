@@ -1,0 +1,123 @@
+description: Campagna standard — risposte anticipate, anche tra blocchi diversi; le domande già valorizzate si saltano
+campaign: campaigns/kubri-standard.json
+turns:
+  - start: true
+    expect: { sent: [system.welcome] }
+
+  - user: "italiano"
+    expect: { step: privacy }
+
+  - user: "accetto"
+    nlu: { intent: choice, choice: accepted }
+    expect: { step: pool_globale }
+
+  - user: "sì"
+    nlu: { intent: choice, choice: accepted }
+    expect: { question: nome }
+
+  # cognome and paese are answered early: cognome is skipped now, paese later.
+  - user: "Mi chiamo Mario Rossi e sono nato in Marocco"
+    nlu: { patch: { firstName: Mario, lastName: Rossi, country: MA } }
+    expect:
+      question: nascita
+      sent: [anagrafica.nascita]
+      effects: ["ApplyPatch:extraction:firstName,lastName,country"]
+
+  - user: "12/03/1990"
+    nlu: { patch: { birthday: "1990-03-12" } }
+    expect:
+      question: comune
+      sent: [anagrafica.comune]
+      effects: ["ApplyPatch:extraction:birthday"]
+
+  - user: "Sesto San Giovanni, via Marelli 3"
+    nlu: { patch: { location: Sesto San Giovanni, address: Via Marelli 3 } }
+    expect:
+      question: email
+      sent: [anagrafica.email]
+      effects: ["ApplyPatch:extraction:location,address", "EnqueueJob:geocoding"]
+
+  # Fields of the next block, answered early: the block opens on its first open question.
+  - user: "mario@example.com. Parlo arabo, e l'italiano bene"
+    nlu: { patch: { email: mario@example.com, language: ar, italianLevel: avanzato } }
+    expect:
+      step: lingue
+      question: altre_lingue
+      sent: [system.progress, lingue.title, lingue.altre_lingue]
+      effects:
+        - "ApplyPatch:extraction:email,language,italianLevel"
+        - "EnqueueJob:kubri-webhook:block.completed"
+
+  - user: "il francese bene"
+    nlu: { patch: { additionalLanguages: ["francese (avanzato)"] } }
+    expect:
+      {
+        step: mobilita,
+        question: permesso,
+        sent: [system.progress, mobilita.title, mobilita.permesso],
+      }
+
+  # drivingLicense and its types in one answer: patente and tipi_patente are skipped.
+  - user: "sì, ho il permesso e anche la patente B e C"
+    nlu: { patch: { workingPermit: true, drivingLicense: true, drivingLicenseTypes: [B, C] } }
+    expect:
+      question: trasporto
+      sent: [mobilita.trasporto]
+      effects: ["ApplyPatch:extraction:workingPermit,drivingLicense,drivingLicenseTypes"]
+
+  # The desired job (preferenze) is answered early.
+  - user: "in macchina. Vorrei fare l'autista"
+    nlu: { patch: { transport: auto, jobPreferences.preferredJob: autista } }
+    expect:
+      step: esperienze
+      question: studi
+      effects:
+        - "ApplyPatch:extraction:transport,jobPreferences.preferredJob"
+        - "EnqueueJob:kubri-webhook:block.completed"
+
+  # A whole later block answered early (formazione: not interested) is skipped entirely.
+  - user: "scuola media in Marocco, autista 5 anni, so guidare i camion. Corsi no, non mi interessano"
+    nlu:
+      patch:
+        educationAndTraining: ["Scuola media (MA)"]
+        workExperience: ["Autista (MA) (5 anni)"]
+        skillsAndCompetences: [guida di camion]
+        learningPreferences.isInterested: false
+    expect:
+      step: preferenze
+      question: esperienza_desiderato
+      sent: [system.progress, preferenze.title, preferenze.esperienza_desiderato]
+      effects:
+        - "ApplyPatch:extraction:educationAndTraining,workExperience,skillsAndCompetences,learningPreferences.isInterested"
+        - "EnqueueJob:kubri-webhook:block.completed"
+
+  - user: "sì, 5 anni in Marocco; zona Milano, tempo pieno, nessun vincolo"
+    nlu:
+      patch:
+        jobPreferences.hasDesiredJobExperience: "sì, 5 anni in Marocco"
+        jobPreferences.preferredLocation: Milano
+        jobPreferences.partTime: false
+      completeness: complete
+    expect:
+      question: vincoli
+      sent: [preferenze.vincoli]
+      effects:
+        - "ApplyPatch:extraction:jobPreferences.hasDesiredJobExperience,jobPreferences.preferredLocation,jobPreferences.partTime"
+
+  - user: "nessuno"
+    nlu: { intent: refusal }
+    expect:
+      step: cv
+      sent: [cv]
+      # preferenze completes, then formazione completes at once: no progress, no question.
+      effects:
+        - "EnqueueJob:kubri-webhook:block.completed"
+        - "EnqueueJob:kubri-webhook:block.completed"
+      outcomes: { preferenze: completed, formazione: completed }
+      profile:
+        firstName: Mario
+        lastName: Rossi
+        country: MA
+        jobPreferences.preferredJob: autista
+        learningPreferences.isInterested: false
+        learningPreferences.preference: null

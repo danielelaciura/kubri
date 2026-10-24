@@ -1,0 +1,52 @@
+description: Campagna standard — dati prima del consenso scartati, tenuti con il sì (D50); kubri_global rifiutato, si prosegue
+campaign: campaigns/kubri-standard.json
+turns:
+  - start: true
+    expect: { sent: [system.welcome] }
+
+  - user: "italiano"
+    expect: { step: privacy, sent: [benvenuto, privacy] }
+
+  # Not an answer to the consent: before the threshold nothing is saved (D24/D35).
+  - user: "mi chiamo Amina"
+    nlu: { patch: { firstName: Amina } }
+    expect:
+      step: privacy
+      consentsAccepted: false
+      sent: [system.not_understood, privacy]
+      effects: []
+      profile: { firstName: null }
+
+  # Consent and data in the same message: the data is kept, after the threshold (D50).
+  - user: "sì accetto, sono Amina Benali"
+    nlu: { intent: choice, choice: accepted, patch: { firstName: Amina, lastName: Benali } }
+    expect:
+      step: pool_globale
+      consentsAccepted: true
+      sent: [pool_globale]
+      effects:
+        - "RecordConsent:privacy_interview:accepted"
+        - "EnqueueJob:kubri-webhook:consents.accepted"
+        - "ApplyPatch:extraction:firstName,lastName"
+      profile: { firstName: Amina, lastName: Benali }
+
+  # kubri_global is optional: declined, the interview goes on and the candidate is kept.
+  # The block skips the questions already answered (nome, cognome).
+  - user: "no, solo per questa"
+    nlu: { intent: choice, choice: declined }
+    expect:
+      phase: flow
+      step: anagrafica
+      question: nascita
+      consentsAccepted: true
+      sent: [system.progress, anagrafica.title, anagrafica.nascita]
+      effects: ["RecordConsent:kubri_global:declined"]
+      outcomes: { privacy: accepted, pool_globale: declined }
+
+  - user: "5 maggio 1995"
+    nlu: { patch: { birthday: "1995-05-05" } }
+    expect:
+      question: paese
+      sent: [anagrafica.paese]
+      effects: ["ApplyPatch:extraction:birthday"]
+      profile: { firstName: Amina, lastName: Benali, birthday: "1995-05-05" }

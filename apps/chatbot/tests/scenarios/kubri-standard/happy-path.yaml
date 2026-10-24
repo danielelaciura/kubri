@@ -1,0 +1,289 @@
+description: Campagna standard — percorso ideale, tutti i blocchi, consensi accettati e CV sì
+campaign: campaigns/kubri-standard.json
+turns:
+  - start: true
+    expect: { phase: language, sent: [system.welcome], effects: [] }
+
+  - user: "italiano"
+    expect:
+      phase: flow
+      step: privacy
+      consentsAccepted: false
+      sent: [benvenuto, privacy]
+      effects: ["SetLanguage:it"]
+      outcomes: { benvenuto: next }
+
+  - user: "sì, accetto"
+    nlu: { intent: choice, choice: accepted }
+    expect:
+      step: pool_globale
+      consentsAccepted: true
+      sent: [pool_globale]
+      effects:
+        - "RecordConsent:privacy_interview:accepted"
+        - "EnqueueJob:kubri-webhook:consents.accepted"
+      outcomes: { privacy: accepted }
+
+  # kubri_global accepted: only the consent is recorded, no second threshold event.
+  - user: "va bene"
+    nlu: { intent: choice, choice: accepted }
+    expect:
+      step: anagrafica
+      question: nome
+      consentsAccepted: true
+      sent: [system.progress, anagrafica.title, anagrafica.nome]
+      effects: ["RecordConsent:kubri_global:accepted"]
+      outcomes: { pool_globale: accepted }
+
+  # --- anagrafica ---
+  - user: "Mario"
+    nlu: { patch: { firstName: Mario } }
+    expect:
+      question: cognome
+      sent: [anagrafica.cognome]
+      effects: ["ApplyPatch:extraction:firstName"]
+
+  - user: "Rossi"
+    nlu: { patch: { lastName: Rossi } }
+    expect:
+      question: nascita
+      sent: [anagrafica.nascita]
+      effects: ["ApplyPatch:extraction:lastName"]
+
+  - user: "il 12 marzo 1990"
+    nlu: { patch: { birthday: "1990-03-12" } }
+    expect:
+      question: paese
+      sent: [anagrafica.paese]
+      effects: ["ApplyPatch:extraction:birthday"]
+
+  - user: "in Marocco"
+    nlu: { patch: { country: MA } }
+    expect:
+      question: comune
+      sent: [anagrafica.comune]
+      effects: ["ApplyPatch:extraction:country"]
+
+  - user: "a Milano"
+    nlu: { patch: { location: Milano } }
+    expect:
+      question: indirizzo
+      sent: [anagrafica.indirizzo]
+      effects: ["ApplyPatch:extraction:location"]
+
+  # address triggers geocoding.
+  - user: "via Roma 10"
+    nlu: { patch: { address: "Via Roma 10" } }
+    expect:
+      question: email
+      sent: [anagrafica.email]
+      effects: ["ApplyPatch:extraction:address", "EnqueueJob:geocoding"]
+
+  - user: "mario.rossi@example.com"
+    nlu: { patch: { email: mario.rossi@example.com } }
+    expect:
+      step: lingue
+      question: lingua_madre
+      sent: [system.progress, lingue.title, lingue.lingua_madre]
+      effects:
+        - "ApplyPatch:extraction:email"
+        - "EnqueueJob:kubri-webhook:block.completed"
+      outcomes: { anagrafica: completed }
+
+  # --- lingue ---
+  - user: "arabo"
+    nlu: { patch: { language: ar } }
+    expect:
+      question: italiano
+      sent: [lingue.italiano]
+      effects: ["ApplyPatch:extraction:language"]
+
+  - user: "abbastanza bene"
+    nlu: { patch: { italianLevel: intermedio } }
+    expect:
+      question: altre_lingue
+      sent: [lingue.altre_lingue]
+      effects: ["ApplyPatch:extraction:italianLevel"]
+
+  - user: "un po' di inglese e il francese bene"
+    nlu: { patch: { additionalLanguages: ["inglese (base)", "francese (avanzato)"] } }
+    expect:
+      step: mobilita
+      question: permesso
+      sent: [system.progress, mobilita.title, mobilita.permesso]
+      effects:
+        - "ApplyPatch:extraction:additionalLanguages"
+        - "EnqueueJob:kubri-webhook:block.completed"
+      outcomes: { lingue: completed }
+
+  # --- mobilita ---
+  - user: "sì, ho il permesso di soggiorno per lavoro"
+    nlu: { patch: { workingPermit: true } }
+    expect:
+      question: patente
+      sent: [mobilita.patente]
+      effects: ["ApplyPatch:extraction:workingPermit"]
+
+  # drivingLicense true: the conditional question on the licence types is asked.
+  - user: "sì"
+    nlu: { patch: { drivingLicense: true } }
+    expect:
+      question: tipi_patente
+      sent: [mobilita.tipi_patente]
+      effects: ["ApplyPatch:extraction:drivingLicense"]
+
+  - user: "quella della macchina"
+    nlu: { patch: { drivingLicenseTypes: [B] } }
+    expect:
+      question: trasporto
+      sent: [mobilita.trasporto]
+      effects: ["ApplyPatch:extraction:drivingLicenseTypes"]
+
+  - user: "con i mezzi pubblici"
+    nlu: { patch: { transport: mezzi pubblici } }
+    expect:
+      step: esperienze
+      question: studi
+      sent: [system.progress, esperienze.title, esperienze.studi]
+      effects:
+        - "ApplyPatch:extraction:transport"
+        - "EnqueueJob:kubri-webhook:block.completed"
+      outcomes: { mobilita: completed }
+
+  # --- esperienze ---
+  - user: "ho fatto il liceo a Casablanca dal 2004 al 2008"
+    nlu:
+      patch:
+        educationAndTraining: ["2004 - 2008 Lycée Ibn Khaldoun (MA): Diploma di maturità"]
+    expect:
+      question: lavori
+      sent: [esperienze.lavori]
+      effects: ["ApplyPatch:extraction:educationAndTraining"]
+
+  - user: "magazziniere da Rossi a Milano dal 2019 al 2022"
+    nlu:
+      patch:
+        workExperience: ["2019 - 2022 Magazzino Rossi (IT): Magazziniere"]
+    expect:
+      question: competenze
+      sent: [esperienze.competenze]
+      effects: ["ApplyPatch:extraction:workExperience"]
+
+  - user: "so usare il muletto e lavorare in squadra"
+    nlu: { patch: { skillsAndCompetences: ["uso del muletto", "lavoro in squadra"] } }
+    expect:
+      step: preferenze
+      question: lavoro_desiderato
+      sent: [system.progress, preferenze.title, preferenze.lavoro_desiderato]
+      effects:
+        - "ApplyPatch:extraction:skillsAndCompetences"
+        - "EnqueueJob:kubri-webhook:block.completed"
+      outcomes: { esperienze: completed }
+
+  # --- preferenze ---
+  - user: "il magazziniere"
+    nlu: { patch: { jobPreferences.preferredJob: magazziniere } }
+    expect:
+      question: esperienza_desiderato
+      sent: [preferenze.esperienza_desiderato]
+      effects: ["ApplyPatch:extraction:jobPreferences.preferredJob"]
+
+  - user: "sì, tre anni a Milano"
+    nlu: { patch: { jobPreferences.hasDesiredJobExperience: "sì, 3 anni in Italia" } }
+    expect:
+      question: zona
+      sent: [preferenze.zona]
+      effects: ["ApplyPatch:extraction:jobPreferences.hasDesiredJobExperience"]
+
+  - user: "Milano e provincia"
+    nlu: { patch: { jobPreferences.preferredLocation: Milano e provincia } }
+    expect:
+      question: part_time
+      sent: [preferenze.part_time]
+      effects: ["ApplyPatch:extraction:jobPreferences.preferredLocation"]
+
+  - user: "tempo pieno"
+    nlu: { patch: { jobPreferences.partTime: false } }
+    expect:
+      question: vincoli
+      sent: [preferenze.vincoli]
+      effects: ["ApplyPatch:extraction:jobPreferences.partTime"]
+
+  - user: "di notte no"
+    nlu: { patch: { jobPreferences.constraints: no turni notturni } }
+    expect:
+      step: formazione
+      question: interesse_corsi
+      sent: [system.progress, formazione.title, formazione.interesse_corsi]
+      effects:
+        - "ApplyPatch:extraction:jobPreferences.constraints"
+        - "EnqueueJob:kubri-webhook:block.completed"
+      outcomes: { preferenze: completed }
+
+  # --- formazione: isInterested true, the conditional question is asked ---
+  - user: "sì, mi interessa"
+    nlu: { patch: { learningPreferences.isInterested: true } }
+    expect:
+      question: quale_corso
+      sent: [formazione.quale_corso]
+      effects: ["ApplyPatch:extraction:learningPreferences.isInterested"]
+
+  - user: "il patentino del muletto"
+    nlu: { patch: { learningPreferences.preference: patentino del muletto } }
+    expect:
+      step: cv
+      question: null
+      sent: [cv]
+      effects:
+        - "ApplyPatch:extraction:learningPreferences.preference"
+        - "EnqueueJob:kubri-webhook:block.completed"
+      outcomes: { formazione: completed }
+
+  # --- CV yes, then the end ---
+  - user: "sì grazie"
+    nlu: { intent: choice, choice: "yes" }
+    expect:
+      phase: post_completion
+      step: null
+      sent: [fine]
+      effects:
+        - "EnqueueJob:cv"
+        - "CompleteSession"
+        - "EnqueueJob:kubri-webhook:interview.completed"
+      consentsAccepted: true
+      outcomes:
+        benvenuto: next
+        privacy: accepted
+        pool_globale: accepted
+        anagrafica: completed
+        lingue: completed
+        mobilita: completed
+        esperienze: completed
+        preferenze: completed
+        formazione: completed
+        cv: "yes"
+      profile:
+        firstName: Mario
+        lastName: Rossi
+        birthday: "1990-03-12"
+        country: MA
+        location: Milano
+        address: Via Roma 10
+        email: mario.rossi@example.com
+        language: ar
+        italianLevel: intermedio
+        additionalLanguages: ["inglese (base)", "francese (avanzato)"]
+        workingPermit: true
+        drivingLicense: true
+        drivingLicenseTypes: [B]
+        transport: mezzi pubblici
+        educationAndTraining: ["2004 - 2008 Lycée Ibn Khaldoun (MA): Diploma di maturità"]
+        workExperience: ["2019 - 2022 Magazzino Rossi (IT): Magazziniere"]
+        skillsAndCompetences: ["uso del muletto", "lavoro in squadra"]
+        jobPreferences.preferredJob: magazziniere
+        jobPreferences.hasDesiredJobExperience: "sì, 3 anni in Italia"
+        jobPreferences.preferredLocation: Milano e provincia
+        jobPreferences.partTime: false
+        jobPreferences.constraints: no turni notturni
+        learningPreferences.isInterested: true
+        learningPreferences.preference: patentino del muletto

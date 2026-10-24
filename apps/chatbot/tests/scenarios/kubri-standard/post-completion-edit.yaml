@@ -1,0 +1,132 @@
+description: Campagna standard — modifiche dopo il completamento, rigenerazione del CV, cancellazione con conferma
+campaign: campaigns/kubri-standard.json
+turns:
+  - start: true
+    expect: { sent: [system.welcome] }
+
+  - user: "italiano"
+    expect: { step: privacy }
+
+  - user: "accetto"
+    nlu: { intent: choice, choice: accepted }
+    expect: { step: pool_globale }
+
+  - user: "no"
+    nlu: { intent: choice, choice: declined }
+    expect: { question: nome }
+
+  - user: "Mario Rossi, 12/03/1990, Marocco, Milano, via Roma 10, mario@example.com"
+    nlu:
+      patch:
+        firstName: Mario
+        lastName: Rossi
+        birthday: "1990-03-12"
+        country: MA
+        location: Milano
+        address: Via Roma 10
+        email: mario@example.com
+    expect: { step: lingue }
+
+  - user: "arabo, italiano bene, niente altro"
+    nlu: { patch: { language: ar, italianLevel: avanzato } }
+    expect: { question: altre_lingue }
+
+  - user: "nessuna"
+    nlu: { intent: refusal }
+    expect: { step: mobilita }
+
+  - user: "permesso sì, patente no, vado in bici"
+    nlu: { patch: { workingPermit: true, drivingLicense: false, transport: bicicletta } }
+    expect: { step: esperienze }
+
+  - user: "diploma in Marocco, magazziniere 3 anni, uso il muletto"
+    nlu:
+      patch:
+        educationAndTraining: ["Liceo (MA): Diploma"]
+        workExperience: ["Magazzino (IT): Magazziniere (3 anni)"]
+        skillsAndCompetences: [uso del muletto]
+    expect: { step: preferenze }
+
+  - user: "magazziniere, sì 3 anni, Milano, tempo pieno, niente notte"
+    nlu:
+      patch:
+        jobPreferences.preferredJob: magazziniere
+        jobPreferences.hasDesiredJobExperience: "sì, 3 anni"
+        jobPreferences.preferredLocation: Milano
+        jobPreferences.partTime: false
+        jobPreferences.constraints: no turni notturni
+    expect: { step: formazione }
+
+  - user: "no"
+    nlu: { patch: { learningPreferences.isInterested: false } }
+    expect: { step: cv, sent: [cv] }
+
+  - user: "no, non mi serve"
+    nlu: { intent: choice, choice: "no" }
+    expect:
+      phase: post_completion
+      sent: [fine]
+      effects: ["CompleteSession", "EnqueueJob:kubri-webhook:interview.completed"]
+      outcomes: { cv: "no" }
+
+  # An edit needs edit_request + editTarget, and a confirmation.
+  - user: "ho sbagliato, vivo a Monza adesso"
+    nlu: { intent: edit_request, editTarget: { field: location, newValue: Monza } }
+    expect: { phase: post_completion, sent: [system.confirm_edit], effects: [] }
+
+  - user: "sì"
+    nlu: { intent: choice, choice: "yes" }
+    expect:
+      phase: post_completion
+      sent: [system.edit_saved]
+      effects: ["ApplyPatch:edit:location", "EnqueueJob:kubri-webhook:profile.updated"]
+      profile: { location: Monza }
+
+  # A declined edit changes nothing.
+  - user: "anzi, il mio lavoro preferito è il mulettista"
+    nlu:
+      intent: edit_request
+      editTarget: { field: jobPreferences.preferredJob, newValue: mulettista }
+    expect: { sent: [system.confirm_edit], effects: [] }
+
+  # D53: the deterministic "no" wins over an LLM reading of "yes".
+  - user: "no"
+    nlu: { intent: choice, choice: "yes" }
+    expect:
+      phase: post_completion
+      sent: [system.edit_cancelled]
+      effects: []
+      profile: { jobPreferences.preferredJob: magazziniere }
+
+  # Without edit_request an extracted value is never saved after completion.
+  - user: "comunque sono di Monza Brianza, ho anche la patente"
+    nlu: { patch: { drivingLicense: true } }
+    expect:
+      phase: post_completion
+      sent: [system.post_completion_help]
+      effects: []
+      profile: { drivingLicense: false }
+
+  - user: "mi fai il cv?"
+    nlu: { intent: choice, choice: regenerate_cv }
+    expect: { phase: post_completion, step: cv, sent: [cv], effects: [] }
+
+  - user: "sì"
+    nlu: { intent: choice, choice: "yes" }
+    expect:
+      {
+        phase: post_completion,
+        step: null,
+        sent: [system.cv_requested],
+        effects: ["EnqueueJob:cv"],
+      }
+
+  # Deletion asks for a confirmation; after completion the job deletes, no StopSession.
+  - user: "cancella i miei dati"
+    expect: { phase: post_completion, sent: [system.delete_confirm], effects: [] }
+
+  - user: "sì"
+    expect:
+      phase: closed
+      sent: [system.delete_done]
+      effects: ["EnqueueJob:delete-contact"]

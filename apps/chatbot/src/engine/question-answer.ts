@@ -1,17 +1,11 @@
 import type { Question, QuestionsStep } from "../campaigns/schema/steps";
 import type { PatchEntry } from "../profile/patch";
-import { advanceFromQuestion, askQuestion } from "./advance";
+import { advanceFromQuestion, askQuestion, giveUpQuestion } from "./advance";
 import { askConfirmation } from "./confirmations";
 import type { Interpretation } from "./interpretation";
-import {
-  fieldState,
-  holdsValue,
-  isFieldFilled,
-  withField,
-  type FieldState,
-} from "./profile-snapshot";
+import { fieldState, holdsValue, isFieldFilled, type FieldState } from "./profile-snapshot";
 import { currentQuestion } from "./replies";
-import { emit, setState, type Turn } from "./turn";
+import { setState, type Turn } from "./turn";
 
 /** What the turn's patch did to the current question's field. */
 export interface PatchOutcome {
@@ -30,8 +24,11 @@ export function answerQuestion(
   { fieldBefore, lowConfidence }: PatchOutcome,
 ): void {
   const question = currentQuestion(turn, step);
+  const canClarify = turn.state.clarifications < question.maxClarifications;
   if (lowConfidence) {
-    askConfirmation(turn, lowConfidence);
+    // Asking for a confirmation counts as a clarification, so the loop always ends.
+    if (canClarify) askConfirmation(turn, lowConfidence);
+    else giveUpQuestion(turn, index, step, question);
     return;
   }
   if (interpretation.intent === "refusal" && !question.required) {
@@ -41,7 +38,6 @@ export function answerQuestion(
   const after = fieldState(turn.state.profile, question.field);
   const filled = isFieldFilled(turn.state.profile, question.field);
   const { completeness, missing } = interpretation.currentQuestion;
-  const canClarify = turn.state.clarifications < question.maxClarifications;
   if (completeness === "partial" && canClarify) {
     clarify(turn, step, question, missing);
     return;
@@ -57,7 +53,7 @@ export function answerQuestion(
     rephrase(turn, step, question);
     return;
   }
-  giveUp(turn, index, step, question, filled);
+  giveUpQuestion(turn, index, step, question);
 }
 
 function clarify(
@@ -73,37 +69,4 @@ function clarify(
 function rephrase(turn: Turn, step: QuestionsStep, question: Question): void {
   setState(turn, { clarifications: turn.state.clarifications + 1 });
   askQuestion(turn, step, question, "rephrase");
-}
-
-/**
- * Clarifications used up: a value saved earlier is kept; otherwise optional → skipped,
- * required → unresolved + FlagSession.
- */
-function giveUp(
-  turn: Turn,
-  index: number,
-  step: QuestionsStep,
-  question: Question,
-  filled: boolean,
-): void {
-  if (question.required && !filled) {
-    emit(
-      turn,
-      { type: "MarkFieldUnresolved", field: question.field },
-      {
-        type: "FlagSession",
-        reason: "unresolved_field",
-        needsAttention: false,
-        field: question.field,
-      },
-    );
-    setState(turn, {
-      profile: withField(turn.state.profile, question.field, {
-        value: null,
-        confidence: 0,
-        status: "unresolved",
-      }),
-    });
-  }
-  advanceFromQuestion(turn, index, step, question);
 }

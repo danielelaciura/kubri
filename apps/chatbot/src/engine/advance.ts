@@ -3,6 +3,7 @@ import { nextEligibleStep, resolveTransition } from "../campaigns/flow";
 import type { ConsentStep, Question, QuestionsStep, Target } from "../campaigns/schema/steps";
 import { nextAskableQuestion } from "./blocks";
 import type { DataPolicy, SendPurpose, StopReason } from "./effects";
+import { isFieldFilled, withField } from "./profile-snapshot";
 import { sectionProgress } from "./progress";
 import { conditionContext } from "./state";
 import { stepTextRef, type TextParams, type TextRef } from "./text-ref";
@@ -217,6 +218,38 @@ export function advanceFromQuestion(
   }
   setState(turn, { clarifications: 0 });
   askQuestion(turn, step, next.question);
+}
+
+/**
+ * Clarifications used up: a value saved earlier is kept; otherwise optional → skipped,
+ * required → unresolved + FlagSession. Then the block moves on.
+ */
+export function giveUpQuestion(
+  turn: Turn,
+  index: number,
+  step: QuestionsStep,
+  question: Question,
+): void {
+  if (question.required && !isFieldFilled(turn.state.profile, question.field)) {
+    emit(
+      turn,
+      { type: "MarkFieldUnresolved", field: question.field },
+      {
+        type: "FlagSession",
+        reason: "unresolved_field",
+        needsAttention: false,
+        field: question.field,
+      },
+    );
+    setState(turn, {
+      profile: withField(turn.state.profile, question.field, {
+        value: null,
+        confidence: 0,
+        status: "unresolved",
+      }),
+    });
+  }
+  advanceFromQuestion(turn, index, step, question);
 }
 
 function finishBlock(turn: Turn, index: number, outcome: "completed" | "terminated"): void {

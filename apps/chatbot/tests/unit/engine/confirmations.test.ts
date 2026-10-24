@@ -61,7 +61,43 @@ describe("low-confidence values", () => {
 
     expect(others(result.effects)).toEqual([]);
     expect(sent(result.effects)).toEqual(["anagrafica.nome"]);
-    expect(result.state).toMatchObject({ pendingConfirmation: null, clarifications: 0 });
+    expect(result.state).toMatchObject({ pendingConfirmation: null, clarifications: 1 });
+  });
+
+  it("counts asking for a confirmation as a clarification", () => {
+    const interp = interpretation({
+      patch: [{ field: "firstName", value: "Mrio", confidence: 0.4, evidence: "Mrio" }],
+      currentQuestion: { completeness: "complete" },
+    });
+    const result = step(atQuestion("nome"), userTurn("Mrio", interp), c);
+
+    expect(result.state.clarifications).toBe(1);
+  });
+
+  it("gives up on a low-confidence value once clarifications are used up", () => {
+    const interp = interpretation({
+      patch: [{ field: "firstName", value: "Mrio", confidence: 0.4, evidence: "Mrio" }],
+      currentQuestion: { completeness: "complete" },
+    });
+    const result = step(atQuestion("nome", { clarifications: 2 }), userTurn("Mrio", interp), c);
+
+    expect(others(result.effects)).toEqual([
+      "MarkFieldUnresolved:firstName",
+      "FlagSession:unresolved_field:firstName",
+    ]);
+    expect(sent(result.effects)).toEqual(["anagrafica.patente"]);
+    expect(result.state.pendingConfirmation).toBeNull();
+  });
+
+  it("gives up on no once clarifications are used up", () => {
+    const state = atQuestion("nome", { clarifications: 2, pendingConfirmation: pending });
+    const result = step(state, userTurn("no", choice("no")), c);
+
+    expect(others(result.effects)).toEqual([
+      "MarkFieldUnresolved:firstName",
+      "FlagSession:unresolved_field:firstName",
+    ]);
+    expect(sent(result.effects)).toEqual(["anagrafica.patente"]);
   });
 
   it("drops the confirmation and handles any other message as a fresh answer (D36)", () => {

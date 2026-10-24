@@ -1,5 +1,5 @@
 import type { PatchEntry } from "../profile/patch";
-import { advanceFromQuestion } from "./advance";
+import { advanceFromQuestion, giveUpQuestion } from "./advance";
 import { saveEdit } from "./edits";
 import type { UserTurnEvent } from "./events";
 import { confirmationAnswer } from "./global-intents";
@@ -12,6 +12,7 @@ import { currentStep, emit, say, setState, systemText, type Turn } from "./turn"
 /** Spec §7.2 point 2: below the threshold the value is not saved, the engine asks first. */
 export function askConfirmation(turn: Turn, entry: PatchEntry): void {
   setState(turn, {
+    clarifications: turn.state.clarifications + 1,
     pendingConfirmation: {
       kind: "value",
       field: entry.field,
@@ -47,7 +48,7 @@ export function resolvePendingInFlow(turn: Turn, event: UserTurnEvent): boolean 
         return true;
       }
       if (no) {
-        repromptCurrent(turn);
+        retryQuestion(turn);
         return true;
       }
       return false;
@@ -80,6 +81,22 @@ export function resolvePendingInFlow(turn: Turn, event: UserTurnEvent): boolean 
 export function dropStaleConfirmation(turn: Turn): void {
   setState(turn, { pendingConfirmation: null });
   emit(turn, { type: "FlagSession", reason: "stale_confirmation", needsAttention: true });
+}
+
+/** A rejected value: ask again, counting it as a clarification, or give up at the limit. */
+function retryQuestion(turn: Turn): void {
+  const { step, index } = currentStep(turn);
+  if (step.type !== "questions") {
+    repromptCurrent(turn);
+    return;
+  }
+  const question = currentQuestion(turn, step);
+  if (turn.state.clarifications >= question.maxClarifications) {
+    giveUpQuestion(turn, index, step, question);
+    return;
+  }
+  setState(turn, { clarifications: turn.state.clarifications + 1 });
+  repromptCurrent(turn);
 }
 
 /** The field of the question waiting for an answer, if the current step is a questions block. */

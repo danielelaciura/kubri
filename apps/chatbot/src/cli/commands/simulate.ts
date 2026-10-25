@@ -2,6 +2,7 @@ import { InvalidArgumentError, Option, type Command } from "commander";
 import { validateCampaign } from "../../campaigns/validate";
 import { createTextResolver } from "../../i18n/resolve";
 import { MemoryTranslationCache } from "../../i18n/translation-cache";
+import { MAX_HISTORY_MESSAGES } from "../../nlu/config";
 import { NOOP_TRACE_SINK } from "../../nlu/trace";
 import { CliError, type CliDeps } from "../deps";
 import { formatIssues } from "../format-issues";
@@ -20,10 +21,11 @@ interface SimulateOptions extends SimulationKinds {
   readonly traces: boolean;
 }
 
-function parseHistory(value: string): number {
+/** Same bound as NLU_HISTORY_MESSAGES (D81). */
+export function parseHistory(value: string): number {
   const size = Number(value);
-  if (!Number.isInteger(size) || size < 0) {
-    throw new InvalidArgumentError("must be a whole number, 0 or more");
+  if (!Number.isInteger(size) || size < 0 || size > MAX_HISTORY_MESSAGES) {
+    throw new InvalidArgumentError(`must be a whole number from 0 to ${MAX_HISTORY_MESSAGES}`);
   }
   return size;
 }
@@ -43,7 +45,12 @@ export function registerSimulateCommand(campaigns: Command, deps: CliDeps): void
         .choices(TRANSLATOR_KINDS)
         .default("fake"),
     )
-    .option("--history <n>", "earlier user messages given to the NLU", parseHistory, 3)
+    .option(
+      "--history <n>",
+      `earlier user messages given to the NLU (0-${MAX_HISTORY_MESSAGES})`,
+      parseHistory,
+      3,
+    )
     .option("--traces", "print one line per LLM call (no content) on stderr", false)
     .action(async (file: string, options: SimulateOptions) => {
       const result = validateCampaign(await readCampaignFile(deps, file));

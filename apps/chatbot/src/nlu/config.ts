@@ -20,6 +20,9 @@ const PricesSchema = z
   })
   .pipe(z.record(z.string(), ModelPriceSchema));
 
+/** D81: earlier messages given to the LLM, at most (env and `simulate --history`). */
+export const MAX_HISTORY_MESSAGES = 10;
+
 // D81. Separate from parseEnv: `campaigns simulate` must work without DATABASE_URL.
 const NluEnvSchema = z.object({
   MISTRAL_API_KEY: z.string().trim().min(1).optional(),
@@ -27,7 +30,7 @@ const NluEnvSchema = z.object({
   NLU_TRANSLATE_MODEL: ModelSchema.default("mistral-small-latest"),
   NLU_FALLBACK_MODEL: ModelSchema.default("mistral-medium-latest"),
   NLU_TIMEOUT_MS: z.coerce.number().int().positive().default(15_000),
-  NLU_HISTORY_MESSAGES: z.coerce.number().int().min(0).max(10).default(3),
+  NLU_HISTORY_MESSAGES: z.coerce.number().int().min(0).max(MAX_HISTORY_MESSAGES).default(3),
   /** JSON: { "<model>": { "inputPerMTok": 0.1, "outputPerMTok": 0.3 } }, for NluTrace costs. */
   NLU_PRICES: PricesSchema.optional(),
 });

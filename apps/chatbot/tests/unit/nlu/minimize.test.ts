@@ -66,6 +66,12 @@ describe("scrubHistory", () => {
     ).toEqual(["mi chiamo [firstName] [lastName]", "abito in [address], scrivi a [email]"]);
   });
 
+  it("also replaces e-mails and phone numbers that were never collected", () => {
+    expect(scrub(["scrivi a altro@example.org o al 333 123 4567"], {})).toEqual([
+      "scrivi a [email] o al [phone]",
+    ]);
+  });
+
   it("recognizes the birth date written the Italian way", () => {
     expect(scrub(["sono nata il 02/05/1990", "cioè il 2/5/1990"], PROFILE)).toEqual([
       "sono nata il [birthday]",
@@ -100,11 +106,10 @@ describe("scrubHistory", () => {
   });
 
   it("treats regular-expression characters in values literally", () => {
-    const profile: ProfileSnapshot = { email: inferred("a.b+c@example.com") };
+    // Not an e-mail: the contact regex would catch both forms and hide the point.
+    const profile: ProfileSnapshot = { address: inferred("Via A.B+ 3") };
 
-    expect(scrub(["a.b+c@example.com e aXb+c@example.com"], profile)).toEqual([
-      "[email] e aXb+c@example.com",
-    ]);
+    expect(scrub(["Via A.B+ 3 e Via AXBB 3"], profile)).toEqual(["[address] e Via AXBB 3"]);
   });
 
   it("also scrubs the personal values of a pending confirmation, not yet saved", () => {
@@ -200,7 +205,44 @@ describe("redactWithEvidence", () => {
     ).toBe("ho un'[custom.disability]. Il cognome giusto è [lastName]");
   });
 
-  it("leaves the message alone without an interpretation", () => {
+  it("leaves a message without e-mails or phone numbers alone without an interpretation", () => {
     expect(redactWithEvidence("mi chiamo Mario", null, CUSTOM)).toBe("mi chiamo Mario");
+  });
+
+  it.each([
+    [null, "scrivimi a mario.rossi+lavoro@example.co.uk o chiama il +39 333-123 4567"],
+    [
+      interpretation({ intent: "unclear" }),
+      "scrivimi a mario.rossi+lavoro@example.co.uk o chiama il +39 333-123 4567",
+    ],
+  ])("replaces e-mails and phone numbers even without a usable interpretation", (interp, text) => {
+    expect(redactWithEvidence(text, interp, CUSTOM)).toBe("scrivimi a [email] o chiama il [phone]");
+  });
+
+  it.each(["3331234567", "06 1234 5678", "0039-333-1234567"])(
+    "replaces the phone-like digit run %j",
+    (phone) => {
+      expect(redactWithEvidence(`numero ${phone}.`, null, CUSTOM)).toBe("numero [phone].");
+    },
+  );
+
+  it.each([
+    "Via Roma 12, 40121 Bologna",
+    "ho lavorato dal 2019 al 2023",
+    "2015-2020 magazziniere",
+    "12/05/1990",
+    "ho 3 figli e 25 anni",
+  ])("keeps short numbers, years and dates: %j", (text) => {
+    expect(redactWithEvidence(text, null, CUSTOM)).toBe(text);
+  });
+
+  it("applies the regex after the field redaction", () => {
+    expect(
+      redactWithEvidence(
+        "mail mb@example.com, tel 333 1234567",
+        interpretation({ patch: [entry("email", "mb@example.com", "mb@example.com")] }),
+        CUSTOM,
+      ),
+    ).toBe("mail [email], tel [phone]");
   });
 });

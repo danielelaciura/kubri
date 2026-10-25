@@ -131,7 +131,7 @@ export function scrubHistory(
     ...pendingValues(pending),
   ];
   const secrets = secretsOf(known, customFields);
-  return history.map((message) => redact(message, secrets));
+  return history.map((message) => redactContacts(redact(message, secrets)));
 }
 
 /**
@@ -140,13 +140,16 @@ export function scrubHistory(
  * It works whether or not the value was saved (before the consents, a turn intercepted by a
  * global keyword, a low-confidence or invalid value) and catches forms the profile scrub
  * cannot ("12 maggio 1990"). Runtime stores this copy (plan 08); the simulator keeps it.
+ *
+ * Best effort without a usable interpretation (LLM down, `unclear`): then only the regex pass
+ * below applies, which still catches e-mail addresses and phone numbers.
  */
 export function redactWithEvidence(
   message: string,
   interpretation: Interpretation | null,
   customFields: readonly CustomFieldDefinition[],
 ): string {
-  if (!interpretation) return message;
+  if (!interpretation) return redactContacts(message);
   const known: KnownValue[] = interpretation.patch.map(({ field, value }) => ({ field, value }));
   if (interpretation.editTarget) {
     known.push({
@@ -155,5 +158,22 @@ export function redactWithEvidence(
     });
   }
   const evidence = interpretation.patch.map(({ field, evidence: text }) => ({ field, text }));
-  return redact(message, secretsOf(known, customFields, evidence));
+  return redactContacts(redact(message, secretsOf(known, customFields, evidence)));
+}
+
+const EMAIL = /[\p{L}\p{N}._%+-]+@[\p{L}\p{N}-]+(?:\.[\p{L}\p{N}-]+)*\.\p{L}{2,}/gu;
+/** Digits with spaces, dashes or a leading +; a phone number has at least 9 digits. */
+const DIGIT_RUN = /\+?(?<![\p{L}\p{N}])\d[\d\s-]*\d(?![\p{L}\p{N}])/gu;
+const MIN_PHONE_DIGITS = 9;
+
+/**
+ * E-mail addresses and phone numbers, whatever the interpretation said: the safety net for
+ * turns without a usable one, and for numbers the candidate gives unasked.
+ */
+export function redactContacts(message: string): string {
+  return message
+    .replace(EMAIL, "[email]")
+    .replace(DIGIT_RUN, (run) =>
+      run.replace(/\D/g, "").length >= MIN_PHONE_DIGITS ? "[phone]" : run,
+    );
 }

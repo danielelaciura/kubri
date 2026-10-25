@@ -6,7 +6,10 @@ export type OutputCheck =
   | { readonly ok: false; readonly problems: readonly string[] };
 
 /** The parts of the context the output is checked against. */
-export type OutputRules = Pick<InterpretContext, "step" | "collected" | "pendingConfirmation">;
+export type OutputRules = Pick<
+  InterpretContext,
+  "step" | "question" | "collected" | "pendingConfirmation"
+>;
 
 const CODE_FENCE = /^```(?:json)?\s*([\s\S]*?)\s*```$/;
 
@@ -35,10 +38,22 @@ function withoutEmpty(record: Record<string, unknown>, keys: readonly string[]) 
   );
 }
 
-/** D83: what structured-output models commonly emit for "absent", made acceptable. */
-export function normalizeInterpretationOutput(raw: unknown): unknown {
+/**
+ * D83: what structured-output models commonly emit for "absent", made acceptable. A left-out
+ * `currentQuestion` is "absent" when the prompt rule already makes it so (no question asked, or
+ * an intent other than "answer"): Mistral omits it there. On an answer to a question it stays
+ * missing, so the schema refuses it and the repair asks for it.
+ */
+export function normalizeInterpretationOutput(raw: unknown, rules?: OutputRules): unknown {
   if (!isRecord(raw)) return raw;
   const out = withoutEmpty(raw, ["choice", "editTarget", "offTopicReply"]);
+  if (
+    (out["currentQuestion"] === undefined || out["currentQuestion"] === null) &&
+    rules !== undefined &&
+    (rules.question === null || out["intent"] !== "answer")
+  ) {
+    out["currentQuestion"] = { completeness: "absent" };
+  }
   if (out["patch"] === undefined || out["patch"] === null) out["patch"] = [];
   if (Array.isArray(out["patch"])) {
     out["patch"] = out["patch"].map((entry: unknown) =>
@@ -141,7 +156,7 @@ export function parseInterpretationOutput(content: string, rules: OutputRules): 
   } catch {
     return { ok: false, problems: ["the reply is not a JSON object"] };
   }
-  const result = InterpretationSchema.safeParse(normalizeInterpretationOutput(raw));
+  const result = InterpretationSchema.safeParse(normalizeInterpretationOutput(raw, rules));
   if (!result.success) {
     return {
       ok: false,

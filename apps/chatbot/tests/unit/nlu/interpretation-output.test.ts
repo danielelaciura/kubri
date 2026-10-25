@@ -269,3 +269,56 @@ describe("parseInterpretationOutput: texts shown to the candidate", () => {
     },
   );
 });
+
+describe("parseInterpretationOutput: currentQuestion left out", () => {
+  const ASKING: InterpretContext = {
+    ...AT_QUESTION,
+    question: {
+      id: "nome",
+      field: "firstName",
+      type: "text",
+      description: "Nome.",
+      prompt: "Come ti chiami?",
+      required: true,
+    },
+  };
+  const { currentQuestion: _omit, ...withoutQuestion } = VALID;
+
+  // Mistral omits currentQuestion when nothing is being asked (real output, plan 06 manual run).
+  it("is absent on a consent answer, where no question is asked", () => {
+    const result = parse(
+      {
+        language: { code: "en", confidence: 0.9 },
+        intent: "choice",
+        choice: "accepted",
+        patch: [],
+      },
+      AT_CONSENT,
+    );
+    expect(result).toEqual({
+      ok: true,
+      interpretation: expect.objectContaining({
+        intent: "choice",
+        choice: "accepted",
+        currentQuestion: { completeness: "absent" },
+      }) as unknown,
+    });
+  });
+
+  it("is absent for an intent that does not answer the current question", () => {
+    const result = parse({ ...withoutQuestion, intent: "help", patch: [] }, ASKING);
+    expect(result.ok && result.interpretation.currentQuestion).toEqual({ completeness: "absent" });
+  });
+
+  it("is absent for an answer when no question is asked", () => {
+    const result = parse(withoutQuestion, AT_QUESTION);
+    expect(result.ok && result.interpretation.currentQuestion).toEqual({ completeness: "absent" });
+  });
+
+  it("stays invalid on an answer to the current question: completeness can't be guessed", () => {
+    expect(parse(withoutQuestion, ASKING)).toEqual({
+      ok: false,
+      problems: ["currentQuestion: Invalid input: expected object, received undefined"],
+    });
+  });
+});

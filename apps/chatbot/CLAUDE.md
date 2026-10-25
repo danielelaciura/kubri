@@ -98,7 +98,9 @@ step(state, event, campaignVersion) → { state, effects }
 - Structured output only, validated with Zod. Invalid → one repair attempt → `intent: unclear`.
 - **Data minimization:** the context sent to the LLM contains the current question, open fields,
   a compact summary of collected fields and the last N messages. Do **not** include name,
-  phone, full address or birth date unless that turn needs them.
+  phone, full address or birth date unless that turn needs them. Fields flagged `sensitive`
+  (e.g. `workingPermit`) are withheld the same way; personal values in the history become
+  `[field]` (spec §8.2, D85, D90).
 - Every patch value is validated against its field type in `profile` before touching the profile.
   Low-confidence values trigger a confirmation, not a save.
 - Prompts are **versioned files** in `src/nlu/prompts/`. Every call writes an `NluTrace` with the
@@ -230,7 +232,7 @@ pnpm cli senders add <slug> --phone <e164> --name <name> [--org <slug>] \
 pnpm cli campaigns validate <file>   # no database; exits 1 on issues
 pnpm cli campaigns import <file> [--activate] [--imported-by <name>]
 pnpm cli campaigns list
-pnpm cli campaigns simulate <file> [--nlu naive] [--translator fake] [--history 3]
+pnpm cli campaigns simulate <file> [--nlu naive|llm] [--translator fake|llm] [--history 3] [--traces]
 ```
 
 - `campaigns import` creates a new immutable `CampaignVersion` only when the parsed file's
@@ -249,6 +251,16 @@ pnpm cli campaigns simulate <file> [--nlu naive] [--translator fake] [--history 
   must be the stored option ids (e.g. `base`, `intermedio`), not the plain phrases the prompt
   offers ("un po'"): mapping phrases is the LLM's job (`--nlu llm`, plan 06). Typing
   "nessuno" saves the literal text; use `/refuse` or `/nlu` for a "none" answer.
+- `--nlu llm` / `--translator llm` call Mistral and need `MISTRAL_API_KEY` in `apps/chatbot/.env`
+  (gitignored; never in a versioned file). Models: `NLU_INTERPRET_MODEL`, `NLU_TRANSLATE_MODEL`,
+  `NLU_FALLBACK_MODEL` (see `.env.example`). Without the key the command stops before the
+  interview with one line (`MISTRAL_API_KEY is not set…`); `naive` / `fake` never need it.
+  `--traces` prints one line per LLM call on stderr, without prompt or reply; `--history` also
+  sets how many earlier messages reach the LLM. Unit tests use `FakeLlmProvider`.
+  **Manual check with the real LLM (owner, once the key exists):**
+  `pnpm cli campaigns simulate campaigns/kubri-standard.json --nlu llm --translator llm --traces`
+  (steps and expected output: plan 06, Task 13 step 9). Note the cases the LLM gets wrong: they
+  seed the evals (plan 07).
 
 - Local DB: Docker Postgres on port 54329, databases `kubri_bot_dev` and `kubri_bot_test`.
   Both contain simulated dashboard tables in `public`, which the bot must never touch.

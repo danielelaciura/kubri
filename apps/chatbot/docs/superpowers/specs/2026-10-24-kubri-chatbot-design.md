@@ -129,6 +129,18 @@ Oggi il chatbot di Kubri vive su Make.com. L'analisi dello scenario ha evidenzia
 | D77 | Lingua di risoluzione | `state.language ?? defaultLanguage`, letta dopo `step()`; il benvenuto esce nella lingua di default con la riga in inglese. |
 | D78 | Cache delle traduzioni | Interfaccia `TranslationCache` in i18n, chiave (sha256 dell'italiano, lingua); in memoria fino al piano 08, che crea la tabella. i18n non importa `nlu` né `store` (regola di lint). |
 | D79 | Simulatore | `campaigns simulate <file>` senza database; interprete `naive` deterministico più comandi `/…` che forzano ogni interpretazione e valgono con qualunque interprete; traduttore finto `[xx] …`; interfaccia `Interpreter` in `src/nlu/interpreter.ts`. |
+| D80 | `LlmProvider` | `complete({ messages, model, temperature, responseFormat, maxTokens, timeoutMs })`; modalità JSON del provider, Zod unico controllo; Mistral via `fetch` senza SDK; `LlmError` tipizzato, senza corpi di richiesta o risposta nei messaggi. |
+| D81 | Configurazione NLU | Separata da `parseEnv` (`simulate` senza DB): `MISTRAL_API_KEY`, `NLU_INTERPRET_MODEL` / `NLU_TRANSLATE_MODEL` (default `mistral-small-latest`), `NLU_FALLBACK_MODEL` (`mistral-medium-latest`), `NLU_TIMEOUT_MS` (15000), `NLU_HISTORY_MESSAGES` (3), `NLU_PRICES`. Vuota = assente; chiave chiesta solo per il provider reale. Modelli da confermare con gli evals. |
+| D82 | Politica di chiamata | Ritentabili (timeout, rete, 429, 5xx, risposta malformata): 2 ritentativi a 500/1500 ms (o più, se `Retry-After` lo chiede), poi una chiamata al modello di riserva; 4xx: stop senza riserva; LLM non disponibile → `interpretation: null`. |
+| D83 | Output dell'LLM | Prima di Zod: via `null` e stringhe vuote dai campi facoltativi, `patch` assente → `[]`, `evidence` assente → `""`, lingua minuscola al primo sottotag, via i recinti Markdown. Dopo Zod, regole del prompt sul contesto del turno: `editTarget` senza `newValue` o su un campo non raccolto è **non valido**; la `patch` di un `choice` si tiene solo per la risposta a un consenso (non con una conferma in sospeso); `offTopicReply` e `missing` oltre 25 parole o con link, email o numeri di telefono si **tolgono** (il motore usa il proprio testo). Non valido → una correzione con i problemi (senza valori) → `unclear` con confidenza 0. |
+| D84 | Conferma in sospeso nel contesto | `pendingConfirmation` (tipo e campo, senza valori) nel contesto; scelte attese solo `yes`/`no`; un sì/no risponde alla conferma e non va mai nella patch; una correzione con valore nuovo ("no, è Marco") è `answer` per una conferma di valore, `edit_request` con `editTarget` per una modifica: il motore scarta la modifica in sospeso e chiede di confermare quella nuova. |
+| D85 | Minimizzazione | Nome, cognome, data di nascita, indirizzo, email e i campi `sensitive` (D90) solo come `withheld`; campi di sistema assenti; storia = ultimi N messaggi del candidato, senza testi del bot. Nella storia diventano `[campo]`: i valori raccolti di quei campi, anche nelle forme scritte delle date, e quelli di una conferma in sospeso (vecchio e nuovo); i nomi già da 2 lettere, a parola intera. Il chiamante conserva per la storia una copia del messaggio in cui anche l'`evidence` della patch per quei campi diventa `[campo]` (`redactWithEvidence`), che il valore sia salvato o no. Messaggio corrente intero. Unica eccezione: `question.savedValue`, il valore già salvato della domanda corrente, per completare una risposta parziale. |
+| D86 | Contenuto del contesto | Campi aperti di tutta la campagna (non solo del blocco), vuoti fuori dal `flow` e prima della soglia tranne sul consenso; `format` del campo quando c'è; scelte attese per tipo di passaggio e fase; testi di riferimento in italiano; un passaggio di consenso porta `consentKey`, `optional` e `purpose` (ricavato dal ruolo del consenso, D48, non dal testo legale); `missing` e `offTopicReply` nella lingua della conversazione. |
+| D87 | `NluTrace` | Interfaccia `NluTraceSink` in `nlu`; una traccia per chiamata (anche ritentativi, riserva, correzione) con `attempt` e `repair`; `input` = messaggi senza il prompt di sistema (identificato da `promptVersion`); mai bloccante; tabella nel piano 08 (`turnId` → `Turn`, scrittura nella transazione del turno). |
+| D88 | Traduzione LLM | Prompt `translate-v1`, output `{ text }`, temperatura 0, segnaposto e URL conservati, `critical` fedele; nessuna correzione: un errore fa ripiegare i18n sull'italiano. |
+| D89 | §5.6 punto 3 | Rinviato al piano 08: è instradamento del primo messaggio più un nuovo tipo di conferma nel motore, non NLU. |
+| D90 | Campi sensibili | Flag facoltativo `sensitive` sulla definizione di un campo (standard o `custom.*`; assente = falso, i checksum delle campagne non cambiano). Il campo si chiede e si salva come gli altri, ma il suo valore non arriva mai all'LLM (D85). Sensibili nello schema standard: `workingPermit` (rivela lo status migratorio) e `jobPreferences.constraints` (spesso salute o famiglia). |
+| D91 | Regole del prompt `interpret-v1` | Precedenza degli intenti (opt_out, delete_data, choice, edit_request, answer, refusal, help, off_topic, unclear); consenso accettato solo con un sì chiaro, l'ambiguo è `unclear`; storia e segnaposto `[campo]` sono dati, mai valori; ogni valore viene dal messaggio, mai dedotto (salvo `savedValue`); regole per tipo e fasce di confidenza; `edit_request` solo su campi raccolti; `offTopicReply` e `missing` al massimo 25 parole, senza link, telefoni, email, promesse o dati personali; lingua dei messaggi brevi = lingua della sessione con confidenza ≤ 0,5. `interpret-v1` si modifica sul posto finché non ha una baseline degli evals. |
 
 ---
 
@@ -405,6 +417,8 @@ I valori vengono **normalizzati in italiano** (tranne i nomi propri e delle isti
 
 I campi personalizzati (`custom.*`) hanno tipo `text`, `bool`, `number`, `date`, `enum`, `list` e sono validati secondo la definizione della campagna.
 
+**Campi sensibili** (D90): un campo, standard o personalizzato, può avere `"sensitive": true`. Si chiede e si salva come gli altri, ma il suo valore non arriva mai all'LLM: nel contesto compare solo come `withheld` e nella storia diventa `[campo]` (§8.2). Nello schema standard sono sensibili `workingPermit` e `jobPreferences.constraints`. I dati personali (`firstName`, `lastName`, `birthday`, `address`, `email`) sono trattati allo stesso modo senza bisogno del flag; `phone`, `lat`, `lng` sono di sistema e non compaiono affatto.
+
 **Stato per campo**, conservato accanto al valore: `confidence` (0–1), `status` (`confirmed` | `inferred` | `unresolved`) e `source` dell'ultimo aggiornamento.
 
 ---
@@ -463,11 +477,31 @@ Usare una sola chiamata per l'interpretazione è la scelta di partenza perché c
 
 ### 8.2 Contesto passato all'LLM (minimizzazione)
 
-- domanda corrente (testo, `field`, tipo, `hint`);
-- campi ancora aperti del blocco, con tipo e descrizione;
-- **riepilogo compatto** dei campi già raccolti, utile per capire le richieste di modifica: **senza** nome, cognome, telefono, indirizzo completo o data di nascita, a meno che non servano per il turno (per esempio per modificare quel campo);
-- ultimi N messaggi della sessione (N configurabile, ridotto);
-- lingua della sessione e fase (`language` / `flow` / `post_completion`).
+- fase (`language` / `flow` / `post_completion` / `closed`) e lingua della sessione;
+- passaggio corrente (id, tipo, testo di riferimento in italiano per `choice` e `cv_offer`; per
+  un consenso `consentKey`, `optional` e lo scopo in poche parole, ricavato dal ruolo del
+  consenso, D86);
+- domanda corrente (testo in italiano, `field`, tipo, descrizione, `format`, opzioni, `hint`,
+  obbligatorietà) e, se parte della risposta è già salvata, `savedValue`: è l'unico valore di un
+  campo personale o sensibile che può arrivare all'LLM, perché serve al turno (completare una
+  risposta parziale, D85);
+- **campi ancora aperti di tutta la campagna**, con tipo e descrizione (D86): non solo del
+  blocco, perché le risposte anticipate sono il meccanismo di salto del §5.3; vuoto fuori dal
+  `flow` e prima della soglia dei consensi, tranne sul passaggio di consenso (D50);
+- **riepilogo compatto** dei campi già raccolti: nome, cognome, data di nascita, indirizzo,
+  email e i campi `sensitive` (§6, D90) compaiono solo come presenti (`withheld`), mai con il
+  valore; i campi di sistema non compaiono (D85);
+- **conferma in sospeso** (`value` / `edit` / `delete_data`, con il campo, senza valori): le
+  scelte attese diventano solo `yes`/`no`, e un sì/no risponde alla conferma, non alla domanda
+  corrente (D84);
+- **scelte attese** del turno: opzioni di `choice`, `accepted`/`declined`, `yes`/`no`,
+  `regenerate_cv` (D86);
+- ultimi N messaggi **del candidato** (`NLU_HISTORY_MESSAGES`, default 3), senza i testi del
+  bot. Nella storia i valori personali e sensibili diventano `[campo]`: quelli raccolti (anche
+  le date nelle forme scritte), quelli di una conferma in sospeso e i pezzi citati come
+  `evidence` dall'LLM, salvati o no (`redactWithEvidence`, applicato dal chiamante quando
+  conserva il messaggio); i nomi già da 2 lettere, a parola intera (D85). Il messaggio corrente
+  è inviato intero.
 
 ### 8.3 Output (`Interpretation`)
 
@@ -491,10 +525,16 @@ interface Interpretation {
 - **Output strutturato** validato con Zod. Se non è valido si fa un tentativo di correzione, poi `intent: unclear`.
 - **Timeout ed errori:** 2 ritentativi con attesa crescente, poi il modello di riserva.
 - **Validazione delle patch** in `profile`: un valore non valido per il tipo viene scartato e registrato.
+- **Normalizzazione prima di Zod** (D83): `null` e stringhe vuote nei campi facoltativi, codici
+  lingua come `IT` / `it-IT`. Gli errori non ritentabili (4xx) non passano alla riserva (D82).
+- **Controlli sul contesto dopo Zod** (D83): `editTarget` senza valore nuovo o su un campo non
+  raccolto → correzione; patch di un `choice` fuori dalla risposta a un consenso → tolta;
+  `offTopicReply` e `missing` troppo lunghi o con link, email o telefoni → tolti, perché
+  arrivano al candidato così come sono scritti.
 
 ### 8.5 Provider e modelli
 
-- Interfaccia `LlmProvider` con `complete({ messages, schema, model, temperature })`.
+- Interfaccia `LlmProvider` con `complete({ messages, model, temperature, responseFormat, maxTokens, timeoutMs })` (D80).
 - Configurazione per compito: `interpret.model`, `translate.model`, `fallback.model`.
 - Candidato iniziale: **Mistral**, ospitato in UE. La scelta finale si fa confrontando gli evals.
 - **Prompt versionati** in `src/nlu/prompts/`; la versione viene salvata in ogni `NluTrace`.
@@ -561,7 +601,7 @@ Schema Postgres **`bot`**, nello stesso progetto Supabase della dashboard. Tutte
 - **CandidateProfile**: `id`, `sessionId` (1:1), `standard` (jsonb, schema §6), `custom` (jsonb), `fieldMeta` (jsonb: confidenza, stato e fonte per campo), `cvDocumentId?`, `completedAt`, `updatedAt`.
 - **ProfileChange**: `id`, `profileId`, `field`, `oldValue`, `newValue`, `source` (`extraction` | `edit` | `system` | `document_import`, estendibile), `turnId?`, `confidence?`, `createdAt`.
 - **Consent**: `id`, `contactId`, `sessionId`, `consentKey`, `textVersion`, `language`, `textShown`, `textShownIsCurated`, `dataController`, `outcome`, `messageId`, `createdAt`.
-- **NluTrace**: `id`, `turnId`, `task`, `promptVersion`, `provider`, `model`, `input` (jsonb), `output` (jsonb), `valid`, `latencyMs`, `inputTokens`, `outputTokens`, `costEstimate`, `error?`, `createdAt`.
+- **NluTrace**: `id`, `turnId`, `task`, `promptVersion`, `provider`, `model`, `input` (jsonb), `output` (jsonb), `valid`, `latencyMs`, `inputTokens`, `outputTokens`, `costEstimate`, `error?`, `createdAt`. Più `attempt` (`primary` / `retry` / `fallback`) e `repair` (D87). Una riga per chiamata; `input` senza il prompt di sistema. Tabella creata nel piano 08.
 - **CvDocument**: `id`, `profileId`, `kind` (`generated` | `uploaded`), `template`, `storageKey`, `createdAt`.
 - **TranslationCache**: `sourceHash`, `language`, `text`, `provider`, `model`, `reviewed`, `createdAt`. Chiave primaria su (`sourceHash`, `language`).
 - **InboundDeadLetter**: payload non interpretabili (`raw`, `reason`, `createdAt`).

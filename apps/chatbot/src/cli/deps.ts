@@ -1,4 +1,5 @@
 import type { NodeEnv } from "../config/env";
+import type { NluServices } from "../nlu/services";
 import type { Database } from "../store/db";
 
 /** Lines typed by the operator. */
@@ -27,6 +28,8 @@ export interface CliDeps {
   readonly openInput: () => LineInput;
   /** The current time, ISO-8601: the engine gets time from its events. */
   readonly now: () => string;
+  /** The LLM and its configuration, built only by commands that need them (D81). */
+  readonly nlu: () => NluServices;
 }
 
 /** A failure already explained to the user: main prints the message and exits non-zero. */

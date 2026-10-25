@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { createInterface } from "node:readline";
 import { parseEnv, parseNodeEnv } from "../config/env";
+import { createNluServices } from "../nlu/services";
 import { createDatabase } from "../store/db";
 import type { CliDeps } from "./deps";
 import { runProgram } from "./run";
@@ -39,6 +40,7 @@ const deps: CliDeps = {
     };
   },
   now: () => new Date().toISOString(),
+  nlu: () => createNluServices(process.env),
 };
 
 process.exitCode = await runProgram(deps, process.argv, process.env["KUBRI_BOT_DEBUG"] === "1");

@@ -2,6 +2,7 @@ import { InvalidArgumentError, Option, type Command } from "commander";
 import { validateCampaign } from "../../campaigns/validate";
 import { createTextResolver } from "../../i18n/resolve";
 import { MemoryTranslationCache } from "../../i18n/translation-cache";
+import { NOOP_TRACE_SINK } from "../../nlu/trace";
 import { CliError, type CliDeps } from "../deps";
 import { formatIssues } from "../format-issues";
 import { readCampaignFile } from "../read-campaign-file";
@@ -12,9 +13,11 @@ import {
   type SimulationKinds,
 } from "../simulate/services";
 import { createSimulation } from "../simulate/simulation";
+import { printingTraceSink } from "../simulate/trace-printer";
 
 interface SimulateOptions extends SimulationKinds {
   readonly history: number;
+  readonly traces: boolean;
 }
 
 function parseHistory(value: string): number {
@@ -41,6 +44,7 @@ export function registerSimulateCommand(campaigns: Command, deps: CliDeps): void
         .default("fake"),
     )
     .option("--history <n>", "earlier user messages given to the NLU", parseHistory, 3)
+    .option("--traces", "print one line per LLM call (no content) on stderr", false)
     .action(async (file: string, options: SimulateOptions) => {
       const result = validateCampaign(await readCampaignFile(deps, file));
       if (!result.ok) {
@@ -48,7 +52,10 @@ export function registerSimulateCommand(campaigns: Command, deps: CliDeps): void
         formatIssues(result.issues).forEach(deps.err);
         throw new CliError(`Invalid campaign: ${file}`);
       }
-      const services = createSimulationServices(options, deps);
+      const services = createSimulationServices(options, deps, {
+        traces: options.traces ? printingTraceSink(deps.err) : NOOP_TRACE_SINK,
+        historyMessages: options.history,
+      });
       const simulation = createSimulation({
         campaign: result.campaign,
         interpreter: services.interpreter,

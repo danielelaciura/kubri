@@ -47,13 +47,13 @@
         {
           "id": "nome",
           "field": "firstName",
-          "prompt": { "it": "Come ti chiami?" },
-          "hint": "Solo il nome di battesimo, con l'iniziale maiuscola. Se il candidato scrive nome e cognome insieme, separa il cognome nel campo lastName."
+          "prompt": { "it": "Come ti chiami? Scrivi nome e cognome." },
+          "hint": "La domanda chiede nome e cognome insieme: metti il nome di battesimo, con l'iniziale maiuscola, in firstName e il cognome in lastName. Se scrive solo il nome, la risposta è comunque completa: lastName resta fuori e verrà chiesto con la domanda successiva."
         },
         {
           "id": "cognome",
           "field": "lastName",
-          "prompt": { "it": "Qual è il tuo cognome?" },
+          "prompt": { "it": "E il tuo cognome?" },
           "hint": "Riporta il cognome come lo scrive il candidato, senza tradurlo né traslitterarlo in modo diverso."
         },
         {

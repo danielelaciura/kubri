@@ -920,6 +920,7 @@ Il motore di evals è scritto in proprio in TypeScript: dataset in JSON, misurat
 | **Convergenza dei dati con la dashboard** | Stesso database (schemi separati): basteranno viste o chiavi esterne, senza procedure di copia. Collegamento `Organization.kubriOrganizationId`. |
 | **Intervento di un operatore** | Evento `admin_action` del motore; sessione `needs_attention`. |
 | **Nuovi tipi di passaggio** (appuntamento, richiesta di documenti) | Insieme dei tipi estendibile nel codice, poi disponibile per tutte le campagne. |
+| **Domande su più campi** (`fields: [...]`: completezza su tutti i campi, approfondimento sul campo mancante) | Oggi si ottiene con una domanda che chiede più dati ("nome e cognome") seguita da domande di riserva sui campi mancanti: l'LLM estrae tutti i campi del messaggio e il motore salta le domande già compilate (campagna standard, nome e cognome, verificato con `mistral-medium` il 2026-10-25). Da introdurre solo se una campagna reale non si presta a questo schema. |
 
 ---
 

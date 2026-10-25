@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { SessionState } from "../../../src/engine/state";
 import { FakeLlmProvider } from "../../../src/nlu/fake-provider";
-import { createLlmInterpreter } from "../../../src/nlu/interpret";
+import { buildInterpretContext } from "../../../src/nlu/context";
+import { createLlmInterpreter, interpretContext } from "../../../src/nlu/interpret";
 import type { InterpretRequest } from "../../../src/nlu/interpreter";
 import { LlmError } from "../../../src/nlu/llm-provider";
 import { INTERPRET_SYSTEM_PROMPT } from "../../../src/nlu/prompts/interpret-v1";
@@ -188,5 +189,65 @@ describe("createLlmInterpreter", () => {
     );
 
     expect(result).toMatchObject({ intent: "choice", choice: "yes", patch: [] });
+  });
+});
+
+describe("interpretContext (for evals)", () => {
+  const context = () => buildInterpretContext(request(), 3);
+
+  it("interprets a prepared context and returns the raw reply and the traces", async () => {
+    const provider = new FakeLlmProvider([interpretationJson(MARIO)]);
+    const sink = new MemoryTraceSink();
+
+    const result = await interpretContext(
+      { context: context(), message: "Mario", turnId: null, defaultLanguage: "it" },
+      taskOptions(provider, sink),
+    );
+
+    expect(result).toMatchObject({
+      interpretation: { intent: "answer", patch: MARIO.patch },
+      raw: interpretationJson(MARIO),
+      valid: true,
+      repaired: false,
+    });
+    expect(result.traces).toHaveLength(1);
+    expect(sink.records).toEqual(result.traces);
+  });
+
+  it("reports a repair, and unclear after a failed one", async () => {
+    const repaired = await interpretContext(
+      { context: context(), message: "Mario", turnId: null, defaultLanguage: "it" },
+      taskOptions(new FakeLlmProvider(["nope", interpretationJson(MARIO)])),
+    );
+    expect(repaired).toMatchObject({ valid: true, repaired: true });
+    expect(repaired.traces.map((t) => t.repair)).toEqual([false, true]);
+
+    const failed = await interpretContext(
+      { context: context(), message: "Mario", turnId: null, defaultLanguage: "fr" },
+      taskOptions(new FakeLlmProvider(["nope", "still nope"])),
+    );
+    expect(failed).toMatchObject({
+      interpretation: { intent: "unclear", language: { code: "it", confidence: 0 } },
+      raw: "still nope",
+      valid: false,
+      repaired: true,
+    });
+  });
+
+  it("returns null with no raw reply when the LLM is unavailable", async () => {
+    const provider = new FakeLlmProvider([new LlmError("client", "Mistral HTTP 401", 401)]);
+
+    const result = await interpretContext(
+      { context: context(), message: "Mario", turnId: null, defaultLanguage: "it" },
+      taskOptions(provider),
+    );
+
+    expect(result).toMatchObject({
+      interpretation: null,
+      raw: null,
+      valid: false,
+      repaired: false,
+    });
+    expect(result.traces).toHaveLength(1);
   });
 });

@@ -7,6 +7,8 @@ export interface TurnInput {
   readonly id: string;
   /** null: the turn never got a session (no campaign for the message, media only). */
   readonly sessionId: string | null;
+  /** Always set: a session-less turn still belongs to the contact (deleted with it). */
+  readonly contactId: string;
   readonly inboundMessageIds: readonly string[];
   readonly startedAt: Date;
   readonly completedAt: Date;

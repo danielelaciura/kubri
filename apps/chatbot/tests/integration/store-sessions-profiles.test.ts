@@ -105,6 +105,48 @@ describe("sessions", () => {
     await closeOpenKey(db, session.id);
 
     expect(await findOpenSession(db, contactId, senderId)).toBeNull();
+    // An interview left for another campaign is abandoned (the CHECK forbids an active one
+    // without a key).
+    expect((await findSessionById(db, session.id))?.status).toBe("abandoned");
+  });
+
+  it("closes a completed session's key and keeps it completed", async () => {
+    const session = await start();
+    await saveSession(db, session.id, {
+      language: null,
+      status: "completed",
+      at: NOW,
+      completedAt: NOW,
+      closeOpen: false,
+    });
+
+    await closeOpenKey(db, session.id);
+
+    expect(await db.session.findUniqueOrThrow({ where: { id: session.id } })).toMatchObject({
+      status: "completed",
+      openKey: null,
+    });
+  });
+
+  it("drops the key whenever the status is a closed one", async () => {
+    const session = await start();
+
+    await saveSession(db, session.id, {
+      language: null,
+      status: "stopped",
+      at: NOW,
+      closeOpen: false,
+    });
+
+    expect((await db.session.findUniqueOrThrow({ where: { id: session.id } })).openKey).toBeNull();
+  });
+
+  it("refuses to close the key of a session that stays active", async () => {
+    const session = await start();
+
+    await expect(
+      saveSession(db, session.id, { language: null, status: "active", at: NOW, closeOpen: true }),
+    ).rejects.toThrow(/open status/);
   });
 
   it("does not overwrite the stored state when none is given", async () => {

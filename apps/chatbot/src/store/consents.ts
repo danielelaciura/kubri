@@ -19,6 +19,8 @@ export interface ConsentInput {
   /** The exact text shown to the candidate (CLAUDE.md, privacy rule 1). */
   readonly textShown: string;
   readonly textShownIsCurated: boolean;
+  /** The official text's link shown with a text that is not curated; null when none was. */
+  readonly linkShown: string | null;
   readonly dataController: CampaignDefinition["dataController"];
   readonly outcome: "accepted" | "declined";
   readonly messageId: string | null;

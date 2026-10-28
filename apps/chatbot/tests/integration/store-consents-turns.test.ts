@@ -63,6 +63,7 @@ describe("consents", () => {
       language: "en",
       textShown: "[en] Accetti?",
       textShownIsCurated: false,
+      linkShown: "https://kubri.it/privacy",
       dataController: { name: "Kubri", privacyUrl: "https://kubri.it/privacy" },
       outcome: "accepted",
       messageId: null,
@@ -75,6 +76,7 @@ describe("consents", () => {
       consentKey: "privacy_interview",
       textShown: "[en] Accetti?",
       textShownIsCurated: false,
+      linkShown: "https://kubri.it/privacy",
       outcome: "accepted",
       contactHash: contactHash("whatsapp", "3933311"),
     });
@@ -87,6 +89,7 @@ describe("turns and flags", () => {
 
     await insertTurn(db, {
       id,
+      contactId,
       sessionId,
       inboundMessageIds: [],
       startedAt: new Date("2026-10-24T10:00:00Z"),
@@ -97,6 +100,7 @@ describe("turns and flags", () => {
     expect(await db.turn.findUniqueOrThrow({ where: { id } })).toMatchObject({
       outcome: "replied",
       sessionId,
+      contactId,
     });
   });
 

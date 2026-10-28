@@ -77,7 +77,25 @@ export interface SessionChanges {
   readonly closeOpen: boolean;
 }
 
+/** Always open (D105): the candidate may still be talking. */
+const OPEN_STATUSES: readonly SessionStatusName[] = ["active", "needs_attention"];
+/** Never open. `completed` is either: open in post-completion, closed after it. */
+const CLOSED_STATUSES: readonly SessionStatusName[] = ["stopped", "abandoned"];
+
+/**
+ * Keeps `openKey` consistent with the status, as the Session CHECK constraint requires
+ * (migration runtime_integrity): a closed status drops the key, and closing the key of a
+ * session that stays active or needs attention is a bug, refused before the database does.
+ */
+function dropsOpenKey(changes: SessionChanges): boolean {
+  if (changes.closeOpen && OPEN_STATUSES.includes(changes.status)) {
+    throw new Error(`cannot close the open key of a session with an open status`);
+  }
+  return changes.closeOpen || CLOSED_STATUSES.includes(changes.status);
+}
+
 export async function saveSession(tx: Tx, id: string, changes: SessionChanges): Promise<void> {
+  const dropKey = dropsOpenKey(changes);
   await tx.session.update({
     where: { id },
     data: {
@@ -87,13 +105,24 @@ export async function saveSession(tx: Tx, id: string, changes: SessionChanges): 
       lastActivityAt: changes.at,
       ...(changes.completedAt ? { completedAt: changes.completedAt } : {}),
       ...(changes.stoppedAt ? { stoppedAt: changes.stoppedAt } : {}),
-      ...(changes.closeOpen ? { openKey: null } : {}),
+      ...(dropKey ? { openKey: null } : {}),
     },
   });
 }
 
+/**
+ * A new campaign replaces the open session (D105). An interview still running is abandoned
+ * (an active session without a key is not allowed); a completed one stays completed.
+ */
 export async function closeOpenKey(tx: Tx, id: string): Promise<void> {
-  await tx.session.update({ where: { id }, data: { openKey: null } });
+  await tx.session.updateMany({
+    where: { id, status: { in: [...OPEN_STATUSES] } },
+    data: { openKey: null, status: "abandoned" },
+  });
+  await tx.session.updateMany({
+    where: { id, status: { notIn: [...OPEN_STATUSES] } },
+    data: { openKey: null },
+  });
 }
 
 export function findSessionById(tx: Tx, id: string): Promise<SessionRecord | null> {

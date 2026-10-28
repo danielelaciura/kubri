@@ -144,6 +144,7 @@ model Contact {
 
   channelStates ContactChannelState[]
   sessions      Session[]
+  turns         Turn[]
   messages      Message[]
   consents      Consent[]
 
@@ -191,6 +192,10 @@ model Session {
   language          String?
   /// "<contactId>:<senderNumberId>" while the session is open, else null. Unique: at most one
   /// open session per contact and number (spec §10.2, D105).
+  /// A hand-written CHECK (migration runtime_integrity, Prisma does not model it) ties it to
+  /// `status`: active and needs_attention are always open (the candidate may still be talking);
+  /// stopped and abandoned never are; completed may be either (open in the post-completion
+  /// phase, closed after an opt-out or when a new campaign replaces it).
   openKey           String?       @unique
   startedAt         DateTime      @default(now())
   completedAt       DateTime?
@@ -223,18 +228,23 @@ model Turn {
   id                 String      @id @default(uuid()) @db.Uuid
   /// Null for a turn that never got a session (no campaign for the message, media only).
   sessionId          String?     @db.Uuid
+  /// Always written by the runtime; nullable only for rows older than the column. Deleting the
+  /// contact also deletes its session-less turns.
+  contactId          String?     @db.Uuid
   inboundMessageIds  String[]    @db.Uuid
   startedAt          DateTime
   completedAt        DateTime
   outcome            TurnOutcome
 
   session  Session?         @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  contact  Contact?         @relation(fields: [contactId], references: [id], onDelete: Cascade)
   messages Message[]
   traces   NluTrace[]
   changes  ProfileChange[]
   flags    SessionFlag[]
 
   @@index([sessionId, startedAt])
+  @@index([contactId, startedAt])
   @@schema("bot")
 }
 
@@ -377,6 +387,9 @@ model Consent {
   /// The exact text shown, as resolved for the candidate.
   textShown          String
   textShownIsCurated Boolean
+  /// The official text's link shown next to a text that is not curated (a machine
+  /// translation): with `textShown` it records exactly what the candidate saw (CLAUDE.md).
+  linkShown          String?
   dataController     Json
   outcome            ConsentOutcome
   /// The inbound message that answered; no foreign key (the message can be purged).

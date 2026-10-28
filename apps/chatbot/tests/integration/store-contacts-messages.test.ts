@@ -163,6 +163,7 @@ async function seedSession(): Promise<string> {
       senderNumberId: senderId,
       campaignVersionId: imported.versionId,
       engineState: {},
+      openKey: `${contactId}:${senderId}`,
       profile: { create: {} },
     },
   });

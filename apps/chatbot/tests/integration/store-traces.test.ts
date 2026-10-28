@@ -97,6 +97,7 @@ describe("database trace sink", () => {
         senderNumberId: sender.id,
         campaignVersionId: imported.versionId,
         engineState: {},
+        openKey: `${contact.id}:${sender.id}`,
         profile: { create: {} },
       },
     });

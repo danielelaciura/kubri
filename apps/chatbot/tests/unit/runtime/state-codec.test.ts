@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decodeState, encodeState } from "../../../src/runtime/state-codec";
+import { decodeState, encodeState, STATE_FORMAT_VERSION } from "../../../src/runtime/state-codec";
 import { initialSessionState, type SessionState } from "../../../src/engine/state";
 import { inferred } from "../engine/helpers";
 
@@ -41,10 +41,65 @@ describe("encodeState and decodeState", () => {
     expect(decoded.pendingConfirmation).toEqual(pendingConfirmation);
   });
 
+  it("writes the format version", () => {
+    expect(encodeState(STATE)).toMatchObject({ v: STATE_FORMAT_VERSION });
+    expect(STATE_FORMAT_VERSION).toBe(1);
+  });
+
+  it("decodes a legacy state without `v` and with a key it does not know", () => {
+    const { v: _v, ...legacy } = encodeState(STATE);
+    const dropped: string[] = [];
+
+    const decoded = decodeState({ ...legacy, mood: "happy" }, STATE.profile, {
+      onDropped: (what) => dropped.push(what),
+    });
+
+    expect(decoded).toEqual(STATE);
+    expect(decoded).not.toHaveProperty("mood");
+    expect(decoded).not.toHaveProperty("v");
+    expect(dropped).toEqual([]);
+  });
+
+  it("fills the fields an older state did not have with their defaults", () => {
+    const decoded = decodeState({ phase: "flow", stepId: "anagrafica", questionId: "nome" }, {});
+
+    expect(decoded).toEqual({
+      ...initialSessionState(),
+      phase: "flow",
+      stepId: "anagrafica",
+      questionId: "nome",
+    });
+  });
+
+  it.each([
+    ["an unknown kind", { kind: "teleport", field: "x" }],
+    ["a broken known kind", { kind: "value", field: 3 }],
+  ])("drops a pending confirmation with %s and reports it, keeping the rest", (_n, pending) => {
+    const dropped: string[] = [];
+
+    const decoded = decodeState(
+      { ...encodeState(STATE), pendingConfirmation: pending },
+      STATE.profile,
+      { onDropped: (what) => dropped.push(what) },
+    );
+
+    expect(decoded).toEqual({ ...STATE, pendingConfirmation: null });
+    expect(dropped).toEqual(["pendingConfirmation"]);
+  });
+
+  it("keeps the extra keys of a pending confirmation out", () => {
+    const decoded = decodeState(
+      { ...encodeState(STATE), pendingConfirmation: { kind: "delete_data", extra: 1 } },
+      {},
+    );
+
+    expect(decoded.pendingConfirmation).toEqual({ kind: "delete_data" });
+  });
+
   it.each([
     ["not an object", "oops"],
     ["an unknown phase", { ...encodeState(STATE), phase: "dancing" }],
-    ["an unknown key", { ...encodeState(STATE), mood: "happy" }],
+    ["a missing phase", { stepId: null }],
     ["a bad language", { ...encodeState(STATE), language: "ARABIC" }],
   ])("refuses %s", (_name, json) => {
     expect(() => decodeState(json, {})).toThrow(/engine state/);

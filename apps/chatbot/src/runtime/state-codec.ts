@@ -3,37 +3,64 @@ import type { ProfileSnapshot } from "../engine/profile-snapshot";
 import type { PendingConfirmation, SessionState } from "../engine/state";
 import { LanguageCodeSchema } from "../i18n/localized-text";
 
+/**
+ * Format of Session.engineState. Bump it when the shape changes incompatibly; additions
+ * do not need a bump: they get a default below, so older rows still decode.
+ */
+export const STATE_FORMAT_VERSION = 1;
+
+// Extra keys are stripped, not refused: a row written by a newer release (or before a field
+// was removed) must still be readable after a deploy or a rollback.
 const PendingSchema = z.discriminatedUnion("kind", [
-  z.strictObject({
+  z.object({
     kind: z.literal("value"),
     field: z.string(),
     value: z.unknown(),
     confidence: z.number(),
   }),
-  z.strictObject({
+  z.object({
     kind: z.literal("edit"),
     field: z.string(),
     oldValue: z.unknown(),
     newValue: z.unknown(),
   }),
-  z.strictObject({ kind: z.literal("delete_data") }),
+  z.object({ kind: z.literal("delete_data") }),
 ]);
 
-/** SessionState without `profile` (D104). */
-const PersistedStateSchema = z.strictObject({
+/** SessionState without `profile` (D104). Only `phase` has no safe default. */
+const PersistedStateSchema = z.object({
+  /** Absent in rows written before the version existed (legacy = 1). */
+  v: z.number().int().positive().optional(),
   phase: z.enum(["language", "flow", "post_completion", "closed"]),
-  stepId: z.string().nullable(),
-  questionId: z.string().nullable(),
-  clarifications: z.number().int().min(0),
-  pendingConfirmation: PendingSchema.nullable(),
-  outcomes: z.record(z.string(), z.string()),
-  language: LanguageCodeSchema.nullable(),
-  consentsAccepted: z.boolean(),
+  stepId: z.string().nullable().default(null),
+  questionId: z.string().nullable().default(null),
+  clarifications: z.number().int().min(0).default(0),
+  // Read on its own: an unknown or broken confirmation is dropped, not fatal.
+  pendingConfirmation: z.unknown().optional(),
+  outcomes: z.record(z.string(), z.string()).default({}),
+  language: LanguageCodeSchema.nullable().default(null),
+  consentsAccepted: z.boolean().default(false),
 });
-export type PersistedState = z.infer<typeof PersistedStateSchema>;
 
-function pending(p: z.infer<typeof PendingSchema> | null): PendingConfirmation | null {
-  if (p === null) return null;
+/** What is written to Session.engineState. */
+export type PersistedState = Omit<SessionState, "profile"> & { readonly v: number };
+
+export interface DecodeOptions {
+  /**
+   * Called with the path of a part that could not be read and was dropped (never its value):
+   * the caller logs it with the ids and may flag the session.
+   */
+  readonly onDropped?: (path: string) => void;
+}
+
+function pending(json: unknown, options: DecodeOptions): PendingConfirmation | null {
+  if (json === undefined || json === null) return null;
+  const result = PendingSchema.safeParse(json);
+  if (!result.success) {
+    options.onDropped?.("pendingConfirmation");
+    return null;
+  }
+  const p = result.data;
   switch (p.kind) {
     case "value":
       return { kind: "value", field: p.field, value: p.value, confidence: p.confidence };
@@ -47,12 +74,17 @@ function pending(p: z.infer<typeof PendingSchema> | null): PendingConfirmation |
 /** The profile is CandidateProfile's job: it never goes into engineState (D104). */
 export function encodeState(state: SessionState): PersistedState {
   const { profile: _profile, ...rest } = state;
-  return rest;
+  return { v: STATE_FORMAT_VERSION, ...rest };
 }
 
-export function decodeState(json: unknown, profile: ProfileSnapshot): SessionState {
+/** Throws only when the state as a whole is unusable (not an object, no valid phase…). */
+export function decodeState(
+  json: unknown,
+  profile: ProfileSnapshot,
+  options: DecodeOptions = {},
+): SessionState {
   const result = PersistedStateSchema.safeParse(json);
   if (!result.success) throw new Error("the stored engine state cannot be read");
-  const state = result.data;
-  return { ...state, pendingConfirmation: pending(state.pendingConfirmation), profile };
+  const { v: _v, pendingConfirmation, ...state } = result.data;
+  return { ...state, pendingConfirmation: pending(pendingConfirmation, options), profile };
 }

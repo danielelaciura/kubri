@@ -11,7 +11,7 @@ import { asJson, toNullableJson as toJson } from "./json";
 
 const PROFILE_COLUMNS = { id: true, standard: true, custom: true, fieldMeta: true } as const;
 
-/** The codec reads exactly the three JSON columns (strict schema): the row id stays out. */
+/** The codec reads only the three JSON columns: the row id stays out. */
 function parseRow(row: { standard: unknown; custom: unknown; fieldMeta: unknown }): StoredProfile {
   return parseStoredProfile({
     standard: row.standard,

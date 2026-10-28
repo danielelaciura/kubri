@@ -23,27 +23,50 @@ export interface StoredProfile {
 
 export const EMPTY_PROFILE: StoredProfile = { standard: {}, custom: {}, fieldMeta: {} };
 
-const MetaSchema = z.strictObject({
+const SOURCES = ["extraction", "edit", "system"] as const;
+
+// Read one entry at a time: a bad entry costs that field (asked again), not the profile.
+// Extra keys are stripped; an unknown source (a newer release) falls back to "system".
+const MetaSchema = z.object({
   confidence: z.number().min(0).max(1),
   status: z.enum(["confirmed", "inferred", "unresolved"]),
-  source: z.enum(["extraction", "edit", "system"]),
+  source: z.string(),
 });
 
-const StoredProfileSchema = z.strictObject({
+const StoredProfileSchema = z.object({
   standard: z.record(z.string(), z.unknown()),
   custom: z.record(z.string(), z.unknown()),
-  fieldMeta: z.record(z.string(), MetaSchema),
+  fieldMeta: z.record(z.string(), z.unknown()),
 });
 
+export interface ParseProfileOptions {
+  /** Called with the path of what was dropped or replaced (never its value). */
+  readonly onDropped?: (path: string) => void;
+}
+
+function isSource(source: string): source is ChangeSourceName {
+  return (SOURCES as readonly string[]).includes(source);
+}
+
 /** What comes out of the database is a boundary: it is parsed, not trusted. */
-export function parseStoredProfile(json: {
-  standard: unknown;
-  custom: unknown;
-  fieldMeta: unknown;
-}): StoredProfile {
+export function parseStoredProfile(
+  json: { standard: unknown; custom: unknown; fieldMeta: unknown },
+  options: ParseProfileOptions = {},
+): StoredProfile {
   const result = StoredProfileSchema.safeParse(json);
   if (!result.success) throw new Error("the stored profile cannot be read");
-  return result.data;
+  const fieldMeta: Record<string, FieldMeta> = {};
+  for (const [ref, raw] of Object.entries(result.data.fieldMeta)) {
+    const meta = MetaSchema.safeParse(raw);
+    if (!meta.success) {
+      options.onDropped?.(`fieldMeta.${ref}`);
+      continue;
+    }
+    const { source, ...rest } = meta.data;
+    if (!isSource(source)) options.onDropped?.(`fieldMeta.${ref}.source`);
+    fieldMeta[ref] = { ...rest, source: isSource(source) ? source : "system" };
+  }
+  return { standard: result.data.standard, custom: result.data.custom, fieldMeta };
 }
 
 function split(ref: string): { bucket: "standard" | "custom"; key: string } {

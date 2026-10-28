@@ -73,8 +73,54 @@ describe("parseStoredProfile", () => {
     expect(() => parseStoredProfile({ standard: [], custom: {}, fieldMeta: {} })).toThrow(
       /stored profile/,
     );
-    expect(() =>
-      parseStoredProfile({ standard: {}, custom: {}, fieldMeta: { x: { confidence: 2 } } }),
-    ).toThrow(/stored profile/);
+    expect(() => parseStoredProfile({ standard: {}, custom: {}, fieldMeta: "x" })).toThrow(
+      /stored profile/,
+    );
+  });
+
+  it("ignores unknown keys in a field's meta", () => {
+    const parsed = parseStoredProfile({
+      standard: { firstName: "Mario" },
+      custom: {},
+      fieldMeta: { firstName: { ...META, evidenceId: "e1" } },
+    });
+
+    expect(parsed.fieldMeta["firstName"]).toEqual(META);
+  });
+
+  it("reads an unknown source as system and reports it", () => {
+    const dropped: string[] = [];
+
+    const parsed = parseStoredProfile(
+      {
+        standard: { firstName: "Mario" },
+        custom: {},
+        fieldMeta: { firstName: { ...META, source: "cv_import" } },
+      },
+      { onDropped: (what) => dropped.push(what) },
+    );
+
+    expect(parsed.fieldMeta["firstName"]).toEqual({ ...META, source: "system" });
+    expect(dropped).toEqual(["fieldMeta.firstName.source"]);
+  });
+
+  it.each([
+    ["an unknown status", { ...META, status: "guessed" }],
+    ["a confidence out of range", { ...META, confidence: 2 }],
+  ])("drops one field's meta with %s, keeping the others", (_name, meta) => {
+    const dropped: string[] = [];
+
+    const parsed = parseStoredProfile(
+      {
+        standard: { firstName: "Mario", email: "a@b.it" },
+        custom: {},
+        fieldMeta: { firstName: meta, email: META },
+      },
+      { onDropped: (what) => dropped.push(what) },
+    );
+
+    expect(parsed.fieldMeta).toEqual({ email: META });
+    expect(toSnapshot(parsed)).not.toHaveProperty("firstName");
+    expect(dropped).toEqual(["fieldMeta.firstName"]);
   });
 });

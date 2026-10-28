@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { parseRuntimeConfig } from "../../../src/runtime/config";
+import { parseRuntimeConfig, requireConsentHashSecret } from "../../../src/runtime/config";
+
+const SECRET = "test-consent-hash-secret-0123456789abcdef";
 
 describe("parseRuntimeConfig", () => {
   it("has defaults and ignores other variables", () => {
@@ -12,6 +14,7 @@ describe("parseRuntimeConfig", () => {
       sendMaxAttempts: 5,
       workerBatchSize: 4,
       queueSchema: "bot_queue",
+      consentHashSecret: undefined,
     });
   });
 
@@ -24,6 +27,7 @@ describe("parseRuntimeConfig", () => {
       SEND_MAX_ATTEMPTS: "3",
       WORKER_BATCH_SIZE: "1",
       QUEUE_SCHEMA: "bot_queue_test",
+      CONSENT_HASH_SECRET: SECRET,
     });
 
     expect(config).toEqual({
@@ -35,6 +39,7 @@ describe("parseRuntimeConfig", () => {
       sendMaxAttempts: 3,
       workerBatchSize: 1,
       queueSchema: "bot_queue_test",
+      consentHashSecret: SECRET,
     });
   });
 
@@ -43,5 +48,28 @@ describe("parseRuntimeConfig", () => {
     expect(() => parseRuntimeConfig({ DEBOUNCE_MS: "soon" })).toThrow(/DEBOUNCE_MS/);
     expect(() => parseRuntimeConfig({ DEBOUNCE_MS: "soon" })).not.toThrow(/soon/);
     expect(() => parseRuntimeConfig({ QUEUE_SCHEMA: "bot; DROP" })).toThrow(/QUEUE_SCHEMA/);
+  });
+
+  it("refuses a short consent hash secret without echoing it", () => {
+    expect(() => parseRuntimeConfig({ CONSENT_HASH_SECRET: "short-secret" })).toThrow(
+      /CONSENT_HASH_SECRET/,
+    );
+    expect(() => parseRuntimeConfig({ CONSENT_HASH_SECRET: "short-secret" })).not.toThrow(
+      /short-secret/,
+    );
+  });
+});
+
+describe("requireConsentHashSecret", () => {
+  it("returns the secret when it is set", () => {
+    expect(requireConsentHashSecret(parseRuntimeConfig({ CONSENT_HASH_SECRET: SECRET }))).toBe(
+      SECRET,
+    );
+  });
+
+  it("stops the runtime that writes consents when it is missing", () => {
+    expect(() => requireConsentHashSecret(parseRuntimeConfig({}))).toThrow(
+      /CONSENT_HASH_SECRET is not set/,
+    );
   });
 });

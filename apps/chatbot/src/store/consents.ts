@@ -1,11 +1,14 @@
-import { createHash } from "node:crypto";
+import { createHmac } from "node:crypto";
 import type { CampaignDefinition } from "../campaigns/schema/campaign";
 import type { Tx } from "./db";
 import { asJson } from "./json";
 
-/** The minimal proof left when the contact is deleted (spec §10.6, D109). */
-export function contactHash(channel: string, externalId: string): string {
-  return createHash("sha256").update(`${channel}:${externalId}`, "utf8").digest("hex");
+/**
+ * The minimal proof left when the contact is deleted (spec §10.6, D109). Keyed (HMAC-SHA256
+ * with CONSENT_HASH_SECRET): a plain hash of a phone number is reversed by trying them all.
+ */
+export function contactHash(secret: string, channel: string, externalId: string): string {
+  return createHmac("sha256", secret).update(`${channel}:${externalId}`, "utf8").digest("hex");
 }
 
 export interface ConsentInput {
@@ -27,13 +30,17 @@ export interface ConsentInput {
   readonly decidedAt: Date;
 }
 
-export async function insertConsent(tx: Tx, input: ConsentInput): Promise<void> {
+export async function insertConsent(
+  tx: Tx,
+  input: ConsentInput,
+  hashSecret: string,
+): Promise<void> {
   const { channel, externalId, ...rest } = input;
   await tx.consent.create({
     data: {
       ...rest,
       dataController: asJson(rest.dataController),
-      contactHash: contactHash(channel, externalId),
+      contactHash: contactHash(hashSecret, channel, externalId),
     },
   });
 }

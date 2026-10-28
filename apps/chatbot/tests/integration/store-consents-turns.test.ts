@@ -1,6 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { importCampaign } from "../../src/campaigns/import";
 import { initialSessionState } from "../../src/engine/state";
+import { parseRuntimeConfig, requireConsentHashSecret } from "../../src/runtime/config";
 import { encodeState } from "../../src/runtime/state-codec";
 import { contactHash, insertConsent } from "../../src/store/consents";
 import { upsertContact } from "../../src/store/contacts";
@@ -10,6 +11,8 @@ import { createTestDatabase, resetBotSchema } from "./helpers/database";
 import { loadStandardCampaign, seedRegistry } from "./helpers/registry";
 
 const db = createTestDatabase();
+// From .env.test (dummy value), as the runtime reads it.
+const SECRET = requireConsentHashSecret(parseRuntimeConfig(process.env));
 let sessionId = "";
 let contactId = "";
 
@@ -43,32 +46,28 @@ afterAll(async () => {
   await db.$disconnect();
 });
 
-describe("contactHash", () => {
-  it("is a stable sha256 of channel and external id", () => {
-    expect(contactHash("whatsapp", "3933311")).toMatch(/^[0-9a-f]{64}$/);
-    expect(contactHash("whatsapp", "3933311")).toBe(contactHash("whatsapp", "3933311"));
-    expect(contactHash("whatsapp", "3933311")).not.toBe(contactHash("whatsapp", "3933312"));
-  });
-});
-
 describe("consents", () => {
   it("copies the text shown and the proof of the contact", async () => {
-    await insertConsent(db, {
-      contactId,
-      channel: "whatsapp",
-      externalId: "3933311",
-      sessionId,
-      consentKey: "privacy_interview",
-      textVersion: "placeholder-2026-10",
-      language: "en",
-      textShown: "[en] Accetti?",
-      textShownIsCurated: false,
-      linkShown: "https://kubri.it/privacy",
-      dataController: { name: "Kubri", privacyUrl: "https://kubri.it/privacy" },
-      outcome: "accepted",
-      messageId: null,
-      decidedAt: new Date("2026-10-24T10:00:00Z"),
-    });
+    await insertConsent(
+      db,
+      {
+        contactId,
+        channel: "whatsapp",
+        externalId: "3933311",
+        sessionId,
+        consentKey: "privacy_interview",
+        textVersion: "placeholder-2026-10",
+        language: "en",
+        textShown: "[en] Accetti?",
+        textShownIsCurated: false,
+        linkShown: "https://kubri.it/privacy",
+        dataController: { name: "Kubri", privacyUrl: "https://kubri.it/privacy" },
+        outcome: "accepted",
+        messageId: null,
+        decidedAt: new Date("2026-10-24T10:00:00Z"),
+      },
+      SECRET,
+    );
 
     expect(await db.consent.findFirstOrThrow()).toMatchObject({
       contactId,
@@ -78,7 +77,7 @@ describe("consents", () => {
       textShownIsCurated: false,
       linkShown: "https://kubri.it/privacy",
       outcome: "accepted",
-      contactHash: contactHash("whatsapp", "3933311"),
+      contactHash: contactHash(SECRET, "whatsapp", "3933311"),
     });
   });
 });

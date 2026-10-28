@@ -17,6 +17,12 @@ const RuntimeEnvSchema = z.object({
     .string()
     .regex(/^[a-z][a-z0-9_]*$/, "lowercase letters, digits and underscores")
     .default("bot_queue"),
+  /**
+   * Key of the HMAC that turns a contact into Consent.contactHash (D109): without it a
+   * phone number cannot be checked against the proof. Required only where consents are
+   * written (requireConsentHashSecret); never rotate it in place, old proofs stop matching.
+   */
+  CONSENT_HASH_SECRET: z.string().min(32, "at least 32 characters").optional(),
 });
 
 export interface RuntimeConfig {
@@ -29,6 +35,7 @@ export interface RuntimeConfig {
   readonly sendMaxAttempts: number;
   readonly workerBatchSize: number;
   readonly queueSchema: string;
+  readonly consentHashSecret: string | undefined;
 }
 
 /** Same convention as the NLU configuration: `KEY=` means unset; no values in the messages. */
@@ -55,5 +62,14 @@ export function parseRuntimeConfig(
     sendMaxAttempts: env.SEND_MAX_ATTEMPTS,
     workerBatchSize: env.WORKER_BATCH_SIZE,
     queueSchema: env.QUEUE_SCHEMA,
+    consentHashSecret: env.CONSENT_HASH_SECRET,
   };
+}
+
+/** The worker writes consents: it refuses to start without the key (no value in the message). */
+export function requireConsentHashSecret(config: RuntimeConfig): string {
+  if (config.consentHashSecret === undefined) {
+    throw new Error("CONSENT_HASH_SECRET is not set: it is required to record consents.");
+  }
+  return config.consentHashSecret;
 }

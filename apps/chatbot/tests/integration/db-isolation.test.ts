@@ -22,6 +22,25 @@ describe("shared database isolation", () => {
     },
   );
 
+  it.each([
+    "Contact",
+    "ContactChannelState",
+    "Session",
+    "Turn",
+    "Message",
+    "CandidateProfile",
+    "ProfileChange",
+    "Consent",
+    "SessionFlag",
+    "NluTrace",
+    "TranslationCache",
+  ])("creates %s in the bot schema only", async (table) => {
+    const rows = await db.$queryRaw<{ table_schema: string }[]>`
+      SELECT table_schema FROM information_schema.tables WHERE table_name = ${table}
+    `;
+    expect(rows.map((r) => r.table_schema)).toEqual(["bot"]);
+  });
+
   it("creates the registry enums in the bot schema only", async () => {
     const rows = await db.$queryRaw<{ schema: string; name: string }[]>`
       SELECT n.nspname AS schema, t.typname AS name

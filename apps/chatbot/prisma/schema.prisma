@@ -63,6 +63,9 @@ model SenderNumber {
 
   organization Organization? @relation(fields: [organizationId], references: [id])
   campaigns    Campaign[]
+  channelStates ContactChannelState[]
+  sessions      Session[]
+  messages      Message[]
 
   @@unique([channel, phoneE164])
   @@schema("bot")
@@ -115,8 +118,335 @@ model CampaignVersion {
 
   campaign  Campaign  @relation("Versions", fields: [campaignId], references: [id])
   activeFor Campaign? @relation("ActiveVersion")
+  sessions  Session[]
 
   @@unique([campaignId, version])
   @@unique([campaignId, checksum])
+  @@schema("bot")
+}
+
+enum OptInStatus {
+  opted_in
+  opted_out
+
+  @@schema("bot")
+}
+
+model Contact {
+  id                String   @id @default(uuid()) @db.Uuid
+  channel           Channel
+  /// The provider's id of the person (WhatsApp `wa_id`).
+  externalId        String
+  phoneE164         String
+  preferredLanguage String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  channelStates ContactChannelState[]
+  sessions      Session[]
+  messages      Message[]
+  consents      Consent[]
+
+  @@unique([channel, externalId])
+  @@schema("bot")
+}
+
+/// A contact on one sender number: the 24 hour window and the opt-in state (spec §10.2).
+model ContactChannelState {
+  id             String      @id @default(uuid()) @db.Uuid
+  contactId      String      @db.Uuid
+  senderNumberId String      @db.Uuid
+  lastInboundAt  DateTime?
+  optInStatus    OptInStatus @default(opted_in)
+  optInSource    String?
+  optInAt        DateTime?
+  optOutAt       DateTime?
+
+  contact      Contact      @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  senderNumber SenderNumber @relation(fields: [senderNumberId], references: [id])
+
+  @@unique([contactId, senderNumberId])
+  @@schema("bot")
+}
+
+enum SessionStatus {
+  active
+  completed
+  stopped
+  abandoned
+  needs_attention
+
+  @@schema("bot")
+}
+
+model Session {
+  id                String        @id @default(uuid()) @db.Uuid
+  contactId         String        @db.Uuid
+  senderNumberId    String        @db.Uuid
+  /// The immutable campaign version the session started on (CLAUDE.md).
+  campaignVersionId String        @db.Uuid
+  status            SessionStatus @default(active)
+  /// SessionState without `profile` (D104).
+  engineState       Json
+  language          String?
+  /// "<contactId>:<senderNumberId>" while the session is open, else null. Unique: at most one
+  /// open session per contact and number (spec §10.2, D105).
+  openKey           String?       @unique
+  startedAt         DateTime      @default(now())
+  completedAt       DateTime?
+  stoppedAt         DateTime?
+  lastActivityAt    DateTime      @default(now())
+
+  contact         Contact          @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  senderNumber    SenderNumber     @relation(fields: [senderNumberId], references: [id])
+  campaignVersion CampaignVersion  @relation(fields: [campaignVersionId], references: [id])
+  profile         CandidateProfile?
+  turns           Turn[]
+  messages        Message[]
+  flags           SessionFlag[]
+  consents        Consent[]
+
+  @@index([contactId, senderNumberId, startedAt])
+  @@schema("bot")
+}
+
+enum TurnOutcome {
+  replied
+  ignored_media
+  no_campaign
+  failed
+
+  @@schema("bot")
+}
+
+model Turn {
+  id                 String      @id @default(uuid()) @db.Uuid
+  /// Null for a turn that never got a session (no campaign for the message, media only).
+  sessionId          String?     @db.Uuid
+  inboundMessageIds  String[]    @db.Uuid
+  startedAt          DateTime
+  completedAt        DateTime
+  outcome            TurnOutcome
+
+  session  Session?         @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  messages Message[]
+  traces   NluTrace[]
+  changes  ProfileChange[]
+  flags    SessionFlag[]
+
+  @@index([sessionId, startedAt])
+  @@schema("bot")
+}
+
+enum MessageDirection {
+  inbound
+  outbound
+
+  @@schema("bot")
+}
+
+enum MessageType {
+  text
+  audio
+  image
+  document
+  location
+  unsupported
+
+  @@schema("bot")
+}
+
+enum MessageStatus {
+  received
+  processed
+  queued
+  sending
+  sent
+  delivered
+  read
+  failed
+
+  @@schema("bot")
+}
+
+model Message {
+  id                String           @id @default(uuid()) @db.Uuid
+  /// Global insertion order: outbound messages are sent in this order (D108).
+  ordinal           BigInt           @default(autoincrement())
+  contactId         String           @db.Uuid
+  senderNumberId    String           @db.Uuid
+  sessionId         String?          @db.Uuid
+  turnId            String?          @db.Uuid
+  direction         MessageDirection
+  type              MessageType
+  body              String?
+  /// Inbound text with the personal data already collected replaced by [field] (D107):
+  /// the only form that goes back to the LLM as history.
+  bodyRedacted      String?
+  language          String?
+  payloadRaw        Json?
+  stepId            String?
+  questionId        String?
+  /// Unique: deduplication of inbound messages (spec §11.1); set on outbound ones once sent.
+  providerMessageId String?          @unique
+  status            MessageStatus
+  attempts          Int              @default(0)
+  errorCode         String?
+  /// While `sending`: until when the claim is valid (D108).
+  leaseUntil        DateTime?
+  createdAt         DateTime         @default(now())
+  sentAt            DateTime?
+  deliveredAt       DateTime?
+  readAt            DateTime?
+  failedAt          DateTime?
+
+  contact      Contact      @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  senderNumber SenderNumber @relation(fields: [senderNumberId], references: [id])
+  session      Session?     @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  turn         Turn?        @relation(fields: [turnId], references: [id], onDelete: SetNull)
+
+  @@index([contactId, senderNumberId, direction, status, ordinal])
+  @@index([sessionId, direction, createdAt])
+  @@schema("bot")
+}
+
+model CandidateProfile {
+  id               String    @id @default(uuid()) @db.Uuid
+  sessionId        String    @unique @db.Uuid
+  /// Standard fields by key (spec §6), values only.
+  standard         Json      @default("{}")
+  /// Custom fields by key without the `custom.` prefix.
+  custom           Json      @default("{}")
+  /// Per field reference: confidence, status and source of the last update.
+  fieldMeta        Json      @default("{}")
+  /// Outcome of the optional `kubri_global` consent (D48).
+  sharedWithGlobal Boolean   @default(false)
+  completedAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  session Session         @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  changes ProfileChange[]
+
+  @@schema("bot")
+}
+
+enum ChangeSource {
+  extraction
+  edit
+  system
+
+  @@schema("bot")
+}
+
+model ProfileChange {
+  id         String       @id @default(uuid()) @db.Uuid
+  profileId  String       @db.Uuid
+  field      String
+  oldValue   Json?
+  newValue   Json?
+  source     ChangeSource
+  turnId     String?      @db.Uuid
+  confidence Float?
+  createdAt  DateTime     @default(now())
+
+  profile CandidateProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  turn    Turn?            @relation(fields: [turnId], references: [id], onDelete: SetNull)
+
+  @@index([profileId, createdAt])
+  @@schema("bot")
+}
+
+enum ConsentOutcome {
+  accepted
+  declined
+
+  @@schema("bot")
+}
+
+/// The proof of a consent: survives the deletion of the contact (spec §10.6, D109).
+model Consent {
+  id                 String         @id @default(uuid()) @db.Uuid
+  contactId          String?        @db.Uuid
+  /// sha256 of "<channel>:<externalId>": the minimal proof left after deletion.
+  contactHash        String
+  sessionId          String?        @db.Uuid
+  consentKey         String
+  textVersion        String
+  language           String
+  /// The exact text shown, as resolved for the candidate.
+  textShown          String
+  textShownIsCurated Boolean
+  dataController     Json
+  outcome            ConsentOutcome
+  /// The inbound message that answered; no foreign key (the message can be purged).
+  messageId          String?        @db.Uuid
+  decidedAt          DateTime
+  createdAt          DateTime       @default(now())
+
+  contact Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  session Session? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@index([sessionId])
+  @@index([contactHash])
+  @@schema("bot")
+}
+
+model SessionFlag {
+  id             String   @id @default(uuid()) @db.Uuid
+  sessionId      String   @db.Uuid
+  reason         String
+  field          String?
+  needsAttention Boolean
+  turnId         String?  @db.Uuid
+  createdAt      DateTime @default(now())
+
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  turn    Turn?   @relation(fields: [turnId], references: [id], onDelete: SetNull)
+
+  @@index([sessionId])
+  @@schema("bot")
+}
+
+/// It holds the candidate's words (patch values, evidence): deleted with the turn, to be
+/// given a retention period (plan 11).
+model NluTrace {
+  id            String   @id @default(uuid()) @db.Uuid
+  /// Null for translations: they belong to no turn and hold no personal data.
+  turnId        String?  @db.Uuid
+  task          String
+  promptVersion String
+  provider      String
+  model         String
+  attempt       String
+  repair        Boolean
+  /// Only on the first call of each chain (D110).
+  input         Json?
+  output        String?
+  valid         Boolean
+  latencyMs     Int
+  inputTokens   Int?
+  outputTokens  Int?
+  costEstimate  Float?
+  error         String?
+  createdAt     DateTime
+
+  turn Turn? @relation(fields: [turnId], references: [id], onDelete: Cascade)
+
+  @@index([turnId])
+  @@index([createdAt])
+  @@schema("bot")
+}
+
+model TranslationCache {
+  sourceHash String
+  language   String
+  text       String
+  provider   String
+  model      String
+  reviewed   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@id([sourceHash, language])
   @@schema("bot")
 }

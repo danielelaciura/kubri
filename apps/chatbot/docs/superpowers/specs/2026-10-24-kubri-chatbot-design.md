@@ -141,6 +141,11 @@ Oggi il chatbot di Kubri vive su Make.com. L'analisi dello scenario ha evidenzia
 | D89 | §5.6 punto 3 | Rinviato al piano 08: è instradamento del primo messaggio più un nuovo tipo di conferma nel motore, non NLU. |
 | D90 | Campi sensibili | Flag facoltativo `sensitive` sulla definizione di un campo (standard o `custom.*`; assente = falso, i checksum delle campagne non cambiano). Il campo si chiede e si salva come gli altri, ma il suo valore non arriva mai all'LLM (D85). Sensibili nello schema standard: `workingPermit` (rivela lo status migratorio) e `jobPreferences.constraints` (spesso salute o famiglia). |
 | D91 | Regole del prompt `interpret-v1` | Precedenza degli intenti (opt_out, delete_data, choice, edit_request, answer, refusal, help, off_topic, unclear); consenso accettato solo con un sì chiaro, l'ambiguo è `unclear`; storia e segnaposto `[campo]` sono dati, mai valori; ogni valore viene dal messaggio, mai dedotto (salvo `savedValue`); regole per tipo e fasce di confidenza; `edit_request` solo su campi raccolti; `offTopicReply` e `missing` al massimo 25 parole, senza link, telefoni, email, promesse o dati personali; lingua dei messaggi brevi = lingua della sessione con confidenza ≤ 0,5. `interpret-v1` si modifica sul posto finché non ha una baseline degli evals. |
+| D111a | Nomi di `Message` (piano 08, revisione dei Task 1–7) | `direction` vale `inbound` / `outbound` (non `in` / `out`); `type` per ora `text`, `audio`, `image`, `document`, `location`, `unsupported`. `interactive` e `template` non esistono finché il piano 09 non li usa: li aggiunge la sua migrazione. |
+| D111b | Formato di `Session.engineState` e del profilo (piano 08, revisione) | `engineState` porta `v: 1`; una riga senza `v` è il formato 1. In lettura le chiavi sconosciute si scartano e i campi mancanti prendono il default: solo uno stato senza `phase` valida, o con una lingua non valida, è illeggibile (D104). Una `pendingConfirmation` sconosciuta o rotta si scarta (`null`) e si segnala al chiamante (`onDropped`, solo il percorso, mai il valore). In `fieldMeta` una `source` sconosciuta diventa `system`, una voce con stato o confidenza non validi si scarta (il campo si richiede); entrambi segnalati. Le colonne del profilo non hanno un numero di formato: un cambiamento incompatibile passa da una migrazione. |
+| D111c | Integrità delle sessioni e dei turni (piano 08, revisione) | Migrazione `runtime_integrity`. `Turn.contactId` (chiave esterna, `ON DELETE CASCADE`, indice con `startedAt`): i turni senza sessione se ne vanno con il contatto; nullable solo per le righe precedenti, il runtime lo scrive sempre. Un `CHECK` scritto a mano lega `openKey` a `status`: `active` e `needs_attention` sono sempre aperte (il candidato può ancora scrivere), `stopped` e `abandoned` mai, `completed` può essere l'una o l'altra (aperta nella fase dopo il completamento, D105; chiusa dopo un opt-out o quando la sostituisce un'altra campagna). Quando una parola chiave apre una nuova sessione, la precedente ancora `active` / `needs_attention` diventa `abandoned`; una `completed` resta `completed`. |
+| D111d | Link mostrato con il consenso (piano 08, revisione) | `Consent.linkShown`: il link al testo ufficiale mostrato accanto a un testo non curato (D74), `null` se non è stato mostrato. Con `textShown` registra esattamente ciò che il candidato ha visto. |
+| D111e | Prova minima del contatto (piano 08, revisione; corregge D109) | `Consent.contactHash` = HMAC-SHA256 di `"<channel>:<externalId>"` con la chiave `CONSENT_HASH_SECRET` (almeno 32 caratteri, nel gestore dei segreti; obbligatoria per il worker, che non parte senza). Uno sha256 semplice di un numero di telefono si inverte provando tutti i numeri. La chiave non si ruota sul posto: le prove già scritte non corrisponderebbero più. |
 
 ---
 
@@ -587,22 +592,22 @@ Schema Postgres **`bot`**, nello stesso progetto Supabase della dashboard. Tutte
   - `status` (`active` | `completed` | `stopped` | `abandoned` | `needs_attention`);
   - `engineState` (jsonb), `language`, `origin` (`inbound` | `outbound`, futuro);
   - `startedAt`, `completedAt`, `lastActivityAt`.
-  - Una sola sessione `active` per (contatto, numero).
+  - Al più una sessione **aperta** per (contatto, numero): `openKey` univoca, legata a `status` da un `CHECK` (D105, D111c).
 - **Message**:
-  - `id`, `contactId`, `senderNumberId`, `sessionId?`, `direction` (`in` | `out`);
-  - `type` (`text` | `audio` | `image` | `document` | `interactive` | `template` | `location` | `unsupported`);
+  - `id`, `contactId`, `senderNumberId`, `sessionId?`, `direction` (`inbound` | `outbound`, D111a);
+  - `type` (`text` | `audio` | `image` | `document` | `location` | `unsupported`; `interactive` e `template` con il piano 09, D111a);
   - `body`, `mediaRef?`, `templateName?`, `payloadRaw` (jsonb, per i messaggi in entrata);
   - `stepId?`, `questionId?` (contesto al momento del messaggio);
   - `providerMessageId` (**univoco**, per la deduplica);
   - `status` (`received` | `processed` | `queued` | `sent` | `delivered` | `read` | `failed`), `sentAt`, `deliveredAt`, `readAt`, `failedAt`, `errorCode?`;
   - `turnId?`, `createdAt`.
-- **Turn**: `id`, `sessionId`, `inboundMessageIds[]`, `startedAt`, `completedAt`, `outcome`.
+- **Turn**: `id`, `sessionId?`, `contactId` (D111c), `inboundMessageIds[]`, `startedAt`, `completedAt`, `outcome`.
 
 ### 10.3 Profilo, consensi e tracciabilità
 
 - **CandidateProfile**: `id`, `sessionId` (1:1), `standard` (jsonb, schema §6), `custom` (jsonb), `fieldMeta` (jsonb: confidenza, stato e fonte per campo), `cvDocumentId?`, `completedAt`, `updatedAt`.
 - **ProfileChange**: `id`, `profileId`, `field`, `oldValue`, `newValue`, `source` (`extraction` | `edit` | `system` | `document_import`, estendibile), `turnId?`, `confidence?`, `createdAt`.
-- **Consent**: `id`, `contactId`, `sessionId`, `consentKey`, `textVersion`, `language`, `textShown`, `textShownIsCurated`, `dataController`, `outcome`, `messageId`, `createdAt`.
+- **Consent**: `id`, `contactId`, `sessionId`, `consentKey`, `textVersion`, `language`, `textShown`, `textShownIsCurated`, `linkShown?` (D111d), `dataController`, `contactHash` (HMAC, D111e), `outcome`, `messageId`, `createdAt`.
 - **NluTrace**: `id`, `turnId`, `task`, `promptVersion`, `provider`, `model`, `input` (jsonb), `output` (jsonb), `valid`, `latencyMs`, `inputTokens`, `outputTokens`, `costEstimate`, `error?`, `createdAt`. Più `attempt` (`primary` / `retry` / `fallback`) e `repair` (D87). Una riga per chiamata; `input` senza il prompt di sistema. Tabella creata nel piano 08.
 - **CvDocument**: `id`, `profileId`, `kind` (`generated` | `uploaded`), `template`, `storageKey`, `createdAt`.
 - **TranslationCache**: `sourceHash`, `language`, `text`, `provider`, `model`, `reviewed`, `createdAt`. Chiave primaria su (`sourceHash`, `language`).
@@ -624,7 +629,7 @@ Schema Postgres **`bot`**, nello stesso progetto Supabase della dashboard. Tutte
 
 ### 10.6 Conservazione e cancellazione
 
-- **Diritto all'oblio:** `delete-contact` cancella a cascata sessioni, messaggi, profili, tracce, file multimediali e CV. Dei consensi resta una prova minima (chiave, versione, esito, data, hash del contatto).
+- **Diritto all'oblio:** `delete-contact` cancella a cascata sessioni, messaggi, profili, tracce, file multimediali e CV. Dei consensi resta una prova minima (chiave, versione, esito, data, hash del contatto con chiave, D111e).
 - Durate di conservazione configurabili per: file multimediali, `NluTrace`, `payloadRaw`, sessioni abbandonate.
 - **Soglia dei consensi (D24).** Il comportamento di una sessione che non arriva al completamento dipende da dove si è fermata:
 

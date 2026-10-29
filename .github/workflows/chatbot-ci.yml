@@ -1,0 +1,64 @@
+name: Chatbot CI
+
+on:
+  pull_request:
+    paths: &chatbot-paths
+      - "apps/chatbot/**"
+      - "packages/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "package.json"
+      - ".github/workflows/chatbot-ci.yml"
+  push:
+    branches: [main]
+    paths: *chatbot-paths
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chatbot-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: apps/chatbot
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: kubri_bot_test
+        ports:
+          - 54329:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: apps/chatbot/.nvmrc
+          cache: pnpm
+      # Installs only the chatbot and the workspace packages it depends on.
+      - run: pnpm install --frozen-lockfile --filter @kubri/chatbot...
+      - run: pnpm format:check
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      # The service container has no init script: create the simulated dashboard tables
+      # (public schema) the same way docker/postgres/01-init.sh does locally. The database
+      # name and port match .env.test.
+      - name: Simulate the dashboard tables in the shared database
+        run: psql -v ON_ERROR_STOP=1 -h localhost -p 54329 -U postgres -d kubri_bot_test -f docker/postgres/sql/dashboard-sim.sql
+        env:
+          PGPASSWORD: postgres
+      - run: pnpm test:integration

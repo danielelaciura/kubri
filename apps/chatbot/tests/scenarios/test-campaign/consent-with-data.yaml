@@ -1,0 +1,40 @@
+description: Dati nello stesso messaggio del consenso obbligatorio, scartati prima e tenuti con il sì (D50)
+campaign: tests/scenarios/campaigns/test-campaign.json
+turns:
+  - start: true
+    expect: { sent: [system.welcome] }
+
+  - user: "italiano"
+    expect: { step: privacy, sent: [intro, privacy] }
+
+  # Not an answer to the consent: before the threshold the data is dropped.
+  - user: "mi chiamo Mario"
+    nlu: { patch: { firstName: Mario } }
+    expect:
+      step: privacy
+      consentsAccepted: false
+      sent: [system.not_understood, privacy]
+      effects: []
+      profile: { firstName: null }
+
+  # The consent is given in this same message: the data is kept, after the threshold event.
+  - user: "sì, accetto, sono Mario"
+    nlu: { intent: choice, choice: accepted, patch: { firstName: Mario } }
+    expect:
+      step: kubri_global
+      consentsAccepted: true
+      sent: [kubri_global]
+      effects:
+        - "RecordConsent:test_privacy:accepted"
+        - "EnqueueJob:kubri-webhook:consents.accepted"
+        - "ApplyPatch:extraction:firstName"
+      profile: { firstName: Mario }
+
+  # The block skips the question already answered.
+  - user: "no"
+    nlu: { intent: choice, choice: declined }
+    expect:
+      step: anagrafica
+      question: permesso
+      sent: [system.progress, anagrafica.title, anagrafica.permesso]
+      effects: ["RecordConsent:kubri_global:declined"]

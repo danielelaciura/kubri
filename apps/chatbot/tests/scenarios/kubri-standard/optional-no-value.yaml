@@ -1,0 +1,84 @@
+description: Campagna standard — "non ho studiato", "non ho mai lavorato", part-time indifferente — risposta completa senza valore su domande facoltative (D56)
+campaign: campaigns/kubri-standard.json
+turns:
+  - start: true
+    expect: { sent: [system.welcome] }
+
+  - user: "italiano"
+    expect: { step: privacy }
+
+  - user: "accetto"
+    nlu: { intent: choice, choice: accepted }
+    expect: { step: pool_globale }
+
+  - user: "sì"
+    nlu: { intent: choice, choice: accepted }
+    expect: { question: nome }
+
+  - user: "Ali Hassan, 2/2/2002, Egitto, vivo a Roma, via Appia 1, ali@example.com"
+    nlu:
+      patch:
+        firstName: Ali
+        lastName: Hassan
+        birthday: "2002-02-02"
+        country: EG
+        location: Roma
+        address: Via Appia 1
+        email: ali@example.com
+    expect: { step: lingue, question: lingua_madre }
+
+  - user: "arabo, l'italiano poco, l'inglese bene"
+    nlu:
+      patch: { language: ar, italianLevel: base, additionalLanguages: ["inglese (avanzato)"] }
+    expect: { step: mobilita, question: permesso }
+
+  - user: "ho il permesso, niente patente, a piedi"
+    nlu: { patch: { workingPermit: true, drivingLicense: false, transport: a piedi } }
+    expect:
+      {
+        step: esperienze,
+        question: studi,
+        sent: [system.progress, esperienze.title, esperienze.studi],
+      }
+
+  # The hints tell the LLM to give no value for "none" (studi and lavori are optional).
+  # Spec §7.2 point 3: complete → the question moves on, without re-asking it.
+  - user: "non ho studiato"
+    nlu: { completeness: complete }
+    expect:
+      question: lavori
+      sent: [esperienze.lavori]
+      effects: []
+      profile: { educationAndTraining: null }
+
+  - user: "non ho mai lavorato"
+    nlu: { completeness: complete }
+    expect:
+      question: competenze
+      sent: [esperienze.competenze]
+      effects: []
+      profile: { workExperience: null }
+
+  - user: "so pulire e cucinare"
+    nlu: { patch: { skillsAndCompetences: [pulizie, cucina] } }
+    expect: { step: preferenze, question: lavoro_desiderato }
+
+  - user: "addetto alle pulizie, a Roma"
+    nlu:
+      patch:
+        jobPreferences.preferredJob: addetto alle pulizie
+        jobPreferences.preferredLocation: Roma
+    expect: { question: esperienza_desiderato, sent: [preferenze.esperienza_desiderato] }
+
+  - user: "no, mai fatto"
+    nlu: { patch: { jobPreferences.hasDesiredJobExperience: "no" } }
+    expect: { question: part_time, sent: [preferenze.part_time] }
+
+  # Indifferent: the hint asks for no value, and the question is optional — no flag.
+  - user: "per me è uguale"
+    nlu: { completeness: complete }
+    expect:
+      question: vincoli
+      sent: [preferenze.vincoli]
+      effects: []
+      profile: { jobPreferences.partTime: null }

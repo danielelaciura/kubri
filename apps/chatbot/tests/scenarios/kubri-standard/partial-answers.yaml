@@ -1,0 +1,148 @@
+description: Campagna standard — risposte parziali, incerte e assenti, conferma di un valore incerto, campi non risolti
+campaign: campaigns/kubri-standard.json
+turns:
+  - start: true
+    expect: { sent: [system.welcome] }
+
+  - user: "italiano"
+    expect: { step: privacy }
+
+  - user: "accetto"
+    nlu: { intent: choice, choice: accepted }
+    expect: { step: pool_globale }
+
+  - user: "no"
+    nlu: { intent: choice, choice: declined }
+    expect: { question: nome }
+
+  - user: "Mario Rossi"
+    nlu: { patch: { firstName: Mario, lastName: Rossi } }
+    expect:
+      question: nascita
+      sent: [anagrafica.nascita]
+      effects: ["ApplyPatch:extraction:firstName,lastName"]
+
+  # Only the year: no value can be saved, the bot asks for what is missing.
+  - user: "nel 1990"
+    nlu: { completeness: partial, missing: "giorno e mese di nascita" }
+    expect: { question: nascita, sent: [anagrafica.nascita], effects: [] }
+
+  - user: "il 12 marzo 1990"
+    nlu: { patch: { birthday: "1990-03-12" }, completeness: complete }
+    expect:
+      question: paese
+      sent: [anagrafica.paese]
+      effects: ["ApplyPatch:extraction:birthday"]
+
+  # Help: the extracted data is dropped (D52), no clarification is used up.
+  - user: "cosa devo scrivere? sono del Marocco"
+    nlu: { intent: help, patch: { country: MA } }
+    expect:
+      question: paese
+      sent: [system.help, anagrafica.paese]
+      effects: []
+      profile: { country: null }
+
+  # A value below the threshold asks for a confirmation instead of being saved.
+  - user: "Marocco credo, o forse Algeria"
+    nlu:
+      patch:
+        - { field: country, value: MA, confidence: 0.5 }
+      completeness: complete
+    expect:
+      { question: paese, sent: [system.confirm_value], effects: [], profile: { country: null } }
+
+  # D53: the deterministic "sì" wins over an LLM reading of "no".
+  - user: "sì"
+    nlu: { intent: choice, choice: "no" }
+    expect:
+      question: comune
+      sent: [anagrafica.comune]
+      effects: ["ApplyPatch:extraction:country"]
+      profile: { country: MA }
+
+  # A required question never answered: two rephrasings, then unresolved + flag.
+  - user: "dipende"
+    nlu: { intent: answer }
+    expect: { question: comune, sent: [anagrafica.comune], effects: [] }
+
+  - user: "boh"
+    nlu: { intent: unclear }
+    expect: { question: comune, sent: [anagrafica.comune], effects: [] }
+
+  - user: "non saprei"
+    nlu: { intent: unclear }
+    expect:
+      question: indirizzo
+      sent: [anagrafica.indirizzo]
+      effects:
+        - "MarkFieldUnresolved:location"
+        - "FlagSession:unresolved_field:location"
+      profile: { location: null }
+
+  - user: "via Roma 10"
+    nlu: { patch: { address: "Via Roma 10" } }
+    expect:
+      question: email
+      effects: ["ApplyPatch:extraction:address", "EnqueueJob:geocoding"]
+
+  # An optional question never answered: two rephrasings, then a silent skip (no flag).
+  - user: "eh?"
+    nlu: { intent: unclear }
+    expect: { question: email, sent: [anagrafica.email], effects: [] }
+
+  - user: "mah"
+    nlu: { intent: unclear }
+    expect: { question: email, sent: [anagrafica.email], effects: [] }
+
+  - user: "uhm"
+    nlu: { intent: unclear }
+    expect:
+      step: lingue
+      question: lingua_madre
+      sent: [system.progress, lingue.title, lingue.lingua_madre]
+      effects: ["EnqueueJob:kubri-webhook:block.completed"]
+      profile: { email: null }
+
+  - user: "arabo, l'italiano abbastanza, nient'altro"
+    nlu: { patch: { language: ar, italianLevel: intermedio }, completeness: complete }
+    expect: { question: altre_lingue, effects: ["ApplyPatch:extraction:language,italianLevel"] }
+
+  - user: "preferisco non dirlo"
+    nlu: { intent: refusal }
+    expect: { step: mobilita, question: permesso }
+
+  - user: "ho il permesso, niente patente, a piedi"
+    nlu: { patch: { workingPermit: true, drivingLicense: false, transport: a piedi } }
+    expect: { step: esperienze, question: studi }
+
+  # A refusal skips an optional question at once (D43).
+  - user: "sulle scuole preferisco non rispondere"
+    nlu: { intent: refusal }
+    expect: { question: lavori, sent: [esperienze.lavori], effects: [] }
+
+  # Partial list answer: the value is saved, then a targeted follow-up on what is missing.
+  - user: "ho fatto il cameriere in Marocco"
+    nlu:
+      patch: { workExperience: ["Ristorante (MA): Cameriere"] }
+      completeness: partial
+      missing: "per quanto tempo e in che anni"
+    expect:
+      question: lavori
+      sent: [esperienze.lavori]
+      effects: ["ApplyPatch:extraction:workExperience"]
+
+  # D51: the value saved by the partial answer is not an answer to this turn by itself.
+  - user: "uhm"
+    nlu: { intent: unclear }
+    expect: { question: lavori, sent: [esperienze.lavori], effects: [] }
+
+  - user: "dal 2015 al 2018, all'Hotel Atlas di Marrakech"
+    nlu:
+      patch: { workExperience: ["2015 - 2018 Hotel Atlas (MA): Cameriere"] }
+      completeness: complete
+    expect:
+      question: competenze
+      sent: [esperienze.competenze]
+      effects: ["ApplyPatch:extraction:workExperience"]
+      profile: { workExperience: ["2015 - 2018 Hotel Atlas (MA): Cameriere"] }

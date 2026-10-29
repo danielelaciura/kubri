@@ -1,0 +1,8 @@
+node_modules
+src/generated
+prisma/migrations
+pnpm-lock.yaml
+evals/reports
+CLAUDE.md
+docs
+.impeccable

@@ -1,0 +1,127 @@
+{
+  "campaign": "test-magazzino",
+  "organization": "test-org",
+  "externalKey": "test-pool",
+  "trigger": { "sender": "kubri-test", "keywords": ["magazzino"] },
+  "dataController": {
+    "name": "Test Logistica S.r.l.",
+    "privacyUrl": "https://example.com/privacy"
+  },
+  "customFields": [
+    {
+      "key": "night_shifts",
+      "type": "bool",
+      "label": { "it": "Turni notturni" },
+      "description": "Disponibile a lavorare nei turni di notte."
+    },
+    {
+      "key": "forklift",
+      "type": "enum",
+      "options": ["nessuna", "base", "esperto"],
+      "label": { "it": "Esperienza con il muletto" },
+      "description": "Esperienza nella guida del carrello elevatore (muletto)."
+    }
+  ],
+  "texts": {
+    "cv_explain": {
+      "it": "Un CV (curriculum vitae) è un documento che riassume le tue esperienze di lavoro e di studio."
+    }
+  },
+  "flow": [
+    {
+      "id": "intro",
+      "type": "message",
+      "text": { "it": "Ciao! Ti farò qualche domanda per il lavoro in magazzino." }
+    },
+    {
+      "id": "privacy",
+      "type": "consent",
+      "consentKey": "test_privacy",
+      "textVersion": "placeholder-2026-10",
+      "text": {
+        "it": "[TESTO SEGNAPOSTO] Per svolgere l'intervista raccogliamo i tuoi dati. Titolare: {dataController.name}. Informativa: {dataController.privacyUrl}. Accetti?"
+      },
+      "link": "https://example.com/privacy"
+    },
+    {
+      "id": "kubri_global",
+      "type": "consent",
+      "consentKey": "kubri_global",
+      "textVersion": "placeholder-2026-10",
+      "text": {
+        "it": "[TESTO SEGNAPOSTO] Vuoi che il tuo profilo sia visibile anche ad altre organizzazioni partner di Kubri?"
+      },
+      "optional": true
+    },
+    {
+      "id": "anagrafica",
+      "type": "questions",
+      "title": { "it": "Parliamo di te" },
+      "questions": [
+        { "id": "nome", "field": "firstName", "prompt": { "it": "Come ti chiami?" } },
+        {
+          "id": "permesso",
+          "field": "workingPermit",
+          "prompt": { "it": "Puoi lavorare legalmente in Italia?" },
+          "terminateIf": { "field": "workingPermit", "eq": false }
+        },
+        { "id": "patente", "field": "drivingLicense", "prompt": { "it": "Hai la patente?" } },
+        {
+          "id": "tipi_patente",
+          "field": "drivingLicenseTypes",
+          "prompt": { "it": "Quali categorie di patente hai?" },
+          "required": false,
+          "when": { "field": "drivingLicense", "eq": true }
+        }
+      ]
+    },
+    {
+      "id": "patente_info",
+      "type": "message",
+      "when": { "field": "drivingLicense", "eq": true },
+      "text": { "it": "Ottimo, la patente è un vantaggio per questo lavoro." }
+    },
+    {
+      "id": "magazzino",
+      "type": "questions",
+      "title": { "it": "Il lavoro in magazzino" },
+      "questions": [
+        {
+          "id": "notte",
+          "field": "custom.night_shifts",
+          "prompt": { "it": "Saresti disponibile a lavorare anche di notte?" }
+        },
+        {
+          "id": "muletto",
+          "field": "custom.forklift",
+          "prompt": { "it": "Sai usare il muletto?" },
+          "maxClarifications": 1
+        },
+        {
+          "id": "esperienze",
+          "field": "workExperience",
+          "prompt": { "it": "Raccontami le tue esperienze di lavoro." }
+        }
+      ]
+    },
+    {
+      "id": "cv_info",
+      "type": "choice",
+      "prompt": { "it": "Sai cos'è un CV?" },
+      "options": [
+        { "id": "yes", "description": "Sa cos'è un CV" },
+        { "id": "no", "description": "Non vuole un CV" },
+        { "id": "idk", "description": "Non sa cos'è un CV" }
+      ],
+      "on": { "idk": { "reply": "cv_explain", "then": "@repeat" } }
+    },
+    {
+      "id": "cv",
+      "type": "cv_offer",
+      "when": { "step": "cv_info", "outcome": "yes" },
+      "prompt": { "it": "Vuoi che prepari il tuo CV?" }
+    },
+    { "id": "fine", "type": "end", "text": { "it": "Grazie, abbiamo finito!" } }
+  ],
+  "afterCompletion": { "allowEdits": true, "allowCvRegeneration": true }
+}

@@ -1,0 +1,73 @@
+description: Modifica dopo il completamento e rigenerazione del CV
+campaign: tests/scenarios/campaigns/test-campaign.json
+turns:
+  - start: true
+    expect: { sent: [system.welcome] }
+
+  - user: "italiano"
+    expect: { step: privacy }
+
+  - user: "accetto"
+    nlu: { intent: choice, choice: accepted }
+    expect: { step: kubri_global }
+
+  - user: "no"
+    nlu: { intent: choice, choice: declined }
+    expect: { question: nome }
+
+  - user: "Sono Mario, ho il permesso e non ho la patente"
+    nlu: { patch: { firstName: Mario, workingPermit: true, drivingLicense: false } }
+    expect: { question: notte }
+
+  - user: "sì di notte, il muletto lo so usare bene, magazziniere dal 2019 al 2022"
+    nlu:
+      patch:
+        custom.night_shifts: true
+        custom.forklift: esperto
+        workExperience: ["2019 - 2022 Magazzino Rossi (IT): Magazziniere"]
+    expect:
+      step: cv_info
+      effects:
+        - "ApplyPatch:extraction:custom.night_shifts,custom.forklift,workExperience"
+        - "EnqueueJob:kubri-webhook:block.completed"
+
+  - user: "no, non mi serve"
+    nlu: { intent: choice, choice: "no" }
+    expect:
+      phase: post_completion
+      sent: [fine]
+      effects: ["CompleteSession", "EnqueueJob:kubri-webhook:interview.completed"]
+      outcomes: { cv_info: "no" }
+
+  - user: "ho sbagliato, mi chiamo Marco"
+    nlu: { intent: edit_request, editTarget: { field: firstName, newValue: Marco } }
+    expect: { phase: post_completion, sent: [system.confirm_edit], effects: [] }
+
+  - user: "sì"
+    nlu: { intent: choice, choice: "yes" }
+    expect:
+      phase: post_completion
+      sent: [system.edit_saved]
+      effects: ["ApplyPatch:edit:firstName", "EnqueueJob:kubri-webhook:profile.updated"]
+      profile: { firstName: Marco }
+
+  # Without edit_request an extracted value is never saved after completion.
+  - user: "comunque mi chiamo Luca"
+    nlu: { patch: { firstName: Luca } }
+    expect:
+      phase: post_completion
+      sent: [system.post_completion_help]
+      effects: []
+      profile: { firstName: Marco }
+
+  - user: "grazie mille"
+    nlu: { intent: answer }
+    expect: { sent: [system.post_completion_help], effects: [] }
+
+  - user: "mi rifai il cv?"
+    nlu: { intent: choice, choice: regenerate_cv }
+    expect: { phase: post_completion, step: cv, sent: [cv] }
+
+  - user: "sì"
+    nlu: { intent: choice, choice: "yes" }
+    expect: { step: null, sent: [system.cv_requested], effects: ["EnqueueJob:cv"] }

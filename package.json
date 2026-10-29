@@ -6,6 +6,8 @@
   "scripts": {
     "dev:dashboard": "pnpm --filter kubri-dashboard dev",
     "dev:assessment": "pnpm --filter @kubri/assessment dev",
+    "chatbot:cli": "pnpm --filter @kubri/chatbot cli",
+    "chatbot:test": "pnpm --filter @kubri/chatbot test",
     "build": "pnpm -r build",
     "test": "vitest run"
   },

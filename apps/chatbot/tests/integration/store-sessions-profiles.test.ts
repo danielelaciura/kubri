@@ -295,8 +295,29 @@ describe("profiles", () => {
       },
     });
 
+    await saveSession(db, session.id, {
+      state: encodeState({
+        ...initialSessionState(),
+        phase: "flow",
+        pendingConfirmation: {
+          kind: "edit",
+          field: "firstName",
+          oldValue: "Mario",
+          newValue: "Marco",
+        },
+      }),
+      language: null,
+      status: "active",
+      at: NOW,
+      closeOpen: false,
+    });
+
     await purgeSessionData(db, session.id);
 
+    // A value waiting for confirmation is personal data too.
+    const { engineState } = await db.session.findUniqueOrThrow({ where: { id: session.id } });
+    expect(engineState).toMatchObject({ phase: "flow", pendingConfirmation: null });
+    expect(JSON.stringify(engineState)).not.toMatch(/Mario|Marco/);
     expect(await loadProfile(db, session.id)).toEqual({ standard: {}, custom: {}, fieldMeta: {} });
     expect(await db.profileChange.count()).toBe(0);
     expect(await db.nluTrace.count()).toBe(0);

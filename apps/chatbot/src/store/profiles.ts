@@ -6,6 +6,7 @@ import {
   type ChangeSourceName,
   type StoredProfile,
 } from "../runtime/profile-codec";
+import { withoutPendingConfirmation } from "../runtime/state-codec";
 import type { Tx } from "./db";
 import { asJson, toNullableJson as toJson } from "./json";
 
@@ -127,14 +128,23 @@ export async function markProfileCompleted(tx: Tx, sessionId: string, at: Date):
 }
 
 /**
- * D109, spec §10.6: `dataPolicy: delete`. The profile and what it was built from go; replies
- * still waiting to be sent stay (they are the goodbye). The Consent rows are not touched.
+ * D109, spec §10.6: `dataPolicy: delete`. The profile and what it was built from go, and so
+ * does a confirmation still pending in the engine state; replies still waiting to be sent stay
+ * (they are the goodbye). The Consent rows are not touched.
  */
 export async function purgeSessionData(tx: Tx, sessionId: string): Promise<void> {
   await tx.profileChange.deleteMany({ where: { profile: { sessionId } } });
   await tx.candidateProfile.update({
     where: { sessionId },
     data: { standard: {}, custom: {}, fieldMeta: {}, sharedWithGlobal: false },
+  });
+  const { engineState } = await tx.session.findUniqueOrThrow({
+    where: { id: sessionId },
+    select: { engineState: true },
+  });
+  await tx.session.update({
+    where: { id: sessionId },
+    data: { engineState: asJson(withoutPendingConfirmation(engineState)) },
   });
   await tx.nluTrace.deleteMany({ where: { turn: { sessionId } } });
   await tx.message.updateMany({

@@ -88,3 +88,16 @@ export function decodeState(
   const { v: _v, pendingConfirmation, ...state } = result.data;
   return { ...state, pendingConfirmation: pending(pendingConfirmation, options), profile };
 }
+
+/**
+ * D109: a confirmation still pending carries personal values (value, oldValue, newValue), so
+ * the purge of a session drops it. A state that cannot be read loses the key all the same.
+ */
+export function withoutPendingConfirmation(json: unknown): unknown {
+  if (PersistedStateSchema.safeParse(json).success) {
+    return encodeState({ ...decodeState(json, {}), pendingConfirmation: null });
+  }
+  if (typeof json !== "object" || json === null || Array.isArray(json)) return json;
+  const { pendingConfirmation: _dropped, ...rest } = json as Record<string, unknown>;
+  return rest;
+}

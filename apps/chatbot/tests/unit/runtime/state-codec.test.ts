@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { decodeState, encodeState, STATE_FORMAT_VERSION } from "../../../src/runtime/state-codec";
+import {
+  decodeState,
+  encodeState,
+  STATE_FORMAT_VERSION,
+  withoutPendingConfirmation,
+} from "../../../src/runtime/state-codec";
 import { initialSessionState, type SessionState } from "../../../src/engine/state";
 import { inferred } from "../engine/helpers";
 
@@ -103,5 +108,29 @@ describe("encodeState and decodeState", () => {
     ["a bad language", { ...encodeState(STATE), language: "ARABIC" }],
   ])("refuses %s", (_name, json) => {
     expect(() => decodeState(json, {})).toThrow(/engine state/);
+  });
+});
+
+describe("withoutPendingConfirmation (D109 purge)", () => {
+  it("drops the pending confirmation and keeps the rest of the state", () => {
+    const json: unknown = JSON.parse(JSON.stringify(encodeState(STATE)));
+
+    const stripped = withoutPendingConfirmation(json);
+
+    expect(JSON.stringify(stripped)).not.toContain("Bo");
+    expect(decodeState(stripped, {})).toEqual({ ...STATE, pendingConfirmation: null, profile: {} });
+  });
+
+  it("drops it from a state it cannot read, too", () => {
+    const stripped = withoutPendingConfirmation({
+      phase: "nonsense",
+      pendingConfirmation: { kind: "value", field: "firstName", value: "Mario", confidence: 0.5 },
+    });
+
+    expect(stripped).toEqual({ phase: "nonsense" });
+  });
+
+  it("leaves a value that is not an object as it is", () => {
+    expect(withoutPendingConfirmation("broken")).toBe("broken");
   });
 });

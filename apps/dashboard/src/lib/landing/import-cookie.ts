@@ -22,6 +22,12 @@ function secret(): string {
   return s;
 }
 
+/** True iff the cookie secret is configured: check before spending any budget. */
+export function cookieSecretReady(): boolean {
+  const s = process.env["LANDING_COOKIE_SECRET"];
+  return !!s && s.length >= 32;
+}
+
 function mac(payload: string): string {
   return createHmac("sha256", secret()).update(payload).digest("base64url");
 }

@@ -1,14 +1,15 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
+let headerInit: Record<string, string> = { "x-forwarded-for": "1.2.3.4, 10.0.0.1" };
 const cookieJar = new Map<string, string>();
 const cookieStore = {
   get: vi.fn((name: string) => (cookieJar.has(name) ? { name, value: cookieJar.get(name)! } : undefined)),
-  set: vi.fn((name: string, value: string, _opts?: unknown) => void cookieJar.set(name, value)),
+  set: vi.fn((...[name, value]: [string, string, unknown?]) => void cookieJar.set(name, value)),
   delete: vi.fn((name: string) => void cookieJar.delete(name)),
 };
 vi.mock("next/headers", () => ({
   cookies: vi.fn(async () => cookieStore),
-  headers: vi.fn(async () => new Headers({ "x-forwarded-for": "1.2.3.4, 10.0.0.1" })),
+  headers: vi.fn(async () => new Headers(headerInit)),
 }));
 vi.mock("@/lib/landing/service", () => ({ getActiveLandingBySlug: vi.fn() }));
 vi.mock("@/lib/landing/flow", () => ({
@@ -41,6 +42,7 @@ describe("landing server actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.unstubAllEnvs();
+    headerInit = { "x-forwarded-for": "1.2.3.4, 10.0.0.1" };
     cookieJar.clear();
     vi.stubEnv("LANDING_COOKIE_SECRET", "s".repeat(32));
     m(getActiveLandingBySlug).mockResolvedValue(LANDING);
@@ -80,7 +82,7 @@ describe("landing server actions", () => {
     m(confirmLandingImport).mockResolvedValueOnce({ ok: true, data: null });
     await confirmLandingImportAction("coop-sole", { firstName: "A" });
     expect(m(confirmLandingImport).mock.calls[0]!.slice(0, 3)).toEqual([LANDING, IMPORT_ID, { firstName: "A" }]);
-    expect(cookieStore.delete).toHaveBeenCalledWith(LANDING_COOKIE_NAME);
+    expect(cookieStore.delete).toHaveBeenCalledWith({ name: LANDING_COOKIE_NAME, path: "/candidati" });
   });
 
   it("returns UNAVAILABLE (and logs no values) when the IP salt is missing in production", async () => {
@@ -96,6 +98,34 @@ describe("landing server actions", () => {
     expect(log).toHaveBeenCalledWith("[landing] request context unavailable");
     log.mockRestore();
     vi.unstubAllEnvs();
+  });
+
+  it("returns UNAVAILABLE before spending any budget when the cookie secret is missing", async () => {
+    vi.stubEnv("LANDING_COOKIE_SECRET", "short");
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    await expect(requestLandingUploadAction("coop-sole", { fileName: "cv.pdf", fileSize: 10, turnstileToken: "t" }))
+      .resolves.toEqual({ ok: false, error: "UNAVAILABLE" });
+    expect(m(requestLandingUpload)).not.toHaveBeenCalled();
+    expect(log).toHaveBeenCalledTimes(1);
+    log.mockRestore();
+  });
+
+  it("returns UNAVAILABLE when the landing lookup throws", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    m(getActiveLandingBySlug).mockRejectedValueOnce(new Error("db down"));
+    await expect(runLandingExtractionAction("coop-sole")).resolves.toEqual({ ok: false, error: "UNAVAILABLE" });
+    log.mockRestore();
+  });
+
+  it("prefers x-vercel-forwarded-for, then x-real-ip, then the first x-forwarded-for hop", async () => {
+    m(requestLandingUpload).mockResolvedValue({ ok: false, error: "RATE_LIMITED" });
+    const input = { fileName: "cv.pdf", fileSize: 10, turnstileToken: "t" };
+    headerInit = { "x-vercel-forwarded-for": "9.9.9.9", "x-real-ip": "8.8.8.8", "x-forwarded-for": "1.2.3.4" };
+    await requestLandingUploadAction("coop-sole", input);
+    expect(m(requestLandingUpload).mock.calls[0]![2].ip).toBe("9.9.9.9");
+    headerInit = { "x-real-ip": "8.8.8.8", "x-forwarded-for": "1.2.3.4" };
+    await requestLandingUploadAction("coop-sole", input);
+    expect(m(requestLandingUpload).mock.calls[1]![2].ip).toBe("8.8.8.8");
   });
 
   it("rejects a non-string slug", async () => {

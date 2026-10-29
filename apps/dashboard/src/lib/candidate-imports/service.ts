@@ -7,7 +7,11 @@ import type { DocumentKind } from "@/lib/documents/detect";
 import { inspectPublicDocument } from "@/lib/documents/inspect";
 import { extractDocumentText } from "@/lib/documents/extract-text";
 import { extractCandidateDraft } from "@/lib/candidates/cv-extraction";
-import { buildDashboardCandidateInput } from "@/lib/candidates/dashboard-create";
+import {
+  buildDashboardCandidateInput,
+  type CandidateCreateChannel,
+} from "@/lib/candidates/dashboard-create";
+import { findCandidateIdBySamePhone } from "@/lib/candidates/duplicates";
 import { refreshCandidateEmbedding, upsertCandidate } from "@/lib/candidates/ingest";
 import {
   buildDocumentPath,
@@ -240,17 +244,37 @@ export async function runExtraction(importId: string, opts: ExtractionOptions = 
 export interface ConfirmImportInput {
   importId: string;
   organizationId: string;
-  userId: string;
+  /** Null for public-landing imports (no logged-in uploader). */
+  userId: string | null;
   fields: CandidateFields;
+  channel?: Extract<CandidateCreateChannel, "dashboard_cv" | "landing_cv">;
+  /** The candidate's own consent to global sharing (public landing only). */
+  consentToShare?: boolean;
+  /** Merged into the candidate's rawPayload (landing id, consent record). */
+  rawPayloadExtra?: Record<string, unknown>;
+  /**
+   * Public landing: when a candidate of the import's pool has the same
+   * normalized phone, attach the CV to it instead of creating a new row. The
+   * existing profile is never modified. Never looks outside the pool.
+   */
+  attachToExistingByPhone?: boolean;
+}
+
+export interface ConfirmImportResult {
+  candidateId: string;
+  /** True when the CV was attached to an existing candidate. */
+  attached: boolean;
 }
 
 /**
  * Create the candidate from a READY import (or a FAILED one filled in by
- * hand) and attach the CV, atomically. Idempotent: confirming a COMPLETED
- * import returns its candidate. Throws ImportNotFoundError (wrong org / id)
- * or ImportStateError (discarded, or lost a concurrent confirm).
+ * hand) — or attach the CV to an existing same-phone candidate — atomically.
+ * Idempotent: confirming a COMPLETED import returns its candidate. Throws
+ * ImportNotFoundError (wrong org / id) or ImportStateError (discarded, or lost
+ * a concurrent confirm).
  */
-export async function confirmImport(input: ConfirmImportInput): Promise<{ candidateId: string }> {
+export async function confirmImport(input: ConfirmImportInput): Promise<ConfirmImportResult> {
+  const channel = input.channel ?? "dashboard_cv";
   const result = await prisma.$transaction(async (tx) => {
     const imp = await tx.candidateImport.findFirst({
       where: { id: input.importId, organizationId: input.organizationId },
@@ -258,7 +282,7 @@ export async function confirmImport(input: ConfirmImportInput): Promise<{ candid
     });
     if (!imp) throw new ImportNotFoundError();
     if (imp.status === "COMPLETED" && imp.candidateId) {
-      return { candidateId: imp.candidateId, row: null };
+      return { candidateId: imp.candidateId, row: null, attached: false };
     }
 
     const claimed = await tx.candidateImport.updateMany({
@@ -274,42 +298,54 @@ export async function confirmImport(input: ConfirmImportInput): Promise<{ candid
     });
     if (claimed.count === 0) throw new ImportStateError(imp.status);
 
+    const document = {
+      kind: "CV" as const,
+      storagePath: imp.storagePath,
+      fileName: imp.fileName,
+      mimeType: imp.mimeType,
+      size: imp.fileSize,
+      uploadedById: imp.createdById,
+    };
+    const closeImport = (candidateId: string) =>
+      tx.candidateImport.update({
+        where: { id: imp.id },
+        data: { candidateId, extractedText: null, draft: Prisma.DbNull },
+      });
+
+    if (input.attachToExistingByPhone) {
+      const existingId = await findCandidateIdBySamePhone(tx, imp.pool.id, input.fields.phone);
+      if (existingId) {
+        await tx.candidateDocument.create({ data: { candidateId: existingId, ...document } });
+        await closeImport(existingId);
+        return { candidateId: existingId, row: null, attached: true };
+      }
+    }
+
     const row = await upsertCandidate(
       buildDashboardCandidateInput({
         pool: imp.pool,
         fields: input.fields,
-        channel: "dashboard_cv",
+        channel,
+        consentToShare: input.consentToShare,
         rawPayload: {
-          mode: "cv",
+          mode: channel === "landing_cv" ? "landing_cv" : "cv",
           importId: imp.id,
           createdById: input.userId,
           draft: imp.draft,
           submitted: input.fields,
+          ...input.rawPayloadExtra,
         } as unknown as Prisma.InputJsonValue,
       }),
       tx,
     );
 
-    await tx.candidateDocument.create({
-      data: {
-        candidateId: row.id,
-        kind: "CV",
-        storagePath: imp.storagePath,
-        fileName: imp.fileName,
-        mimeType: imp.mimeType,
-        size: imp.fileSize,
-        uploadedById: imp.createdById,
-      },
-    });
-    await tx.candidateImport.update({
-      where: { id: imp.id },
-      data: { candidateId: row.id, extractedText: null, draft: Prisma.DbNull },
-    });
-    return { candidateId: row.id, row };
+    await tx.candidateDocument.create({ data: { candidateId: row.id, ...document } });
+    await closeImport(row.id);
+    return { candidateId: row.id, row, attached: false };
   });
 
   if (result.row) await refreshCandidateEmbedding(result.row, "candidate import");
-  return { candidateId: result.candidateId };
+  return { candidateId: result.candidateId, attached: result.attached };
 }
 
 /** Discard an open import of the organization and delete its file. */

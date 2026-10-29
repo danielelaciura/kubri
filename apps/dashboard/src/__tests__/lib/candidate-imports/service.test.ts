@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 const tx = {
   candidateImport: { findFirst: vi.fn(), updateMany: vi.fn(), update: vi.fn() },
   candidateDocument: { create: vi.fn() },
+  candidate: { findMany: vi.fn() },
 };
 
 vi.mock("@/lib/db", () => ({
@@ -31,6 +32,7 @@ vi.mock("@/lib/storage/candidate-documents", async () => {
     replaceCandidateDocument: vi.fn(),
   };
 });
+vi.mock("@/lib/candidates/duplicates", () => ({ findCandidateIdBySamePhone: vi.fn() }));
 vi.mock("@/lib/documents/inspect", () => ({ inspectPublicDocument: vi.fn() }));
 vi.mock("@/lib/documents/extract-text", () => ({ extractDocumentText: vi.fn() }));
 vi.mock("@/lib/candidates/cv-extraction", () => ({ extractCandidateDraft: vi.fn() }));
@@ -47,6 +49,7 @@ import {
   removeCandidateDocuments,
   replaceCandidateDocument,
 } from "@/lib/storage/candidate-documents";
+import { findCandidateIdBySamePhone } from "@/lib/candidates/duplicates";
 import { inspectPublicDocument } from "@/lib/documents/inspect";
 import { StorageError } from "@/lib/storage/errors";
 import { extractDocumentText } from "@/lib/documents/extract-text";
@@ -260,7 +263,7 @@ describe("confirmImport", () => {
 
     const r = await confirmImport({ importId: "22222222-2222-4222-8222-222222222222", organizationId: "o", userId: "u", fields: FIELDS });
 
-    expect(r).toEqual({ candidateId: "c-1" });
+    expect(r).toEqual({ candidateId: "c-1", attached: false });
     expect(tx.candidateImport.findFirst.mock.calls[0]![0].where).toEqual({ id: "22222222-2222-4222-8222-222222222222", organizationId: "o" });
     expect(tx.candidateImport.updateMany.mock.calls[0]![0]).toEqual({
       where: {
@@ -290,7 +293,7 @@ describe("confirmImport", () => {
     tx.candidateImport.updateMany.mockResolvedValueOnce({ count: 1 });
     m(upsertCandidate).mockResolvedValueOnce({ id: "c-2" });
     const r = await confirmImport({ importId: "22222222-2222-4222-8222-222222222222", organizationId: "o", userId: "u", fields: FIELDS });
-    expect(r).toEqual({ candidateId: "c-2" });
+    expect(r).toEqual({ candidateId: "c-2", attached: false });
     const where = tx.candidateImport.updateMany.mock.calls[0]![0].where;
     const stale = where.OR[1].updatedAt.lt as Date;
     expect(Date.now() - stale.getTime()).toBeGreaterThanOrEqual(2 * 60 * 1000 - 50);
@@ -299,7 +302,7 @@ describe("confirmImport", () => {
   it("is idempotent for an already completed import", async () => {
     tx.candidateImport.findFirst.mockResolvedValueOnce({ ...IMPORT, status: "COMPLETED", candidateId: "c-9" });
     const r = await confirmImport({ importId: "22222222-2222-4222-8222-222222222222", organizationId: "o", userId: "u", fields: FIELDS });
-    expect(r).toEqual({ candidateId: "c-9" });
+    expect(r).toEqual({ candidateId: "c-9", attached: false });
     expect(m(upsertCandidate)).not.toHaveBeenCalled();
   });
 
@@ -316,6 +319,57 @@ describe("confirmImport", () => {
     await expect(
       confirmImport({ importId: "22222222-2222-4222-8222-222222222222", organizationId: "other", userId: "u", fields: FIELDS }),
     ).rejects.toThrow();
+  });
+  it("public mode attaches the CV to the same-phone candidate of the pool", async () => {
+    tx.candidateImport.findFirst.mockResolvedValueOnce({ ...IMPORT, createdById: null });
+    tx.candidateImport.updateMany.mockResolvedValueOnce({ count: 1 });
+    m(findCandidateIdBySamePhone).mockResolvedValueOnce("c-existing");
+
+    const r = await confirmImport({
+      importId: IMPORT.id, organizationId: "o", userId: null,
+      fields: { firstName: "Ahmed", lastName: "Benali", phone: "+39 333 1234567" } as never,
+      channel: "landing_cv", attachToExistingByPhone: true,
+    });
+
+    expect(r).toEqual({ candidateId: "c-existing", attached: true });
+    expect(m(findCandidateIdBySamePhone)).toHaveBeenCalledWith(tx, "p", "+39 333 1234567");
+    expect(m(upsertCandidate)).not.toHaveBeenCalled();
+    expect(tx.candidateDocument.create.mock.calls[0]![0].data).toMatchObject({
+      candidateId: "c-existing", kind: "CV", uploadedById: null,
+    });
+    expect(tx.candidateImport.update.mock.calls[0]![0].data).toMatchObject({ candidateId: "c-existing" });
+    expect(m(refreshCandidateEmbedding)).not.toHaveBeenCalled();
+  });
+
+  it("public mode creates a landing candidate when no phone matches", async () => {
+    tx.candidateImport.findFirst.mockResolvedValueOnce({ ...IMPORT, createdById: null });
+    tx.candidateImport.updateMany.mockResolvedValueOnce({ count: 1 });
+    m(findCandidateIdBySamePhone).mockResolvedValueOnce(null);
+    m(upsertCandidate).mockResolvedValueOnce({ id: "c-new" });
+
+    const r = await confirmImport({
+      importId: IMPORT.id, organizationId: "o", userId: null,
+      fields: { firstName: "Ahmed", lastName: "Benali", phone: "+39 333 1234567" } as never,
+      channel: "landing_cv", consentToShare: true, attachToExistingByPhone: true,
+      rawPayloadExtra: { landingPageId: "l-1", consent: { acceptedAt: "t" } },
+    });
+
+    expect(r).toEqual({ candidateId: "c-new", attached: false });
+    const [data] = m(upsertCandidate).mock.calls[0]!;
+    expect(data.channel).toBe("landing_cv");
+    expect(data.externalId).toMatch(/^landing:/);
+    expect(data.sharedWithGlobal).toBe(true);
+    expect(data.rawPayload).toMatchObject({
+      mode: "landing_cv", createdById: null, landingPageId: "l-1", consent: { acceptedAt: "t" },
+    });
+  });
+
+  it("operator mode never looks up phones", async () => {
+    tx.candidateImport.findFirst.mockResolvedValueOnce(IMPORT);
+    tx.candidateImport.updateMany.mockResolvedValueOnce({ count: 1 });
+    m(upsertCandidate).mockResolvedValueOnce({ id: "c-1" });
+    await confirmImport({ importId: IMPORT.id, organizationId: "o", userId: "u", fields: FIELDS });
+    expect(m(findCandidateIdBySamePhone)).not.toHaveBeenCalled();
   });
 });
 

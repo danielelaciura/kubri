@@ -1,6 +1,8 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { importCampaign } from "../../src/campaigns/import";
 import { naiveInterpreter } from "../../src/cli/simulate/naive-interpreter";
+import { createTextResolver, type TextResolver } from "../../src/i18n/resolve";
+import { MemoryTranslationCache } from "../../src/i18n/translation-cache";
 import type { Interpreter } from "../../src/nlu/interpreter";
 import type { NluTraceRecord, NluTraceSink } from "../../src/nlu/trace";
 import { processContact } from "../../src/runtime/process-contact";
@@ -406,9 +408,11 @@ describe("waiting, locking and rolling back", () => {
   });
 
   it("rolls everything back when a step fails: no session, no reply, no job (D102, D103)", async () => {
-    const failing = {
+    const failing: TextResolver = {
       ...testResolver(),
       resolveSend: () => Promise.reject(new Error("translator exploded")),
+      // The turn asks for its budgeted copy: it must still be this one.
+      withDeadline: () => failing,
     };
     const h = await harness({ queue: queueRuntime.queue, resolver: failing });
     await say(h, "ciao");
@@ -427,7 +431,7 @@ describe("waiting, locking and rolling back", () => {
   it("reprocesses the messages of a rolled-back turn when the job is redelivered", async () => {
     let failures = 1;
     const base = testResolver();
-    const flaky = {
+    const flaky: TextResolver = {
       ...base,
       resolveSend: (...args: Parameters<typeof base.resolveSend>) => {
         if (failures > 0) {
@@ -436,6 +440,7 @@ describe("waiting, locking and rolling back", () => {
         }
         return base.resolveSend(...args);
       },
+      withDeadline: () => flaky,
     };
     const h = await harness({ queue: queueRuntime.queue, resolver: flaky });
     await say(h, "ciao");
@@ -472,7 +477,7 @@ describe("through the real queue (retries and dead letters, spec §14)", () => {
   it("retries a failed turn and answers on the second delivery", async () => {
     let failures = 1;
     const base = testResolver();
-    const flaky = {
+    const flaky: TextResolver = {
       ...base,
       resolveSend: (...args: Parameters<typeof base.resolveSend>) => {
         if (failures > 0) {
@@ -481,6 +486,7 @@ describe("through the real queue (retries and dead letters, spec §14)", () => {
         }
         return base.resolveSend(...args);
       },
+      withDeadline: () => flaky,
     };
     const h = await harness({ queue: queueRuntime.queue, resolver: flaky });
 
@@ -495,9 +501,11 @@ describe("through the real queue (retries and dead letters, spec §14)", () => {
   });
 
   it("sends a turn that keeps failing to the dead letters, its messages still received", async () => {
-    const failing = {
+    const failing: TextResolver = {
       ...testResolver(),
       resolveSend: () => Promise.reject(new Error("translator exploded")),
+      // The turn asks for its budgeted copy: it must still be this one.
+      withDeadline: () => failing,
     };
     const h = await harness({ queue: queueRuntime.queue, resolver: failing });
 
@@ -545,6 +553,29 @@ describe("when something goes wrong: never silent (D107)", () => {
     await say(h, "boh");
 
     expect(await run(h)).toBe("replied");
+  });
+
+  it("answers in Italian when the translator hangs, within the turn's budget (D72, D102)", async () => {
+    const hanging = createTextResolver({
+      translator: { translate: () => new Promise(() => undefined) },
+      cache: new MemoryTranslationCache(),
+    });
+    const h = await harness({ resolver: hanging, config: { TURN_NLU_DEADLINE_MS: "300" } });
+    await say(h, "ciao");
+    await run(h);
+    await say(h, "english");
+    const started = Date.now();
+
+    expect(await run(h)).toBe("replied");
+
+    // One 300 ms budget for every text of the turn, far below the transaction's 30.6 s.
+    expect(Date.now() - started).toBeLessThan(3000);
+    const turn = await db.turn.findFirstOrThrow({ orderBy: { startedAt: "desc" } });
+    const sent = await db.message.findMany({ where: { direction: "outbound", turnId: turn.id } });
+    expect(sent.length).toBeGreaterThan(0);
+    // The campaign has no curated English: every text fell back to Italian.
+    expect(sent.every((m) => m.language === "it")).toBe(true);
+    expect((await db.session.findFirstOrThrow()).language).toBe("en");
   });
 
   it("still obeys the global keywords with no NLU at all", async () => {

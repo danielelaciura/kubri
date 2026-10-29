@@ -157,7 +157,10 @@ async function runTurn(deps: RuntimeDeps, tx: Tx, job: ContactJob): Promise<Proc
     {
       tx,
       queue: deps.queue,
-      resolver: deps.resolver,
+      // One translation budget for the whole turn, as long as the NLU's: with it, the turn
+      // stays within turnTransactionMs (2 × deadline + 30 s) even if every translation hangs.
+      // Real time, not deps.now: it bounds real waiting.
+      resolver: deps.resolver.withDeadline(Date.now() + deps.config.nluDeadlineMs),
       logger: deps.logger,
       consentHashSecret: deps.consentHashSecret,
       turnId,

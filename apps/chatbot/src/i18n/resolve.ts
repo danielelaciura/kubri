@@ -20,6 +20,7 @@ import {
   type TemplateServices,
   type TemplateSource,
 } from "./translate-template";
+import type { Translator } from "./translator";
 
 export interface TextTarget {
   /** The definition of the version the session is pinned to. */
@@ -50,6 +51,33 @@ export interface TextResolver {
   resolve(ref: TextRef, target: TextTarget): Promise<ResolvedText>;
   /** A SendText effect, with the line its purpose adds (D76). */
   resolveSend(effect: SendTextEffect, target: TextTarget): Promise<ResolvedText>;
+  /**
+   * The same resolver with one budget for every translation it asks for: past `deadlineAt`
+   * (epoch ms) a translation still running is abandoned and the text falls back to Italian
+   * (D72). A turn uses it so a hung translator never outlives its transaction (D102).
+   */
+  withDeadline(deadlineAt: number): TextResolver;
+}
+
+/** Rejects once `deadlineAt` has passed; the call itself keeps running and is ignored. */
+function translatorWithDeadline(translator: Translator, deadlineAt: number): Translator {
+  return {
+    async translate(request) {
+      const remaining = deadlineAt - Date.now();
+      if (remaining <= 0) throw new Error("translation deadline passed");
+      let timer: NodeJS.Timeout | undefined;
+      const expired = new Promise<never>((_resolve, reject) => {
+        timer = setTimeout(() => {
+          reject(new Error("translation deadline passed"));
+        }, remaining);
+      });
+      try {
+        return await Promise.race([translator.translate(request), expired]);
+      } finally {
+        clearTimeout(timer);
+      }
+    },
+  };
 }
 
 /** D77: the session language, or the campaign default while it is not chosen yet. */
@@ -214,5 +242,13 @@ export function createTextResolver(services: TemplateServices): TextResolver {
     };
   }
 
-  return { resolve, resolveSend };
+  return {
+    resolve,
+    resolveSend,
+    withDeadline: (deadlineAt) =>
+      createTextResolver({
+        ...services,
+        translator: translatorWithDeadline(services.translator, deadlineAt),
+      }),
+  };
 }

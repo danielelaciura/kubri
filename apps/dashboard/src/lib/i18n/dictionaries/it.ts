@@ -487,6 +487,7 @@ export const it = {
     uploading: "Caricamento…",
     reading: "Stiamo leggendo il tuo CV…",
     readingHint: "Ci vuole meno di un minuto. Non chiudere la pagina.",
+    verifying: "Verifica in corso…",
     contactTitle: "Controlla i tuoi dati",
     contactBody: "Li abbiamo letti dal CV. Correggili se necessario: {org} li userà per contattarti.",
     firstName: "Nome",

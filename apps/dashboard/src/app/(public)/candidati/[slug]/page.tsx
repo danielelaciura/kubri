@@ -1,3 +1,4 @@
+import { cache } from "react";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
@@ -13,6 +14,9 @@ import { LandingFlow } from "@/components/landing/landing-flow";
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
+// One lookup per request, shared by generateMetadata and the page.
+const getLanding = cache(getActiveLandingBySlug);
+
 interface Props {
   params: Promise<{ slug: string }>;
   searchParams: Promise<{ lang?: string | string[] }>;
@@ -20,7 +24,7 @@ interface Props {
 
 async function resolve({ params, searchParams }: Props) {
   const [{ slug }, sp, h] = await Promise.all([params, searchParams, headers()]);
-  const landing = await getActiveLandingBySlug(slug);
+  const landing = await getLanding(slug);
   if (!landing) notFound();
   return { landing, locale: resolvePublicLocale(sp.lang, h.get("accept-language")) };
 }
@@ -29,7 +33,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   const { landing, locale } = await resolve(props);
   const t = getDictionary(locale).landing;
   // Shared by link/QR only; keep it out of search engines (less bot traffic).
-  return { title: t.metaTitle.replace("{org}", landing.organization.name), robots: { index: false } };
+  return { title: t.metaTitle.replace("{org}", landing.organization.name), robots: { index: false, follow: false } };
 }
 
 export default async function CandidateLandingPage(props: Props) {

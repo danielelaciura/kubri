@@ -1,13 +1,13 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FileUp, MessageCircle } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useT } from "@/lib/i18n/provider";
-import type { LandingErrorCode } from "@/lib/landing/flow";
+import type { LandingErrorCode, LandingResult } from "@/lib/landing/flow";
 import type { ContactPrefill } from "@/lib/landing/contact";
 import {
   confirmLandingImportAction,
@@ -62,6 +62,7 @@ function errorKey(code: LandingErrorCode): ErrorKey {
   }
 }
 
+/** Extraction failures worth retrying in place (no re-upload). */
 const RETRYABLE_EXTRACTION: ReadonlySet<LandingErrorCode> = new Set<LandingErrorCode>([
   "LLM_TIMEOUT",
   "LLM_ERROR",
@@ -91,51 +92,90 @@ export function LandingFlow(props: LandingFlowProps) {
   const [turnstileToken, setTurnstileToken] = useState("");
   const [turnstileKey, setTurnstileKey] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const headingRef = useRef<HTMLDivElement>(null);
+  const alertRef = useRef<HTMLDivElement>(null);
+  const mounted = useRef(false);
+  const firstRender = useRef(true);
   const onToken = useCallback((token: string) => setTurnstileToken(token), []);
 
-  function showError(code: LandingErrorCode, back: Step) {
+  // Without a site key (local dev) the server accepts the empty token.
+  const waitingForCaptcha = Boolean(props.turnstileSiteKey) && !turnstileToken;
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  // Move focus to the new step's heading, or to the alert when an error shows.
+  // Not on first render: don't steal focus on page load.
+  useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
+    (error ? alertRef.current : headingRef.current)?.focus();
+  }, [step.kind, error]);
+
+  /**
+   * `back` is the step to show (null = stay, e.g. keep the contact form with
+   * the typed values). Retry is offered only for extraction failures.
+   */
+  function showError(code: LandingErrorCode, back: Step | null, opts: { retryExtraction: boolean }) {
     const key = errorKey(code);
     setError(key);
-    setCanRetryExtraction(RETRYABLE_EXTRACTION.has(code));
-    setStep(key === "expired" ? { kind: "upload" } : back);
+    setCanRetryExtraction(opts.retryExtraction && RETRYABLE_EXTRACTION.has(code));
+    if (key === "expired") setStep({ kind: "upload" });
+    else if (back) setStep(back);
   }
 
   async function extract() {
     setError(null);
     setCanRetryExtraction(false);
     setStep({ kind: "working", label: "reading" });
+    const fail = (code: LandingErrorCode) => showError(code, { kind: "upload" }, { retryExtraction: true });
     try {
       // First call, then up to POLL_ATTEMPTS more while another request extracts.
       for (let attempt = 0; attempt <= POLL_ATTEMPTS; attempt++) {
         if (attempt > 0) await wait(POLL_INTERVAL_MS);
+        if (!mounted.current) return;
         const r = await runLandingExtractionAction(props.slug);
+        if (!mounted.current) return;
         if (r.ok) return setStep({ kind: "contact", prefill: r.data });
-        if (r.error !== "IN_PROGRESS") return showError(r.error, { kind: "upload" });
+        if (r.error !== "IN_PROGRESS") return fail(r.error);
       }
-      showError("IN_PROGRESS", { kind: "upload" });
+      fail("IN_PROGRESS");
     } catch {
-      showError("INTERNAL_ERROR", { kind: "upload" });
+      if (mounted.current) fail("INTERNAL_ERROR");
     }
   }
 
   async function upload(file: File) {
+    if (waitingForCaptcha) return;
     setError(null);
     setCanRetryExtraction(false);
+    const fail = (code: LandingErrorCode) => showError(code, { kind: "upload" }, { retryExtraction: false });
     if (!ALLOWED_EXTENSIONS.some((ext) => file.name.toLowerCase().endsWith(ext)) || file.size > MAX_BYTES) {
       setError("badFile");
       return;
     }
     setStep({ kind: "working", label: "uploading" });
     try {
-      const ticket = await requestLandingUploadAction(props.slug, {
-        fileName: file.name,
-        fileSize: file.size,
-        turnstileToken,
-      });
-      // Turnstile tokens are single-use: get a fresh one for any next attempt.
-      setTurnstileToken("");
-      setTurnstileKey((k) => k + 1);
-      if (!ticket.ok) return showError(ticket.error, { kind: "upload" });
+      let ticket: LandingResult<{ storagePath: string; token: string }>;
+      try {
+        ticket = await requestLandingUploadAction(props.slug, {
+          fileName: file.name,
+          fileSize: file.size,
+          turnstileToken,
+        });
+      } finally {
+        // Turnstile tokens are single-use, even when the request throws:
+        // get a fresh one for any next attempt.
+        setTurnstileToken("");
+        setTurnstileKey((k) => k + 1);
+      }
+      if (!ticket.ok) return fail(ticket.error);
 
       // Straight to Storage: Vercel caps request bodies at 4.5 MB.
       const { error: upErr } = await createSupabaseBrowserClient()
@@ -143,29 +183,34 @@ export function LandingFlow(props: LandingFlowProps) {
         .uploadToSignedUrl(ticket.data.storagePath, ticket.data.token, file, {
           contentType: file.type || undefined,
         });
-      if (upErr) return showError("STORAGE_ERROR", { kind: "upload" });
+      if (upErr) return fail("STORAGE_ERROR");
 
       const reg = await registerLandingUploadAction(props.slug, file.name);
-      if (!reg.ok) return showError(reg.error, { kind: "upload" });
+      if (!reg.ok) return fail(reg.error);
     } catch {
-      return showError("INTERNAL_ERROR", { kind: "upload" });
+      return fail("INTERNAL_ERROR");
     }
     await extract();
   }
 
-  async function confirm(values: ContactSubmission, prefill: ContactPrefill) {
+  async function confirm(values: ContactSubmission) {
     setBusy(true);
     setError(null);
+    // On failure stay on the form (null): the typed values survive and the
+    // candidate resubmits with the form's own button.
     try {
       const r = await confirmLandingImportAction(props.slug, values);
       if (r.ok) setStep({ kind: "done" });
-      else showError(r.error, { kind: "contact", prefill });
+      else showError(r.error, null, { retryExtraction: false });
     } catch {
-      showError("INTERNAL_ERROR", { kind: "contact", prefill });
+      showError("INTERNAL_ERROR", null, { retryExtraction: false });
     } finally {
       setBusy(false);
     }
   }
+
+  const workingText = step.kind === "working" ? (step.label === "reading" ? t.reading : t.uploading) : "";
+  const headingClass = "outline-none";
 
   // A real link styled as a button (base-ui Button would add role="button").
   const whatsappButton = props.waLink && (
@@ -177,8 +222,14 @@ export function LandingFlow(props: LandingFlowProps) {
 
   return (
     <div className="space-y-4">
+      {/* Always mounted so screen readers announce progress changes. */}
+      <p role="status" aria-live="polite" className="sr-only">{workingText}</p>
+
       {error && (
-        <div role="alert" className="space-y-2 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">
+        <div
+          ref={alertRef} tabIndex={-1} role="alert"
+          className="space-y-2 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm outline-none"
+        >
           <p>{t.errors[error]}</p>
           {canRetryExtraction && (
             <Button size="sm" variant="outline" onClick={() => void extract()}>{t.retry}</Button>
@@ -195,7 +246,9 @@ export function LandingFlow(props: LandingFlowProps) {
         <div className="grid gap-4 sm:grid-cols-2">
           {props.waLink && (
             <Card>
-              <CardHeader><CardTitle>{t.whatsappTitle}</CardTitle></CardHeader>
+              <CardHeader>
+                <CardTitle ref={headingRef} tabIndex={-1} className={headingClass}>{t.whatsappTitle}</CardTitle>
+              </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-sm text-muted-foreground">{t.whatsappBody}</p>
                 {whatsappButton}
@@ -203,7 +256,13 @@ export function LandingFlow(props: LandingFlowProps) {
             </Card>
           )}
           <Card>
-            <CardHeader><CardTitle>{t.uploadTitle}</CardTitle></CardHeader>
+            <CardHeader>
+              {props.waLink ? (
+                <CardTitle>{t.uploadTitle}</CardTitle>
+              ) : (
+                <CardTitle ref={headingRef} tabIndex={-1} className={headingClass}>{t.uploadTitle}</CardTitle>
+              )}
+            </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">{org(t.uploadBody)}</p>
               <Button variant="outline" className="w-full" onClick={() => setStep({ kind: "upload" })}>
@@ -217,7 +276,9 @@ export function LandingFlow(props: LandingFlowProps) {
 
       {step.kind === "upload" && (
         <Card>
-          <CardHeader><CardTitle>{t.uploadTitle}</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle ref={headingRef} tabIndex={-1} className={headingClass}>{t.uploadTitle}</CardTitle>
+          </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-col items-center gap-3 rounded-lg border-2 border-dashed p-8 text-center">
               <FileUp className="h-10 w-10 text-muted-foreground/60" aria-hidden="true" />
@@ -226,7 +287,16 @@ export function LandingFlow(props: LandingFlowProps) {
                 ref={inputRef} type="file" accept={ACCEPT} className="sr-only" tabIndex={-1}
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) void upload(f); e.target.value = ""; }}
               />
-              <Button type="button" onClick={() => inputRef.current?.click()}>{t.chooseFile}</Button>
+              <Button
+                type="button" disabled={waitingForCaptcha}
+                aria-describedby={waitingForCaptcha ? "landing-verifying" : undefined}
+                onClick={() => inputRef.current?.click()}
+              >
+                {t.chooseFile}
+              </Button>
+              {waitingForCaptcha && (
+                <p id="landing-verifying" className="text-xs text-muted-foreground">{t.verifying}</p>
+              )}
             </div>
             <TurnstileWidget
               key={turnstileKey} siteKey={props.turnstileSiteKey} locale={props.locale} onToken={onToken}
@@ -241,8 +311,8 @@ export function LandingFlow(props: LandingFlowProps) {
       {step.kind === "working" && (
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
-            <Spinner aria-label={step.label === "reading" ? t.reading : t.uploading} />
-            <p className="font-medium">{step.label === "reading" ? t.reading : t.uploading}</p>
+            <Spinner aria-hidden="true" role={undefined} />
+            <p ref={headingRef} tabIndex={-1} className={`font-medium ${headingClass}`}>{workingText}</p>
             {step.label === "reading" && <p className="text-sm text-muted-foreground">{t.readingHint}</p>}
           </CardContent>
         </Card>
@@ -250,13 +320,15 @@ export function LandingFlow(props: LandingFlowProps) {
 
       {step.kind === "contact" && (
         <Card>
-          <CardHeader><CardTitle>{t.contactTitle}</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle ref={headingRef} tabIndex={-1} className={headingClass}>{t.contactTitle}</CardTitle>
+          </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">{org(t.contactBody)}</p>
             <ContactForm
               orgName={props.orgName} prefill={step.prefill} privacyPolicyUrl={props.privacyPolicyUrl}
               showShare={props.showShare} busy={busy}
-              onSubmit={(values) => void confirm(values, step.prefill)}
+              onSubmit={(values) => void confirm(values)}
             />
           </CardContent>
         </Card>
@@ -265,7 +337,7 @@ export function LandingFlow(props: LandingFlowProps) {
       {step.kind === "done" && (
         <Card>
           <CardContent className="space-y-2 py-12 text-center">
-            <p className="text-xl font-medium">{t.doneTitle}</p>
+            <p ref={headingRef} tabIndex={-1} className={`text-xl font-medium ${headingClass}`}>{t.doneTitle}</p>
             <p className="text-muted-foreground">{org(t.doneBody)}</p>
           </CardContent>
         </Card>

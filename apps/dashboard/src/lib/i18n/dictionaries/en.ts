@@ -489,6 +489,7 @@ export const en = {
     uploading: "Uploading…",
     reading: "Reading your CV…",
     readingHint: "It takes less than a minute. Please keep this page open.",
+    verifying: "Verifying…",
     contactTitle: "Check your details",
     contactBody: "We read them from your CV. Fix them if needed: {org} uses them to contact you.",
     firstName: "First name",

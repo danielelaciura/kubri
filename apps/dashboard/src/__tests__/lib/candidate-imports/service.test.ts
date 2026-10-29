@@ -28,8 +28,10 @@ vi.mock("@/lib/storage/candidate-documents", async () => {
     createDocumentUploadUrl: vi.fn(),
     downloadCandidateDocument: vi.fn(),
     removeCandidateDocuments: vi.fn(),
+    replaceCandidateDocument: vi.fn(),
   };
 });
+vi.mock("@/lib/documents/inspect", () => ({ inspectPublicDocument: vi.fn() }));
 vi.mock("@/lib/documents/extract-text", () => ({ extractDocumentText: vi.fn() }));
 vi.mock("@/lib/candidates/cv-extraction", () => ({ extractCandidateDraft: vi.fn() }));
 vi.mock("@/lib/candidates/ingest", () => ({
@@ -43,7 +45,9 @@ import {
   createDocumentUploadUrl,
   downloadCandidateDocument,
   removeCandidateDocuments,
+  replaceCandidateDocument,
 } from "@/lib/storage/candidate-documents";
+import { inspectPublicDocument } from "@/lib/documents/inspect";
 import { StorageError } from "@/lib/storage/errors";
 import { extractDocumentText } from "@/lib/documents/extract-text";
 import { extractCandidateDraft } from "@/lib/candidates/cv-extraction";
@@ -389,5 +393,78 @@ describe("non-UUID import ids never reach the database", () => {
   it("runExtraction returns early", async () => {
     for (const id of bad) await expect(runExtraction(id)).resolves.toBeUndefined();
     expect(prisma.candidateImport.updateMany).not.toHaveBeenCalled();
+  });
+});
+
+describe("public upload options", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("createUploadTicket honours a lower maxBytes", async () => {
+    await expect(
+      createUploadTicket({ poolId: "p", fileName: "cv.pdf", fileSize: 6 * 1024 * 1024, maxBytes: 5 * 1024 * 1024 }),
+    ).rejects.toMatchObject({ code: "FILE_TOO_LARGE" });
+  });
+
+  it("registerUpload with inspect rejects and removes an unsafe file", async () => {
+    m(downloadCandidateDocument).mockResolvedValueOnce(PDF);
+    m(inspectPublicDocument).mockResolvedValueOnce({ ok: false, reason: "pdf_active_content" });
+    await expect(
+      registerUpload({ ...REGISTER, origin: "PUBLIC_LINK", createdById: null, inspect: true }),
+    ).rejects.toMatchObject({ code: "REJECTED_FILE" });
+    expect(m(removeCandidateDocuments)).toHaveBeenCalledWith([`p/${IMPORT_ID}/CV_Ahmed.pdf`]);
+    expect(m(prisma.candidateImport.create)).not.toHaveBeenCalled();
+  });
+
+  it("registerUpload with inspect stores re-encoded bytes and their type", async () => {
+    const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1]);
+    const JPEG = new Uint8Array([0xff, 0xd8, 0xff, 1, 2]);
+    m(downloadCandidateDocument).mockResolvedValueOnce(PNG);
+    m(inspectPublicDocument).mockResolvedValueOnce({ ok: true, bytes: JPEG, kind: "jpeg" });
+    await registerUpload({ ...REGISTER, fileName: "foto.png", origin: "PUBLIC_LINK", createdById: null, inspect: true });
+    expect(m(replaceCandidateDocument)).toHaveBeenCalledWith(`p/${IMPORT_ID}/foto.png`, JPEG, "image/jpeg");
+    expect(m(prisma.candidateImport.create).mock.calls[0]![0].data).toMatchObject({
+      origin: "PUBLIC_LINK", createdById: null, mimeType: "image/jpeg", fileSize: 5,
+    });
+  });
+
+  it("registerUpload without inspect never calls the inspector", async () => {
+    m(downloadCandidateDocument).mockResolvedValueOnce(PDF);
+    await registerUpload(REGISTER);
+    expect(m(inspectPublicDocument)).not.toHaveBeenCalled();
+  });
+
+  it("registerUpload honours maxBytes on the stored object", async () => {
+    m(downloadCandidateDocument).mockResolvedValueOnce(new Uint8Array(11));
+    await expect(registerUpload({ ...REGISTER, maxBytes: 10 })).rejects.toMatchObject({ code: "FILE_TOO_LARGE" });
+  });
+});
+
+describe("runExtraction public options", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    m(prisma.candidateImport.updateMany).mockResolvedValue({ count: 1 });
+    m(prisma.candidateImport.findUniqueOrThrow).mockResolvedValue({ storagePath: "p/i/cv.pdf" });
+    m(downloadCandidateDocument).mockResolvedValue(PDF);
+    m(extractDocumentText).mockResolvedValue({ text: "testo del cv", method: "pdf", pageCount: 1 });
+  });
+
+  it("passes maxOcrPages to text extraction", async () => {
+    m(extractCandidateDraft).mockResolvedValueOnce(DRAFT);
+    await runExtraction(IMPORT_ID, { maxOcrPages: 3 });
+    expect(m(extractDocumentText)).toHaveBeenCalledWith(PDF, "pdf", { maxOcrPages: 3 });
+  });
+
+  it("fails NOT_A_CV without calling the LLM when the text gate says no", async () => {
+    await runExtraction(IMPORT_ID, { textGate: () => false });
+    expect(m(extractCandidateDraft)).not.toHaveBeenCalled();
+    const finish = m(prisma.candidateImport.updateMany).mock.calls[1]![0];
+    expect(finish.data).toEqual({ status: "FAILED", errorCode: "NOT_A_CV" });
+  });
+
+  it("rejectNonCv turns isCv=false into FAILED and keeps no text", async () => {
+    m(extractCandidateDraft).mockResolvedValueOnce({ ...DRAFT, isCv: false });
+    await runExtraction(IMPORT_ID, { rejectNonCv: true });
+    const finish = m(prisma.candidateImport.updateMany).mock.calls[1]![0];
+    expect(finish.data).toEqual({ status: "FAILED", errorCode: "NOT_A_CV" });
   });
 });

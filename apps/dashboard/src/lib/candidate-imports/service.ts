@@ -3,6 +3,8 @@ import type { CandidateFields } from "@kubri/contracts";
 import { prisma } from "@/lib/db";
 import { Prisma, type CandidateImportOrigin } from "@/generated/prisma/client";
 import { detectDocumentKind, DOCUMENT_MIME, MAX_DOCUMENT_BYTES } from "@/lib/documents/detect";
+import type { DocumentKind } from "@/lib/documents/detect";
+import { inspectPublicDocument } from "@/lib/documents/inspect";
 import { extractDocumentText } from "@/lib/documents/extract-text";
 import { extractCandidateDraft } from "@/lib/candidates/cv-extraction";
 import { buildDashboardCandidateInput } from "@/lib/candidates/dashboard-create";
@@ -12,6 +14,7 @@ import {
   createDocumentUploadUrl,
   downloadCandidateDocument,
   removeCandidateDocuments,
+  replaceCandidateDocument,
 } from "@/lib/storage/candidate-documents";
 import {
   ImportError,
@@ -52,8 +55,10 @@ export async function createUploadTicket(input: {
   poolId: string;
   fileName: string;
   fileSize: number;
+  /** Public uploads pass a lower cap. */
+  maxBytes?: number;
 }): Promise<UploadTicket> {
-  if (input.fileSize > MAX_DOCUMENT_BYTES) throw new ImportError("FILE_TOO_LARGE");
+  if (input.fileSize > (input.maxBytes ?? MAX_DOCUMENT_BYTES)) throw new ImportError("FILE_TOO_LARGE");
   const importId = randomUUID();
   const storagePath = buildDocumentPath(input.poolId, importId, input.fileName);
   try {
@@ -71,6 +76,18 @@ export interface RegisterUploadInput {
   origin: CandidateImportOrigin;
   createdById: string | null;
   fileName: string;
+  /** Public uploads pass a lower cap. */
+  maxBytes?: number;
+  /** Public uploads: reject active content, re-encode images (inspectPublicDocument). */
+  inspect?: boolean;
+}
+
+async function removeQuietly(storagePath: string, why: string): Promise<void> {
+  try {
+    await removeCandidateDocuments([storagePath]);
+  } catch (e) {
+    console.error(`[candidate import] ${why} removal failed`, { storagePath, error: e });
+  }
 }
 
 /**
@@ -90,15 +107,32 @@ export async function registerUpload(input: RegisterUploadInput): Promise<{ impo
     throw new ImportError("STORAGE_ERROR", e);
   }
 
-  const tooLarge = bytes.byteLength > MAX_DOCUMENT_BYTES;
-  const kind = tooLarge ? null : detectDocumentKind(bytes);
-  if (!kind) {
-    try {
-      await removeCandidateDocuments([storagePath]);
-    } catch (e) {
-      console.error("[candidate import] invalid upload removal failed", { storagePath, error: e });
-    }
+  const tooLarge = bytes.byteLength > (input.maxBytes ?? MAX_DOCUMENT_BYTES);
+  const detected = tooLarge ? null : detectDocumentKind(bytes);
+  if (!detected) {
+    await removeQuietly(storagePath, "invalid upload");
     throw new ImportError(tooLarge ? "FILE_TOO_LARGE" : "UNSUPPORTED_TYPE");
+  }
+
+  let stored = bytes;
+  let kind: DocumentKind = detected;
+  if (input.inspect) {
+    const inspected = await inspectPublicDocument(bytes, detected);
+    if (!inspected.ok) {
+      console.warn("[candidate import] public upload rejected", { reason: inspected.reason });
+      await removeQuietly(storagePath, "rejected upload");
+      throw new ImportError("REJECTED_FILE");
+    }
+    if (inspected.bytes !== bytes) {
+      try {
+        await replaceCandidateDocument(storagePath, inspected.bytes, DOCUMENT_MIME[inspected.kind]);
+      } catch (e) {
+        await removeQuietly(storagePath, "unreplaceable upload");
+        throw new ImportError("STORAGE_ERROR", e);
+      }
+    }
+    stored = inspected.bytes;
+    kind = inspected.kind;
   }
 
   await prisma.candidateImport.create({
@@ -112,10 +146,19 @@ export async function registerUpload(input: RegisterUploadInput): Promise<{ impo
       storagePath,
       fileName: input.fileName.slice(0, 255),
       mimeType: DOCUMENT_MIME[kind],
-      fileSize: bytes.byteLength,
+      fileSize: stored.byteLength,
     },
   });
   return { importId: input.importId };
+}
+
+export interface ExtractionOptions {
+  /** Cap on OCR pages (public uploads: lower than the operator default). */
+  maxOcrPages?: number;
+  /** Free pre-LLM check; false → FAILED NOT_A_CV and no LLM call. */
+  textGate?: (text: string) => boolean;
+  /** isCv=false → FAILED NOT_A_CV (public) instead of a READY warning (operator). */
+  rejectNonCv?: boolean;
 }
 
 /**
@@ -127,7 +170,7 @@ export async function registerUpload(input: RegisterUploadInput): Promise<{ impo
  * Not org-scoped: callers must verify the import belongs to the user's
  * organization first (see getImportForOrg).
  */
-export async function runExtraction(importId: string): Promise<void> {
+export async function runExtraction(importId: string, opts: ExtractionOptions = {}): Promise<void> {
   if (!isUuid(importId)) return;
   const claimedAt = new Date();
   const claimed = await prisma.candidateImport.updateMany({
@@ -163,10 +206,18 @@ export async function runExtraction(importId: string): Promise<void> {
     const bytes = await downloadCandidateDocument(imp.storagePath);
     const kind = detectDocumentKind(bytes);
     if (!kind) throw new ImportError("FILE_UNREADABLE");
-    const extracted = await extractDocumentText(bytes, kind);
+    const extracted = await extractDocumentText(bytes, kind, { maxOcrPages: opts.maxOcrPages });
     // Postgres text/jsonb reject NUL, which unpdf can emit.
     const text = extracted.text.replace(/\u0000/g, "");
+    if (opts.textGate && !opts.textGate(text)) {
+      await finish({ status: "FAILED", errorCode: "NOT_A_CV" });
+      return;
+    }
     const draft = await extractCandidateDraft(text);
+    if (!draft.isCv && opts.rejectNonCv) {
+      await finish({ status: "FAILED", errorCode: "NOT_A_CV" });
+      return;
+    }
     await finish({
       status: "READY",
       extractedText: text,

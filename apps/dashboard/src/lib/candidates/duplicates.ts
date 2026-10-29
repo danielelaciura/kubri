@@ -37,7 +37,9 @@ export async function findPossibleDuplicates(
  * profile instead of creating a duplicate — exact match only, same pool only
  * (never across pools: they may belong to different controllers). The SQL
  * filter narrows by the last 8 digits; stored phones with separators inside
- * those digits are missed (a duplicate is created — acceptable).
+ * those digits are missed (a duplicate is created — acceptable). Two concurrent
+ * confirms with the same phone can both miss and create two rows (no lock on
+ * pool+phone) — also an acceptable duplicate.
  */
 export async function findCandidateIdBySamePhone(
   db: Prisma.TransactionClient,

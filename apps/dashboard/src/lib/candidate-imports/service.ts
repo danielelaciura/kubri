@@ -88,6 +88,20 @@ export interface RegisterUploadInput {
   inspect?: boolean;
 }
 
+const KIND_EXTENSION: Record<DocumentKind, string> = {
+  pdf: ".pdf",
+  docx: ".docx",
+  jpeg: ".jpg",
+  png: ".png",
+};
+
+/** `name` with its extension rewritten to match `kind` (after a re-encode). */
+function withExtension(name: string, kind: DocumentKind): string {
+  const dot = name.lastIndexOf(".");
+  const base = dot > 0 ? name.slice(0, dot) : name;
+  return `${base}${KIND_EXTENSION[kind]}`;
+}
+
 async function removeQuietly(storagePath: string, why: string): Promise<void> {
   try {
     await removeCandidateDocuments([storagePath]);
@@ -105,6 +119,13 @@ async function removeQuietly(storagePath: string, why: string): Promise<void> {
  */
 export async function registerUpload(input: RegisterUploadInput): Promise<{ importId: string }> {
   const storagePath = buildDocumentPath(input.poolId, input.importId, input.fileName);
+
+  // Re-registering must not touch storage (and used to surface as a raw P2002).
+  const existing = await prisma.candidateImport.findUnique({
+    where: { id: input.importId },
+    select: { id: true },
+  });
+  if (existing) throw new ImportStateError("UPLOADED");
 
   let bytes: Uint8Array;
   try {
@@ -129,13 +150,12 @@ export async function registerUpload(input: RegisterUploadInput): Promise<{ impo
       await removeQuietly(storagePath, "rejected upload");
       throw new ImportError("REJECTED_FILE");
     }
-    if (inspected.bytes !== bytes) {
-      try {
-        await replaceCandidateDocument(storagePath, inspected.bytes, DOCUMENT_MIME[inspected.kind]);
-      } catch (e) {
-        await removeQuietly(storagePath, "unreplaceable upload");
-        throw new ImportError("STORAGE_ERROR", e);
-      }
+    // Always re-upload so the stored Content-Type is the server's, never the browser's.
+    try {
+      await replaceCandidateDocument(storagePath, inspected.bytes, DOCUMENT_MIME[inspected.kind]);
+    } catch (e) {
+      await removeQuietly(storagePath, "unreplaceable upload");
+      throw new ImportError("STORAGE_ERROR", e);
     }
     stored = inspected.bytes;
     kind = inspected.kind;
@@ -150,7 +170,7 @@ export async function registerUpload(input: RegisterUploadInput): Promise<{ impo
       status: "UPLOADED",
       createdById: input.createdById,
       storagePath,
-      fileName: input.fileName.slice(0, 255),
+      fileName: (kind === detected ? input.fileName : withExtension(input.fileName, kind)).slice(0, 255),
       mimeType: DOCUMENT_MIME[kind],
       fileSize: stored.byteLength,
     },
@@ -248,6 +268,8 @@ export interface ConfirmImportInput {
   organizationId: string;
   /** Null for public-landing imports (no logged-in uploader). */
   userId: string | null;
+  /** Required for the public landing: the import must belong to this pool. */
+  poolId?: string;
   fields: CandidateFields;
   channel?: Extract<CandidateCreateChannel, "dashboard_cv" | "landing_cv">;
   /** The candidate's own consent to global sharing (public landing only). */
@@ -266,6 +288,8 @@ export interface ConfirmImportResult {
   candidateId: string;
   /** True when the CV was attached to an existing candidate. */
   attached: boolean;
+  /** The CandidateDocument created for the CV (for the caller's audit row). */
+  documentId: string;
 }
 
 /**
@@ -274,28 +298,44 @@ export interface ConfirmImportResult {
  * Idempotent: confirming a COMPLETED import returns its candidate. Throws
  * ImportNotFoundError (wrong org / id) or ImportStateError (discarded, or lost
  * a concurrent confirm).
+ *
+ * The public landing (`channel: "landing_cv"`) is stricter: it requires
+ * `poolId`, only matches PUBLIC_LINK imports of that pool and only claims READY
+ * ones. On attach the consent is NOT stored on the candidate's rawPayload (the
+ * existing profile is untouched): it lives in the caller's audit log, keyed by
+ * the returned `documentId`.
  */
 export async function confirmImport(input: ConfirmImportInput): Promise<ConfirmImportResult> {
   const channel = input.channel ?? "dashboard_cv";
+  const isPublic = channel === "landing_cv";
+  if (isPublic && !input.poolId) throw new ImportNotFoundError();
   const result = await prisma.$transaction(async (tx) => {
     const imp = await tx.candidateImport.findFirst({
-      where: { id: input.importId, organizationId: input.organizationId },
+      where: isPublic
+        ? { id: input.importId, organizationId: input.organizationId, poolId: input.poolId, origin: "PUBLIC_LINK" }
+        : { id: input.importId, organizationId: input.organizationId },
       include: { pool: true },
     });
     if (!imp) throw new ImportNotFoundError();
     if (imp.status === "COMPLETED" && imp.candidateId) {
-      return { candidateId: imp.candidateId, row: null, attached: false };
+      const doc = await tx.candidateDocument.findFirst({
+        where: { candidateId: imp.candidateId, storagePath: imp.storagePath },
+        select: { id: true },
+      });
+      return { candidateId: imp.candidateId, row: null, attached: false, documentId: doc?.id ?? "" };
     }
 
     const claimed = await tx.candidateImport.updateMany({
-      where: {
-        id: imp.id,
-        OR: [
-          { status: { in: ["READY", "FAILED"] } },
-          // A stuck extraction may be filled in by hand (review page ?manual=1).
-          { status: "EXTRACTING", updatedAt: { lt: new Date(Date.now() - STALE_EXTRACTION_MS) } },
-        ],
-      },
+      where: isPublic
+        ? { id: imp.id, status: "READY" }
+        : {
+            id: imp.id,
+            OR: [
+              { status: { in: ["READY", "FAILED"] } },
+              // A stuck extraction may be filled in by hand (review page ?manual=1).
+              { status: "EXTRACTING", updatedAt: { lt: new Date(Date.now() - STALE_EXTRACTION_MS) } },
+            ],
+          },
       data: { status: "COMPLETED" },
     });
     if (claimed.count === 0) throw new ImportStateError(imp.status);
@@ -317,9 +357,12 @@ export async function confirmImport(input: ConfirmImportInput): Promise<ConfirmI
     if (input.attachToExistingByPhone) {
       const existingId = await findCandidateIdBySamePhone(tx, imp.pool.id, input.fields.phone);
       if (existingId) {
-        await tx.candidateDocument.create({ data: { candidateId: existingId, ...document } });
+        const doc = await tx.candidateDocument.create({
+          data: { candidateId: existingId, ...document },
+          select: { id: true },
+        });
         await closeImport(existingId);
-        return { candidateId: existingId, row: null, attached: true };
+        return { candidateId: existingId, row: null, attached: true, documentId: doc.id };
       }
     }
 
@@ -341,13 +384,16 @@ export async function confirmImport(input: ConfirmImportInput): Promise<ConfirmI
       tx,
     );
 
-    await tx.candidateDocument.create({ data: { candidateId: row.id, ...document } });
+    const doc = await tx.candidateDocument.create({
+      data: { candidateId: row.id, ...document },
+      select: { id: true },
+    });
     await closeImport(row.id);
-    return { candidateId: row.id, row, attached: false };
+    return { candidateId: row.id, row, attached: false, documentId: doc.id };
   });
 
   if (result.row) await refreshCandidateEmbedding(result.row, "candidate import");
-  return { candidateId: result.candidateId, attached: result.attached };
+  return { candidateId: result.candidateId, attached: result.attached, documentId: result.documentId };
 }
 
 /** Discard an open import of the organization and delete its file. */

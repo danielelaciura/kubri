@@ -59,10 +59,37 @@ describe("inspectPublicDocument — PDF", () => {
     expect(r).toEqual({ ok: false, reason: "pdf_active_content" });
   });
 
+  it("accepts scheme-less links but rejects javascript:", async () => {
+    getAnnotations.mockResolvedValueOnce([{ subtype: "Link", unsafeUrl: "www.linkedin.com/in/x" }]);
+    expect((await inspectPublicDocument(enc("%PDF-1.7"), "pdf")).ok).toBe(true);
+    getAnnotations.mockResolvedValueOnce([{ subtype: "Link", unsafeUrl: "javascript:alert(1)" }]);
+    expect(await inspectPublicDocument(enc("%PDF-1.7"), "pdf")).toEqual({
+      ok: false, reason: "pdf_active_content",
+    });
+  });
+
+  it("does not let a fake stream keyword hide names", async () => {
+    const r = await inspectPublicDocument(enc("%PDF-1.7 (stream\n) /JS (endstream)"), "pdf");
+    expect(r).toEqual({ ok: false, reason: "pdf_active_content" });
+  });
+
   it("accepts plain https links", async () => {
     getAnnotations.mockResolvedValue([{ subtype: "Link", url: "https://example.com", actions: {} }]);
     const r = await inspectPublicDocument(enc("%PDF-1.7"), "pdf");
     expect(r.ok).toBe(true);
+  });
+
+  it("destroys the loading task when the checks time out", async () => {
+    vi.useFakeTimers();
+    try {
+      pdfProxy.getJSActions.mockReturnValueOnce(new Promise(() => {}));
+      const p = inspectPublicDocument(enc("%PDF-1.7"), "pdf");
+      await vi.advanceTimersByTimeAsync(PDF_TIMEOUT_MS + 1);
+      await expect(p).resolves.toEqual({ ok: false, reason: "pdf_unreadable" });
+      expect(pdfProxy.loadingTask.destroy).toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("times out hostile PDFs as pdf_unreadable", async () => {
@@ -178,7 +205,18 @@ describe("inspectPublicDocument — DOCX", () => {
     ["aFChunk", { rels: rel("aFChunk", "chunk.html") }],
     ["subDocument", { rels: rel("subDocument", "x.docx") }],
     ["vbaProject.bin entry", { extra: { "word/vbaProject.bin": "x" } }],
-    ["other .bin entry", { extra: { "word/foo.bin": "x" } }],
+    ["embeddings entry", { extra: { "word/embeddings/o.dat": "x" } }],
+    ["char-ref DDE", { document: "<w:document><w:instrText>&#68;DEAUTO x</w:instrText></w:document>" }],
+    ["hex char-ref DDE", { document: "<w:document><w:instrText>&#x44;DE x</w:instrText></w:document>" }],
+    ["char-ref TargetMode", { rels: '<Relationship Type="x/image" Target="http://e" TargetMode="&#69;xternal"/>' }],
+    ["char-ref rel Type", { rels: `<Relationship Type="${REL_NS}/oleObjec&#116;" Target="a"/>` }],
+    ["single-quoted TargetMode", { rels: `<Relationship Type='${REL_NS}/image' Target='http://e' TargetMode='External'/>` }],
+    ["other prefix instrText", { document: "<x:document><q:instrText>DDEAUTO</q:instrText></x:document>" }],
+    ["other prefix fldSimple", { document: '<x:document><q:fldSimple q:instr="DDE a"/></x:document>' }],
+    ["other prefix Relationship", { rels: `<r:Relationship Type="${REL_NS}/image" Target="h" TargetMode="External"/>` }],
+    ["DDE in footnotes", { extra: { "word/footnotes.xml": "<w:footnotes><w:instrText>DDEAUTO</w:instrText></w:footnotes>" } }],
+    ["external rel in another part's rels", { extra: { "word/_rels/footnotes.xml.rels": `<Relationships>${rel("image", "http://e", true)}</Relationships>` } }],
+    ["oversized part", { document: "a".repeat(12 * 1024 * 1024) }],
     ["macroEnabled content type", { contentTypes: "<Types>macroEnabled.main+xml</Types>" }],
     [
       "DDEAUTO field",
@@ -193,6 +231,16 @@ describe("inspectPublicDocument — DOCX", () => {
   it.each(rejected)("rejects %s", async (_n, opts) => {
     const r = await inspectPublicDocument(await makeDocx(opts), "docx");
     expect(r).toEqual({ ok: false, reason: "docx_active_content" });
+  });
+
+  it("accepts HYPERLINK, PAGE and NUMPAGES fields and printerSettings", async () => {
+    const bytes = await makeDocx({
+      document:
+        '<w:document><w:instrText> HYPERLINK "https://example.com/hidden-gem" </w:instrText>' +
+        "<w:instrText> PAGE </w:instrText><w:instrText> NUMPAGES </w:instrText></w:document>",
+      extra: { "word/printerSettings/printerSettings1.bin": "x" },
+    });
+    expect((await inspectPublicDocument(bytes, "docx")).ok).toBe(true);
   });
 
   it("rejects bytes that are not a zip", async () => {

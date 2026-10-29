@@ -47,7 +47,7 @@ describe("ContactForm", () => {
 
   it("hides the sharing checkbox when not applicable", () => {
     setup(false);
-    expect(screen.queryByLabelText(/altre aziende/)).toBeNull();
+    expect(screen.queryByLabelText(/altre organizzazioni/)).toBeNull();
   });
 
   it("flags only the last name as required", () => {
@@ -85,7 +85,7 @@ describe("ContactForm", () => {
     const onSubmit = setup(true);
     fireEvent.change(screen.getByLabelText("Cognome"), { target: { value: "Benali" } });
     fireEvent.click(screen.getByLabelText(/Ho letto l'informativa/));
-    fireEvent.click(screen.getByLabelText(/altre aziende/));
+    fireEvent.click(screen.getByLabelText(/altre organizzazioni/));
     fireEvent.click(screen.getByRole("button", { name: "Invia candidatura" }));
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ shareWithGlobal: true }));
   });

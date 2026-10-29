@@ -7,8 +7,16 @@ export type Database = PrismaClient;
 /** A transaction's client. A Database is assignable to it, so stores accept both. */
 export type Tx = Prisma.TransactionClient;
 
-export function createDatabase(databaseUrl: string): Database {
-  const adapter = new PrismaPg({ connectionString: toPgConnectionString(databaseUrl) });
+export interface DatabaseOptions {
+  /** Connections of the pg pool (node-postgres default: 10). The worker sizes it (workerPoolSize). */
+  readonly poolSize?: number;
+}
+
+export function createDatabase(databaseUrl: string, options: DatabaseOptions = {}): Database {
+  const adapter = new PrismaPg({
+    connectionString: toPgConnectionString(databaseUrl),
+    ...(options.poolSize === undefined ? {} : { max: options.poolSize }),
+  });
   return new PrismaClient({ adapter });
 }
 

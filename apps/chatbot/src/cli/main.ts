@@ -11,8 +11,8 @@ const deps: CliDeps = {
   err: (line) => process.stderr.write(`${line}\n`),
   readFile: (path) => readFile(path, "utf8"),
   nodeEnv: () => parseNodeEnv(process.env["NODE_ENV"]),
-  withDatabase: async (fn) => {
-    const db = createDatabase(parseEnv(process.env).DATABASE_URL);
+  withDatabase: async (fn, options) => {
+    const db = createDatabase(parseEnv(process.env).DATABASE_URL, options);
     try {
       return await fn(db);
     } finally {

@@ -3,6 +3,8 @@ import {
   parseRuntimeConfig,
   requireConsentHashSecret,
   requireQueueDatabaseUrl,
+  sendRetryLimit,
+  workerPoolSize,
 } from "../../../src/runtime/config";
 
 const SECRET = "test-consent-hash-secret-0123456789abcdef";
@@ -117,5 +119,27 @@ describe("queue connection (QUEUE_DATABASE_URL)", () => {
     expect(() => parseRuntimeConfig({ QUEUE_DATABASE_URL: "mysql://secret@x/db" })).not.toThrow(
       /secret/,
     );
+  });
+});
+
+describe("sendRetryLimit", () => {
+  it("lets a send-messages job outlive every attempt of its message (D108)", () => {
+    // Each run of the job claims the message once: SEND_MAX_ATTEMPTS runs = that many - 1 retries.
+    for (const attempts of ["1", "3", "5", "9", "20"]) {
+      const config = parseRuntimeConfig({ SEND_MAX_ATTEMPTS: attempts });
+      expect(sendRetryLimit(config)).toBeGreaterThanOrEqual(config.sendMaxAttempts - 1);
+    }
+  });
+
+  it("never goes below the default of the other queues", () => {
+    expect(sendRetryLimit(parseRuntimeConfig({ SEND_MAX_ATTEMPTS: "1" }))).toBe(5);
+    expect(sendRetryLimit(parseRuntimeConfig({ SEND_MAX_ATTEMPTS: "12" }))).toBe(11);
+  });
+});
+
+describe("workerPoolSize", () => {
+  it("gives every job in flight of both queues two connections, plus two spare", () => {
+    expect(workerPoolSize(parseRuntimeConfig({}))).toBe(18);
+    expect(workerPoolSize(parseRuntimeConfig({ WORKER_BATCH_SIZE: "1" }))).toBe(6);
   });
 });

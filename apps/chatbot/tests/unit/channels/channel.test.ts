@@ -68,7 +68,18 @@ describe("ConsoleChannel", () => {
 
     const outcome = await new ConsoleChannel((line) => lines.push(line)).send(MESSAGE);
 
-    expect(outcome).toEqual({ ok: true, providerMessageId: "console-1" });
+    expect(outcome).toEqual({ ok: true, providerMessageId: `console-${MESSAGE.clientMessageId}` });
     expect(lines).toEqual(["→ +393331112233: Ciao"]);
+  });
+
+  it("gives the same message the same id in every process: a restarted worker never collides", async () => {
+    const first = await new ConsoleChannel(() => undefined).send(MESSAGE);
+    const other = await new ConsoleChannel(() => undefined).send({
+      ...MESSAGE,
+      clientMessageId: "another-message",
+    });
+
+    expect(first).not.toEqual(other);
+    expect(await new ConsoleChannel(() => undefined).send(MESSAGE)).toEqual(first);
   });
 });

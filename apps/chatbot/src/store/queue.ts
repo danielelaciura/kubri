@@ -61,7 +61,10 @@ export interface QueueSettings {
   readonly connectionString: string;
   /** pg-boss installs and keeps its tables here, never in public (CLAUDE.md: `bot_queue`). */
   readonly schema: string;
+  /** Retries of a failed job before it moves to its dead letter queue (default 5). */
   readonly retryLimit?: number;
+  /** Per queue, over `retryLimit`: the worker raises send-messages' (sendRetryLimit, D108). */
+  readonly retryLimits?: Partial<Record<QueueName, number>>;
   readonly retryDelaySeconds?: number;
   /** pg-boss reports connection problems as events; without a listener they would crash. */
   readonly onError?: (error: Error) => void;
@@ -82,6 +85,8 @@ export interface QueueRuntime {
     handler: (payload: JobPayloads[Q]) => Promise<void>,
     options: WorkOptions,
   ): Promise<void>;
+  /** The retries a new job of the queue gets, as configured here. */
+  retryLimitOf(name: QueueName): number;
   /** Tests: empties every queue. */
   purge(): Promise<void>;
 }
@@ -101,6 +106,8 @@ export function bossOptions(settings: Pick<QueueSettings, "connectionString" | "
 
 export function createQueueRuntime(settings: QueueSettings): QueueRuntime {
   const boss = new PgBoss(bossOptions(settings));
+  const retryLimitOf = (name: QueueName): number =>
+    settings.retryLimits?.[name] ?? settings.retryLimit ?? 5;
   boss.on("error", (error: Error) => settings.onError?.(error));
 
   const queue: JobQueue = {
@@ -121,14 +128,17 @@ export function createQueueRuntime(settings: QueueSettings): QueueRuntime {
     async start() {
       await boss.start();
       for (const name of QUEUE_NAMES) {
-        // The dead letter queue must exist before the queue that points at it.
-        await boss.createQueue(dead(name));
-        await boss.createQueue(name, {
+        const options = {
           deadLetter: dead(name),
-          retryLimit: settings.retryLimit ?? 5,
+          retryLimit: retryLimitOf(name),
           retryDelay: settings.retryDelaySeconds ?? 10,
           retryBackoff: true,
-        });
+        };
+        // The dead letter queue must exist before the queue that points at it.
+        await boss.createQueue(dead(name));
+        await boss.createQueue(name, options);
+        // createQueue leaves an existing queue as it was: a changed setting applies on restart.
+        await boss.updateQueue(name, options);
       }
     },
     async stop() {
@@ -139,6 +149,9 @@ export function createQueueRuntime(settings: QueueSettings): QueueRuntime {
         name,
         {
           batchSize: options.batchSize,
+          // Each job is settled on its own: a failure retries that job alone, so it never uses up
+          // the retries of the others in its batch (send-messages counts on them, D108).
+          perJobResults: true,
           ...(options.pollingIntervalSeconds === undefined
             ? {}
             : { pollingIntervalSeconds: options.pollingIntervalSeconds }),
@@ -147,14 +160,28 @@ export function createQueueRuntime(settings: QueueSettings): QueueRuntime {
           const results = await Promise.allSettled(
             jobs.map((job) => handler(parsePayload(name, job.data))),
           );
-          const failed = results.find((r) => r.status === "rejected");
-          // One failing job fails the batch: handlers are idempotent, the others run again.
-          if (failed) throw failed.reason;
+          return results.map((result, i) => ({
+            id: jobs[i]?.id ?? "",
+            ...(result.status === "fulfilled"
+              ? { status: "completed" as const }
+              : { status: "failed" as const, output: failureOutput(result.reason) }),
+          }));
         },
       );
     },
+    retryLimitOf,
     async purge() {
       await boss.deleteAllJobs();
     },
   };
+}
+
+/**
+ * What pg-boss stores on a failed job: the error's name and message, which the stores and the
+ * runtime keep free of personal values (only codes and ids).
+ */
+function failureOutput(reason: unknown): { name: string; message: string } {
+  return reason instanceof Error
+    ? { name: reason.name, message: reason.message }
+    : { name: "Error", message: String(reason) };
 }

@@ -108,3 +108,31 @@ export function requireConsentHashSecret(config: RuntimeConfig): string {
   }
   return config.consentHashSecret;
 }
+
+/** pg-boss retries of every queue but send-messages (see sendRetryLimit). */
+export const DEFAULT_RETRY_LIMIT = 5;
+
+/**
+ * pg-boss retries of a send-messages job (D108). Every run claims the head message once and a
+ * transient failure throws, so the message needs SEND_MAX_ATTEMPTS runs: with fewer retries the
+ * job would reach the dead letter queue while its message is still `queued`, and nothing would
+ * send it again. Never below the default, which leaves room for runs that fail before the claim
+ * (database down).
+ */
+export function sendRetryLimit(config: RuntimeConfig): number {
+  return Math.max(DEFAULT_RETRY_LIMIT, config.sendMaxAttempts - 1);
+}
+
+/**
+ * Connections of the worker's Prisma pool. Each queue runs up to WORKER_BATCH_SIZE jobs at once
+ * and each job may need two connections together:
+ * - process-contact holds its turn transaction (D102) while it reads the campaign and writes
+ *   the translation cache and traces on another connection;
+ * - send-messages holds reportFailure's transaction (it may wait for a turn to release the
+ *   contact's lock) while it reads the campaign on another connection.
+ * A pool smaller than that can deadlock: every connection is a transaction waiting for one more.
+ * So `2 queues × WORKER_BATCH_SIZE × 2`, plus 2 spare for the short reads outside a job.
+ */
+export function workerPoolSize(config: RuntimeConfig): number {
+  return 2 * config.workerBatchSize * 2 + 2;
+}

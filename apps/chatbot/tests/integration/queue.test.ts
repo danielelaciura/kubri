@@ -2,7 +2,13 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { inTransaction } from "../../src/store/db";
 import type { QueueRuntime } from "../../src/store/queue";
 import { createTestDatabase } from "./helpers/database";
-import { TEST_QUEUE_SCHEMA, countJobs, peekQueue, startTestQueue } from "./helpers/queue";
+import {
+  TEST_QUEUE_SCHEMA,
+  countJobs,
+  retryLimits,
+  peekQueue,
+  startTestQueue,
+} from "./helpers/queue";
 
 const db = createTestDatabase();
 let runtime: QueueRuntime;
@@ -154,5 +160,46 @@ describe("workers", () => {
     await expect
       .poll(() => countJobs(db, "kubri-webhook-dead"), { timeout: 20_000, interval: 300 })
       .toBe(1);
+  });
+
+  it("retries only the job that failed: the others of its batch complete", async () => {
+    const runs = new Map<string, number>();
+    await runtime.work(
+      "geocoding",
+      ({ sessionId }) => {
+        runs.set(sessionId, (runs.get(sessionId) ?? 0) + 1);
+        return sessionId === "bad" ? Promise.reject(new Error("down")) : Promise.resolve();
+      },
+      { batchSize: 3, pollingIntervalSeconds: 0.5 },
+    );
+
+    for (const sessionId of ["ok-1", "bad", "ok-2"]) {
+      await runtime.queue.enqueue("geocoding", { sessionId });
+    }
+
+    await expect
+      .poll(() => countJobs(db, "geocoding-dead"), { timeout: 20_000, interval: 300 })
+      .toBe(1);
+    // retryLimit 1: the failing job ran twice, its neighbours once each.
+    expect(Object.fromEntries(runs)).toEqual({ "ok-1": 1, bad: 2, "ok-2": 1 });
+  });
+});
+
+describe("retry limits", () => {
+  it("gives a queue its own limit, and a restart applies a changed one", async () => {
+    const first = await startTestQueue({ retryLimits: { "send-messages": 7 } });
+    await first.queue.enqueue("send-messages", PAYLOAD);
+    expect(await retryLimits(db, "send-messages")).toEqual({ queue: 7, job: 7 });
+    await first.stop();
+
+    const second = await startTestQueue({ retryLimits: { "send-messages": 4 } });
+    await second.queue.enqueue("send-messages", PAYLOAD);
+    await second.queue.enqueue("cv", { sessionId: "s" });
+    await second.stop();
+
+    expect(await retryLimits(db, "send-messages")).toEqual({ queue: 4, job: 4 });
+    expect(await retryLimits(db, "cv")).toEqual({ queue: 1, job: 1 });
+    expect(second.retryLimitOf("send-messages")).toBe(4);
+    expect(second.retryLimitOf("cv")).toBe(1);
   });
 });

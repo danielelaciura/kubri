@@ -1,6 +1,6 @@
 import type { NodeEnv } from "../config/env";
 import type { NluServices } from "../nlu/services";
-import type { Database } from "../store/db";
+import type { Database, DatabaseOptions } from "../store/db";
 
 /** Lines typed by the operator. */
 export interface LineInput {
@@ -23,7 +23,10 @@ export interface CliDeps {
    */
   readonly nodeEnv: () => NodeEnv | undefined;
   /** Opens a connection for the duration of `fn`, then disconnects. */
-  readonly withDatabase: <T>(fn: (db: Database) => Promise<T>) => Promise<T>;
+  readonly withDatabase: <T>(
+    fn: (db: Database) => Promise<T>,
+    options?: DatabaseOptions,
+  ) => Promise<T>;
   /** Opened by interactive commands (simulate), closed by them when they end. */
   readonly openInput: () => LineInput;
   /** The current time, ISO-8601: the engine gets time from its events. */

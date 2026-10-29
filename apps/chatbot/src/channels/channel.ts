@@ -66,13 +66,11 @@ export class FakeChannel implements ChannelAdapter {
 
 /** For trying the worker by hand: the candidate's "phone" is the terminal. */
 export class ConsoleChannel implements ChannelAdapter {
-  private count = 0;
-
   constructor(private readonly write: (line: string) => void) {}
 
   send(message: OutboundText): Promise<SendOutcome> {
-    this.count += 1;
     this.write(`→ ${message.to.phoneE164}: ${message.text}`);
-    return Promise.resolve({ ok: true, providerMessageId: `console-${this.count}` });
+    // From the message id, not a counter: providerMessageId is unique across worker restarts.
+    return Promise.resolve({ ok: true, providerMessageId: `console-${message.clientMessageId}` });
   }
 }

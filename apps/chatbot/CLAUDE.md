@@ -136,6 +136,9 @@ step(state, event, campaignVersion) → { state, effects }
 - Prisma 7 emits unqualified SQL for a single schema: after `prisma migrate dev`, qualify every object with `"bot".` (a unit test enforces it).
 - Things that must happen together go in **one transaction**: session state, profile patch +
   `ProfileChange`, `Consent`, message status updates and job enqueueing (transactional outbox).
+- A conversation turn is one interactive transaction that holds the contact's advisory lock
+  (plan 08, D102): never call the LLM or the network from `store`, and keep `store` functions
+  free of that kind of waiting.
 - The worker and pg-boss use the **direct / session connection (port 5432)**, not the transaction
   pooler.
 - Migrations to prod are applied **manually before** deploying code that needs them (same flow as
@@ -233,6 +236,8 @@ pnpm cli campaigns validate <file>   # no database; exits 1 on issues
 pnpm cli campaigns import <file> [--activate] [--imported-by <name>]
 pnpm cli campaigns list
 pnpm cli campaigns simulate <file> [--nlu naive|llm] [--translator fake|llm] [--history 3] [--traces]
+pnpm cli worker start [--nlu naive|llm] [--translator fake|llm]   # replies are printed: no channel yet
+pnpm cli inbound send --sender <slug> --from <e164> <text...>    # a candidate writes (stored + queued)
 ```
 
 - `campaigns import` creates a new immutable `CampaignVersion` only when the parsed file's
@@ -270,6 +275,29 @@ pnpm cli campaigns simulate <file> [--nlu naive|llm] [--translator fake|llm] [--
   unqualified SQL); `tests/unit/store/migrations.test.ts` fails otherwise. Also check the SQL
   only touches `"bot".` objects before committing.
 - Code runs with `tsx` in every environment; there is no JS build step.
+- **Worker (plan 08).** `worker start` runs the conversation turns (`process-contact`) and the
+  sending (`send-messages`) on pg-boss; replies are printed on the terminal (`ConsoleChannel`):
+  Meta's Cloud API arrives with plan 09. `inbound send` stores a text message as if it came from
+  WhatsApp and enqueues its turn; it needs a running worker to get an answer.
+- Required by the worker (it refuses to start, with one line, before connecting):
+  - `CONSENT_HASH_SECRET` (≥ 32 chars, HMAC key of `Consent.contactHash`; secret manager, never
+    rotated in place). `.env.test` has a dummy one; for a local run set a dev-only value.
+  - `QUEUE_DATABASE_URL`: the **direct / session** connection (5432) pg-boss uses; pg-boss and
+    advisory locks do not work behind the transaction pooler. Only with `NODE_ENV`
+    `development` or `test` it falls back to `DATABASE_URL`. `inbound send` needs it too.
+- Runtime settings (all optional): `DEBOUNCE_MS`, `DEBOUNCE_MAX_WAIT_MS`, `TURN_NLU_DEADLINE_MS`,
+  `SEND_LEASE_MS`, `SEND_MAX_ATTEMPTS`, `WORKER_BATCH_SIZE`, `QUEUE_SCHEMA`. The worker's Prisma
+  pool is `4 × WORKER_BATCH_SIZE + 2` connections (`workerPoolSize`); send-messages gets at least
+  `SEND_MAX_ATTEMPTS − 1` pg-boss retries (`sendRetryLimit`). Tests use `FakeChannel`, a fake
+  LLM and either `MemoryJobQueue` or pg-boss on the test database.
+- **Manual run (no LLM, no Meta)**, after `pnpm db:up`, with the standard campaign imported and
+  activated and the `kubri-main` number created (plan 03). Terminal 1:
+  `DEBOUNCE_MS=500 CONSENT_HASH_SECRET=<dev-only, 32+ chars> pnpm cli worker start`.
+  Terminal 2: `pnpm cli inbound send --sender kubri-main --from +393331112233 ciao`, then
+  `italiano`, then `sì`. Terminal 1 prints `→ +393331112233: …`: the welcome in two languages,
+  the campaign's intro and the consent, then the optional consent; `stop` closes the
+  conversation. Ctrl-C stops the worker (queued messages are sent at the next start). Inspect the
+  data with `pnpm exec prisma studio` (`Session`, `Message`, `Consent`, `Turn`).
 
 ## Things NOT to do
 

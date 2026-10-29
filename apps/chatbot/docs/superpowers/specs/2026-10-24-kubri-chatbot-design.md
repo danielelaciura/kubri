@@ -141,9 +141,19 @@ Oggi il chatbot di Kubri vive su Make.com. L'analisi dello scenario ha evidenzia
 | D89 | §5.6 punto 3 | Rinviato al piano 08: è instradamento del primo messaggio più un nuovo tipo di conferma nel motore, non NLU. |
 | D90 | Campi sensibili | Flag facoltativo `sensitive` sulla definizione di un campo (standard o `custom.*`; assente = falso, i checksum delle campagne non cambiano). Il campo si chiede e si salva come gli altri, ma il suo valore non arriva mai all'LLM (D85). Sensibili nello schema standard: `workingPermit` (rivela lo status migratorio) e `jobPreferences.constraints` (spesso salute o famiglia). |
 | D91 | Regole del prompt `interpret-v1` | Precedenza degli intenti (opt_out, delete_data, choice, edit_request, answer, refusal, help, off_topic, unclear); consenso accettato solo con un sì chiaro, l'ambiguo è `unclear`; storia e segnaposto `[campo]` sono dati, mai valori; ogni valore viene dal messaggio, mai dedotto (salvo `savedValue`); regole per tipo e fasce di confidenza; `edit_request` solo su campi raccolti; `offTopicReply` e `missing` al massimo 25 parole, senza link, telefoni, email, promesse o dati personali; lingua dei messaggi brevi = lingua della sessione con confidenza ≤ 0,5. `interpret-v1` si modifica sul posto finché non ha una baseline degli evals. |
+| D102 | Un turno, una transazione (piano 08) | `process-contact` apre una transazione interattiva con lock advisory sul contatto; dentro: raffica, NLU con scadenza, `step()`, testi, scritture e job. Timeout = `2 × TURN_NLU_DEADLINE_MS + 30 s`. Cache delle traduzioni e tracce di traduzione scrivono su un'altra connessione. Il pool Prisma del worker si dimensiona da `WORKER_BATCH_SIZE`: `2 code × WORKER_BATCH_SIZE × 2 connessioni + 2` (`workerPoolSize`), perché un turno tiene la sua transazione mentre legge la campagna e scrive cache e tracce su un'altra connessione, e `reportFailure` (D108) tiene la sua mentre aspetta il lock e legge la campagna: con meno connessioni ogni transazione può restare ad aspettarne un'altra. |
+| D103 | Accodamento transazionale (piano 08) | I job pg-boss si inseriscono con l'opzione `db` di `send()` (l'adattatore Prisma di pg-boss sulla transazione): se il turno si annulla il job non esiste. Ripiego, se non funzionasse: tabella `Outbox` con relay. pg-boss si collega con `QUEUE_DATABASE_URL` (connessione diretta / di sessione, porta 5432, mai il pooler di transazione); il ripiego su `DATABASE_URL` vale solo con `NODE_ENV` `development` o `test`, altrove il worker non parte. Ogni processo che avvia pg-boss usa le stesse impostazioni delle code (`workerQueueSettings`): l'avvio le riapplica. |
+| D104 | Stato persistito (piano 08) | `Session.engineState` senza `profile`; profilo in `CandidateProfile` (`standard`, `custom`, `fieldMeta`), idratato prima di `step()` (D31). Un solo `session_started`, alla creazione della sessione. Stato illeggibile → errore generico e `needs_attention`. Una parte dello stato o del profilo scartata in lettura (D111b) lascia un `SessionFlag` `state_part_dropped` (campo = percorso, senza `needsAttention`) e un log con gli id: la conversazione continua e il campo si richiede. |
+| D105 | Instradamento v1 (piano 08, chiude D89) | Parola chiave uguale al messaggio (trim, minuscolo) o campagna di default; nessuna campagna → turno `no_campaign` senza risposta. Il primo messaggio non si interpreta (benvenuto) e la lingua non si propone (§5.6 punto 3 fuori dalla v1). Una sessione `active` / `needs_attention` riceve sempre i messaggi, anche una parola chiave; sessione `completed` + parola chiave → nuova sessione. Una sola sessione aperta per contatto e numero (`openKey`). Un messaggio dopo un opt-out riporta il contatto a `opted_in`. |
+| D106 | Raffica e attesa breve (piano 08) | Il job `process-contact` si riprogramma finché l'ultimo messaggio ha meno di `DEBOUNCE_MS` e il primo meno di `DEBOUNCE_MAX_WAIT_MS`. Idempotente: i job doppi sono innocui. I job di un lotto (`WORKER_BATCH_SIZE`) si chiudono uno per uno (`perJobResults` di pg-boss): un fallimento ritenta solo quel job. |
+| D107 | NLU nel turno (piano 08) | Scadenza `TURN_NLU_DEADLINE_MS`; eccezione dell'interprete = NLU non disponibile; eccezione di `step()` non `EngineError` = errore generico, `FlagSession` `incoherent_state`, stato invariato. Storia per l'NLU = `Message.bodyRedacted` (`redactWithEvidence`). Media senza testo = turno `ignored_media`. |
+| D108 | Invio (piano 08) | `Message` `queued` è l'outbox; ordine per `ordinal`; assegnazione con lock e lease (`SEND_LEASE_MS`, stato `sending`); invio almeno una volta; temporaneo → ritenta (backoff di pg-boss) fino a `SEND_MAX_ATTEMPTS`, poi definitivo (`too_many_attempts`); definitivo → `failed`, resto del turno `failed` (`skipped_after_failure`), evento `outbound_failed`. La chiamata al canale scade a metà lease (`SEND_LEASE_MS / 2`), così l'esito si scrive mentre l'assegnazione vale ancora: oltre è un errore temporaneo `channel_timeout` (il messaggio può essere partito: si rimanda, almeno una volta), un'eccezione dell'adattatore è `channel_exception`. `reportFailure` prende il lock advisory del contatto, così non si sovrappone a un turno che riscriverebbe lo stato letto prima, e applica solo i flag. I ritentativi pg-boss di `send-messages` sono almeno `SEND_MAX_ATTEMPTS − 1` (`sendRetryLimit`, minimo 5; il worker non parte altrimenti): un job non finisce negli scarti mentre il suo messaggio è ancora `queued`. |
+| D109 | Dati alla chiusura (piano 08) | `StopSession` con `delete` cancella subito profilo, modifiche, corpi dei messaggi (non quelli in uscita da inviare) e tracce. `delete-contact` è solo accodato: il gestore è del piano 11. `Consent` sopravvive al contatto (`contactId` e `sessionId` a `NULL`, `contactHash`, D111e). |
+| D110 | Tracce e cache (piano 08) | `NluTrace` scritta nella transazione del turno (id scelto in anticipo); `input` solo sulla prima chiamata di ogni catena. `TranslationCache` su tabella. Scadenza delle tracce: piano 11. |
+| D111 | Modelli (piano 08) | `CvDocument` nel piano 10, `InboundDeadLetter` nel 09, `Session.origin` rinviato. Aggiunta `SessionFlag`. `Turn.sessionId` facoltativo (turni senza sessione). |
 | D111a | Nomi di `Message` (piano 08, revisione dei Task 1–7) | `direction` vale `inbound` / `outbound` (non `in` / `out`); `type` per ora `text`, `audio`, `image`, `document`, `location`, `unsupported`. `interactive` e `template` non esistono finché il piano 09 non li usa: li aggiunge la sua migrazione. |
 | D111b | Formato di `Session.engineState` e del profilo (piano 08, revisione) | `engineState` porta `v: 1`; una riga senza `v` è il formato 1. In lettura le chiavi sconosciute si scartano e i campi mancanti prendono il default: solo uno stato senza `phase` valida, o con una lingua non valida, è illeggibile (D104). Una `pendingConfirmation` sconosciuta o rotta si scarta (`null`) e si segnala al chiamante (`onDropped`, solo il percorso, mai il valore). In `fieldMeta` una `source` sconosciuta diventa `system`, una voce con stato o confidenza non validi si scarta (il campo si richiede); entrambi segnalati. Le colonne del profilo non hanno un numero di formato: un cambiamento incompatibile passa da una migrazione. |
-| D111c | Integrità delle sessioni e dei turni (piano 08, revisione) | Migrazione `runtime_integrity`. `Turn.contactId` (chiave esterna, `ON DELETE CASCADE`, indice con `startedAt`): i turni senza sessione se ne vanno con il contatto; nullable solo per le righe precedenti, il runtime lo scrive sempre. Un `CHECK` scritto a mano lega `openKey` a `status`: `active` e `needs_attention` sono sempre aperte (il candidato può ancora scrivere), `stopped` e `abandoned` mai, `completed` può essere l'una o l'altra (aperta nella fase dopo il completamento, D105; chiusa dopo un opt-out o quando la sostituisce un'altra campagna). Quando una parola chiave apre una nuova sessione, la precedente ancora `active` / `needs_attention` diventa `abandoned`; una `completed` resta `completed`. |
+| D111c | Integrità delle sessioni e dei turni (piano 08, revisione) | Migrazione `runtime_integrity`. `Turn.contactId` (chiave esterna, `ON DELETE CASCADE`, indice con `startedAt`): i turni senza sessione se ne vanno con il contatto; nullable solo per le righe precedenti, il runtime lo scrive sempre. Un `CHECK` scritto a mano lega `openKey` a `status`: `active` e `needs_attention` sono sempre aperte (il candidato può ancora scrivere), `stopped` e `abandoned` mai, `completed` può essere l'una o l'altra (aperta nella fase dopo il completamento, D105; chiusa dopo un opt-out o quando la sostituisce un'altra campagna). Una parola chiave non sostituisce mai una sessione `active` / `needs_attention` (D105): apre una nuova sessione solo dopo una `completed`, che resta `completed`. Il ramo di `closeOpenKey` che porta a `abandoned` una precedente ancora aperta è una rete di sicurezza, non un percorso previsto. |
 | D111d | Link mostrato con il consenso (piano 08, revisione) | `Consent.linkShown`: il link al testo ufficiale mostrato accanto a un testo non curato (D74), `null` se non è stato mostrato. Con `textShown` registra esattamente ciò che il candidato ha visto. |
 | D111e | Prova minima del contatto (piano 08, revisione; corregge D109) | `Consent.contactHash` = HMAC-SHA256 di `"<channel>:<externalId>"` con la chiave `CONSENT_HASH_SECRET` (almeno 32 caratteri, nel gestore dei segreti; obbligatoria per il worker, che non parte senza). Uno sha256 semplice di un numero di telefono si inverte provando tutti i numeri. La chiave non si ruota sul posto: le prove già scritte non corrisponderebbero più. |
 
@@ -590,28 +600,30 @@ Schema Postgres **`bot`**, nello stesso progetto Supabase della dashboard. Tutte
 - **Session**:
   - `id`, `contactId`, `senderNumberId`, `campaignVersionId`;
   - `status` (`active` | `completed` | `stopped` | `abandoned` | `needs_attention`);
-  - `engineState` (jsonb), `language`, `origin` (`inbound` | `outbound`, futuro);
+  - `engineState` (jsonb, senza profilo, D104), `language`;
   - `startedAt`, `completedAt`, `lastActivityAt`.
-  - Al più una sessione **aperta** per (contatto, numero): `openKey` univoca, legata a `status` da un `CHECK` (D105, D111c).
+  - Al più una sessione **aperta** per (contatto, numero): `openKey` univoca, legata a `status` da un `CHECK` (D105, D111c): `openKey` vale `<contatto>:<numero>` mentre la sessione è aperta. `origin` non c'è ancora (D111).
 - **Message**:
   - `id`, `contactId`, `senderNumberId`, `sessionId?`, `direction` (`inbound` | `outbound`, D111a);
   - `type` (`text` | `audio` | `image` | `document` | `location` | `unsupported`; `interactive` e `template` con il piano 09, D111a);
   - `body`, `mediaRef?`, `templateName?`, `payloadRaw` (jsonb, per i messaggi in entrata);
   - `stepId?`, `questionId?` (contesto al momento del messaggio);
   - `providerMessageId` (**univoco**, per la deduplica);
-  - `status` (`received` | `processed` | `queued` | `sent` | `delivered` | `read` | `failed`), `sentAt`, `deliveredAt`, `readAt`, `failedAt`, `errorCode?`;
-  - `turnId?`, `createdAt`.
-- **Turn**: `id`, `sessionId?`, `contactId` (D111c), `inboundMessageIds[]`, `startedAt`, `completedAt`, `outcome`.
+  - `status` (`received` | `processed` | `queued` | `sending` | `sent` | `delivered` | `read` | `failed`), `sentAt`, `deliveredAt`, `readAt`, `failedAt`, `errorCode?`;
+  - `turnId?`, `createdAt`;
+  - `ordinal` (sequenza globale) dà l'ordine di invio; `bodyRedacted` è la copia per la storia dell'NLU (D107); `leaseUntil` e `attempts` governano l'invio (D108).
+- **Turn**: `id`, `sessionId?` (facoltativo: turni senza sessione), `contactId` (D111c), `inboundMessageIds[]`, `startedAt`, `completedAt`, `outcome` (`replied` | `ignored_media` | `no_campaign` | `failed`).
 
 ### 10.3 Profilo, consensi e tracciabilità
 
-- **CandidateProfile**: `id`, `sessionId` (1:1), `standard` (jsonb, schema §6), `custom` (jsonb), `fieldMeta` (jsonb: confidenza, stato e fonte per campo), `cvDocumentId?`, `completedAt`, `updatedAt`.
+- **CandidateProfile**: `id`, `sessionId` (1:1), `standard` (jsonb, schema §6), `custom` (jsonb), `fieldMeta` (jsonb: confidenza, stato e fonte per campo), `sharedWithGlobal` (consenso al pool globale), `completedAt`, `updatedAt`. `cvDocumentId` arriva con il piano 10 (D111).
 - **ProfileChange**: `id`, `profileId`, `field`, `oldValue`, `newValue`, `source` (`extraction` | `edit` | `system` | `document_import`, estendibile), `turnId?`, `confidence?`, `createdAt`.
-- **Consent**: `id`, `contactId`, `sessionId`, `consentKey`, `textVersion`, `language`, `textShown`, `textShownIsCurated`, `linkShown?` (D111d), `dataController`, `contactHash` (HMAC, D111e), `outcome`, `messageId`, `createdAt`.
+- **Consent**: `id`, `contactId?`, `sessionId?` (`NULL` dopo la cancellazione del contatto, D109), `consentKey`, `textVersion`, `language`, `textShown`, `textShownIsCurated`, `linkShown?` (D111d), `dataController`, `contactHash` (HMAC, D111e), `outcome`, `messageId`, `decidedAt`, `createdAt`.
+- **SessionFlag**: `id`, `sessionId`, `reason`, `field?`, `needsAttention`, `turnId?`, `createdAt`. Dove `FlagSession` lascia traccia (D111); l'avviso vero è del piano 11.
 - **NluTrace**: `id`, `turnId`, `task`, `promptVersion`, `provider`, `model`, `input` (jsonb), `output` (jsonb), `valid`, `latencyMs`, `inputTokens`, `outputTokens`, `costEstimate`, `error?`, `createdAt`. Più `attempt` (`primary` / `retry` / `fallback`) e `repair` (D87). Una riga per chiamata; `input` senza il prompt di sistema. Tabella creata nel piano 08.
-- **CvDocument**: `id`, `profileId`, `kind` (`generated` | `uploaded`), `template`, `storageKey`, `createdAt`.
+- **CvDocument** (piano 10, D111): `id`, `profileId`, `kind` (`generated` | `uploaded`), `template`, `storageKey`, `createdAt`.
 - **TranslationCache**: `sourceHash`, `language`, `text`, `provider`, `model`, `reviewed`, `createdAt`. Chiave primaria su (`sourceHash`, `language`).
-- **InboundDeadLetter**: payload non interpretabili (`raw`, `reason`, `createdAt`).
+- **InboundDeadLetter** (piano 09, D111): payload non interpretabili (`raw`, `reason`, `createdAt`).
 
 ### 10.4 Code e job
 
@@ -666,6 +678,8 @@ POST /webhooks/whatsapp/:sender
 
 ```
  1. pg_advisory_xact_lock(contactId) → un solo turno alla volta per persona
+    (il lock regge fino al commit del punto 9: l'intero turno è una transazione, D102)
+    se l'ultimo messaggio ha meno di DEBOUNCE_MS, il job si riprogramma e termina (D106)
  2. messaggi in entrata con status=received, in ordine → la "raffica" del turno
     invia conferma di lettura e indicatore "sta scrivendo"
  3. media: audio/documento/immagine → media (v1: risposta "per ora scrivimi in testo")
@@ -674,10 +688,12 @@ POST /webhooks/whatsapp/:sender
       assente → instradamento per parola chiave sulle campagne del numero,
                 altrimenti la campagna di default (standard Kubri)
                 → nuova Session sulla versione attiva
+                → il primo messaggio non viene interpretato: parte il benvenuto (D105)
  5. costruisce il contesto (§8.2) → nlu.interpret → salva NluTrace
  6. engine.step(state, user_turn, campaignVersion) → nuovo stato + effetti
- 7. i18n risolve i testi degli effetti SendText (fuori dalla transazione)
- 8. TRANSAZIONE:
+ 7. i18n risolve i testi degli effetti SendText (dentro il turno; cache e tracce di
+    traduzione su un'altra connessione, D102)
+ 8. scritture, nella stessa transazione del lock:
       Session.engineState / status · CandidateProfile + ProfileChange · Consent
       · Message(in) → processed · Message(out) → queued · Turn
       · job: send-messages; se c'è un evento significativo kubri-webhook / cv / geocoding

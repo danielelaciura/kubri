@@ -185,6 +185,38 @@ describe("workers", () => {
   });
 });
 
+describe("failed jobs", () => {
+  it("reports each failure with ids only and stores no error message", async () => {
+    const failures: unknown[] = [];
+    const reporting = await startTestQueue({
+      retryLimit: 0,
+      onJobFailed: (failure) => failures.push(failure),
+    });
+    try {
+      await reporting.work(
+        "cv",
+        () => Promise.reject(Object.assign(new Error("value Mariam Benali"), { code: "P2002" })),
+        { batchSize: 1, pollingIntervalSeconds: 0.5 },
+      );
+      await reporting.queue.enqueue("cv", { sessionId: "s1" });
+
+      await expect.poll(() => failures.length, { timeout: 15_000, interval: 200 }).toBe(1);
+      expect(failures[0]).toEqual({
+        queue: "cv",
+        jobId: expect.any(String) as string,
+        errorName: "Error",
+        code: "P2002",
+      });
+      const rows = await db.$queryRawUnsafe<{ output: unknown }[]>(
+        `SELECT output FROM ${TEST_QUEUE_SCHEMA}.job WHERE name = 'cv'`,
+      );
+      expect(rows.map((r) => r.output)).toEqual([{ name: "Error", code: "P2002" }]);
+    } finally {
+      await reporting.stop();
+    }
+  });
+});
+
 describe("retry limits", () => {
   it("gives a queue its own limit, and a restart applies a changed one", async () => {
     const first = await startTestQueue({ retryLimits: { "send-messages": 7 } });

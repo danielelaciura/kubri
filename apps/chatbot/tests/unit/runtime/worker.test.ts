@@ -110,4 +110,28 @@ describe("workerQueueSettings", () => {
     });
     expect(lines[0]).not.toContain("secretuser");
   });
+
+  it("logs a failed job by queue, id, error name and code: no message, no payload", () => {
+    const lines: string[] = [];
+    const logger = pino({ level: "info" }, { write: (line: string) => lines.push(line) });
+    const settings = workerQueueSettings(config, logger);
+
+    settings.onJobFailed?.({
+      queue: "send-messages",
+      jobId: "job-1",
+      errorName: "TransientSendError",
+      code: "channel_timeout",
+    });
+
+    expect(lines.map((line) => JSON.parse(line) as unknown)).toEqual([
+      expect.objectContaining({
+        level: 40,
+        queue: "send-messages",
+        jobId: "job-1",
+        errorName: "TransientSendError",
+        code: "channel_timeout",
+        msg: "job failed",
+      }),
+    ]);
+  });
 });

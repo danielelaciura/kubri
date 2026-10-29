@@ -30,6 +30,10 @@ export function workerQueueSettings(config: RuntimeConfig, logger: Logger): Queu
       const code = "code" in error && typeof error.code === "string" ? error.code : undefined;
       logger.error({ errorName: error.name, ...(code ? { code } : {}) }, "queue error");
     },
+    // pg-boss retries the job (or moves it to its dead letter queue): this is the trace of it.
+    onJobFailed: (failure) => {
+      logger.warn(failure, "job failed");
+    },
   };
 }
 

@@ -68,6 +68,16 @@ export interface QueueSettings {
   readonly retryDelaySeconds?: number;
   /** pg-boss reports connection problems as events; without a listener they would crash. */
   readonly onError?: (error: Error) => void;
+  /** Every failed job, retried or not: ids and error name only (CLAUDE.md, privacy rule 3). */
+  readonly onJobFailed?: (failure: JobFailure) => void;
+}
+
+export interface JobFailure {
+  readonly queue: QueueName;
+  readonly jobId: string;
+  readonly errorName: string;
+  /** Prisma (P2002), Postgres (23505) or runtime (channel_timeout) code, when there is one. */
+  readonly code?: string;
 }
 
 export interface WorkOptions {
@@ -160,12 +170,18 @@ export function createQueueRuntime(settings: QueueSettings): QueueRuntime {
           const results = await Promise.allSettled(
             jobs.map((job) => handler(parsePayload(name, job.data))),
           );
-          return results.map((result, i) => ({
-            id: jobs[i]?.id ?? "",
-            ...(result.status === "fulfilled"
-              ? { status: "completed" as const }
-              : { status: "failed" as const, output: failureOutput(result.reason) }),
-          }));
+          return results.map((result, i) => {
+            const id = jobs[i]?.id ?? "";
+            if (result.status === "fulfilled") return { id, status: "completed" as const };
+            const output = failureOutput(result.reason);
+            settings.onJobFailed?.({
+              queue: name,
+              jobId: id,
+              errorName: output.name,
+              ...(output.code === undefined ? {} : { code: output.code }),
+            });
+            return { id, status: "failed" as const, output };
+          });
         },
       );
     },
@@ -177,11 +193,12 @@ export function createQueueRuntime(settings: QueueSettings): QueueRuntime {
 }
 
 /**
- * What pg-boss stores on a failed job: the error's name and message, which the stores and the
- * runtime keep free of personal values (only codes and ids).
+ * What pg-boss stores on a failed job: the error's name and code, never its message. Messages
+ * can carry values (a Prisma error quotes the failing query's data), and the job table is kept
+ * for days.
  */
-function failureOutput(reason: unknown): { name: string; message: string } {
-  return reason instanceof Error
-    ? { name: reason.name, message: reason.message }
-    : { name: "Error", message: String(reason) };
+export function failureOutput(reason: unknown): { name: string; code?: string } {
+  if (!(reason instanceof Error)) return { name: "unknown" };
+  const code = "code" in reason && typeof reason.code === "string" ? reason.code : undefined;
+  return code === undefined ? { name: reason.name } : { name: reason.name, code };
 }

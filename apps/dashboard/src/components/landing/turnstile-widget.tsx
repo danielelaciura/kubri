@@ -47,6 +47,11 @@ export function TurnstileWidget({
   onToken: (token: string) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  // Latest callback without re-rendering the widget when the parent re-renders.
+  const cb = useRef(onToken);
+  useEffect(() => {
+    cb.current = onToken;
+  });
   const [scriptReady, setScriptReady] = useState(
     () => typeof window !== "undefined" && window.turnstile !== undefined,
   );
@@ -55,19 +60,25 @@ export function TurnstileWidget({
     if (!siteKey || !scriptReady || !ref.current || !window.turnstile) return;
     const id = window.turnstile.render(ref.current, {
       sitekey: siteKey,
-      callback: onToken,
-      "expired-callback": () => onToken(""),
-      "error-callback": () => onToken(""),
+      callback: (token) => cb.current(token),
+      "expired-callback": () => cb.current(""),
+      "error-callback": () => cb.current(""),
       appearance: "interaction-only",
       language: locale,
     });
-    return () => window.turnstile?.remove(id);
-  }, [siteKey, scriptReady, locale, onToken]);
+    return () => {
+      if (id) window.turnstile?.remove(id);
+    };
+  }, [siteKey, scriptReady, locale]);
 
   if (!siteKey) return null;
   return (
     <>
-      <Script {...scriptProps} onReady={() => setScriptReady(true)} />
+      <Script
+        {...scriptProps}
+        onReady={() => setScriptReady(true)}
+        onError={() => cb.current("")}
+      />
       <div ref={ref} />
     </>
   );

@@ -77,7 +77,8 @@ model CandidateLandingPage {
   public request (the link can be removed later). A violated invariant or
   `enabled = false` → the page returns 404.
 
-No changes to `Candidate`. Landing candidates use:
+No changes to `Candidate`. In the candidate detail page, `channel = "landing_cv"`
+shows an origin badge "Da landing page (CV)". Landing candidates use:
 
 - `externalId = "landing:<uuid>"` (never collides with Make / assessment / dashboard ids)
 - `channel = "landing_cv"`
@@ -95,6 +96,11 @@ import's `organizationId` / `poolId` are taken from the landing.
   eligible pools: linked, non-global), `privacyPolicyUrl`, enabled toggle — plus
   the public link with copy and QR.
 - Server action, role-checked server-side; audit action `landing_page.save`.
+  The form uses `useActionState`: validation and save errors come back as a
+  result and are shown inline.
+- Landing links and QR codes use `NEXT_PUBLIC_APP_URL` (trailing slash stripped)
+  when set, falling back to the request origin. The slug is case-insensitive in
+  the URL (lowercased before lookup).
 - The organization's "QR code" page (`/dashboard/qr-codes`) shows the landing link
   and QR above the per-pool WhatsApp QRs, when a landing exists and is enabled.
 
@@ -119,7 +125,10 @@ import's `organizationId` / `poolId` are taken from the landing.
 5. **`runPublicExtraction`** (server action, cookie-bound): budget check →
    `runExtraction` with the quality gate, and returns the contact prefill
    synchronously (the page sets `maxDuration = 60`). `isCv = false` is a hard
-   rejection in public mode.
+   rejection in public mode. Re-entrant: a `READY` import returns its prefill
+   for free; a `FAILED` import with a final (non-retryable) code returns that
+   code without spending budget; a fresh `EXTRACTING` import (another tab or
+   request) returns `IN_PROGRESS` and the page polls every 4 s, up to 15 times.
 6. **Contact confirmation.** First name, last name, phone, email pre-filled from
    the draft, editable; required privacy consent checkbox; optional
    "share with other Kubri organizations" checkbox, shown only when the pool's
@@ -132,8 +141,9 @@ import's `organizationId` / `poolId` are taken from the landing.
 
 The candidate has no session. On `requestUpload` the server sets an
 `httpOnly`, `Secure`, `SameSite=Lax` cookie scoped to `/candidati`, valued
-`<importId>.<HMAC-SHA256(importId + expiry, LANDING_COOKIE_SECRET)>`, valid
-30 minutes. Every subsequent action reads the import id **only** from a valid
+`<importId>.<landingId>.<expiry>.<HMAC-SHA256(importId.landingId.expiry, LANDING_COOKIE_SECRET)>`,
+valid 30 minutes. A missing or too short (< 32 chars) `LANDING_COOKIE_SECRET`
+makes `requestUpload` return `UNAVAILABLE` before any rate-limit budget is spent. Every subsequent action reads the import id **only** from a valid
 cookie, and additionally checks `origin = PUBLIC_LINK` and that the import's
 `poolId` matches the landing. A guessed or foreign import id is never accepted.
 
@@ -153,13 +163,21 @@ interface ConfirmImportInput {
 
 In the same transaction, after claiming the import:
 
+- In public mode only `READY` imports of the landing's pool and `PUBLIC_LINK`
+  origin are claimed.
 - If `attachToExistingByPhone` and a candidate exists **in the import's pool**
   whose phone, normalized to digits with the Italian prefix applied
   (`normalizePhone`: strip non-digits, drop leading `00`, prepend `39` to 10-digit
-  numbers starting with `3`), equals the submitted normalized phone → create the
+  numbers starting with `3` **only when the input has no `+` / `00` prefix**), equals the submitted normalized phone → create the
   `CandidateDocument` on that candidate, set `import.candidateId`, skip
   `ingestCandidate` and the embedding refresh. Audit `candidate_document.attach`.
 - Otherwise → `ingestCandidate` as today with `channel`, then the document.
+
+The consent audit row `candidate_import.public_confirm` (`ipHash`, `consent`,
+`candidateId`, `attached`, `documentId`) is written **inside the same
+transaction**, so the proof of consent exists iff the candidate / document does.
+This also covers the attach case, where the existing candidate's `rawPayload` is
+untouched and the audit row is the only consent record.
 
 The match is **exact** on the normalized phone. The existing 8-digit suffix match
 (`findPossibleDuplicates`) stays advisory-only and is not used here. The operator
@@ -181,26 +199,49 @@ Principle: every layer is cheaper than the next; a request reaches the paid step
   |---|---|
   | per IP (hashed) | 3 / hour, 10 / day |
   | per landing | 100 / day |
+  | per import | 2 extraction runs / day (one retry) |
   | global extractions | 300 / day (budget cap, checked in `runPublicExtraction`) |
+
+  Rules are evaluated in order and stop at the first refusal (later counters are
+  not incremented): per-IP before per-landing, per-import before global, so one
+  abuser or one retrying import cannot burn shared budgets.
 
 - **Fail closed**: in production, if Upstash is not configured or unreachable,
   public uploads are refused (an in-memory counter limits nothing on Vercel).
   Outside production an in-memory counter is used so local dev needs no Upstash.
   The WhatsApp CTA keeps working.
-- IP from `x-forwarded-for` (first hop, as set by Vercel); stored and keyed only as
-  `SHA-256(ip + LANDING_IP_SALT)`.
+- IP from `x-vercel-forwarded-for`, else `x-real-ip`, else the first
+  `x-forwarded-for` hop; stored and keyed only as `hashIp` = HMAC-SHA256 of the IP
+  keyed by `LANDING_IP_SALT` (truncated). In production `hashIp` throws without a
+  salt of at least 16 chars, which the actions turn into `UNAVAILABLE`.
 
 ### Layer 2 — the file (`registerPublicUpload`, before any paid call)
 
 - Max **5 MB** for public uploads (operators keep 10 MB); the declared size is
   checked in `requestUpload`, the real object size in `registerUpload`.
 - Type by magic bytes (`detectDocumentKind`): PDF, DOCX, JPEG, PNG.
-- **PDF**: ≤ 5 pages; reject encrypted; reject if the raw bytes contain
-  `/JavaScript`, `/JS`, `/Launch`, `/EmbeddedFile`, `/RichMedia` or `/XFA`.
-- **DOCX**: reject if the zip contains `vbaProject.bin`, `word/embeddings/` or
-  `activeX`.
+- **PDF**: ≤ 5 pages; reject encrypted. Two passes, with a 10 s timeout overall:
+  (1) a byte scan, outside stream bodies and with `#xx` name escapes decoded, for
+  `/Encrypt`, `/JavaScript`, `/JS`, `/Launch`, `/EmbeddedFile`, `/RichMedia`,
+  `/XFA`, `/SubmitForm`, `/ImportData`, `/GoToE`; (2) pdf.js (via `unpdf`) for
+  document JavaScript actions, attachments and, page by page, annotations
+  (`FileAttachment`, any action, links whose scheme is not http(s)/mailto/tel),
+  which the byte scan cannot see inside compressed object streams.
+- **DOCX**: parsed with `jszip`, inflating each part as a stream with hard caps
+  (10 MB per part, 30 MB in total, 500 entries; declared sizes are not trusted).
+  Reject entries named `vbaProject.bin`, `embeddings/`, `activeX`, `oleObject`;
+  macro / OLE / ActiveX content types; any external relationship that is not a
+  hyperlink; `aFChunk`, `oleObject`, `subDocument`, `frame` and `attachedTemplate`
+  relationship types; `DDE`, `DDEAUTO`, `INCLUDETEXT` and `INCLUDEPICTURE` fields
+  (including `fldSimple`, run text joined within one field); and any part
+  containing CDATA, comments or a DOCTYPE. XML entities are decoded before
+  matching and attributes are parsed sequentially from the tag start so a value
+  cannot masquerade as an attribute.
 - **Images**: re-encoded to JPEG with `sharp` (strips EXIF incl. GPS, defeats
-  polyglots); the re-encoded bytes replace the stored object.
+  polyglots; flattened onto white, max 3000 px, 40 MP input cap, sharp timeout);
+  the re-encoded bytes replace the stored object.
+- Every public upload is re-uploaded to storage with the **server-chosen MIME
+  type** and an extension matching the detected kind, never the browser's.
 - Any failure → the storage object is removed immediately, no import row is
   created (same as an unsupported type), `ImportError("REJECTED_FILE")` is
   returned, and the candidate sees a generic message.
@@ -227,6 +268,8 @@ server never executes or renders the document, it only extracts text.
 - Audit `candidate_import.public_confirm` with `ipHash`, never the raw IP.
 - `discardStaleImports`: `PUBLIC_LINK` imports not `COMPLETED` after **24 h** are
   discarded and their file removed (no CVs kept for people who never consented).
+  The only trigger is the nightly cron (03:00), so in practice an unconfirmed
+  upload can live up to ~48 h (see Known limitations).
 
 ### Cost estimate (to verify against the current Mistral price list)
 
@@ -319,6 +362,9 @@ All added to `.env.example`.
   pool, since Make uses its own `externalId`). An organization that also sees the
   global pool may see the same person twice. Solving this needs a person entity
   with many-to-many pool membership (or row linking) — its own project.
+- **Unconfirmed public uploads live up to ~48 h.** The 24 h threshold is only
+  evaluated by the nightly cron, so a CV uploaded just after a run is removed by
+  the next-but-one run. Acceptable for now; a more frequent cleanup would fix it.
 - More languages (incl. RTL) on the public page.
 - Antivirus scanning of uploaded files (e.g. ClamAV) if operators' risk appetite
   requires it.

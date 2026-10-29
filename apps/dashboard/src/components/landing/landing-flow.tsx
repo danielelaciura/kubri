@@ -26,6 +26,8 @@ const BUCKET = "candidate-documents";
 /** IN_PROGRESS (another request is extracting): poll every 4 s, ~60 s in all. */
 const POLL_INTERVAL_MS = 4000;
 const POLL_ATTEMPTS = 15;
+/** Give up waiting for a Turnstile token after this long (blocked script, network). */
+const CAPTCHA_TIMEOUT_MS = 15_000;
 
 type Step =
   | { kind: "choose" }
@@ -96,7 +98,14 @@ export function LandingFlow(props: LandingFlowProps) {
   const alertRef = useRef<HTMLDivElement>(null);
   const mounted = useRef(false);
   const firstRender = useRef(true);
+  const [captchaFailed, setCaptchaFailed] = useState(false);
   const onToken = useCallback((token: string) => setTurnstileToken(token), []);
+  // Turnstile unusable: show "busy" (with the WhatsApp fallback); upload stays disabled.
+  const onCaptchaError = useCallback(() => {
+    setCaptchaFailed(true);
+    setCanRetryExtraction(false);
+    setError("busy");
+  }, []);
 
   // Without a site key (local dev) the server accepts the empty token.
   const waitingForCaptcha = Boolean(props.turnstileSiteKey) && !turnstileToken;
@@ -107,6 +116,13 @@ export function LandingFlow(props: LandingFlowProps) {
       mounted.current = false;
     };
   }, []);
+
+  // No token in time on the upload step: treat it like a Turnstile failure.
+  useEffect(() => {
+    if (step.kind !== "upload" || !waitingForCaptcha || captchaFailed) return;
+    const timer = setTimeout(onCaptchaError, CAPTCHA_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [step.kind, waitingForCaptcha, captchaFailed, onCaptchaError]);
 
   // Move focus to the new step's heading, or to the alert when an error shows.
   // Not on first render: don't steal focus on page load.
@@ -194,14 +210,16 @@ export function LandingFlow(props: LandingFlowProps) {
   }
 
   async function confirm(values: ContactSubmission) {
+    // The error (if any) is replaced only when the result arrives, so focus
+    // doesn't jump. On failure stay on the form (null): the typed values
+    // survive and the candidate resubmits with the form's own button.
     setBusy(true);
-    setError(null);
-    // On failure stay on the form (null): the typed values survive and the
-    // candidate resubmits with the form's own button.
     try {
       const r = await confirmLandingImportAction(props.slug, values);
-      if (r.ok) setStep({ kind: "done" });
-      else showError(r.error, null, { retryExtraction: false });
+      if (r.ok) {
+        setError(null);
+        setStep({ kind: "done" });
+      } else showError(r.error, null, { retryExtraction: false });
     } catch {
       showError("INTERNAL_ERROR", null, { retryExtraction: false });
     } finally {
@@ -289,17 +307,18 @@ export function LandingFlow(props: LandingFlowProps) {
               />
               <Button
                 type="button" disabled={waitingForCaptcha}
-                aria-describedby={waitingForCaptcha ? "landing-verifying" : undefined}
+                aria-describedby={waitingForCaptcha && !captchaFailed ? "landing-verifying" : undefined}
                 onClick={() => inputRef.current?.click()}
               >
                 {t.chooseFile}
               </Button>
-              {waitingForCaptcha && (
+              {waitingForCaptcha && !captchaFailed && (
                 <p id="landing-verifying" className="text-xs text-muted-foreground">{t.verifying}</p>
               )}
             </div>
             <TurnstileWidget
               key={turnstileKey} siteKey={props.turnstileSiteKey} locale={props.locale} onToken={onToken}
+              onError={onCaptchaError}
             />
             <Button variant="ghost" onClick={() => { setError(null); setStep({ kind: "choose" }); }}>
               {t.back}
@@ -309,10 +328,11 @@ export function LandingFlow(props: LandingFlowProps) {
       )}
 
       {step.kind === "working" && (
-        <Card>
+        // Focus lands on the card; the always-mounted status region announces the text.
+        <Card ref={headingRef} tabIndex={-1} className={headingClass}>
           <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
             <Spinner aria-hidden="true" role={undefined} />
-            <p ref={headingRef} tabIndex={-1} className={`font-medium ${headingClass}`}>{workingText}</p>
+            <p aria-hidden="true" className="font-medium">{workingText}</p>
             {step.label === "reading" && <p className="text-sm text-muted-foreground">{t.readingHint}</p>}
           </CardContent>
         </Card>

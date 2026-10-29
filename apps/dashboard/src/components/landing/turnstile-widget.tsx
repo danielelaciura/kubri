@@ -35,22 +35,27 @@ const scriptProps = {
  * Invisible-unless-needed Cloudflare Turnstile. Reports a fresh token (or ""
  * when it expires / errors). Tokens are single-use: remount it (change `key`)
  * after each upload attempt. Without a site key (local dev) it renders nothing
- * and the server accepts the empty token outside production.
+ * and the server accepts the empty token outside production. `onError` fires
+ * when the script cannot load or the widget fails (e.g. blocked by the network).
  */
 export function TurnstileWidget({
   siteKey,
   locale,
   onToken,
+  onError,
 }: {
   siteKey: string;
   locale: string;
   onToken: (token: string) => void;
+  onError?: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   // Latest callback without re-rendering the widget when the parent re-renders.
   const cb = useRef(onToken);
+  const errCb = useRef(onError);
   useEffect(() => {
     cb.current = onToken;
+    errCb.current = onError;
   });
   const [scriptReady, setScriptReady] = useState(
     () => typeof window !== "undefined" && window.turnstile !== undefined,
@@ -62,7 +67,10 @@ export function TurnstileWidget({
       sitekey: siteKey,
       callback: (token) => cb.current(token),
       "expired-callback": () => cb.current(""),
-      "error-callback": () => cb.current(""),
+      "error-callback": () => {
+        cb.current("");
+        errCb.current?.();
+      },
       appearance: "interaction-only",
       language: locale,
     });
@@ -77,7 +85,10 @@ export function TurnstileWidget({
       <Script
         {...scriptProps}
         onReady={() => setScriptReady(true)}
-        onError={() => cb.current("")}
+        onError={() => {
+          cb.current("");
+          errCb.current?.();
+        }}
       />
       <div ref={ref} />
     </>

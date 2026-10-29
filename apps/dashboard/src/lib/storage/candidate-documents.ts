@@ -68,3 +68,13 @@ export async function removeCandidateDocuments(paths: string[]): Promise<void> {
   const { error } = await bucket().remove(paths);
   if (error) throw new StorageError(`remove failed: ${error.message}`);
 }
+
+/** Overwrite an object in place (public uploads: re-encoded images). */
+export async function replaceCandidateDocument(
+  path: string,
+  bytes: Uint8Array,
+  contentType: string,
+): Promise<void> {
+  const { error } = await bucket().upload(path, bytes, { upsert: true, contentType });
+  if (error) throw new StorageError(`replace failed: ${error.message}`);
+}

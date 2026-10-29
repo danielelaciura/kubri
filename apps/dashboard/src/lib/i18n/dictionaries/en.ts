@@ -461,6 +461,7 @@ export const en = {
     errors: {
       FILE_TOO_LARGE: "The file is larger than 10 MB.",
       UNSUPPORTED_TYPE: "Unsupported format. Upload a PDF, DOCX, JPG or PNG.",
+      REJECTED_FILE: "The file contains content we don't allow (macros, scripts or attachments).",
       STORAGE_ERROR: "Upload failed. Try again.",
       FILE_UNREADABLE: "The file is password-protected or damaged and can't be read.",
       NO_TEXT: "The document has no readable text.",

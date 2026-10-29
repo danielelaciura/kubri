@@ -5,6 +5,7 @@ const bucket = {
   download: vi.fn(),
   createSignedUrl: vi.fn(),
   remove: vi.fn(),
+  upload: vi.fn(),
 };
 const from = vi.fn(() => bucket);
 
@@ -18,7 +19,9 @@ import {
   createDocumentUploadUrl,
   downloadCandidateDocument,
   removeCandidateDocuments,
+  replaceCandidateDocument,
   sanitizeFileName,
+  StorageError,
 } from "@/lib/storage/candidate-documents";
 
 describe("candidate-documents storage", () => {
@@ -68,5 +71,21 @@ describe("candidate-documents storage", () => {
   it("removes nothing for an empty list", async () => {
     await removeCandidateDocuments([]);
     expect(bucket.remove).not.toHaveBeenCalled();
+  });
+
+  it("replaceCandidateDocument overwrites the object with the given type", async () => {
+    bucket.upload.mockResolvedValueOnce({ data: { path: "p/i/cv.png" }, error: null });
+    await replaceCandidateDocument("p/i/cv.png", new Uint8Array([1]), "image/jpeg");
+    expect(bucket.upload).toHaveBeenCalledWith("p/i/cv.png", new Uint8Array([1]), {
+      upsert: true,
+      contentType: "image/jpeg",
+    });
+  });
+
+  it("replaceCandidateDocument throws StorageError on failure", async () => {
+    bucket.upload.mockResolvedValueOnce({ data: null, error: { message: "nope" } });
+    await expect(
+      replaceCandidateDocument("p/i/cv.png", new Uint8Array([1]), "image/jpeg"),
+    ).rejects.toBeInstanceOf(StorageError);
   });
 });

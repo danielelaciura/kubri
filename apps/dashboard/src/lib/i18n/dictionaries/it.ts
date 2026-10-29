@@ -459,6 +459,7 @@ export const it = {
     errors: {
       FILE_TOO_LARGE: "Il file supera i 10 MB.",
       UNSUPPORTED_TYPE: "Formato non supportato. Carica un PDF, DOCX, JPG o PNG.",
+      REJECTED_FILE: "Il file contiene elementi non consentiti (macro, script o allegati).",
       STORAGE_ERROR: "Caricamento non riuscito. Riprova.",
       FILE_UNREADABLE: "Il file è protetto da password o danneggiato e non si può leggere.",
       NO_TEXT: "Nel documento non c'è testo leggibile.",

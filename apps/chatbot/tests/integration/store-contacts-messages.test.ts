@@ -230,6 +230,38 @@ describe("outbound messages (D108)", () => {
     });
   });
 
+  it("ignores a late result from a claim that expired and was taken over", async () => {
+    const session = await seedSession();
+    await queueOutbound(db, [out(session, null, "uno"), out(session, null, "due")]);
+    const key = { contactId, senderNumberId: senderId };
+    const stale = await claimNextOutbound(db, key, NOW, LEASE);
+    const fresh = await claimNextOutbound(db, key, new Date(NOW.getTime() + LEASE + 1), LEASE);
+    if (stale === null || stale === "busy" || fresh === null || fresh === "busy") {
+      throw new Error("expected two claims");
+    }
+
+    // The old sender comes back while the new one is still sending: it must not requeue.
+    expect(await finishSend(db, stale, { kind: "transient", code: "timeout" })).toBe("lost_claim");
+    expect(await db.message.findUniqueOrThrow({ where: { id: fresh.id } })).toMatchObject({
+      status: "sending",
+      errorCode: null,
+    });
+
+    expect(
+      await finishSend(db, fresh, { kind: "sent", providerMessageId: "out.uno", at: NOW }),
+    ).toBe("applied");
+    // Too late again: neither the sent message nor the rest of the turn is touched.
+    expect(await finishSend(db, stale, { kind: "permanent", code: "not_reachable", at: NOW })).toBe(
+      "lost_claim",
+    );
+
+    const rows = await db.message.findMany({ orderBy: { ordinal: "asc" } });
+    expect(rows.map((m) => [m.body, m.status, m.providerMessageId])).toEqual([
+      ["uno", "sent", "out.uno"],
+      ["due", "queued", null],
+    ]);
+  });
+
   it("puts a message back after a transient failure", async () => {
     const session = await seedSession();
     await queueOutbound(db, [out(session, null, "uno")]);

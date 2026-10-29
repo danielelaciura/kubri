@@ -176,16 +176,25 @@ export type SendResult =
   | { readonly kind: "transient"; readonly code: string }
   | { readonly kind: "permanent"; readonly code: string; readonly at: Date };
 
+/** "lost_claim": the lease expired and another sender took the message; nothing was written. */
+export type FinishOutcome = "applied" | "lost_claim";
+
+/**
+ * Writes the result only while this sender still holds the claim: the row is still `sending`
+ * with the attempt number it was claimed with. A late result from an expired claim would
+ * otherwise overwrite the new claimer's outcome (or fail the rest of a turn already sent).
+ */
 export async function finishSend(
   db: Database,
   message: ClaimedMessage,
   result: SendResult,
-): Promise<void> {
-  await db.$transaction(async (tx) => {
+): Promise<FinishOutcome> {
+  return db.$transaction(async (tx) => {
+    const claim = { id: message.id, status: "sending" as const, attempts: message.attempts };
     switch (result.kind) {
-      case "sent":
-        await tx.message.update({
-          where: { id: message.id },
+      case "sent": {
+        const { count } = await tx.message.updateMany({
+          where: claim,
           data: {
             status: "sent",
             providerMessageId: result.providerMessageId,
@@ -194,18 +203,21 @@ export async function finishSend(
             errorCode: null,
           },
         });
-        return;
-      case "transient":
-        await tx.message.update({
-          where: { id: message.id },
+        return count === 1 ? "applied" : "lost_claim";
+      }
+      case "transient": {
+        const { count } = await tx.message.updateMany({
+          where: claim,
           data: { status: "queued", leaseUntil: null, errorCode: result.code },
         });
-        return;
-      case "permanent":
-        await tx.message.update({
-          where: { id: message.id },
+        return count === 1 ? "applied" : "lost_claim";
+      }
+      case "permanent": {
+        const { count } = await tx.message.updateMany({
+          where: claim,
           data: { status: "failed", failedAt: result.at, leaseUntil: null, errorCode: result.code },
         });
+        if (count === 0) return "lost_claim";
         if (message.turnId !== null) {
           // Spec §11.3: the rest of the turn is not sent after a definitive error.
           await tx.message.updateMany({
@@ -213,7 +225,8 @@ export async function finishSend(
             data: { status: "failed", failedAt: result.at, errorCode: "skipped_after_failure" },
           });
         }
-        return;
+        return "applied";
+      }
     }
   });
 }

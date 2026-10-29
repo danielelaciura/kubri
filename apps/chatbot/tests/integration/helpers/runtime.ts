@@ -1,5 +1,6 @@
 import { pino } from "pino";
 import { importCampaign } from "../../../src/campaigns/import";
+import type { CampaignDefinition } from "../../../src/campaigns/schema/campaign";
 import { FakeChannel } from "../../../src/channels/channel";
 import { naiveInterpreter } from "../../../src/cli/simulate/naive-interpreter";
 import type { LoadedCampaign } from "../../../src/campaigns/loaded-campaign";
@@ -8,19 +9,22 @@ import { FakeTranslator } from "../../../src/i18n/fake-translator";
 import { createTextResolver, type TextResolver } from "../../../src/i18n/resolve";
 import { MemoryTranslationCache } from "../../../src/i18n/translation-cache";
 import type { Interpreter } from "../../../src/nlu/interpreter";
+import { resolveField } from "../../../src/profile/field-ref";
 import {
   parseRuntimeConfig,
   requireConsentHashSecret,
   type RuntimeConfig,
 } from "../../../src/runtime/config";
 import { MemoryJobQueue } from "../../../src/runtime/memory-queue";
+import { toSnapshot } from "../../../src/runtime/profile-codec";
 import type { RuntimeDeps } from "../../../src/runtime/process-contact";
 import { receiveInbound } from "../../../src/runtime/receive";
 import type { SendDeps } from "../../../src/runtime/send-messages";
-import { encodeState } from "../../../src/runtime/state-codec";
+import { decodeState, encodeState } from "../../../src/runtime/state-codec";
 import { findCampaignVersion } from "../../../src/store/campaigns";
 import { upsertContact } from "../../../src/store/contacts";
 import type { Database } from "../../../src/store/db";
+import { loadProfile } from "../../../src/store/profiles";
 import type { JobQueue } from "../../../src/store/queue";
 import { createSession, type SessionRecord } from "../../../src/store/sessions";
 import { loadStandardCampaign, seedRegistry } from "./registry";
@@ -179,4 +183,64 @@ export async function replies(db: Database): Promise<string[]> {
     orderBy: { ordinal: "asc" },
   });
   return rows.map((row) => row.body ?? "");
+}
+
+/**
+ * What the automatic candidate writes for a field: distinctive values for the personal ones,
+ * so a test can look for them in the logs; a plain sample of the field's type otherwise.
+ */
+export const CANDIDATE_ANSWERS: Readonly<Record<string, string>> = {
+  firstName: "Mariam",
+  lastName: "Benali",
+  birthday: "12/05/1990",
+  country: "MA",
+  location: "Moncalieri",
+  address: "Via Garibaldi 17",
+  email: "mariam.benali@example.com",
+};
+
+const SAMPLES: Readonly<Record<string, string>> = {
+  text: "Esempio",
+  bool: "sì",
+  number: "3",
+  date: "12/05/1990",
+  list: "uno, due",
+  email: "mariam.benali@example.com",
+  e164: "+393331234567",
+  "iso-country": "MA",
+  "iso-language": "ar",
+};
+
+/** What a cooperative candidate would write at the point where the session stands. */
+export async function answerFor(
+  db: Database,
+  campaign: CampaignDefinition,
+  sessionId: string,
+  language = "italiano",
+): Promise<string> {
+  const session = await db.session.findUniqueOrThrow({ where: { id: sessionId } });
+  const profile = await loadProfile(db, sessionId);
+  const state = decodeState(session.engineState, toSnapshot(profile));
+  if (state.phase === "language") return language;
+  if (state.pendingConfirmation) return "sì";
+  const step = campaign.flow.find((s) => s.id === state.stepId);
+  switch (step?.type) {
+    case "consent":
+    case "cv_offer":
+      return "sì";
+    case "choice":
+      return step.options[0]?.id ?? "1";
+    case "questions": {
+      const question = step.questions.find((q) => q.id === state.questionId);
+      if (!question) return "boh";
+      const known = CANDIDATE_ANSWERS[question.field];
+      if (known !== undefined) return known;
+      const def = resolveField(question.field, campaign.customFields);
+      if (!def) return "boh";
+      if (def.type === "enum") return def.options?.[0] ?? "boh";
+      return SAMPLES[def.format ?? def.type] ?? "boh";
+    }
+    default:
+      return "ok";
+  }
 }

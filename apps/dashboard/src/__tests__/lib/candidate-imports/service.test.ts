@@ -322,6 +322,13 @@ describe("confirmImport", () => {
     expect(m(upsertCandidate)).not.toHaveBeenCalled();
   });
 
+  it("returns a null documentId for a completed import with no document", async () => {
+    tx.candidateImport.findFirst.mockResolvedValueOnce({ ...IMPORT, status: "COMPLETED", candidateId: "c-9" });
+    tx.candidateDocument.findFirst.mockResolvedValueOnce(null);
+    const r = await confirmImport({ importId: "22222222-2222-4222-8222-222222222222", organizationId: "o", userId: "u", fields: FIELDS });
+    expect(r.documentId).toBeNull();
+  });
+
   it("throws ImportStateError when the import lost the race", async () => {
     tx.candidateImport.findFirst.mockResolvedValueOnce(IMPORT);
     tx.candidateImport.updateMany.mockResolvedValueOnce({ count: 0 });
@@ -569,6 +576,32 @@ describe("public upload options", () => {
       origin: "PUBLIC_LINK", createdById: null, mimeType: "image/jpeg", fileSize: 5,
       fileName: "foto.jpg", storagePath: `p/${IMPORT_ID}/foto.png`,
     });
+  });
+
+  it("registerUpload with inspect stores the kind's extension even when the type is unchanged", async () => {
+    const JPEG = new Uint8Array([0xff, 0xd8, 0xff, 1, 2]);
+    m(downloadCandidateDocument).mockResolvedValueOnce(JPEG);
+    m(inspectPublicDocument).mockResolvedValueOnce({ ok: true, bytes: JPEG, kind: "jpeg" });
+    await registerUpload({ ...REGISTER, fileName: "foto.png", origin: "PUBLIC_LINK", createdById: null, inspect: true });
+    expect(m(prisma.candidateImport.create).mock.calls[0]![0].data.fileName).toBe("foto.jpg");
+  });
+
+  it("registerUpload with inspect truncates the stem so the extension survives the 255 cap", async () => {
+    m(downloadCandidateDocument).mockResolvedValueOnce(PDF);
+    m(inspectPublicDocument).mockResolvedValueOnce({ ok: true, bytes: PDF, kind: "pdf" });
+    await registerUpload({ ...REGISTER, fileName: `${"a".repeat(300)}.pdf`, origin: "PUBLIC_LINK", createdById: null, inspect: true });
+    const name = m(prisma.candidateImport.create).mock.calls[0]![0].data.fileName as string;
+    expect(name).toHaveLength(255);
+    expect(name.endsWith("a.pdf")).toBe(true);
+  });
+
+  it("registerUpload maps a P2002 on create to ImportStateError", async () => {
+    m(downloadCandidateDocument).mockResolvedValueOnce(PDF);
+    m(prisma.candidateImport.create).mockRejectedValueOnce(
+      new Prisma.PrismaClientKnownRequestError("dup", { code: "P2002", clientVersion: "test" }),
+    );
+    await expect(registerUpload(REGISTER)).rejects.toBeInstanceOf(ImportStateError);
+    expect(m(removeCandidateDocuments)).not.toHaveBeenCalled();
   });
 
   it("registerUpload without inspect never calls the inspector", async () => {

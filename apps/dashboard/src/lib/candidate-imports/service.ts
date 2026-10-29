@@ -95,11 +95,17 @@ const KIND_EXTENSION: Record<DocumentKind, string> = {
   png: ".png",
 };
 
-/** `name` with its extension rewritten to match `kind` (after a re-encode). */
+const MAX_FILE_NAME = 255;
+
+/**
+ * `name` with its extension rewritten to match `kind`, capped at 255 chars by
+ * truncating the stem so the extension always survives.
+ */
 function withExtension(name: string, kind: DocumentKind): string {
+  const ext = KIND_EXTENSION[kind];
   const dot = name.lastIndexOf(".");
-  const base = dot > 0 ? name.slice(0, dot) : name;
-  return `${base}${KIND_EXTENSION[kind]}`;
+  const stem = dot > 0 ? name.slice(0, dot) : name;
+  return `${stem.slice(0, MAX_FILE_NAME - ext.length)}${ext}`;
 }
 
 async function removeQuietly(storagePath: string, why: string): Promise<void> {
@@ -161,20 +167,28 @@ export async function registerUpload(input: RegisterUploadInput): Promise<{ impo
     kind = inspected.kind;
   }
 
-  await prisma.candidateImport.create({
-    data: {
-      id: input.importId,
-      organizationId: input.organizationId,
-      poolId: input.poolId,
-      origin: input.origin,
-      status: "UPLOADED",
-      createdById: input.createdById,
-      storagePath,
-      fileName: (kind === detected ? input.fileName : withExtension(input.fileName, kind)).slice(0, 255),
-      mimeType: DOCUMENT_MIME[kind],
-      fileSize: stored.byteLength,
-    },
-  });
+  try {
+    await prisma.candidateImport.create({
+      data: {
+        id: input.importId,
+        organizationId: input.organizationId,
+        poolId: input.poolId,
+        origin: input.origin,
+        status: "UPLOADED",
+        createdById: input.createdById,
+        storagePath,
+        fileName: input.inspect ? withExtension(input.fileName, kind) : input.fileName.slice(0, MAX_FILE_NAME),
+        mimeType: DOCUMENT_MIME[kind],
+        fileSize: stored.byteLength,
+      },
+    });
+  } catch (e) {
+    // Concurrent double register: the other call owns the file and the row.
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+      throw new ImportStateError("UPLOADED");
+    }
+    throw e;
+  }
   return { importId: input.importId };
 }
 
@@ -289,7 +303,7 @@ export interface ConfirmImportResult {
   /** True when the CV was attached to an existing candidate. */
   attached: boolean;
   /** The CandidateDocument created for the CV (for the caller's audit row). */
-  documentId: string;
+  documentId: string | null;
 }
 
 /**
@@ -322,7 +336,7 @@ export async function confirmImport(input: ConfirmImportInput): Promise<ConfirmI
         where: { candidateId: imp.candidateId, storagePath: imp.storagePath },
         select: { id: true },
       });
-      return { candidateId: imp.candidateId, row: null, attached: false, documentId: doc?.id ?? "" };
+      return { candidateId: imp.candidateId, row: null, attached: false, documentId: doc?.id ?? null };
     }
 
     const claimed = await tx.candidateImport.updateMany({

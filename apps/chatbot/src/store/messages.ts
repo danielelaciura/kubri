@@ -129,7 +129,8 @@ export interface ClaimedMessage {
 /**
  * D108: the next queued message of a contact on a number, or "busy" when another sender holds
  * a live claim, or null when nothing is left. The advisory lock makes the check-and-claim atomic;
- * the lease frees a message whose sender crashed.
+ * the lease frees a message whose sender crashed. Queued messages with an empty body are
+ * failed (`empty_body`) on the way.
  */
 export async function claimNextOutbound(
   db: Database,
@@ -146,6 +147,11 @@ export async function claimNextOutbound(
     });
     const live = await tx.message.count({ where: { ...where, status: "sending" } });
     if (live > 0) return "busy";
+    // An empty body can never be sent: it fails on its own instead of blocking the queue.
+    await tx.message.updateMany({
+      where: { ...where, status: "queued", OR: [{ body: null }, { body: "" }] },
+      data: { status: "failed", failedAt: now, errorCode: "empty_body" },
+    });
     const next = await tx.message.findFirst({
       where: { ...where, status: "queued" },
       orderBy: { ordinal: "asc" },

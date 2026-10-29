@@ -262,6 +262,33 @@ describe("outbound messages (D108)", () => {
     ]);
   });
 
+  it("fails an empty queued message and hands out the next one", async () => {
+    const session = await seedSession();
+    await queueOutbound(db, [out(session, null, "")]);
+    await db.message.create({
+      data: {
+        contactId,
+        senderNumberId: senderId,
+        sessionId: session,
+        direction: "outbound",
+        type: "text",
+        body: null,
+        status: "queued",
+      },
+    });
+    await queueOutbound(db, [out(session, null, "due")]);
+
+    const claim = await claimNextOutbound(db, { contactId, senderNumberId: senderId }, NOW, LEASE);
+
+    expect(claim).toMatchObject({ body: "due", attempts: 1 });
+    const rows = await db.message.findMany({ orderBy: { ordinal: "asc" } });
+    expect(rows.map((m) => [m.body, m.status, m.errorCode, m.failedAt])).toEqual([
+      ["", "failed", "empty_body", NOW],
+      [null, "failed", "empty_body", NOW],
+      ["due", "sending", null, null],
+    ]);
+  });
+
   it("puts a message back after a transient failure", async () => {
     const session = await seedSession();
     await queueOutbound(db, [out(session, null, "uno")]);

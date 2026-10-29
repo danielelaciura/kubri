@@ -55,6 +55,11 @@ export interface ApplyContext {
 export interface EffectsOutcome {
   readonly completed: boolean;
   readonly stopped: boolean;
+  /**
+   * The session's data was purged (StopSession with the delete policy): the state the caller
+   * saves afterwards must not bring a pending confirmation back (D109).
+   */
+  readonly purged: boolean;
   readonly needsAttention: boolean;
   /** Set by SetLanguage. */
   readonly language: string | null;
@@ -248,5 +253,5 @@ export async function applyEffects(
     })),
   );
   if (purge) await purgeSessionData(tx, ctx.session.id);
-  return { completed, stopped, needsAttention, language, outbound: replies.length };
+  return { completed, stopped, purged: purge, needsAttention, language, outbound: replies.length };
 }

@@ -274,7 +274,7 @@ describe("applyEffects", () => {
       { inbound: [{ id, bodyRedacted: "no, mi chiamo [firstName]" }], answeringMessageId: id },
     );
 
-    expect(outcome.stopped).toBe(true);
+    expect(outcome).toMatchObject({ stopped: true, purged: true });
     expect((await loadProfile(db, sessionId)).standard).toEqual({});
     expect(await db.profileChange.count()).toBe(0);
     expect(await db.consent.count()).toBe(1);
@@ -295,7 +295,7 @@ describe("applyEffects", () => {
       { type: "StopSession", reason: "flow_stop", dataPolicy: "keep", at: AT },
     ]);
 
-    expect(outcome.stopped).toBe(true);
+    expect(outcome).toMatchObject({ stopped: true, purged: false });
     expect((await loadProfile(db, sessionId)).standard).toEqual({ firstName: "Mario" });
   });
 

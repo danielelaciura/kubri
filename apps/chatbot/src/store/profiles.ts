@@ -1,6 +1,7 @@
 import { Prisma } from "../generated/prisma/client";
 import {
   parseStoredProfile,
+  type ParseProfileOptions,
   setStoredField,
   storedValue,
   type ChangeSourceName,
@@ -29,12 +30,20 @@ function columns(profile: StoredProfile) {
   };
 }
 
-export async function loadProfile(tx: Tx, sessionId: string): Promise<StoredProfile> {
+/** `onDropped` reports the parts of the profile that could not be read (D111b). */
+export async function loadProfile(
+  tx: Tx,
+  sessionId: string,
+  options: ParseProfileOptions = {},
+): Promise<StoredProfile> {
   const row = await tx.candidateProfile.findUniqueOrThrow({
     where: { sessionId },
     select: PROFILE_COLUMNS,
   });
-  return parseRow(row);
+  return parseStoredProfile(
+    { standard: row.standard, custom: row.custom, fieldMeta: row.fieldMeta },
+    options,
+  );
 }
 
 export interface FieldUpdate {

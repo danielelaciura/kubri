@@ -1,19 +1,27 @@
 import { pino } from "pino";
 import { importCampaign } from "../../../src/campaigns/import";
+import { FakeChannel } from "../../../src/channels/channel";
+import { naiveInterpreter } from "../../../src/cli/simulate/naive-interpreter";
 import type { LoadedCampaign } from "../../../src/campaigns/loaded-campaign";
 import { initialSessionState } from "../../../src/engine/state";
 import { FakeTranslator } from "../../../src/i18n/fake-translator";
 import { createTextResolver, type TextResolver } from "../../../src/i18n/resolve";
 import { MemoryTranslationCache } from "../../../src/i18n/translation-cache";
+import type { Interpreter } from "../../../src/nlu/interpreter";
 import {
   parseRuntimeConfig,
   requireConsentHashSecret,
   type RuntimeConfig,
 } from "../../../src/runtime/config";
+import { MemoryJobQueue } from "../../../src/runtime/memory-queue";
+import type { RuntimeDeps } from "../../../src/runtime/process-contact";
+import { receiveInbound } from "../../../src/runtime/receive";
+import type { SendDeps } from "../../../src/runtime/send-messages";
 import { encodeState } from "../../../src/runtime/state-codec";
 import { findCampaignVersion } from "../../../src/store/campaigns";
 import { upsertContact } from "../../../src/store/contacts";
 import type { Database } from "../../../src/store/db";
+import type { JobQueue } from "../../../src/store/queue";
 import { createSession, type SessionRecord } from "../../../src/store/sessions";
 import { loadStandardCampaign, seedRegistry } from "./registry";
 
@@ -81,4 +89,94 @@ export function testConfig(overrides: Record<string, string> = {}): RuntimeConfi
     SEND_MAX_ATTEMPTS: "3",
     ...overrides,
   });
+}
+
+export interface Harness {
+  readonly scenario: Scenario;
+  readonly deps: RuntimeDeps;
+  readonly sendDeps: SendDeps;
+  readonly queue: MemoryJobQueue;
+  readonly channel: FakeChannel;
+  readonly key: { readonly contactId: string; readonly senderNumberId: string };
+}
+
+export interface HarnessOptions {
+  readonly interpreter?: Interpreter;
+  /** Built with the turn's trace sink, for tests that look at the traces. */
+  readonly interpreterFor?: RuntimeDeps["interpreterFor"];
+  readonly config?: Record<string, string>;
+  /** A real queue (pg-boss) instead of the in-memory one. */
+  readonly queue?: JobQueue;
+  readonly resolver?: RuntimeDeps["resolver"];
+}
+
+/** Everything a runtime test needs, wired with fakes: no LLM, no Meta (CLAUDE.md). */
+export function makeHarness(scenario: Scenario, options: HarnessOptions = {}): Harness {
+  const queue = new MemoryJobQueue();
+  const channel = new FakeChannel();
+  const config = testConfig(options.config);
+  const interpreter = options.interpreter ?? naiveInterpreter;
+  const jobQueue = options.queue ?? queue;
+  const deps: RuntimeDeps = {
+    db: scenario.db,
+    config,
+    logger: silentLogger,
+    queue: jobQueue,
+    resolver: options.resolver ?? testResolver(),
+    interpreterFor: options.interpreterFor ?? (() => interpreter),
+    historyMessages: 3,
+    consentHashSecret: TEST_CONSENT_SECRET,
+    now: () => new Date(),
+  };
+  const sendDeps: SendDeps = {
+    db: scenario.db,
+    config,
+    logger: silentLogger,
+    queue: jobQueue,
+    channelFor: () => channel,
+    now: () => new Date(),
+  };
+  return {
+    scenario,
+    deps,
+    sendDeps,
+    queue,
+    channel,
+    key: { contactId: scenario.contactId, senderNumberId: scenario.senderId },
+  };
+}
+
+let counter = 0;
+
+/**
+ * A message from the scenario's contact, through the real ingress. `providerMessageId` lets a
+ * test deliver the same message twice, as Meta does.
+ */
+export async function say(
+  harness: Harness,
+  body: string | null,
+  options: { readonly type?: "text" | "audio"; readonly providerMessageId?: string } = {},
+): Promise<{ duplicate: boolean }> {
+  counter += 1;
+  return receiveInbound(
+    { db: harness.scenario.db, queue: harness.deps.queue, config: harness.deps.config },
+    {
+      senderNumberId: harness.scenario.senderId,
+      providerMessageId: options.providerMessageId ?? `wamid.test.${counter}`,
+      from: { externalId: harness.scenario.externalId, phoneE164: harness.scenario.phone },
+      type: options.type ?? "text",
+      body,
+      receivedAt: new Date(),
+      payloadRaw: { n: counter },
+    },
+  );
+}
+
+/** The bodies of the replies, in the order they were queued. */
+export async function replies(db: Database): Promise<string[]> {
+  const rows = await db.message.findMany({
+    where: { direction: "outbound" },
+    orderBy: { ordinal: "asc" },
+  });
+  return rows.map((row) => row.body ?? "");
 }

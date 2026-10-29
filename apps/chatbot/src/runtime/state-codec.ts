@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { ProfileSnapshot } from "../engine/profile-snapshot";
 import type { PendingConfirmation, SessionState } from "../engine/state";
 import { LanguageCodeSchema } from "../i18n/localized-text";
+import { StoredDataError } from "./stored-data-error";
 
 /**
  * Format of Session.engineState. Bump it when the shape changes incompatibly; additions
@@ -84,7 +85,7 @@ export function decodeState(
   options: DecodeOptions = {},
 ): SessionState {
   const result = PersistedStateSchema.safeParse(json);
-  if (!result.success) throw new Error("the stored engine state cannot be read");
+  if (!result.success) throw new StoredDataError("the stored engine state cannot be read");
   const { v: _v, pendingConfirmation, ...state } = result.data;
   return { ...state, pendingConfirmation: pending(pendingConfirmation, options), profile };
 }

@@ -41,6 +41,7 @@ import { debounceWaitMs } from "./debounce";
 import { toSnapshot } from "./profile-codec";
 import { crashEffects, interpretSafely, stepSafely, type SafeStep } from "./safe";
 import { decodeState, encodeState } from "./state-codec";
+import { StoredDataError } from "./stored-data-error";
 import { TurnTraces } from "./turn-traces";
 
 export interface RuntimeDeps {
@@ -114,7 +115,7 @@ async function runTurn(deps: RuntimeDeps, tx: Tx, job: ContactJob): Promise<Proc
     });
   }
   const text = texts.join("\n");
-  const route = await chooseCampaign(deps, job.senderNumberId, text, open);
+  const route = await chooseCampaign(deps, job.senderNumberId, texts, open);
   if (route.kind === "none") {
     return finishQuietly(deps, tx, { ...quiet, sessionId: null, outcome: "no_campaign" });
   }
@@ -208,12 +209,15 @@ type Route =
 async function chooseCampaign(
   deps: RuntimeDeps,
   senderNumberId: string,
-  text: string,
+  texts: readonly string[],
   open: SessionRecord | null,
 ): Promise<Route> {
   if (open && open.status !== "completed") return { kind: "stay", session: open };
-  const byKeyword = await findActiveCampaignByKeyword(deps.db, senderNumberId, text);
-  if (byKeyword) return { kind: "new", campaign: byKeyword };
+  // Each message on its own: "ciao" then "ACME" is a keyword, "ciao\nACME" never would be.
+  for (const text of texts) {
+    const byKeyword = await findActiveCampaignByKeyword(deps.db, senderNumberId, text);
+    if (byKeyword) return { kind: "new", campaign: byKeyword };
+  }
   // A completed session keeps the conversation unless a keyword opens another campaign.
   if (open) return { kind: "stay", session: open };
   const fallback = await findDefaultCampaign(deps.db, senderNumberId);
@@ -259,8 +263,13 @@ async function continueSession(
   try {
     const profile = await loadProfile(tx, a.open.id, { onDropped });
     state = decodeState(a.open.engineState, toSnapshot(profile), { onDropped });
-  } catch {
-    deps.logger.error({ sessionId: a.open.id, turnId: a.turnId }, "stored session cannot be read");
+  } catch (error: unknown) {
+    // Only a decoding failure: a database error goes up, the turn rolls back and is retried.
+    if (!(error instanceof StoredDataError)) throw error;
+    deps.logger.error(
+      { sessionId: a.open.id, turnId: a.turnId, errorName: error.name },
+      "stored session cannot be read",
+    );
     return {
       session: a.open,
       campaign,

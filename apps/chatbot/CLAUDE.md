@@ -139,8 +139,9 @@ step(state, event, campaignVersion) → { state, effects }
 - A conversation turn is one interactive transaction that holds the contact's advisory lock
   (plan 08, D102): never call the LLM or the network from `store`, and keep `store` functions
   free of that kind of waiting.
-- The worker and pg-boss use the **direct / session connection (port 5432)**, not the transaction
-  pooler.
+- pg-boss uses the **direct / session connection (port 5432)**, `QUEUE_DATABASE_URL`, never the
+  transaction pooler: it needs session state. The runtime's advisory locks are transaction-scoped
+  (`pg_advisory_xact_lock`) and work behind the pooler too.
 - Migrations to prod are applied **manually before** deploying code that needs them (same flow as
   the dashboard). Never `prisma db push` or `migrate reset` against a shared database.
 
@@ -282,9 +283,11 @@ pnpm cli inbound send --sender <slug> --from <e164> <text...>    # a candidate w
 - Required by the worker (it refuses to start, with one line, before connecting):
   - `CONSENT_HASH_SECRET` (≥ 32 chars, HMAC key of `Consent.contactHash`; secret manager, never
     rotated in place). `.env.test` has a dummy one; for a local run set a dev-only value.
-  - `QUEUE_DATABASE_URL`: the **direct / session** connection (5432) pg-boss uses; pg-boss and
-    advisory locks do not work behind the transaction pooler. Only with `NODE_ENV`
-    `development` or `test` it falls back to `DATABASE_URL`. `inbound send` needs it too.
+  - `QUEUE_DATABASE_URL`: the **direct / session** connection (5432) pg-boss uses: pg-boss
+    keeps session state (LISTEN/NOTIFY, its own advisory locks) that the transaction pooler
+    (6543) would break. The turn's lock is transaction-scoped (`pg_advisory_xact_lock`) and
+    works through either. Only with `NODE_ENV` `development` or `test` it falls back to
+    `DATABASE_URL`. `inbound send` needs it too.
 - Runtime settings (all optional): `DEBOUNCE_MS`, `DEBOUNCE_MAX_WAIT_MS`, `TURN_NLU_DEADLINE_MS`,
   `SEND_LEASE_MS`, `SEND_MAX_ATTEMPTS`, `WORKER_BATCH_SIZE`, `QUEUE_SCHEMA`. The worker's Prisma
   pool is `4 × WORKER_BATCH_SIZE + 2` connections (`workerPoolSize`); send-messages gets at least

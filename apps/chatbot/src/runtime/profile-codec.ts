@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { FieldStatus, ProfileSnapshot } from "../engine/profile-snapshot";
 import { CUSTOM_FIELD_PREFIX } from "../profile/custom-fields";
+import { StoredDataError } from "./stored-data-error";
 
 export type ChangeSourceName = "extraction" | "edit" | "system";
 
@@ -54,7 +55,7 @@ export function parseStoredProfile(
   options: ParseProfileOptions = {},
 ): StoredProfile {
   const result = StoredProfileSchema.safeParse(json);
-  if (!result.success) throw new Error("the stored profile cannot be read");
+  if (!result.success) throw new StoredDataError("the stored profile cannot be read");
   const fieldMeta: Record<string, FieldMeta> = {};
   for (const [ref, raw] of Object.entries(result.data.fieldMeta)) {
     const meta = MetaSchema.safeParse(raw);

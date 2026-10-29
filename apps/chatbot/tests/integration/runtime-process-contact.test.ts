@@ -138,6 +138,21 @@ describe("a new conversation", () => {
     expect((await db.session.findFirstOrThrow()).campaignVersionId).toBe(acme.versionId);
   });
 
+  it("finds a keyword in any message of the burst, not only in the joined text", async () => {
+    const h = await harness();
+    const acme = await importCampaign(db, minimalCampaign(), {
+      activate: true,
+      nodeEnv: "development",
+    });
+    if (!acme.ok) throw new Error("import failed");
+    await say(h, "ciao");
+    await say(h, " ACME ");
+
+    await run(h);
+
+    expect((await db.session.findFirstOrThrow()).campaignVersionId).toBe(acme.versionId);
+  });
+
   it("answers a message delivered twice only once (dedup, spec §14)", async () => {
     const h = await harness();
     expect(await say(h, "ciao", { providerMessageId: "wamid.twice" })).toEqual({
@@ -640,6 +655,24 @@ describe("when something goes wrong: never silent (D107)", () => {
     });
     expect(await db.turn.findFirstOrThrow({ where: { outcome: "failed" } })).toBeDefined();
     expect(h.queue.named("send-messages")).toHaveLength(2);
+  });
+
+  it("lets a database error through instead of calling the state unreadable", async () => {
+    const h = await harness();
+    await say(h, "ciao");
+    await run(h);
+    // Not a decoding problem: the read fails (P2025), and the job must retry, not flag.
+    await db.candidateProfile.deleteMany();
+    await say(h, "italiano");
+
+    await expect(run(h)).rejects.toThrow();
+
+    expect(await db.sessionFlag.count()).toBe(0);
+    expect((await db.session.findFirstOrThrow()).status).toBe("active");
+    expect(await replies(db)).toHaveLength(1);
+    expect((await db.message.findFirstOrThrow({ where: { body: "italiano" } })).status).toBe(
+      "received",
+    );
   });
 
   it("flags the parts of the stored state it had to drop, and goes on", async () => {

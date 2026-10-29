@@ -202,7 +202,8 @@ export async function applyEffects(
           ctx.logger.warn(
             {
               turnId: ctx.turnId,
-              text: describeTextRef(effect.text),
+              // Not `text`: the logger censors that key, and this is only the text's id.
+              textRef: describeTextRef(effect.text),
               missing: resolved.missingParams,
             },
             "text with missing parameters",

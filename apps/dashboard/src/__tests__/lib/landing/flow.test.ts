@@ -6,13 +6,13 @@ vi.mock("@/lib/rate-limit", async () => {
   return { ...actual, consumeRateLimits: vi.fn() };
 });
 vi.mock("@/lib/candidate-imports/service", () => ({
+  STALE_EXTRACTION_MS: 2 * 60 * 1000,
   createUploadTicket: vi.fn(),
   registerUpload: vi.fn(),
   runExtraction: vi.fn(),
   getPublicImport: vi.fn(),
   confirmImport: vi.fn(),
 }));
-vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
 
 import { verifyTurnstile } from "@/lib/landing/turnstile";
 import { consumeRateLimits, RateLimitUnavailableError } from "@/lib/rate-limit";
@@ -23,9 +23,9 @@ import {
   registerUpload,
   runExtraction,
 } from "@/lib/candidate-imports/service";
-import { ImportError } from "@/lib/candidate-imports/errors";
+import { ImportError, ImportStateError } from "@/lib/candidate-imports/errors";
+import { Prisma } from "@/generated/prisma/client";
 import { emptyCandidateDraftFields } from "@kubri/contracts";
-import { logAudit } from "@/lib/audit";
 import { passesCvQualityGate } from "@/lib/documents/quality";
 import {
   confirmLandingImport,
@@ -160,6 +160,58 @@ describe("runLandingExtraction", () => {
     m(getPublicImport).mockResolvedValueOnce(null);
     await expect(runLandingExtraction(LANDING, IMPORT_ID)).resolves.toEqual({ ok: false, error: "SESSION_EXPIRED" });
   });
+
+  it("re-entry on a final failure returns its code without spending budget", async () => {
+    m(getPublicImport).mockResolvedValueOnce({ id: IMPORT_ID, status: "FAILED", errorCode: "NOT_A_CV", draft: null });
+    await expect(runLandingExtraction(LANDING, IMPORT_ID)).resolves.toEqual({ ok: false, error: "NOT_A_CV" });
+    m(getPublicImport).mockResolvedValueOnce({ id: IMPORT_ID, status: "FAILED", errorCode: "bogus", draft: null });
+    await expect(runLandingExtraction(LANDING, IMPORT_ID)).resolves.toEqual({ ok: false, error: "INTERNAL_ERROR" });
+    expect(m(consumeRateLimits)).not.toHaveBeenCalled();
+    expect(m(runExtraction)).not.toHaveBeenCalled();
+  });
+
+  it("a retryable failure is retried under budget", async () => {
+    m(getPublicImport)
+      .mockResolvedValueOnce({ id: IMPORT_ID, status: "FAILED", errorCode: "LLM_TIMEOUT", draft: null })
+      .mockResolvedValueOnce({ id: IMPORT_ID, status: "READY", errorCode: null, draft: DRAFT });
+    await expect(runLandingExtraction(LANDING, IMPORT_ID)).resolves.toMatchObject({ ok: true });
+    expect(m(consumeRateLimits)).toHaveBeenCalledTimes(1);
+    expect(m(runExtraction)).toHaveBeenCalledTimes(1);
+  });
+
+  it("a fresh EXTRACTING import is IN_PROGRESS without spending budget", async () => {
+    const now = new Date("2026-10-29T10:00:00Z");
+    m(getPublicImport).mockResolvedValueOnce({
+      id: IMPORT_ID, status: "EXTRACTING", errorCode: null, draft: null, updatedAt: new Date(now.getTime() - 30_000),
+    });
+    await expect(runLandingExtraction(LANDING, IMPORT_ID, now)).resolves.toEqual({ ok: false, error: "IN_PROGRESS" });
+    expect(m(consumeRateLimits)).not.toHaveBeenCalled();
+    expect(m(runExtraction)).not.toHaveBeenCalled();
+  });
+
+  it("a stale EXTRACTING import is re-run under budget", async () => {
+    const now = new Date("2026-10-29T10:00:00Z");
+    m(getPublicImport)
+      .mockResolvedValueOnce({
+        id: IMPORT_ID, status: "EXTRACTING", errorCode: null, draft: null, updatedAt: new Date(now.getTime() - 3 * 60_000),
+      })
+      .mockResolvedValueOnce({ id: IMPORT_ID, status: "READY", errorCode: null, draft: DRAFT });
+    await expect(runLandingExtraction(LANDING, IMPORT_ID, now)).resolves.toMatchObject({ ok: true });
+    expect(m(consumeRateLimits)).toHaveBeenCalledTimes(1);
+    expect(m(runExtraction)).toHaveBeenCalledTimes(1);
+  });
+
+  it("still EXTRACTING after the run (another request holds it) is IN_PROGRESS", async () => {
+    m(getPublicImport)
+      .mockResolvedValueOnce({ id: IMPORT_ID, status: "UPLOADED", errorCode: null, draft: null })
+      .mockResolvedValueOnce({ id: IMPORT_ID, status: "EXTRACTING", errorCode: null, draft: null, updatedAt: new Date() });
+    await expect(runLandingExtraction(LANDING, IMPORT_ID)).resolves.toEqual({ ok: false, error: "IN_PROGRESS" });
+  });
+
+  it("a database error becomes INTERNAL_ERROR", async () => {
+    m(getPublicImport).mockRejectedValueOnce(new Error("db down"));
+    await expect(runLandingExtraction(LANDING, IMPORT_ID)).resolves.toEqual({ ok: false, error: "INTERNAL_ERROR" });
+  });
 });
 
 describe("confirmLandingImport", () => {
@@ -173,7 +225,7 @@ describe("confirmLandingImport", () => {
     m(confirmImport).mockResolvedValue({ candidateId: "c-1", attached: false, documentId: "d-1" });
   });
 
-  it("confirms in public mode with consent and audit", async () => {
+  it("confirms in public mode with consent and an in-transaction audit", async () => {
     const now = new Date("2026-10-29T10:00:00Z");
     await expect(confirmLandingImport(LANDING, IMPORT_ID, CONTACT, CTX, now)).resolves.toEqual({ ok: true, data: null });
     const args = m(confirmImport).mock.calls[0]![0];
@@ -189,11 +241,11 @@ describe("confirmLandingImport", () => {
       },
     });
     expect(args.fields).toMatchObject({ firstName: "Ahmed", phone: "+39 333 1234567" });
-    expect(m(logAudit)).toHaveBeenCalledWith({
-      userId: null, organizationId: "o-1", action: "candidate_import.public_confirm",
-      resourceType: "candidate_import", resourceId: IMPORT_ID,
+    expect(args.audit).toEqual({
+      action: "candidate_import.public_confirm",
+      organizationId: "o-1",
       metadata: {
-        candidateId: "c-1", attached: false, documentId: "d-1", ipHash: CTX.ipHash,
+        ipHash: CTX.ipHash,
         consent: {
           privacyPolicyUrl: "https://x.it/p", acceptedAt: "2026-10-29T10:00:00.000Z",
           shareWithGlobal: true, textVersion: "2026-10-29",
@@ -224,8 +276,39 @@ describe("confirmLandingImport", () => {
     expect(m(confirmImport)).not.toHaveBeenCalled();
   });
 
-  it("an audit failure does not fail the confirmation", async () => {
-    m(logAudit).mockRejectedValueOnce(new Error("db"));
+  it("a failing audit write rolls back the confirm", async () => {
+    m(confirmImport).mockRejectedValueOnce(new Error("audit insert failed"));
+    await expect(confirmLandingImport(LANDING, IMPORT_ID, CONTACT, CTX)).resolves.toEqual({ ok: false, error: "INTERNAL_ERROR" });
+  });
+
+  it("a lost confirm race against a completed import succeeds", async () => {
+    m(confirmImport).mockRejectedValueOnce(new ImportStateError("COMPLETED"));
+    m(getPublicImport)
+      .mockResolvedValueOnce({ id: IMPORT_ID, status: "READY", errorCode: null, draft: DRAFT })
+      .mockResolvedValueOnce({ id: IMPORT_ID, status: "COMPLETED", errorCode: null, draft: null });
     await expect(confirmLandingImport(LANDING, IMPORT_ID, CONTACT, CTX)).resolves.toEqual({ ok: true, data: null });
+  });
+
+  it("a lost confirm race against a discard is NOT_FOUND", async () => {
+    m(confirmImport).mockRejectedValueOnce(new ImportStateError("DISCARDED"));
+    m(getPublicImport)
+      .mockResolvedValueOnce({ id: IMPORT_ID, status: "READY", errorCode: null, draft: DRAFT })
+      .mockResolvedValueOnce({ id: IMPORT_ID, status: "DISCARDED", errorCode: null, draft: null });
+    await expect(confirmLandingImport(LANDING, IMPORT_ID, CONTACT, CTX)).resolves.toEqual({ ok: false, error: "NOT_FOUND" });
+  });
+
+  it("a database error on lookup becomes INTERNAL_ERROR", async () => {
+    m(getPublicImport).mockRejectedValueOnce(new Error("db down"));
+    await expect(confirmLandingImport(LANDING, IMPORT_ID, CONTACT, CTX)).resolves.toEqual({ ok: false, error: "INTERNAL_ERROR" });
+  });
+
+  it("logs only name and code for Prisma errors", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    m(confirmImport).mockRejectedValueOnce(
+      new Prisma.PrismaClientKnownRequestError("Unique failed on phone +39 333 1234567", { code: "P2002", clientVersion: "x" }),
+    );
+    await expect(confirmLandingImport(LANDING, IMPORT_ID, CONTACT, CTX)).resolves.toEqual({ ok: false, error: "INTERNAL_ERROR" });
+    expect(spy).toHaveBeenCalledWith("[landing] confirm failed", { name: "PrismaClientKnownRequestError", code: "P2002" });
+    spy.mockRestore();
   });
 });

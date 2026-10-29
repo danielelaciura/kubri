@@ -1,5 +1,7 @@
 import { z } from "zod/v4";
+import { Prisma } from "@/generated/prisma/client";
 import {
+  STALE_EXTRACTION_MS,
   confirmImport,
   createUploadTicket,
   getPublicImport,
@@ -12,11 +14,11 @@ import {
   ImportNotFoundError,
   ImportStateError,
   isImportErrorCode,
+  RETRYABLE_IMPORT_ERRORS,
   type ImportErrorCode,
 } from "@/lib/candidate-imports/errors";
 import { passesCvQualityGate } from "@/lib/documents/quality";
 import { consumeRateLimits, RateLimitUnavailableError, type RateLimitRule } from "@/lib/rate-limit";
-import { logAudit } from "@/lib/audit";
 import { verifyTurnstile } from "./turnstile";
 import { contactFromDraft, landingContactSchema, mergeContactIntoDraft, type ContactPrefill } from "./contact";
 import type { ActiveLanding } from "./service";
@@ -45,6 +47,8 @@ export type LandingErrorCode =
   | "BUDGET_EXHAUSTED"
   | "UNAVAILABLE"
   | "SESSION_EXPIRED"
+  /** Another request is extracting this import right now: poll again. */
+  | "IN_PROGRESS"
   | "VALIDATION"
   | "NOT_FOUND";
 
@@ -61,8 +65,18 @@ function toLandingError(e: unknown, tag: string): { ok: false; error: LandingErr
   if (e instanceof ImportError) return fail(e.code);
   if (e instanceof ImportNotFoundError || e instanceof ImportStateError) return fail("NOT_FOUND");
   if (e instanceof RateLimitUnavailableError) return fail("UNAVAILABLE");
-  // Errors can carry candidate data: name + message only.
-  console.error(`[landing] ${tag} failed`, e instanceof Error ? { name: e.name, message: e.message } : {});
+  // Errors can carry candidate data: Prisma messages embed field values, so
+  // log name + code only for them; name + message for the rest.
+  if (
+    e instanceof Prisma.PrismaClientKnownRequestError ||
+    e instanceof Prisma.PrismaClientValidationError ||
+    e instanceof Prisma.PrismaClientUnknownRequestError
+  ) {
+    const code = e instanceof Prisma.PrismaClientKnownRequestError ? e.code : undefined;
+    console.error(`[landing] ${tag} failed`, { name: e.name, code });
+  } else {
+    console.error(`[landing] ${tag} failed`, e instanceof Error ? { name: e.name, message: e.message } : {});
+  }
   return fail("INTERNAL_ERROR");
 }
 
@@ -140,32 +154,52 @@ export async function registerLandingUpload(
 export async function runLandingExtraction(
   landing: ActiveLanding,
   importId: string,
+  now = new Date(),
+): Promise<LandingResult<ContactPrefill>> {
+  try {
+    return await extractUnderBudget(landing, importId, now);
+  } catch (e) {
+    return toLandingError(e, "extraction");
+  }
+}
+
+async function extractUnderBudget(
+  landing: ActiveLanding,
+  importId: string,
+  now: Date,
 ): Promise<LandingResult<ContactPrefill>> {
   const imp = await getPublicImport(importId, landing.pool.id);
   if (!imp) return fail("SESSION_EXPIRED");
   if (imp.status === "READY") return { ok: true, data: contactFromDraft(imp.draft) };
   if (imp.status === "COMPLETED" || imp.status === "DISCARDED") return fail("SESSION_EXPIRED");
-
-  try {
-    // Per-import first: rules stop at the first refusal, so one import
-    // retrying cannot burn the global budget.
-    const withinBudget = await consumeRateLimits([
-      { key: `landing:import:${imp.id}:d`, limit: LIMITS.perImportDay, windowSec: DAY },
-      { key: "landing:extractions:d", limit: LIMITS.extractionsDay, windowSec: DAY },
-    ]);
-    if (!withinBudget) return fail("BUDGET_EXHAUSTED");
-    await runExtraction(imp.id, {
-      maxOcrPages: PUBLIC_MAX_OCR_PAGES,
-      textGate: passesCvQualityGate,
-      rejectNonCv: true,
-    });
-  } catch (e) {
-    return toLandingError(e, "extraction");
+  // A final failure is re-reported for free; only retryable ones re-run.
+  if (imp.status === "FAILED") {
+    if (!isImportErrorCode(imp.errorCode)) return fail("INTERNAL_ERROR");
+    if (!RETRYABLE_IMPORT_ERRORS.includes(imp.errorCode)) return fail(imp.errorCode);
   }
+  // A fresh extraction belongs to another request (second tab, client retry):
+  // don't count budget, let the client poll. A stale one is re-claimed below.
+  if (imp.status === "EXTRACTING" && now.getTime() - imp.updatedAt.getTime() < STALE_EXTRACTION_MS) {
+    return fail("IN_PROGRESS");
+  }
+
+  // Per-import first: rules stop at the first refusal, so one import
+  // retrying cannot burn the global budget.
+  const withinBudget = await consumeRateLimits([
+    { key: `landing:import:${imp.id}:d`, limit: LIMITS.perImportDay, windowSec: DAY },
+    { key: "landing:extractions:d", limit: LIMITS.extractionsDay, windowSec: DAY },
+  ]);
+  if (!withinBudget) return fail("BUDGET_EXHAUSTED");
+  await runExtraction(imp.id, {
+    maxOcrPages: PUBLIC_MAX_OCR_PAGES,
+    textGate: passesCvQualityGate,
+    rejectNonCv: true,
+  });
 
   const after = await getPublicImport(imp.id, landing.pool.id);
   if (after?.status === "READY") return { ok: true, data: contactFromDraft(after.draft) };
   if (after?.status === "FAILED" && isImportErrorCode(after.errorCode)) return fail(after.errorCode);
+  if (after?.status === "EXTRACTING") return fail("IN_PROGRESS");
   return fail("INTERNAL_ERROR");
 }
 
@@ -181,46 +215,48 @@ export async function confirmLandingImport(
   if (!parsed.success) return fail("VALIDATION");
   const contact = parsed.data;
 
-  const imp = await getPublicImport(importId, landing.pool.id);
-  if (!imp) return fail("SESSION_EXPIRED");
-  if (imp.status === "COMPLETED") return { ok: true, data: null };
-  if (imp.status !== "READY") return fail("NOT_FOUND");
-
-  // The sharing checkbox only means something for consent-driven pools.
-  const shareWithGlobal = landing.pool.globalSharing === "WEBHOOK" && contact.shareWithGlobal;
-
-  const consent = {
-    privacyPolicyUrl: landing.privacyPolicyUrl,
-    acceptedAt: now.toISOString(),
-    shareWithGlobal,
-    textVersion: CONSENT_TEXT_VERSION,
-  };
-
   try {
-    const { candidateId, attached, documentId } = await confirmImport({
-      importId: imp.id,
-      organizationId: landing.organization.id,
-      poolId: landing.pool.id,
-      userId: null,
-      fields: mergeContactIntoDraft(imp.draft, contact),
-      channel: "landing_cv",
-      consentToShare: shareWithGlobal,
-      attachToExistingByPhone: true,
-      rawPayloadExtra: { landingPageId: landing.id, consent },
-    });
+    const imp = await getPublicImport(importId, landing.pool.id);
+    if (!imp) return fail("SESSION_EXPIRED");
+    if (imp.status === "COMPLETED") return { ok: true, data: null };
+    if (imp.status !== "READY") return fail("NOT_FOUND");
+
+    // The sharing checkbox only means something for consent-driven pools.
+    const shareWithGlobal = landing.pool.globalSharing === "WEBHOOK" && contact.shareWithGlobal;
+    const consent = {
+      privacyPolicyUrl: landing.privacyPolicyUrl,
+      acceptedAt: now.toISOString(),
+      shareWithGlobal,
+      textVersion: CONSENT_TEXT_VERSION,
+    };
+
     try {
-      await logAudit({
-        userId: null,
+      await confirmImport({
+        importId: imp.id,
         organizationId: landing.organization.id,
-        action: "candidate_import.public_confirm",
-        resourceType: "candidate_import",
-        resourceId: imp.id,
-        // The consent record lives here too: on attach the existing
-        // candidate's rawPayload is not touched (GDPR traceability).
-        metadata: { candidateId, attached, documentId, ipHash: ctx.ipHash, consent },
+        poolId: landing.pool.id,
+        userId: null,
+        fields: mergeContactIntoDraft(imp.draft, contact),
+        channel: "landing_cv",
+        consentToShare: shareWithGlobal,
+        attachToExistingByPhone: true,
+        rawPayloadExtra: { landingPageId: landing.id, consent },
+        // Written inside the confirm transaction: the consent proof exists iff
+        // the candidate/document does. On attach the existing candidate's
+        // rawPayload is untouched, so this row is the only consent record.
+        audit: {
+          action: "candidate_import.public_confirm",
+          organizationId: landing.organization.id,
+          metadata: { ipHash: ctx.ipHash, consent },
+        },
       });
     } catch (e) {
-      console.error("[landing] audit log failed", e instanceof Error ? e.message : e);
+      // Lost a race (double submit, second tab): fine if the other one completed it.
+      if (e instanceof ImportStateError) {
+        const again = await getPublicImport(imp.id, landing.pool.id);
+        if (again?.status === "COMPLETED") return { ok: true, data: null };
+      }
+      throw e;
     }
     return { ok: true, data: null };
   } catch (e) {

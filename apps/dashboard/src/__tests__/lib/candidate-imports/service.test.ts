@@ -7,6 +7,7 @@ const tx = {
     findFirst: vi.fn().mockResolvedValue({ id: "d-9" }),
   },
   candidate: { findMany: vi.fn() },
+  auditLog: { create: vi.fn() },
 };
 
 vi.mock("@/lib/db", () => ({
@@ -451,6 +452,60 @@ describe("confirmImport", () => {
     await confirmImport({ importId: IMPORT.id, organizationId: "o", userId: "u", fields: FIELDS });
     expect(m(findCandidateIdBySamePhone)).not.toHaveBeenCalled();
   });
+
+  const AUDIT = { action: "candidate_import.public_confirm", organizationId: "o", metadata: { ipHash: "h", consent: { acceptedAt: "t" } } };
+  const PUBLIC = {
+    importId: IMPORT.id, organizationId: "o", userId: null,
+    fields: { firstName: "Ahmed", lastName: "Benali", phone: "+39 333 1234567" } as never,
+    channel: "landing_cv" as const, poolId: "p", attachToExistingByPhone: true, audit: AUDIT,
+  };
+
+  it("writes the audit row inside the transaction on attach", async () => {
+    tx.candidateImport.findFirst.mockResolvedValueOnce({ ...IMPORT, createdById: null });
+    tx.candidateImport.updateMany.mockResolvedValueOnce({ count: 1 });
+    m(findCandidateIdBySamePhone).mockResolvedValueOnce("c-existing");
+    await confirmImport(PUBLIC);
+    expect(tx.auditLog.create).toHaveBeenCalledWith({
+      data: {
+        userId: null, organizationId: "o", action: "candidate_import.public_confirm",
+        resourceType: "candidate_import", resourceId: IMPORT.id,
+        metadata: { ipHash: "h", consent: { acceptedAt: "t" }, candidateId: "c-existing", attached: true, documentId: "d-1" },
+      },
+    });
+  });
+
+  it("writes the audit row inside the transaction on create", async () => {
+    tx.candidateImport.findFirst.mockResolvedValueOnce({ ...IMPORT, createdById: null });
+    tx.candidateImport.updateMany.mockResolvedValueOnce({ count: 1 });
+    m(findCandidateIdBySamePhone).mockResolvedValueOnce(null);
+    m(upsertCandidate).mockResolvedValueOnce({ id: "c-new" });
+    await confirmImport(PUBLIC);
+    expect(tx.auditLog.create).toHaveBeenCalledWith({
+      data: {
+        userId: null, organizationId: "o", action: "candidate_import.public_confirm",
+        resourceType: "candidate_import", resourceId: IMPORT.id,
+        metadata: { ipHash: "h", consent: { acceptedAt: "t" }, candidateId: "c-new", attached: false, documentId: "d-1" },
+      },
+    });
+  });
+
+  it("a failing audit write fails the confirm (rolled back with the transaction)", async () => {
+    tx.candidateImport.findFirst.mockResolvedValueOnce({ ...IMPORT, createdById: null });
+    tx.candidateImport.updateMany.mockResolvedValueOnce({ count: 1 });
+    m(findCandidateIdBySamePhone).mockResolvedValueOnce("c-existing");
+    tx.auditLog.create.mockRejectedValueOnce(new Error("db"));
+    await expect(confirmImport(PUBLIC)).rejects.toThrow("db");
+  });
+
+  it("does not audit the idempotent COMPLETED return, nor without the audit param", async () => {
+    tx.candidateImport.findFirst.mockResolvedValueOnce({ ...IMPORT, status: "COMPLETED", candidateId: "c-9" });
+    await confirmImport(PUBLIC);
+    tx.candidateImport.findFirst.mockResolvedValueOnce(IMPORT);
+    tx.candidateImport.updateMany.mockResolvedValueOnce({ count: 1 });
+    m(upsertCandidate).mockResolvedValueOnce({ id: "c-1" });
+    await confirmImport({ importId: IMPORT.id, organizationId: "o", userId: "u", fields: FIELDS });
+    expect(tx.auditLog.create).not.toHaveBeenCalled();
+  });
 });
 
 describe("discardImport / discardStaleImports", () => {
@@ -654,7 +709,7 @@ describe("getPublicImport", () => {
     await getPublicImport(IMPORT_ID, "p");
     expect(m(prisma.candidateImport.findFirst).mock.calls[0]![0]).toEqual({
       where: { id: IMPORT_ID, poolId: "p", origin: "PUBLIC_LINK" },
-      select: { id: true, status: true, errorCode: true, draft: true },
+      select: { id: true, status: true, errorCode: true, draft: true, updatedAt: true },
     });
   });
 

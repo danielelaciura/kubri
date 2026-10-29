@@ -34,7 +34,7 @@ import {
  * download and parse, which fits the review page's 60 s maxDuration; 2 min
  * leaves headroom.
  */
-const STALE_EXTRACTION_MS = 2 * 60 * 1000;
+export const STALE_EXTRACTION_MS = 2 * 60 * 1000;
 /** Open imports untouched for this long are discarded by the nightly cron. */
 const STALE_IMPORT_MS = 7 * 24 * 60 * 60 * 1000;
 /** Public uploads without consent must not linger: discard after 24 h. */
@@ -296,6 +296,13 @@ export interface ConfirmImportInput {
    * existing profile is never modified. Never looks outside the pool.
    */
   attachToExistingByPhone?: boolean;
+  /**
+   * Written in the same transaction as the candidate/document (public landing:
+   * the consent proof must exist iff the confirm committed). The metadata is
+   * extended with candidateId, attached and documentId. Not written on the
+   * idempotent re-confirm of a COMPLETED import.
+   */
+  audit?: { action: string; organizationId: string; metadata: Record<string, unknown> };
 }
 
 export interface ConfirmImportResult {
@@ -367,6 +374,19 @@ export async function confirmImport(input: ConfirmImportInput): Promise<ConfirmI
         where: { id: imp.id },
         data: { candidateId, extractedText: null, draft: Prisma.DbNull },
       });
+    const writeAudit = async (candidateId: string, attached: boolean, documentId: string) => {
+      if (!input.audit) return;
+      await tx.auditLog.create({
+        data: {
+          userId: input.userId,
+          organizationId: input.audit.organizationId,
+          action: input.audit.action,
+          resourceType: "candidate_import",
+          resourceId: imp.id,
+          metadata: { ...input.audit.metadata, candidateId, attached, documentId } as Prisma.InputJsonValue,
+        },
+      });
+    };
 
     if (input.attachToExistingByPhone) {
       const existingId = await findCandidateIdBySamePhone(tx, imp.pool.id, input.fields.phone);
@@ -376,6 +396,7 @@ export async function confirmImport(input: ConfirmImportInput): Promise<ConfirmI
           select: { id: true },
         });
         await closeImport(existingId);
+        await writeAudit(existingId, true, doc.id);
         return { candidateId: existingId, row: null, attached: true, documentId: doc.id };
       }
     }
@@ -403,6 +424,7 @@ export async function confirmImport(input: ConfirmImportInput): Promise<ConfirmI
       select: { id: true },
     });
     await closeImport(row.id);
+    await writeAudit(row.id, false, doc.id);
     return { candidateId: row.id, row, attached: false, documentId: doc.id };
   });
 
@@ -493,6 +515,6 @@ export async function getPublicImport(importId: string, poolId: string) {
   if (!isUuid(importId)) return null;
   return prisma.candidateImport.findFirst({
     where: { id: importId, poolId, origin: "PUBLIC_LINK" },
-    select: { id: true, status: true, errorCode: true, draft: true },
+    select: { id: true, status: true, errorCode: true, draft: true, updatedAt: true },
   });
 }

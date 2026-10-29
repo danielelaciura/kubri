@@ -4,7 +4,7 @@ const OCR_URL = "https://api.mistral.ai/v1/ocr";
 const OCR_MODEL = "mistral-ocr-latest";
 const DEFAULT_TIMEOUT_MS = 20000;
 /** A CV rarely needs more; keeps long scans inside the request budget. */
-const MAX_OCR_PAGES = 10;
+export const MAX_OCR_PAGES = 10;
 
 interface OcrResponse {
   pages?: unknown;
@@ -19,6 +19,7 @@ export async function ocrDocument(
   bytes: Uint8Array,
   mimeType: string,
   timeoutMs = DEFAULT_TIMEOUT_MS,
+  maxPages = MAX_OCR_PAGES,
 ): Promise<{ text: string; pageCount: number }> {
   const apiKey = process.env["MISTRAL_API_KEY"];
   if (!apiKey) throw new LLMError("MISTRAL_API_KEY is not set");
@@ -30,7 +31,7 @@ export async function ocrDocument(
 
   const isPdf = !mimeType.startsWith("image/");
   const payload: Record<string, unknown> = { model: OCR_MODEL, document };
-  if (isPdf) payload["pages"] = Array.from({ length: MAX_OCR_PAGES }, (_, i) => i);
+  if (isPdf) payload["pages"] = Array.from({ length: maxPages }, (_, i) => i);
 
   // The timer covers the whole exchange, including reading the response body.
   const controller = new AbortController();

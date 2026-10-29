@@ -22,6 +22,7 @@ export interface ActiveLanding {
  * organization. Checked on every public request, not only on save.
  */
 export async function getActiveLandingBySlug(slug: string): Promise<ActiveLanding | null> {
+  slug = slug.toLowerCase();
   if (!LANDING_SLUG_RE.test(slug)) return null;
   const row = await prisma.candidateLandingPage.findUnique({
     where: { slug },
@@ -89,6 +90,7 @@ export async function saveLandingPage(
     });
     return { ok: true, id: row.id };
   } catch (e) {
+    // Only the slug can raise P2002: the upsert's where is the unique organizationId (ON CONFLICT on it).
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
       return { ok: false, error: "SLUG_TAKEN" };
     }

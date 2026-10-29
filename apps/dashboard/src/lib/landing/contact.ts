@@ -40,7 +40,11 @@ export interface ContactPrefill {
 
 function draftFields(draft: unknown): CandidateDraftFields {
   const parsed = candidateDraftSchema.safeParse(draft);
-  return parsed.success ? parsed.data.fields : emptyCandidateDraftFields();
+  if (parsed.success) return parsed.data.fields;
+  if (draft != null) {
+    console.warn("[landing] stored draft does not match schema; using empty fields");
+  }
+  return emptyCandidateDraftFields();
 }
 
 export function contactFromDraft(draft: unknown): ContactPrefill {
@@ -69,6 +73,9 @@ export function mergeContactIntoDraft(draft: unknown, contact: LandingContact): 
   const parsed = candidateFieldsSchema.safeParse(merged);
   if (parsed.success) return parsed.data;
 
+  // Defensive and currently unreachable: the draft and strict schemas share
+  // limits. If it ever clears firstName/lastName, the final parse throws
+  // (fail closed).
   for (const issue of parsed.error.issues) {
     const key = issue.path[0];
     if (typeof key === "string" && key in merged) {

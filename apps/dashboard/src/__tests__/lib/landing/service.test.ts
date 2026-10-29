@@ -52,14 +52,27 @@ describe("getActiveLandingBySlug", () => {
     ["global pool", { ...ROW, pool: { ...ROW.pool, isGlobal: true } }],
   ])("returns null when %s", async (_, row) => {
     m(prisma.candidateLandingPage.findUnique).mockResolvedValueOnce(row);
-    m(prisma.organizationPool.findUnique).mockResolvedValueOnce({ poolId: POOL_ID });
     await expect(getActiveLandingBySlug("coop-sole")).resolves.toBeNull();
+    expect(m(prisma.organizationPool.findUnique)).not.toHaveBeenCalled();
   });
 
   it("returns null when the pool was detached from the organization", async () => {
     m(prisma.candidateLandingPage.findUnique).mockResolvedValueOnce(ROW);
     m(prisma.organizationPool.findUnique).mockResolvedValueOnce(null);
     await expect(getActiveLandingBySlug("coop-sole")).resolves.toBeNull();
+  });
+
+  it("looks up by the lowercased slug", async () => {
+    m(prisma.candidateLandingPage.findUnique).mockResolvedValueOnce(ROW);
+    m(prisma.organizationPool.findUnique).mockResolvedValueOnce({ poolId: POOL_ID });
+    await getActiveLandingBySlug("Coop-Sole");
+    expect(m(prisma.candidateLandingPage.findUnique).mock.calls[0]![0].where).toEqual({ slug: "coop-sole" });
+  });
+
+  it("returns null for an unknown slug", async () => {
+    m(prisma.candidateLandingPage.findUnique).mockResolvedValueOnce(null);
+    await expect(getActiveLandingBySlug("coop-sole")).resolves.toBeNull();
+    expect(m(prisma.organizationPool.findUnique)).not.toHaveBeenCalled();
   });
 
   it("does not query for an invalid slug", async () => {
@@ -102,7 +115,19 @@ describe("saveLandingPage", () => {
   });
 });
 
+describe("saveLandingPage errors", () => {
+  it("rethrows non-P2002 errors", async () => {
+    vi.resetAllMocks();
+    m(prisma.organizationPool.findUnique).mockResolvedValueOnce({ pool: { isGlobal: false } });
+    m(prisma.candidateLandingPage.upsert).mockRejectedValueOnce(new Error("boom"));
+    await expect(
+      saveLandingPage("o-1", { slug: "coop-sole", poolId: POOL_ID, privacyPolicyUrl: "https://x.it/p", enabled: true }),
+    ).rejects.toThrow("boom");
+  });
+});
+
 describe("getLandingForOrg", () => {
+  beforeEach(() => vi.resetAllMocks());
   it("looks up by organization", async () => {
     m(prisma.candidateLandingPage.findUnique).mockResolvedValueOnce(null);
     await getLandingForOrg("o-1");

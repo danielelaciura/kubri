@@ -1,6 +1,11 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { inTransaction } from "../../src/store/db";
-import { recordOptOut, registerInbound, upsertContact } from "../../src/store/contacts";
+import {
+  findContactAddress,
+  recordOptOut,
+  registerInbound,
+  upsertContact,
+} from "../../src/store/contacts";
 import {
   claimNextOutbound,
   finishSend,
@@ -332,5 +337,16 @@ describe("outbound messages (D108)", () => {
       ["due", "failed", "skipped_after_failure"],
       ["altro turno", "queued", null],
     ]);
+  });
+});
+
+describe("findContactAddress", () => {
+  it("returns who the contact is on the channel", async () => {
+    expect(await findContactAddress(db, contactId)).toEqual({
+      id: contactId,
+      channel: "whatsapp",
+      externalId: "393331112233",
+      phoneE164: "+393331112233",
+    });
   });
 });

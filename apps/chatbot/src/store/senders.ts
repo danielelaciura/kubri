@@ -61,3 +61,19 @@ export async function findSenderNumberByPhone(
     select: SELECT,
   });
 }
+
+export interface OutboundSenderRecord {
+  readonly id: string;
+  readonly slug: string;
+  readonly provider: SenderProvider;
+  /** Identifiers and names of secrets, never credentials (spec §10.1). */
+  readonly providerConfig: unknown;
+}
+
+/** The number a message leaves from, as a channel adapter needs it. */
+export function findOutboundSender(db: Database, id: string): Promise<OutboundSenderRecord> {
+  return db.senderNumber.findUniqueOrThrow({
+    where: { id },
+    select: { id: true, slug: true, provider: true, providerConfig: true },
+  });
+}

@@ -14,6 +14,7 @@ import {
   findCampaignVersion,
   findDefaultCampaign,
 } from "../store/campaigns";
+import { findContactAddress } from "../store/contacts";
 import type { Database, Tx } from "../store/db";
 import { inTransaction, lockKey } from "../store/db";
 import {
@@ -99,10 +100,7 @@ async function runTurn(deps: RuntimeDeps, tx: Tx, job: ContactJob): Promise<Proc
     return "rescheduled";
   }
 
-  const contact: Contact = await tx.contact.findUniqueOrThrow({
-    where: { id: job.contactId },
-    select: { id: true, channel: true, externalId: true },
-  });
+  const contact: Contact = await findContactAddress(tx, job.contactId);
   const turnId = (deps.newId ?? randomUUID)();
   const open = await findOpenSession(tx, contact.id, job.senderNumberId);
   const texts = burst.flatMap((m) => (m.type === "text" && m.body !== null ? [m.body] : []));

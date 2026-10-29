@@ -2,6 +2,7 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { createOrganization, findOrganizationBySlug } from "../../src/store/organizations";
 import {
   createSenderNumber,
+  findOutboundSender,
   findSenderNumberByPhone,
   findSenderNumberBySlug,
 } from "../../src/store/senders";
@@ -66,5 +67,26 @@ describe("senders store", () => {
 
     expect(row.providerConfig).toEqual(META_CONFIG);
     expect(row.channel).toBe("whatsapp");
+  });
+});
+
+describe("findOutboundSender", () => {
+  it("returns what a channel adapter needs, config included", async () => {
+    const created = await createSenderNumber(db, {
+      slug: "kubri-main",
+      organizationId: null,
+      phoneE164: "+390212345678",
+      displayName: "Kubri",
+      status: "active",
+      provider: "meta",
+      providerConfig: META_CONFIG,
+    });
+
+    expect(await findOutboundSender(db, created.id)).toEqual({
+      id: created.id,
+      slug: "kubri-main",
+      provider: "meta",
+      providerConfig: META_CONFIG,
+    });
   });
 });

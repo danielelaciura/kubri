@@ -21,6 +21,21 @@ export function upsertContact(tx: Tx, input: ContactInput): Promise<ContactRecor
   });
 }
 
+export interface ContactAddress {
+  readonly id: string;
+  readonly channel: "whatsapp";
+  readonly externalId: string;
+  readonly phoneE164: string;
+}
+
+/** Who a contact is on their channel: what a turn and a send need, nothing more. */
+export function findContactAddress(tx: Tx, id: string): Promise<ContactAddress> {
+  return tx.contact.findUniqueOrThrow({
+    where: { id },
+    select: { id: true, channel: true, externalId: true, phoneE164: true },
+  });
+}
+
 export async function setPreferredLanguage(
   tx: Tx,
   contactId: string,

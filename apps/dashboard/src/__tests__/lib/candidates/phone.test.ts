@@ -14,6 +14,15 @@ describe("normalizePhone", () => {
   it("leaves other countries alone", () => {
     expect(normalizePhone("+212 612 345 678")).toBe("212612345678");
   });
+  it("does not add 39 to a 10-digit international number", () => {
+    expect(normalizePhone("+354 612 3456")).toBe("3546123456");
+  });
+  it("does not add 39 after a 00 prefix", () => {
+    expect(normalizePhone("0035461234567")).toBe("35461234567");
+  });
+  it("leaves 10-digit numbers not starting with 3 unchanged", () => {
+    expect(normalizePhone("02 1234 5678")).toBe("0212345678");
+  });
   it("returns null for empty or too short input", () => {
     expect(normalizePhone(null)).toBeNull();
     expect(normalizePhone("")).toBeNull();

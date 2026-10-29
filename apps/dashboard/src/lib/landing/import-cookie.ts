@@ -12,6 +12,10 @@ export interface ImportBinding {
 
 let secretErrorLogged = false;
 
+export function _resetSecretWarningForTests(): void {
+  secretErrorLogged = false;
+}
+
 function secret(): string {
   const s = process.env["LANDING_COOKIE_SECRET"];
   if (!s || s.length < 32) throw new Error("LANDING_COOKIE_SECRET must be set (32+ chars)");
@@ -58,7 +62,15 @@ export function verifyImportCookie(value: string | undefined, now = Date.now()):
   return { importId, landingId };
 }
 
-export function landingCookieOptions() {
+export interface LandingCookieOptions {
+  httpOnly: true;
+  secure: boolean;
+  sameSite: "lax";
+  path: string;
+  maxAge: number;
+}
+
+export function landingCookieOptions(): LandingCookieOptions {
   return {
     httpOnly: true,
     secure: process.env["NODE_ENV"] === "production",

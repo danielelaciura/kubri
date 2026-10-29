@@ -55,7 +55,7 @@ function getCounter(): Counter | null {
 export async function consumeRateLimits(rules: RateLimitRule[], now = Date.now()): Promise<boolean> {
   if (rules.length === 0) throw new Error("consumeRateLimits: no rules");
   for (const r of rules) {
-    if (!Number.isInteger(r.windowSec) || r.windowSec <= 0 || r.limit < 0) {
+    if (!Number.isInteger(r.windowSec) || r.windowSec <= 0 || !Number.isInteger(r.limit) || r.limit < 0) {
       throw new Error("consumeRateLimits: invalid rule");
     }
   }

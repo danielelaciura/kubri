@@ -85,6 +85,8 @@ describe("consumeRateLimits", () => {
     await expect(consumeRateLimits([{ key: "a", limit: 1, windowSec: 0 }], NOW)).rejects.toThrow();
     await expect(consumeRateLimits([{ key: "a", limit: 1, windowSec: 1.5 }], NOW)).rejects.toThrow();
     await expect(consumeRateLimits([{ key: "a", limit: -1, windowSec: 60 }], NOW)).rejects.toThrow();
+    await expect(consumeRateLimits([{ key: "a", limit: NaN, windowSec: 60 }], NOW)).rejects.toThrow();
+    await expect(consumeRateLimits([{ key: "a", limit: 1.5, windowSec: 60 }], NOW)).rejects.toThrow();
   });
 
   it("throws RateLimitUnavailableError when the counter fails", async () => {

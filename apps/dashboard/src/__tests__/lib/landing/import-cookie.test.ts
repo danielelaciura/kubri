@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
+  _resetSecretWarningForTests,
   hashIp,
   landingCookieOptions,
   LANDING_COOKIE_TTL_SEC,
@@ -46,6 +47,7 @@ describe("import cookie", () => {
 
   it("returns null (and logs once, no values) when the secret is missing", () => {
     const v = signImportCookie({ importId: IMPORT_ID, landingId: LANDING_ID }, NOW);
+    _resetSecretWarningForTests();
     vi.stubEnv("LANDING_COOKIE_SECRET", "");
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
     expect(verifyImportCookie(v, NOW)).toBeNull();

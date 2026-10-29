@@ -68,6 +68,12 @@ export interface QueueSettings {
   readonly retryDelaySeconds?: number;
   /** pg-boss reports connection problems as events; without a listener they would crash. */
   readonly onError?: (error: Error) => void;
+  /**
+   * How long stop() waits for the handlers still running before it closes (default 10 s). The
+   * worker sets it to its longest job (workerStopTimeoutMs): the hosting platform's grace
+   * period on shutdown must be at least as long.
+   */
+  readonly stopTimeoutMs?: number;
   /** Every failed job, retried or not: ids and error name only (CLAUDE.md, privacy rule 3). */
   readonly onJobFailed?: (failure: JobFailure) => void;
 }
@@ -152,7 +158,8 @@ export function createQueueRuntime(settings: QueueSettings): QueueRuntime {
       }
     },
     async stop() {
-      await boss.stop({ graceful: true, timeout: 10_000 });
+      // Stops fetching, waits for the running handlers, then closes the pool.
+      await boss.stop({ graceful: true, timeout: settings.stopTimeoutMs ?? 10_000 });
     },
     async work(name, handler, options) {
       await boss.work(

@@ -1,6 +1,11 @@
 import type { Logger } from "pino";
 import type { QueueRuntime, QueueSettings } from "../store/queue";
-import { requireQueueDatabaseUrl, sendRetryLimit, type RuntimeConfig } from "./config";
+import {
+  requireQueueDatabaseUrl,
+  sendRetryLimit,
+  workerStopTimeoutMs,
+  type RuntimeConfig,
+} from "./config";
 import { processContact, type RuntimeDeps } from "./process-contact";
 import { sendMessages, type SendDeps } from "./send-messages";
 
@@ -26,6 +31,8 @@ export function workerQueueSettings(config: RuntimeConfig, logger: Logger): Queu
     connectionString: requireQueueDatabaseUrl(config),
     schema: config.queueSchema,
     retryLimits: { "send-messages": sendRetryLimit(config) },
+    // A turn interrupted mid-transaction rolls back and runs again, but a send would go twice.
+    stopTimeoutMs: workerStopTimeoutMs(config),
     onError: (error) => {
       const code = "code" in error && typeof error.code === "string" ? error.code : undefined;
       logger.error({ errorName: error.name, ...(code ? { code } : {}) }, "queue error");

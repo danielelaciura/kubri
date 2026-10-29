@@ -217,6 +217,34 @@ describe("failed jobs", () => {
   });
 });
 
+describe("graceful stop", () => {
+  it("waits for a handler still running before it closes", async () => {
+    const stopping = await startTestQueue({ stopTimeoutMs: 15_000 });
+    let started = false;
+    let finished = false;
+    // A queue no other worker of this file listens on.
+    await stopping.work(
+      "delete-contact",
+      async () => {
+        started = true;
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        finished = true;
+      },
+      { batchSize: 1, pollingIntervalSeconds: 0.5 },
+    );
+    await stopping.queue.enqueue("delete-contact", { contactId: "c1" });
+    await expect.poll(() => started, { timeout: 15_000, interval: 100 }).toBe(true);
+
+    await stopping.stop();
+
+    expect(finished).toBe(true);
+    const rows = await db.$queryRawUnsafe<{ state: string }[]>(
+      `SELECT state::text AS state FROM ${TEST_QUEUE_SCHEMA}.job WHERE name = 'delete-contact'`,
+    );
+    expect(rows.map((r) => r.state)).toEqual(["completed"]);
+  });
+});
+
 describe("retry limits", () => {
   it("gives a queue its own limit, and a restart applies a changed one", async () => {
     const first = await startTestQueue({ retryLimits: { "send-messages": 7 } });

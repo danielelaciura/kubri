@@ -296,7 +296,10 @@ pnpm cli inbound send --sender <slug> --from <e164> <text...>    # a candidate w
   Terminal 2: `pnpm cli inbound send --sender kubri-main --from +393331112233 ciao`, then
   `italiano`, then `sì`. Terminal 1 prints `→ +393331112233: …`: the welcome in two languages,
   the campaign's intro and the consent, then the optional consent; `stop` closes the
-  conversation. Ctrl-C stops the worker (queued messages are sent at the next start). Inspect the
+  conversation. Ctrl-C (or SIGTERM) stops the worker: it stops fetching jobs, waits for the
+  running ones up to `workerStopTimeoutMs` (`turnTransactionMs` + 20 s, 90 s by default; the
+  hosting grace period must be at least that), then closes the pool. Queued messages are sent at
+  the next start. Inspect the
   data with `pnpm exec prisma studio` (`Session`, `Message`, `Consent`, `Turn`).
 
 ## Things NOT to do

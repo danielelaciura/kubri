@@ -111,6 +111,13 @@ describe("workerQueueSettings", () => {
     expect(lines[0]).not.toContain("secretuser");
   });
 
+  it("stops only after the longest job could finish: a turn, or a send waiting for one", () => {
+    const settings = workerQueueSettings(config, pino({ level: "silent" }));
+
+    // reportFailure's transaction may last turnTransactionMs + 15 s (it waits for the turn).
+    expect(settings.stopTimeoutMs).toBeGreaterThanOrEqual(config.turnTransactionMs + 15_000);
+  });
+
   it("logs a failed job by queue, id, error name and code: no message, no payload", () => {
     const lines: string[] = [];
     const logger = pino({ level: "info" }, { write: (line: string) => lines.push(line) });

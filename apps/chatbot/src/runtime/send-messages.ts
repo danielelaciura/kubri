@@ -16,7 +16,7 @@ import type { JobQueue } from "../store/queue";
 import { findOutboundSender } from "../store/senders";
 import { findSessionById } from "../store/sessions";
 import { recordFlag } from "./apply-effects";
-import type { RuntimeConfig } from "./config";
+import { reportFailureTransactionMs, type RuntimeConfig } from "./config";
 import { withDeadline } from "./deadline";
 import { stepSafely } from "./safe";
 import { decodeState } from "./state-codec";
@@ -103,7 +103,7 @@ async function reportFailure(deps: SendDeps, message: ClaimedMessage): Promise<v
       }
     },
     // It may wait for a whole turn to release the contact's lock.
-    deps.config.turnTransactionMs + 15_000,
+    reportFailureTransactionMs(deps.config),
   );
 }
 

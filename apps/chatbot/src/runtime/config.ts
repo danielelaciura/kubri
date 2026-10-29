@@ -136,3 +136,20 @@ export function sendRetryLimit(config: RuntimeConfig): number {
 export function workerPoolSize(config: RuntimeConfig): number {
   return 2 * config.workerBatchSize * 2 + 2;
 }
+
+/**
+ * How long reportFailure's transaction may last (send-messages): it may wait for a whole turn
+ * to release the contact's lock, then flag the session.
+ */
+export function reportFailureTransactionMs(config: RuntimeConfig): number {
+  return config.turnTransactionMs + 15_000;
+}
+
+/**
+ * How long the worker waits on shutdown for the jobs still running: the longest one, a send
+ * whose reportFailure waits for a turn, plus 5 s for the claim and the channel call around it.
+ * The hosting platform's grace period (SIGTERM → SIGKILL) must be at least this (plan 11).
+ */
+export function workerStopTimeoutMs(config: RuntimeConfig): number {
+  return reportFailureTransactionMs(config) + 5_000;
+}

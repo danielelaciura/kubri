@@ -23,6 +23,16 @@ const RuntimeEnvSchema = z.object({
    * written (requireConsentHashSecret); never rotate it in place, old proofs stop matching.
    */
   CONSENT_HASH_SECRET: z.string().min(32, "at least 32 characters").optional(),
+  /**
+   * The direct / session connection (port 5432) pg-boss uses: never the transaction pooler
+   * (6543). Falls back to DATABASE_URL only with NODE_ENV development or test.
+   */
+  QUEUE_DATABASE_URL: z
+    .string()
+    .regex(/^postgres(ql)?:\/\//, "a postgres:// or postgresql:// URL")
+    .optional(),
+  NODE_ENV: z.string().optional(),
+  DATABASE_URL: z.string().optional(),
 });
 
 export interface RuntimeConfig {
@@ -36,7 +46,11 @@ export interface RuntimeConfig {
   readonly workerBatchSize: number;
   readonly queueSchema: string;
   readonly consentHashSecret: string | undefined;
+  /** Where pg-boss connects; undefined when unset outside development and test. */
+  readonly queueDatabaseUrl: string | undefined;
 }
+
+const QUEUE_FALLBACK_ENVS: readonly string[] = ["development", "test"];
 
 /** Same convention as the NLU configuration: `KEY=` means unset; no values in the messages. */
 export function parseRuntimeConfig(
@@ -63,7 +77,22 @@ export function parseRuntimeConfig(
     workerBatchSize: env.WORKER_BATCH_SIZE,
     queueSchema: env.QUEUE_SCHEMA,
     consentHashSecret: env.CONSENT_HASH_SECRET,
+    queueDatabaseUrl:
+      env.QUEUE_DATABASE_URL ??
+      (env.NODE_ENV !== undefined && QUEUE_FALLBACK_ENVS.includes(env.NODE_ENV)
+        ? env.DATABASE_URL
+        : undefined),
   };
+}
+
+/** The worker and the web process enqueue jobs: they refuse to start without it. */
+export function requireQueueDatabaseUrl(config: RuntimeConfig): string {
+  if (config.queueDatabaseUrl === undefined) {
+    throw new Error(
+      "QUEUE_DATABASE_URL is not set: pg-boss needs the direct (session, port 5432) connection.",
+    );
+  }
+  return config.queueDatabaseUrl;
 }
 
 /** The worker writes consents: it refuses to start without the key (no value in the message). */

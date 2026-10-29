@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { parseRuntimeConfig, requireConsentHashSecret } from "../../../src/runtime/config";
+import {
+  parseRuntimeConfig,
+  requireConsentHashSecret,
+  requireQueueDatabaseUrl,
+} from "../../../src/runtime/config";
 
 const SECRET = "test-consent-hash-secret-0123456789abcdef";
+const QUEUE_URL = "postgresql://u:p@db.example.com:5432/postgres";
+const APP_URL = "postgresql://u:p@localhost:54329/kubri_bot_dev?schema=bot";
 
 describe("parseRuntimeConfig", () => {
   it("has defaults and ignores other variables", () => {
@@ -15,6 +21,8 @@ describe("parseRuntimeConfig", () => {
       workerBatchSize: 4,
       queueSchema: "bot_queue",
       consentHashSecret: undefined,
+      // NODE_ENV unset counts as production: no fallback to DATABASE_URL.
+      queueDatabaseUrl: undefined,
     });
   });
 
@@ -28,6 +36,7 @@ describe("parseRuntimeConfig", () => {
       WORKER_BATCH_SIZE: "1",
       QUEUE_SCHEMA: "bot_queue_test",
       CONSENT_HASH_SECRET: SECRET,
+      QUEUE_DATABASE_URL: QUEUE_URL,
     });
 
     expect(config).toEqual({
@@ -40,6 +49,7 @@ describe("parseRuntimeConfig", () => {
       workerBatchSize: 1,
       queueSchema: "bot_queue_test",
       consentHashSecret: SECRET,
+      queueDatabaseUrl: QUEUE_URL,
     });
   });
 
@@ -70,6 +80,40 @@ describe("requireConsentHashSecret", () => {
   it("stops the runtime that writes consents when it is missing", () => {
     expect(() => requireConsentHashSecret(parseRuntimeConfig({}))).toThrow(
       /CONSENT_HASH_SECRET is not set/,
+    );
+  });
+});
+
+describe("queue connection (QUEUE_DATABASE_URL)", () => {
+  it("prefers QUEUE_DATABASE_URL in every environment", () => {
+    const config = parseRuntimeConfig({
+      NODE_ENV: "production",
+      DATABASE_URL: APP_URL,
+      QUEUE_DATABASE_URL: QUEUE_URL,
+    });
+
+    expect(requireQueueDatabaseUrl(config)).toBe(QUEUE_URL);
+  });
+
+  it.each(["development", "test"])("falls back to DATABASE_URL in %s", (nodeEnv) => {
+    const config = parseRuntimeConfig({ NODE_ENV: nodeEnv, DATABASE_URL: APP_URL });
+
+    expect(config.queueDatabaseUrl).toBe(APP_URL);
+  });
+
+  it.each([["production"], [undefined]])("has no fallback with NODE_ENV %s", (nodeEnv) => {
+    const config = parseRuntimeConfig({ NODE_ENV: nodeEnv, DATABASE_URL: APP_URL });
+
+    expect(config.queueDatabaseUrl).toBeUndefined();
+    expect(() => requireQueueDatabaseUrl(config)).toThrow(/QUEUE_DATABASE_URL is not set/);
+  });
+
+  it("refuses a value that is not a postgres URL without echoing it", () => {
+    expect(() => parseRuntimeConfig({ QUEUE_DATABASE_URL: "mysql://secret@x/db" })).toThrow(
+      /QUEUE_DATABASE_URL/,
+    );
+    expect(() => parseRuntimeConfig({ QUEUE_DATABASE_URL: "mysql://secret@x/db" })).not.toThrow(
+      /secret/,
     );
   });
 });

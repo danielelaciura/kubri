@@ -79,6 +79,15 @@ describe("database trace sink", () => {
     });
   });
 
+  it("refuses a turn's trace: those go through insertTraces in the turn transaction", async () => {
+    await expect(
+      createDatabaseTraceSink(db).write(
+        record("primary", { turnId: "6f1c5f0e-3b8a-4a43-9d6e-5d0b6f7d2a11" }),
+      ),
+    ).rejects.toThrow(/takes no turn traces/);
+    expect(await db.nluTrace.count()).toBe(0);
+  });
+
   it("writes the turn's traces inside its transaction", async () => {
     const { sender } = await (await import("./helpers/registry")).seedRegistry(db);
     const { importCampaign } = await import("../../src/campaigns/import");

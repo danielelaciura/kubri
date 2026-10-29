@@ -1,6 +1,7 @@
 import { PgBoss, fromPrisma } from "pg-boss";
 import { z } from "zod";
 import type { KubriEvent } from "../engine/effects";
+import { toPgConnectionString } from "./connection-string";
 import type { Tx } from "./db";
 
 export const QUEUE_NAMES = [
@@ -53,7 +54,10 @@ export interface JobQueue {
 }
 
 export interface QueueSettings {
-  /** Direct (5432) connection: pg-boss does not work behind the transaction pooler. */
+  /**
+   * Direct / session (5432) connection: pg-boss does not work behind the transaction pooler
+   * (QUEUE_DATABASE_URL). A Prisma `?schema=` parameter is removed here.
+   */
   readonly connectionString: string;
   /** pg-boss installs and keeps its tables here, never in public (CLAUDE.md: `bot_queue`). */
   readonly schema: string;
@@ -84,8 +88,19 @@ export interface QueueRuntime {
 
 const dead = (name: string): string => `${name}-dead`;
 
+/** What PgBoss is built with: node-postgres would not understand Prisma's `schema` parameter. */
+export function bossOptions(settings: Pick<QueueSettings, "connectionString" | "schema">): {
+  connectionString: string;
+  schema: string;
+} {
+  return {
+    connectionString: toPgConnectionString(settings.connectionString),
+    schema: settings.schema,
+  };
+}
+
 export function createQueueRuntime(settings: QueueSettings): QueueRuntime {
-  const boss = new PgBoss({ connectionString: settings.connectionString, schema: settings.schema });
+  const boss = new PgBoss(bossOptions(settings));
   boss.on("error", (error: Error) => settings.onError?.(error));
 
   const queue: JobQueue = {

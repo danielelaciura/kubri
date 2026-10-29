@@ -1,5 +1,4 @@
 import type { Database } from "../../../src/store/db";
-import { toPgConnectionString } from "../../../src/store/connection-string";
 import { createQueueRuntime, type QueueRuntime } from "../../../src/store/queue";
 import { testDatabaseUrl } from "./database";
 
@@ -12,7 +11,8 @@ export const TEST_QUEUE_SCHEMA = "bot_queue";
 /** A pg-boss on the test database, retrying at once and only once so failures surface fast. */
 export async function startTestQueue(): Promise<QueueRuntime> {
   const runtime = createQueueRuntime({
-    connectionString: toPgConnectionString(testDatabaseUrl()),
+    // The Prisma URL as is (?schema=bot): createQueueRuntime cleans it.
+    connectionString: testDatabaseUrl(),
     schema: TEST_QUEUE_SCHEMA,
     retryDelaySeconds: 0,
     retryLimit: 1,

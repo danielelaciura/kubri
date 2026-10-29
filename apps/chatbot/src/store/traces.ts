@@ -62,9 +62,22 @@ export async function insertTraces(tx: Tx, records: readonly NluTraceRecord[]): 
   });
 }
 
-/** For traces that belong to no turn (translations): written straight away. */
+/**
+ * For traces that belong to no turn (translations): written straight away, on their own
+ * connection. A turn's traces must commit or roll back with the turn (D110): they are
+ * collected in memory and written with insertTraces inside the turn transaction.
+ */
 export function createDatabaseTraceSink(db: Database): NluTraceSink {
-  return { write: (record) => insertTraces(db, [record]) };
+  return {
+    async write(record) {
+      if (record.turnId !== null) {
+        throw new Error(
+          "createDatabaseTraceSink takes no turn traces: use insertTraces in the turn",
+        );
+      }
+      await insertTraces(db, [record]);
+    },
+  };
 }
 
 export function createDatabaseTranslationCache(db: Database): TranslationCache {

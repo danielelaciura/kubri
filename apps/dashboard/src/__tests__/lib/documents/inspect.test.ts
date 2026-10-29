@@ -216,6 +216,12 @@ describe("inspectPublicDocument — DOCX", () => {
     ["other prefix Relationship", { rels: `<r:Relationship Type="${REL_NS}/image" Target="h" TargetMode="External"/>` }],
     ["DDE in footnotes", { extra: { "word/footnotes.xml": "<w:footnotes><w:instrText>DDEAUTO</w:instrText></w:footnotes>" } }],
     ["external rel in another part's rels", { extra: { "word/_rels/footnotes.xml.rels": `<Relationships>${rel("image", "http://e", true)}</Relationships>` } }],
+    ["attribute smuggling", { rels: `<Relationship Target="https://e/t.dotm?a= Type='${REL_NS}/hyperlink'" Type="${REL_NS}/attachedTemplate" TargetMode="External"/>` }],
+    ["attribute smuggling with entity", { rels: `<Relationship Target="https://e/t.dotm?q=&amp;Type='${REL_NS}/hyperlink'" Type="${REL_NS}/image" TargetMode="External"/>` }],
+    ["CDATA", { document: "<w:document><w:instrText><![CDATA[DDEAUTO]]></w:instrText></w:document>" }],
+    ["comment-split keyword", { document: "<w:document><w:instrText>DD<!-- x -->EAUTO</w:instrText></w:document>" }],
+    ["DOCTYPE", { document: '<!DOCTYPE d [<!ENTITY e "DDE">]><w:document/>' }],
+    ["char-ref content type", { contentTypes: '<Types><Override ContentType="application/vnd.ms-office.vbaProjec&#116;"/></Types>' }],
     ["oversized part", { document: "a".repeat(12 * 1024 * 1024) }],
     ["macroEnabled content type", { contentTypes: "<Types>macroEnabled.main+xml</Types>" }],
     [

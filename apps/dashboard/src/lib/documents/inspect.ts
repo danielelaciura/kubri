@@ -46,7 +46,7 @@ const DOCX_MAX_PART_BYTES = 10 * 1024 * 1024;
 function pdfText(bytes: Uint8Array): string {
   return Buffer.from(bytes)
     .toString("latin1")
-    // Only after a dictionary end, so a fake "stream" in a string cannot hide names.
+    // Only after a dictionary end: makes it harder to hide names behind a fake "stream" in a string.
     .replace(/>>\s*stream\r?\n[\s\S]*?endstream/g, ">>")
     .replace(/#([0-9A-Fa-f]{2})/g, (_, hex: string) => String.fromCharCode(parseInt(hex, 16)));
 }
@@ -117,6 +117,8 @@ async function inspectPdf(bytes: Uint8Array): Promise<InspectResult> {
 
   // The byte scan misses names inside compressed object streams and page
   // annotations: ask pdf.js too, bounded in time (it keeps cleaning up late).
+  // A hang inside getDocumentProxy itself cannot be cancelled (unpdf does not expose the
+  // loading task until it resolves).
   // Note: pdf.js runs on this thread, so the timeout only bounds work that yields.
   const held: { pdf?: PdfDoc } = {};
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -147,18 +149,30 @@ function decodeXml(v: string): string {
 
 const TAG_BODY = `(?:[^>"']|"[^"]*"|'[^']*')*`;
 
-/** Attribute value (either quote style, any namespace prefix), entity-decoded. */
-function xmlAttr(tag: string, name: string): string | null {
-  const m = new RegExp(`(?<![\\w:.-])(?:[\\w.-]+:)?${name}\\s*=\\s*(["'])(.*?)\\1`, "is").exec(tag);
-  return m ? decodeXml(m[2] ?? "") : null;
+/**
+ * Attributes parsed sequentially from the tag start (so a value containing
+ * "Type='…'" cannot be mistaken for an attribute), keyed by local name.
+ */
+function xmlAttrs(tag: string): Map<string, string> {
+  const out = new Map<string, string>();
+  const body = tag.replace(/^<[^\s>/]+/, "");
+  for (const m of body.matchAll(/([\w.:-]+)\s*=\s*(["'])(.*?)\2/gs)) {
+    const local = (m[1] ?? "").replace(/^.*:/, "");
+    if (!out.has(local)) out.set(local, decodeXml(m[3] ?? ""));
+  }
+  return out;
 }
+
+/** Word never writes these; they enable keyword hiding and entity definitions. */
+const XML_MARKUP_TRICKS = /<!\[CDATA\[|<!--|<!DOCTYPE/i;
 
 function relsAreActive(xml: string): boolean {
   for (const m of xml.matchAll(new RegExp(`<(?:[\\w.-]+:)?Relationship\\b${TAG_BODY}>`, "gi"))) {
     const tag = m[0];
-    const type = xmlAttr(tag, "Type") ?? "";
+    const attrs = xmlAttrs(tag);
+    const type = attrs.get("Type") ?? "";
     if (DANGEROUS_REL.test(type)) return true;
-    if (/^external$/i.test(xmlAttr(tag, "TargetMode") ?? "") && !HYPERLINK_REL.test(type)) return true;
+    if (/^external$/i.test(attrs.get("TargetMode") ?? "") && !HYPERLINK_REL.test(type)) return true;
   }
   return false;
 }
@@ -171,7 +185,7 @@ function fieldsAreActive(xml: string): boolean {
     if (runs.some((r) => DOCX_ACTIVE_FIELD.test(r))) return true;
   }
   for (const m of xml.matchAll(new RegExp(`<(?:[\\w.-]+:)?fldSimple\\b${TAG_BODY}>`, "gi"))) {
-    if (DOCX_ACTIVE_FIELD.test(xmlAttr(m[0], "instr") ?? "")) return true;
+    if (DOCX_ACTIVE_FIELD.test(xmlAttrs(m[0]).get("instr") ?? "")) return true;
   }
   return false;
 }
@@ -228,8 +242,8 @@ async function inspectDocx(bytes: Uint8Array): Promise<InspectResult> {
       const isBody = /^word\/.*\.xml$/i.test(e.name);
       if (!isCt && !isRels && !isBody) continue;
       const xml = await readPart(e, budget);
-      if (xml === null) return reject;
-      if (isCt && DOCX_ACTIVE_CT.test(xml)) return reject;
+      if (xml === null || XML_MARKUP_TRICKS.test(xml)) return reject;
+      if (isCt && DOCX_ACTIVE_CT.test(decodeXml(xml))) return reject;
       if (isRels && relsAreActive(xml)) return reject;
       if (isBody && fieldsAreActive(xml)) return reject;
     }

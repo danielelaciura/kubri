@@ -44,7 +44,7 @@ export interface Candidate {
   sourceOrganization: string;
   channel: Channel;
   /** Set for candidates created from the dashboard; null for chatbot/assessment. */
-  createdVia: "dashboard_form" | "dashboard_cv" | null;
+  createdVia: "dashboard_form" | "dashboard_cv" | "landing_cv" | null;
   consent: boolean;
   cvPdfLink: string;
   cvDocLink: string;

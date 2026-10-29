@@ -162,9 +162,11 @@ export default async function CandidateDetailPage({
               <div className="flex items-center gap-2">
                 {candidate.createdVia && (
                   <Badge variant="outline">
-                    {candidate.createdVia === "dashboard_cv"
-                      ? t.candidateCreate.originCv
-                      : t.candidateCreate.originForm}
+                    {candidate.createdVia === "landing_cv"
+                      ? t.candidateCreate.originLanding
+                      : candidate.createdVia === "dashboard_cv"
+                        ? t.candidateCreate.originCv
+                        : t.candidateCreate.originForm}
                   </Badge>
                 )}
                 <CandidateStatusSelect candidateId={id} status={status} />

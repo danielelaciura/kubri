@@ -94,8 +94,7 @@ import's `organizationId` / `poolId` are taken from the landing.
   candidati" card to create / edit the landing — slug, pool (select limited to
   eligible pools: linked, non-global), `privacyPolicyUrl`, enabled toggle — plus
   the public link with copy and QR.
-- Server actions, role-checked server-side; audit actions `landing_page.create`,
-  `landing_page.update`.
+- Server action, role-checked server-side; audit action `landing_page.save`.
 - The organization's "QR code" page (`/dashboard/qr-codes`) shows the landing link
   and QR above the per-pool WhatsApp QRs, when a landing exists and is enabled.
 
@@ -110,14 +109,17 @@ import's `organizationId` / `poolId` are taken from the landing.
 1. **Landing.** Organization name, short copy, two CTAs: *Fai il colloquio su
    WhatsApp* (`buildWaLink` with the landing's pool) and *Carica il tuo CV*.
    If `KUBRI_WHATSAPP_NUMBER` / template are unset, the WhatsApp CTA is hidden.
-2. **`requestUpload`** (server action): Turnstile check → rate limits → size
-   check → `createUploadTicket`. Returns the signed upload token.
+2. **`requestUpload`** (server action): size check → Turnstile check → rate
+   limits → `createUploadTicket`. Sets the binding cookie with the ticket's
+   import id (never returned to the browser) and returns the signed upload token.
 3. **Browser uploads** straight to Supabase Storage with the token.
-4. **`registerPublicUpload`** (server action): `registerUpload` with
-   `origin = PUBLIC_LINK`, `createdById = null`, org/pool from the landing, then
-   the public file checks (Security, layer 2). Sets the binding cookie.
-5. **`runPublicExtraction`** (server action, cookie-bound): quality gate → budget
-   check → `runExtraction`. `isCv = false` is a hard rejection in public mode.
+4. **`registerPublicUpload`** (server action, cookie-bound): `registerUpload`
+   with `origin = PUBLIC_LINK`, `createdById = null`, org/pool from the landing,
+   then the public file checks (Security, layer 2).
+5. **`runPublicExtraction`** (server action, cookie-bound): budget check →
+   `runExtraction` with the quality gate, and returns the contact prefill
+   synchronously (the page sets `maxDuration = 60`). `isCv = false` is a hard
+   rejection in public mode.
 6. **Contact confirmation.** First name, last name, phone, email pre-filled from
    the draft, editable; required privacy consent checkbox; optional
    "share with other Kubri organizations" checkbox, shown only when the pool's
@@ -128,7 +130,7 @@ import's `organizationId` / `poolId` are taken from the landing.
 
 ### Import ↔ browser binding
 
-The candidate has no session. On `registerPublicUpload` the server sets an
+The candidate has no session. On `requestUpload` the server sets an
 `httpOnly`, `Secure`, `SameSite=Lax` cookie scoped to `/candidati`, valued
 `<importId>.<HMAC-SHA256(importId + expiry, LANDING_COOKIE_SECRET)>`, valid
 30 minutes. Every subsequent action reads the import id **only** from a valid
@@ -181,9 +183,10 @@ Principle: every layer is cheaper than the next; a request reaches the paid step
   | per landing | 100 / day |
   | global extractions | 300 / day (budget cap, checked in `runPublicExtraction`) |
 
-- **Fail closed**: if Upstash is not configured or unreachable, public uploads are
-  refused (the in-memory cache fallback does not limit anything on Vercel). The
-  WhatsApp CTA keeps working.
+- **Fail closed**: in production, if Upstash is not configured or unreachable,
+  public uploads are refused (an in-memory counter limits nothing on Vercel).
+  Outside production an in-memory counter is used so local dev needs no Upstash.
+  The WhatsApp CTA keeps working.
 - IP from `x-forwarded-for` (first hop, as set by Vercel); stored and keyed only as
   `SHA-256(ip + LANDING_IP_SALT)`.
 
@@ -198,8 +201,9 @@ Principle: every layer is cheaper than the next; a request reaches the paid step
   `activeX`.
 - **Images**: re-encoded to JPEG with `sharp` (strips EXIF incl. GPS, defeats
   polyglots); the re-encoded bytes replace the stored object.
-- Any failure → the storage object is removed immediately, the import is marked
-  `FAILED` with `errorCode = REJECTED_FILE`, the candidate sees a generic message.
+- Any failure → the storage object is removed immediately, no import row is
+  created (same as an unsupported type), `ImportError("REJECTED_FILE")` is
+  returned, and the candidate sees a generic message.
 
 These checks mainly protect the **operator** who later downloads the file; the
 server never executes or renders the document, it only extracts text.

@@ -1,4 +1,4 @@
-import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 
 export const LANDING_COOKIE_NAME = "kubri_landing_import";
 export const LANDING_COOKIE_TTL_SEC = 30 * 60;
@@ -9,6 +9,8 @@ export interface ImportBinding {
   importId: string;
   landingId: string;
 }
+
+let secretErrorLogged = false;
 
 function secret(): string {
   const s = process.env["LANDING_COOKIE_SECRET"];
@@ -44,6 +46,10 @@ export function verifyImportCookie(value: string | undefined, now = Date.now()):
   try {
     expected = mac(`${importId}.${landingId}.${expStr}`);
   } catch {
+    if (!secretErrorLogged) {
+      secretErrorLogged = true;
+      console.error("[landing] LANDING_COOKIE_SECRET missing or too short");
+    }
     return null;
   }
   const a = Buffer.from(sig);
@@ -52,8 +58,26 @@ export function verifyImportCookie(value: string | undefined, now = Date.now()):
   return { importId, landingId };
 }
 
-/** Salted, truncated SHA-256 of the client IP: for rate-limit keys and audit, never the raw IP. */
-export function hashIp(ip: string | null): string {
+export function landingCookieOptions() {
+  return {
+    httpOnly: true,
+    secure: process.env["NODE_ENV"] === "production",
+    sameSite: "lax" as const,
+    path: "/candidati",
+    maxAge: LANDING_COOKIE_TTL_SEC,
+  };
+}
+
+function ipSalt(): string {
   const salt = process.env["LANDING_IP_SALT"] ?? "";
-  return createHash("sha256").update(`${salt}:${ip ?? "unknown"}`).digest("hex").slice(0, 32);
+  if (process.env["NODE_ENV"] === "production") {
+    if (salt.length < 16) throw new Error("LANDING_IP_SALT must be set (16+ chars)");
+    return salt;
+  }
+  return salt || "dev-only-salt";
+}
+
+/** HMAC-SHA256 of the client IP, truncated: for rate-limit keys and audit, never the raw IP. */
+export function hashIp(ip: string | null): string {
+  return createHmac("sha256", ipSalt()).update(ip || "unknown").digest("hex").slice(0, 32);
 }

@@ -48,6 +48,45 @@ describe("consumeRateLimits", () => {
     await expect(consumeRateLimits([loose, tight], NOW)).resolves.toBe(false);
   });
 
+  it("stops at the first refusal without counting later rules", async () => {
+    const c = memoryCounter();
+    _setCounterForTests(c);
+    const tight = { key: "tight", limit: 0, windowSec: 60 };
+    const loose = { key: "loose", limit: 10, windowSec: 60 };
+    await expect(consumeRateLimits([tight, loose], NOW)).resolves.toBe(false);
+    expect([...c.store.keys()].some((k) => k.startsWith("rl:loose"))).toBe(false);
+  });
+
+  it("increments every rule when all pass", async () => {
+    const c = memoryCounter();
+    _setCounterForTests(c);
+    await consumeRateLimits(
+      [
+        { key: "a", limit: 5, windowSec: 60 },
+        { key: "b", limit: 5, windowSec: 60 },
+      ],
+      NOW,
+    );
+    expect(c.store.size).toBe(2);
+  });
+
+  it("sets the TTL only on the first hit of a window", async () => {
+    const c = memoryCounter();
+    _setCounterForTests(c);
+    const rule = { key: "ttl", limit: 5, windowSec: 60 };
+    await consumeRateLimits([rule], NOW);
+    await consumeRateLimits([rule], NOW);
+    expect(c.expire).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects invalid rules", async () => {
+    _setCounterForTests(memoryCounter());
+    await expect(consumeRateLimits([], NOW)).rejects.toThrow();
+    await expect(consumeRateLimits([{ key: "a", limit: 1, windowSec: 0 }], NOW)).rejects.toThrow();
+    await expect(consumeRateLimits([{ key: "a", limit: 1, windowSec: 1.5 }], NOW)).rejects.toThrow();
+    await expect(consumeRateLimits([{ key: "a", limit: -1, windowSec: 60 }], NOW)).rejects.toThrow();
+  });
+
   it("throws RateLimitUnavailableError when the counter fails", async () => {
     _setCounterForTests({ incr: vi.fn().mockRejectedValue(new Error("down")), expire: vi.fn() });
     await expect(

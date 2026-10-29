@@ -40,31 +40,36 @@ function getCounter(): Counter | null {
   if (counter !== undefined) return counter;
   const url = process.env["UPSTASH_REDIS_REST_URL"];
   const token = process.env["UPSTASH_REDIS_REST_TOKEN"];
-  if (url && token) counter = new Redis({ url, token });
+  if (url && token) counter = new Redis({ url, token, retry: { retries: 1, backoff: () => 200 } });
   else counter = process.env["NODE_ENV"] === "production" ? null : new MemoryCounter();
   return counter;
 }
 
 /**
- * Count one hit against every rule (fixed windows) and report whether all are
- * still within their limit. Every rule is incremented even when an earlier one
- * is exceeded, so attempts keep counting. Throws RateLimitUnavailableError when
- * no counter is configured in production or the store errors.
+ * Count one hit against each rule (fixed windows) and report whether all are
+ * within their limit. Rules are checked in order; later rules are not counted
+ * once one refuses, so put the narrowest (per-IP / per-import) rules first.
+ * Throws RateLimitUnavailableError when no counter is configured in production
+ * or the store errors; throws Error on invalid rules.
  */
 export async function consumeRateLimits(rules: RateLimitRule[], now = Date.now()): Promise<boolean> {
+  if (rules.length === 0) throw new Error("consumeRateLimits: no rules");
+  for (const r of rules) {
+    if (!Number.isInteger(r.windowSec) || r.windowSec <= 0 || r.limit < 0) {
+      throw new Error("consumeRateLimits: invalid rule");
+    }
+  }
   const store = getCounter();
   if (!store) throw new RateLimitUnavailableError();
   try {
-    const results = await Promise.all(
-      rules.map(async (rule) => {
-        const windowIndex = Math.floor(now / (rule.windowSec * 1000));
-        const key = `rl:${rule.key}:${windowIndex}`;
-        const count = await store.incr(key);
-        if (count === 1) await store.expire(key, rule.windowSec);
-        return count <= rule.limit;
-      }),
-    );
-    return results.every(Boolean);
+    for (const rule of rules) {
+      const windowIndex = Math.floor(now / (rule.windowSec * 1000));
+      const key = `rl:${rule.key}:${windowIndex}`;
+      const count = await store.incr(key);
+      if (count === 1) await store.expire(key, rule.windowSec);
+      if (count > rule.limit) return false;
+    }
+    return true;
   } catch (e) {
     throw new RateLimitUnavailableError(e);
   }

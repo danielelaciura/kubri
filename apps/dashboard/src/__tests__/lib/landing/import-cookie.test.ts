@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   hashIp,
+  landingCookieOptions,
   LANDING_COOKIE_TTL_SEC,
   signImportCookie,
   verifyImportCookie,
@@ -43,6 +44,15 @@ describe("import cookie", () => {
     expect(verifyImportCookie(v, NOW)).toBeNull();
   });
 
+  it("returns null (and logs once, no values) when the secret is missing", () => {
+    const v = signImportCookie({ importId: IMPORT_ID, landingId: LANDING_ID }, NOW);
+    vi.stubEnv("LANDING_COOKIE_SECRET", "");
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(verifyImportCookie(v, NOW)).toBeNull();
+    expect(spy).toHaveBeenCalledWith("[landing] LANDING_COOKIE_SECRET missing or too short");
+    spy.mockRestore();
+  });
+
   it("refuses to sign with a missing or short secret", () => {
     vi.stubEnv("LANDING_COOKIE_SECRET", "short");
     expect(() => signImportCookie({ importId: IMPORT_ID, landingId: LANDING_ID }, NOW)).toThrow();
@@ -60,5 +70,37 @@ describe("hashIp", () => {
     expect(a).toMatch(/^[0-9a-f]{32}$/);
     vi.stubEnv("LANDING_IP_SALT", "salt-b");
     expect(hashIp("1.2.3.4")).not.toBe(a);
+  });
+
+  it("treats empty and null IP alike", () => {
+    vi.stubEnv("LANDING_IP_SALT", "salt-a");
+    expect(hashIp("")).toBe(hashIp(null));
+  });
+
+  it("requires a 16+ char salt in production, falls back in dev", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("LANDING_IP_SALT", "");
+    expect(() => hashIp("1.2.3.4")).toThrow();
+    vi.stubEnv("LANDING_IP_SALT", "short");
+    expect(() => hashIp("1.2.3.4")).toThrow();
+    vi.stubEnv("NODE_ENV", "development");
+    expect(hashIp("1.2.3.4")).toMatch(/^[0-9a-f]{32}$/);
+  });
+});
+
+describe("landingCookieOptions", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("reads NODE_ENV at call time", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    expect(landingCookieOptions()).toEqual({
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+      path: "/candidati",
+      maxAge: LANDING_COOKIE_TTL_SEC,
+    });
+    vi.stubEnv("NODE_ENV", "development");
+    expect(landingCookieOptions().secure).toBe(false);
   });
 });

@@ -38,4 +38,18 @@ describe("verifyTurnstile", () => {
     vi.stubEnv("NODE_ENV", "development");
     await expect(verifyTurnstile("", null)).resolves.toBe(true);
   });
+
+  it("rejects oversized tokens without calling fetch", async () => {
+    vi.stubEnv("TURNSTILE_SECRET_KEY", "sec");
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(verifyTurnstile("x".repeat(2049), null)).resolves.toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("returns false on a 200 with invalid JSON", async () => {
+    vi.stubEnv("TURNSTILE_SECRET_KEY", "sec");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("not json")));
+    await expect(verifyTurnstile("tok", null)).resolves.toBe(false);
+  });
 });

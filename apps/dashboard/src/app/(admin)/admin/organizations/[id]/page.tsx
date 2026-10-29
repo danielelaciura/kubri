@@ -15,8 +15,9 @@ import {
 import { getServerLocale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n";
 import { attachOrgToPool, detachOrgFromPool } from "@/lib/pools/actions";
-import { getLandingForOrg, saveLandingPage } from "@/lib/landing/service";
-import { landingPageInputSchema } from "@/lib/validations/landing-page";
+import { getLandingForOrg } from "@/lib/landing/service";
+import { landingPublicUrl } from "@/lib/landing/url";
+import { LandingAdminForm } from "@/components/landing/landing-admin-form";
 import { LandingQrDialog } from "@/components/landing/landing-qr-dialog";
 import { InviteOrgMemberDialog } from "@/components/admin/invite-org-member-dialog";
 import { DeleteMemberButton } from "@/components/settings/delete-member-button";
@@ -83,7 +84,7 @@ export default async function OrgDetailPage({ params }: OrgDetailPageProps) {
 
   const landing = await getLandingForOrg(id);
   const eligiblePools = org.pools.map((op) => op.pool).filter((p) => !p.isGlobal);
-  const landingUrl = landing ? `${await getAppOrigin()}/candidati/${landing.slug}` : null;
+  const landingUrl = landing ? await landingPublicUrl(landing.slug) : null;
 
   type MemberRow = {
     id: string;
@@ -147,36 +148,6 @@ export default async function OrgDetailPage({ params }: OrgDetailPageProps) {
     const poolId = String(formData.get("poolId") ?? "");
     if (!poolId) throw new Error(t.admin.invalidPool);
     await detachOrgFromPool(poolId, id);
-  }
-
-  async function saveLandingAction(formData: FormData) {
-    "use server";
-    const s = await getCurrentUser();
-    if (s.role !== Role.ADMIN_KUBRI) {
-      throw new Error(t.common.insufficientPermissions);
-    }
-
-    const parsed = landingPageInputSchema.safeParse({
-      slug: formData.get("slug"),
-      poolId: formData.get("poolId"),
-      privacyPolicyUrl: formData.get("privacyPolicyUrl"),
-      enabled: formData.get("enabled") === "on",
-    });
-    if (!parsed.success) throw new Error(t.landingAdmin.errors.VALIDATION);
-
-    const result = await saveLandingPage(id, parsed.data);
-    if (!result.ok) throw new Error(t.landingAdmin.errors[result.error]);
-
-    await logAudit({
-      userId: s.id,
-      organizationId: id,
-      action: "landing_page.save",
-      resourceType: "CandidateLandingPage",
-      resourceId: result.id,
-      metadata: { slug: parsed.data.slug, poolId: parsed.data.poolId, enabled: parsed.data.enabled },
-    });
-
-    revalidatePath(`/admin/organizations/${id}`);
   }
 
 async function resendInvite(formData: FormData) {
@@ -434,45 +405,17 @@ async function resendInvite(formData: FormData) {
             {eligiblePools.length === 0 ? (
               <p className="text-sm text-muted-foreground">{t.landingAdmin.noEligiblePools}</p>
             ) : (
-              <form action={saveLandingAction} className="grid gap-3 md:grid-cols-2">
-                <label className="space-y-1 text-sm">
-                  <span>{t.landingAdmin.slug}</span>
-                  <Input name="slug" defaultValue={landing?.slug ?? org.slug} required />
-                  <span className="text-xs text-muted-foreground">{t.landingAdmin.slugHint}</span>
-                </label>
-                <label className="space-y-1 text-sm">
-                  <span>{t.landingAdmin.pool}</span>
-                  <select
-                    name="poolId"
-                    required
-                    defaultValue={landing?.poolId ?? eligiblePools[0]!.id}
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                  >
-                    {eligiblePools.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="space-y-1 text-sm md:col-span-2">
-                  <span>{t.landingAdmin.privacyPolicyUrl}</span>
-                  <Input
-                    name="privacyPolicyUrl"
-                    type="url"
-                    required
-                    placeholder="https://"
-                    defaultValue={landing?.privacyPolicyUrl ?? ""}
-                  />
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" name="enabled" defaultChecked={landing?.enabled ?? true} className="h-4 w-4" />
-                  {t.landingAdmin.enabled}
-                </label>
-                <div className="md:col-span-2">
-                  <SubmitButton>{t.landingAdmin.save}</SubmitButton>
-                </div>
-              </form>
+              <LandingAdminForm
+                organizationId={id}
+                pools={eligiblePools.map((p) => ({ id: p.id, name: p.name }))}
+                initial={{
+                  slug: landing?.slug ?? org.slug,
+                  poolId: landing?.poolId ?? eligiblePools[0]!.id,
+                  privacyPolicyUrl: landing?.privacyPolicyUrl ?? "",
+                  enabled: landing?.enabled ?? true,
+                  exists: landing !== null,
+                }}
+              />
             )}
           </CardContent>
         </Card>

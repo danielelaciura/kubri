@@ -538,9 +538,12 @@ export const it = {
     downloadPng: "Scarica PNG",
     qrPageTitle: "Pagina di candidatura",
     qrPageDescription: "Condividi questo link o QR: i candidati scelgono tra WhatsApp e il caricamento del CV.",
+    slugChangeWarning: "Attenzione: cambiando l'indirizzo, i QR già stampati smetteranno di funzionare.",
+    saved: "Landing salvata.",
     errors: {
       INVALID_POOL: "Il pool scelto non è agganciato o è globale.",
       SLUG_TAKEN: "Questo indirizzo è già usato da un'altra organizzazione.",
+      FORBIDDEN: "Permessi insufficienti.",
       VALIDATION: "Controlla slug e URL dell'informativa (deve iniziare con https://).",
     },
   },

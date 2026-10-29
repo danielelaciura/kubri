@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getLandingForOrg } from "@/lib/landing/service";
-import { getAppOrigin } from "@/lib/origin";
+import { landingPublicUrl } from "@/lib/landing/url";
 import { getServerLocale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n";
 import { LandingQrDialog } from "@/components/landing/landing-qr-dialog";
@@ -31,7 +31,7 @@ export default async function QrCodesPage() {
 
   const t = getDictionary(await getServerLocale());
   const landing = me.organizationId ? await getLandingForOrg(me.organizationId) : null;
-  const landingUrl = landing?.enabled ? `${await getAppOrigin()}/candidati/${landing.slug}` : null;
+  const landingUrl = landing?.enabled ? await landingPublicUrl(landing.slug) : null;
 
   const waNumber = process.env.KUBRI_WHATSAPP_NUMBER ?? "";
   const waTemplate = process.env.KUBRI_WHATSAPP_MESSAGE_TEMPLATE ?? "";

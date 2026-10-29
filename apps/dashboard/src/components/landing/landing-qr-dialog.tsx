@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,10 +18,24 @@ export function LandingQrDialog({ name, url }: { name: string; url: string }) {
   const [copied, setCopied] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    },
+    [],
+  );
+
   async function copy() {
-    await navigator.clipboard.writeText(url);
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      return; // clipboard unavailable or denied: the link stays visible to copy by hand
+    }
     setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setCopied(false), 1500);
   }
 
   function downloadPng() {
@@ -51,7 +65,15 @@ export function LandingQrDialog({ name, url }: { name: string; url: string }) {
         </DialogHeader>
         <div className="flex flex-col items-center gap-4 py-2">
           <div className="rounded-md bg-white p-4">
-            <QRCodeCanvas ref={canvasRef} value={url} size={240} level="M" marginSize={2} />
+            <QRCodeCanvas
+              ref={canvasRef}
+              value={url}
+              size={240}
+              level="M"
+              marginSize={2}
+              role="img"
+              aria-label={url}
+            />
           </div>
           <a
             href={url}
@@ -63,7 +85,7 @@ export function LandingQrDialog({ name, url }: { name: string; url: string }) {
           </a>
           <div className="flex gap-2">
             <Button type="button" variant="secondary" onClick={copy}>
-              {copied ? t.copied : t.copyLink}
+              <span aria-live="polite">{copied ? t.copied : t.copyLink}</span>
             </Button>
             <Button type="button" variant="outline" onClick={downloadPng}>
               {t.downloadPng}

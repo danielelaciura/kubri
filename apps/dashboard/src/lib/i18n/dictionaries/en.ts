@@ -540,9 +540,12 @@ export const en = {
     downloadPng: "Download PNG",
     qrPageTitle: "Application page",
     qrPageDescription: "Share this link or QR: candidates choose between WhatsApp and uploading a CV.",
+    slugChangeWarning: "Warning: changing the address breaks QR codes that are already printed.",
+    saved: "Landing saved.",
     errors: {
       INVALID_POOL: "The selected pool is not attached or is global.",
       SLUG_TAKEN: "This address is already used by another organization.",
+      FORBIDDEN: "Insufficient permissions.",
       VALIDATION: "Check the slug and the privacy notice URL (it must start with https://).",
     },
   },

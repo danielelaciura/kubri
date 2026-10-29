@@ -190,6 +190,9 @@ model Session {
   /// SessionState without `profile` (D104).
   engineState       Json
   language          String?
+  /// What each consent's text looked like when it was sent, by consentKey: the Consent row
+  /// copies it at answer time instead of resolving the text again (D111d, D111f).
+  consentsShown     Json          @default("{}")
   /// "<contactId>:<senderNumberId>" while the session is open, else null. Unique: at most one
   /// open session per contact and number (spec §10.2, D105).
   /// A hand-written CHECK (migration runtime_integrity, Prisma does not model it) ties it to

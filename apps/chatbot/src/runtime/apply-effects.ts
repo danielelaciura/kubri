@@ -5,6 +5,7 @@ import { describeEffect } from "../engine/describe";
 import type { Effect, Job } from "../engine/effects";
 import type { SessionState } from "../engine/state";
 import { describeTextRef } from "../engine/text-ref";
+import { consentStepOf } from "../i18n/critical";
 import { outputLanguage, type TextResolver } from "../i18n/resolve";
 import { insertConsent } from "../store/consents";
 import { recordOptOut, setPreferredLanguage } from "../store/contacts";
@@ -18,7 +19,7 @@ import {
   setSharedWithGlobal,
 } from "../store/profiles";
 import type { JobQueue } from "../store/queue";
-import { markNeedsAttention } from "../store/sessions";
+import { findConsentShown, markNeedsAttention, recordConsentShown } from "../store/sessions";
 import { insertFlag } from "../store/turns";
 
 /** An inbound message answered by this turn, with the copy kept for the NLU history (D107). */
@@ -116,12 +117,15 @@ async function enqueueJob(ctx: ApplyContext, job: Job): Promise<void> {
 
 type ConsentEffect = Extract<Effect, { type: "RecordConsent" }>;
 
-/** Spec §7.3, D73, D74, D111d: exactly what the candidate read, link included. */
+/**
+ * Spec §7.3, D73, D74, D111d: exactly what the candidate read, link included. The text is the
+ * one kept when the consent was sent (recordConsentShown): resolving it again now could give
+ * another language or curation (the translator was down then, or is now).
+ */
 async function recordConsent(ctx: ApplyContext, effect: ConsentEffect): Promise<void> {
-  const shown = await ctx.resolver.resolve(effect.text, {
-    campaign: ctx.campaign,
-    language: effect.language,
-  });
+  const kept = await findConsentShown(ctx.tx, ctx.session.id, effect.consentKey);
+  const shown =
+    kept && kept.textVersion === effect.textVersion ? kept : await resolveConsentAgain(ctx, effect);
   await insertConsent(
     ctx.tx,
     {
@@ -135,7 +139,7 @@ async function recordConsent(ctx: ApplyContext, effect: ConsentEffect): Promise<
       language: shown.language,
       textShown: shown.text,
       textShownIsCurated: shown.isCurated,
-      linkShown: shown.linkShown ?? null,
+      linkShown: shown.linkShown,
       dataController: {
         name: effect.dataController.name,
         privacyUrl: effect.dataController.privacyUrl,
@@ -150,6 +154,22 @@ async function recordConsent(ctx: ApplyContext, effect: ConsentEffect): Promise<
     // Becomes is_kubri_privacy_accepted in the Kubri payload (plan 10).
     await setSharedWithGlobal(ctx.tx, ctx.session.id, effect.outcome === "accepted");
   }
+}
+
+/** A consent answered with no record of its sending (sessions from before D111f). */
+async function resolveConsentAgain(
+  ctx: ApplyContext,
+  effect: ConsentEffect,
+): Promise<{ text: string; language: string; isCurated: boolean; linkShown: string | null }> {
+  ctx.logger.warn(
+    { turnId: ctx.turnId, sessionId: ctx.session.id, consentKey: effect.consentKey },
+    "consent answered without a record of its text: resolved again",
+  );
+  const resolved = await ctx.resolver.resolve(effect.text, {
+    campaign: ctx.campaign,
+    language: effect.language,
+  });
+  return { ...resolved, linkShown: resolved.linkShown ?? null };
 }
 
 /**
@@ -187,6 +207,16 @@ export async function applyEffects(
             },
             "text with missing parameters",
           );
+        }
+        const consent = consentStepOf(effect.text, ctx.campaign);
+        if (consent) {
+          await recordConsentShown(tx, ctx.session.id, consent.consentKey, {
+            textVersion: consent.textVersion,
+            text: resolved.text,
+            language: resolved.language,
+            isCurated: resolved.isCurated,
+            linkShown: resolved.linkShown ?? null,
+          });
         }
         replies.push({
           contactId: ctx.contact.id,

@@ -156,6 +156,7 @@ Oggi il chatbot di Kubri vive su Make.com. L'analisi dello scenario ha evidenzia
 | D111c | Integrità delle sessioni e dei turni (piano 08, revisione) | Migrazione `runtime_integrity`. `Turn.contactId` (chiave esterna, `ON DELETE CASCADE`, indice con `startedAt`): i turni senza sessione se ne vanno con il contatto; nullable solo per le righe precedenti, il runtime lo scrive sempre. Un `CHECK` scritto a mano lega `openKey` a `status`: `active` e `needs_attention` sono sempre aperte (il candidato può ancora scrivere), `stopped` e `abandoned` mai, `completed` può essere l'una o l'altra (aperta nella fase dopo il completamento, D105; chiusa dopo un opt-out o quando la sostituisce un'altra campagna). Una parola chiave non sostituisce mai una sessione `active` / `needs_attention` (D105): apre una nuova sessione solo dopo una `completed`, che resta `completed`. Il ramo di `closeOpenKey` che porta a `abandoned` una precedente ancora aperta è una rete di sicurezza, non un percorso previsto. |
 | D111d | Link mostrato con il consenso (piano 08, revisione) | `Consent.linkShown`: il link al testo ufficiale mostrato accanto a un testo non curato (D74), `null` se non è stato mostrato. Con `textShown` registra esattamente ciò che il candidato ha visto. |
 | D111e | Prova minima del contatto (piano 08, revisione; corregge D109) | `Consent.contactHash` = HMAC-SHA256 di `"<channel>:<externalId>"` con la chiave `CONSENT_HASH_SECRET` (almeno 32 caratteri, nel gestore dei segreti; obbligatoria per il worker, che non parte senza). Uno sha256 semplice di un numero di telefono si inverte provando tutti i numeri. La chiave non si ruota sul posto: le prove già scritte non corrisponderebbero più. |
+| D111f | Testo del consenso registrato come mostrato (piano 08, revisione finale; precisa D111d) | Quando il runtime invia il testo di un consenso salva ciò che è uscito (testo risolto, lingua, curato o no, link, `textVersion`) in `Session.consentsShown`, per `consentKey`; un nuovo invio dello stesso consenso sostituisce il precedente. `RecordConsent` copia da lì `textShown`, `language`, `textShownIsCurated` e `linkShown`, senza risolvere di nuovo il testo: se il traduttore era giù all'invio (italiano) e funziona alla risposta, la prova dice italiano. Se manca il record (o la versione non coincide) il testo si risolve di nuovo, con un log `warn` con gli id. `textShown` è il corpo inviato, compresa l'eventuale riga di riformulazione. |
 
 ---
 
@@ -600,7 +601,7 @@ Schema Postgres **`bot`**, nello stesso progetto Supabase della dashboard. Tutte
 - **Session**:
   - `id`, `contactId`, `senderNumberId`, `campaignVersionId`;
   - `status` (`active` | `completed` | `stopped` | `abandoned` | `needs_attention`);
-  - `engineState` (jsonb, senza profilo, D104), `language`;
+  - `engineState` (jsonb, senza profilo, D104), `language`, `consentsShown` (jsonb, D111f);
   - `startedAt`, `completedAt`, `lastActivityAt`.
   - Al più una sessione **aperta** per (contatto, numero): `openKey` univoca, legata a `status` da un `CHECK` (D105, D111c): `openKey` vale `<contatto>:<numero>` mentre la sessione è aperta. `origin` non c'è ancora (D111).
 - **Message**:

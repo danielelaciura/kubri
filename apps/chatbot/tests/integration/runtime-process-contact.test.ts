@@ -217,6 +217,39 @@ describe("an ongoing conversation", () => {
     ]);
   });
 
+  it("records the consent text that was shown, not a new resolution at answer time (D111d)", async () => {
+    let translatorDown = true;
+    const resolver = createTextResolver({
+      translator: {
+        translate: (request) =>
+          translatorDown
+            ? Promise.reject(new Error("down"))
+            : Promise.resolve({ text: `[en] ${request.text}`, provider: "fake", model: "fake" }),
+      },
+      cache: new MemoryTranslationCache(),
+    });
+    const h = await harness({ resolver });
+    await say(h, "ciao");
+    await run(h);
+    await say(h, "english");
+    await run(h); // the consent goes out in Italian: the translator is down (D72)
+    const shown = (await replies(db)).find((body) => body.includes("Prima di iniziare"));
+    translatorDown = false;
+
+    await say(h, "yes");
+    await run(h);
+
+    const consent = await db.consent.findFirstOrThrow();
+    expect(consent).toMatchObject({
+      consentKey: "privacy_interview",
+      outcome: "accepted",
+      language: "it",
+      textShownIsCurated: true,
+      linkShown: null,
+    });
+    expect(consent.textShown).toBe(shown);
+  });
+
   it("ends a declined conversation: stop, purge, goodbye, and a new one can start (D109)", async () => {
     const h = await inFlow(await harness());
 

@@ -1,3 +1,4 @@
+import { z } from "zod";
 import type { PersistedState } from "../runtime/state-codec";
 import type { Tx } from "./db";
 import { asJson } from "./json";
@@ -135,4 +136,54 @@ export async function markNeedsAttention(tx: Tx, id: string): Promise<void> {
     where: { id, status: "active" },
     data: { status: "needs_attention" },
   });
+}
+
+/** What a consent's text looked like when it was sent (D111d): the Consent row copies it. */
+export interface ConsentShown {
+  readonly textVersion: string;
+  readonly text: string;
+  readonly language: string;
+  readonly isCurated: boolean;
+  readonly linkShown: string | null;
+}
+
+const ConsentShownSchema = z.object({
+  textVersion: z.string(),
+  text: z.string(),
+  language: z.string(),
+  isCurated: z.boolean(),
+  linkShown: z.string().nullable(),
+});
+
+async function consentsShownOf(tx: Tx, sessionId: string): Promise<Record<string, unknown>> {
+  const row = await tx.session.findUniqueOrThrow({
+    where: { id: sessionId },
+    select: { consentsShown: true },
+  });
+  const value = row.consentsShown;
+  return typeof value === "object" && value !== null && !Array.isArray(value) ? value : {};
+}
+
+/** The latest sending of a consent replaces the one before (a re-asked consent). */
+export async function recordConsentShown(
+  tx: Tx,
+  sessionId: string,
+  consentKey: string,
+  shown: ConsentShown,
+): Promise<void> {
+  const all = await consentsShownOf(tx, sessionId);
+  await tx.session.update({
+    where: { id: sessionId },
+    data: { consentsShown: asJson({ ...all, [consentKey]: shown }) },
+  });
+}
+
+/** Undefined when the consent was never sent in this session, or its record is unreadable. */
+export async function findConsentShown(
+  tx: Tx,
+  sessionId: string,
+  consentKey: string,
+): Promise<ConsentShown | undefined> {
+  const parsed = ConsentShownSchema.safeParse((await consentsShownOf(tx, sessionId))[consentKey]);
+  return parsed.success ? parsed.data : undefined;
 }

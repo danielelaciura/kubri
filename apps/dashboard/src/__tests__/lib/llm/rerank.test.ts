@@ -34,6 +34,7 @@ function makeCandidate(id: string, overrides: Partial<Candidate> = {}): Candidat
       preferredLocation: "Milano",
       constraints: "",
       hasDesiredJobExperience: "",
+      learningPreference: "",
     },
     centroPerImpiego: "",
     interviewLanguage: "",

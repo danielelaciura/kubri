@@ -15,6 +15,8 @@ export interface JobPreferences {
   preferredLocation: string;
   constraints: string;
   hasDesiredJobExperience: string;
+  /** Training the candidate is interested in; "" when not collected (optional chatbot question). */
+  learningPreference: string;
 }
 
 export interface Candidate {

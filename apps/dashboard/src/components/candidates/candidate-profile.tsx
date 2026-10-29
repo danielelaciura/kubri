@@ -207,7 +207,8 @@ export async function CandidateProfile({ candidate }: CandidateProfileProps) {
       {(c.jobPreferences.desiredJob ||
         c.jobPreferences.preferredLocation ||
         c.jobPreferences.constraints ||
-        c.jobPreferences.hasDesiredJobExperience) && (
+        c.jobPreferences.hasDesiredJobExperience ||
+        c.jobPreferences.learningPreference) && (
         <Card className="shadow-sm border-border/60">
           <CardHeader>
             <CardTitle>{t.candidates.jobPreferences}</CardTitle>
@@ -238,6 +239,12 @@ export async function CandidateProfile({ candidate }: CandidateProfileProps) {
                 <div>
                   <span className="text-sm font-medium">{t.candidates.roleExperience}</span>
                   <span className="text-sm">{c.jobPreferences.hasDesiredJobExperience}</span>
+                </div>
+              )}
+              {c.jobPreferences.learningPreference && (
+                <div>
+                  <span className="text-sm font-medium">{t.candidates.learningPreference}</span>
+                  <span className="text-sm">{c.jobPreferences.learningPreference}</span>
                 </div>
               )}
               {c.jobPreferences.constraints && (

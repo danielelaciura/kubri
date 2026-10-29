@@ -156,7 +156,7 @@ const TAG_BODY = `(?:[^>"']|"[^"]*"|'[^']*')*`;
 function xmlAttrs(tag: string): Map<string, string> {
   const out = new Map<string, string>();
   const body = tag.replace(/^<[^\s>/]+/, "");
-  for (const m of body.matchAll(/([\w.:-]+)\s*=\s*(["'])(.*?)\2/gs)) {
+  for (const m of body.matchAll(/([\w.:-]+)\s*=\s*(["'])([\s\S]*?)\2/g)) {
     const local = (m[1] ?? "").replace(/^.*:/, "");
     if (!out.has(local)) out.set(local, decodeXml(m[3] ?? ""));
   }

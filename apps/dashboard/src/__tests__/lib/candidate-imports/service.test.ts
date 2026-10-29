@@ -63,6 +63,7 @@ import {
   discardImport,
   discardStaleImports,
   getImportForOrg,
+  getPublicImport,
   registerUpload,
   runExtraction,
 } from "@/lib/candidate-imports/service";
@@ -402,7 +403,13 @@ describe("discardImport / discardStaleImports", () => {
     ]);
     await expect(discardStaleImports(now)).resolves.toBe(2);
     const where = m(prisma.candidateImport.findMany).mock.calls[0]![0].where;
-    expect(where.updatedAt.lt).toEqual(new Date("2026-10-16T03:00:00Z"));
+    expect(where).toEqual({
+      status: { in: ["UPLOADED", "EXTRACTING", "READY", "FAILED"] },
+      OR: [
+        { updatedAt: { lt: new Date("2026-10-16T03:00:00Z") } },
+        { origin: "PUBLIC_LINK", updatedAt: { lt: new Date("2026-10-22T03:00:00Z") } },
+      ],
+    });
     expect(m(prisma.candidateImport.updateMany).mock.calls[0]![0].data).toEqual({
       status: "DISCARDED", extractedText: null, draft: Prisma.DbNull,
     });
@@ -520,5 +527,23 @@ describe("runExtraction public options", () => {
     await runExtraction(IMPORT_ID, { rejectNonCv: true });
     const finish = m(prisma.candidateImport.updateMany).mock.calls[1]![0];
     expect(finish.data).toEqual({ status: "FAILED", errorCode: "NOT_A_CV" });
+  });
+});
+
+describe("getPublicImport", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("scopes by pool and PUBLIC_LINK origin", async () => {
+    m(prisma.candidateImport.findFirst).mockResolvedValueOnce({ id: IMPORT_ID });
+    await getPublicImport(IMPORT_ID, "p");
+    expect(m(prisma.candidateImport.findFirst).mock.calls[0]![0]).toEqual({
+      where: { id: IMPORT_ID, poolId: "p", origin: "PUBLIC_LINK" },
+      select: { id: true, status: true, errorCode: true, draft: true },
+    });
+  });
+
+  it("returns null for a non-UUID id", async () => {
+    await expect(getPublicImport("x", "p")).resolves.toBeNull();
+    expect(m(prisma.candidateImport.findFirst)).not.toHaveBeenCalled();
   });
 });

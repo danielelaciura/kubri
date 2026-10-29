@@ -1,17 +1,20 @@
 // @vitest-environment node
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import sharp from "sharp";
+import JSZip from "jszip";
 
 const pdfProxy = {
   numPages: 2,
   getJSActions: vi.fn(),
   getAttachments: vi.fn(),
   loadingTask: { destroy: vi.fn() },
+  getPage: vi.fn(),
 };
+const getAnnotations = vi.fn();
 vi.mock("unpdf", () => ({ getDocumentProxy: vi.fn() }));
 
 import { getDocumentProxy } from "unpdf";
-import { inspectPublicDocument, PUBLIC_MAX_PDF_PAGES } from "@/lib/documents/inspect";
+import { inspectPublicDocument, PUBLIC_MAX_PDF_PAGES, PDF_TIMEOUT_MS } from "@/lib/documents/inspect";
 
 const m = <T>(f: T) => f as unknown as ReturnType<typeof vi.fn>;
 const enc = (s: string) => new TextEncoder().encode(s);
@@ -22,7 +25,56 @@ describe("inspectPublicDocument — PDF", () => {
     pdfProxy.numPages = 2;
     pdfProxy.getJSActions.mockResolvedValue(null);
     pdfProxy.getAttachments.mockResolvedValue(null);
+    pdfProxy.loadingTask.destroy.mockResolvedValue(undefined);
+    getAnnotations.mockResolvedValue([]);
+    pdfProxy.getPage.mockResolvedValue({ getAnnotations });
     m(getDocumentProxy).mockResolvedValue(pdfProxy);
+  });
+
+  it("ignores marker-like bytes inside stream bodies", async () => {
+    const bytes = enc("%PDF-1.7\n1 0 obj << /Length 9 >>\nstream\nabc /JS  /Encrypt \nendstream\nendobj");
+    expect((await inspectPublicDocument(bytes, "pdf")).ok).toBe(true);
+  });
+
+  it.each(["/SubmitForm", "/ImportData", "/GoToE"])("rejects %s", async (marker) => {
+    const r = await inspectPublicDocument(enc(`%PDF-1.7 << ${marker} >>`), "pdf");
+    expect(r).toEqual({ ok: false, reason: "pdf_active_content" });
+  });
+
+  it("rejects FileAttachment annotations", async () => {
+    getAnnotations.mockResolvedValueOnce([{ subtype: "FileAttachment" }]);
+    const r = await inspectPublicDocument(enc("%PDF-1.7"), "pdf");
+    expect(r).toEqual({ ok: false, reason: "pdf_active_content" });
+  });
+
+  it("rejects annotations with actions", async () => {
+    getAnnotations.mockResolvedValueOnce([{ subtype: "Link", actions: { Action: ["x"] } }]);
+    const r = await inspectPublicDocument(enc("%PDF-1.7"), "pdf");
+    expect(r).toEqual({ ok: false, reason: "pdf_active_content" });
+  });
+
+  it("rejects links with a non-web scheme", async () => {
+    getAnnotations.mockResolvedValueOnce([{ subtype: "Link", unsafeUrl: "file:///etc/passwd" }]);
+    const r = await inspectPublicDocument(enc("%PDF-1.7"), "pdf");
+    expect(r).toEqual({ ok: false, reason: "pdf_active_content" });
+  });
+
+  it("accepts plain https links", async () => {
+    getAnnotations.mockResolvedValue([{ subtype: "Link", url: "https://example.com", actions: {} }]);
+    const r = await inspectPublicDocument(enc("%PDF-1.7"), "pdf");
+    expect(r.ok).toBe(true);
+  });
+
+  it("times out hostile PDFs as pdf_unreadable", async () => {
+    vi.useFakeTimers();
+    try {
+      m(getDocumentProxy).mockReturnValueOnce(new Promise(() => {}));
+      const p = inspectPublicDocument(enc("%PDF-1.7"), "pdf");
+      await vi.advanceTimersByTimeAsync(PDF_TIMEOUT_MS + 1);
+      await expect(p).resolves.toEqual({ ok: false, reason: "pdf_unreadable" });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("accepts a plain PDF unchanged", async () => {
@@ -90,19 +142,70 @@ describe("inspectPublicDocument — PDF", () => {
   });
 });
 
+const CT = '<Types><Override PartName="/word/document.xml" ContentType="x"/></Types>';
+const REL_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+async function makeDocx(opts: {
+  rels?: string;
+  document?: string;
+  extra?: Record<string, string>;
+  contentTypes?: string;
+} = {}): Promise<Uint8Array> {
+  const zip = new JSZip();
+  zip.file("[Content_Types].xml", opts.contentTypes ?? CT);
+  zip.file("word/document.xml", opts.document ?? "<w:document><w:body><w:p/></w:body></w:document>");
+  zip.file("word/_rels/document.xml.rels", `<Relationships>${opts.rels ?? ""}</Relationships>`);
+  for (const [k, v] of Object.entries(opts.extra ?? {})) zip.file(k, v);
+  return zip.generateAsync({ type: "uint8array" });
+}
+const rel = (type: string, target: string, external = false) =>
+  `<Relationship Id="r1" Type="${REL_NS}/${type}" Target="${target}"${external ? ' TargetMode="External"' : ""}/>`;
+
 describe("inspectPublicDocument — DOCX", () => {
-  it("accepts a DOCX without active parts", async () => {
-    const bytes = enc("PK\u0003\u0004word/document.xml");
+  it("accepts a clean DOCX", async () => {
+    const bytes = await makeDocx();
     await expect(inspectPublicDocument(bytes, "docx")).resolves.toEqual({ ok: true, bytes, kind: "docx" });
   });
 
-  it.each(["word/vbaProject.bin", "word/embeddings/oleObject1.bin", "word/activeX/activeX1.xml", "macroEnabled"])(
-    "rejects %s",
-    async (part) => {
-      const r = await inspectPublicDocument(enc(`PK\u0003\u0004word/document.xml ${part}`), "docx");
-      expect(r).toEqual({ ok: false, reason: "docx_active_content" });
-    },
-  );
+  it("accepts an external hyperlink", async () => {
+    const bytes = await makeDocx({ rels: rel("hyperlink", "https://example.com", true) });
+    expect((await inspectPublicDocument(bytes, "docx")).ok).toBe(true);
+  });
+
+  const rejected: Array<[string, Parameters<typeof makeDocx>[0]]> = [
+    ["external attachedTemplate", { rels: rel("attachedTemplate", "https://evil/t.dotm", true) }],
+    ["external image", { rels: rel("image", "https://evil/a.png", true) }],
+    ["internal oleObject", { rels: rel("oleObject", "embed.bin") }],
+    ["aFChunk", { rels: rel("aFChunk", "chunk.html") }],
+    ["subDocument", { rels: rel("subDocument", "x.docx") }],
+    ["vbaProject.bin entry", { extra: { "word/vbaProject.bin": "x" } }],
+    ["other .bin entry", { extra: { "word/foo.bin": "x" } }],
+    ["macroEnabled content type", { contentTypes: "<Types>macroEnabled.main+xml</Types>" }],
+    [
+      "DDEAUTO field",
+      { document: '<w:document><w:instrText xml:space="preserve"> DDEAUTO c:\\x "a" </w:instrText></w:document>' },
+    ],
+    [
+      "split DDE field",
+      { document: "<w:document><w:instrText>DD</w:instrText><w:instrText>E x</w:instrText></w:document>" },
+    ],
+    ["fldSimple INCLUDETEXT", { document: '<w:document><w:fldSimple w:instr=" INCLUDETEXT http://x "/></w:document>' }],
+  ];
+  it.each(rejected)("rejects %s", async (_n, opts) => {
+    const r = await inspectPublicDocument(await makeDocx(opts), "docx");
+    expect(r).toEqual({ ok: false, reason: "docx_active_content" });
+  });
+
+  it("rejects bytes that are not a zip", async () => {
+    const r = await inspectPublicDocument(enc("not a zip"), "docx");
+    expect(r).toEqual({ ok: false, reason: "docx_active_content" });
+  });
+
+  it("rejects archives with too many entries", async () => {
+    const extra: Record<string, string> = {};
+    for (let i = 0; i < 501; i++) extra[`word/media/f${i}.txt`] = "x";
+    const r = await inspectPublicDocument(await makeDocx({ extra }), "docx");
+    expect(r).toEqual({ ok: false, reason: "docx_active_content" });
+  });
 });
 
 describe("inspectPublicDocument — images", () => {
@@ -130,6 +233,25 @@ describe("inspectPublicDocument — images", () => {
     }).png().toBuffer();
     const r = await inspectPublicDocument(new Uint8Array(png), "png");
     expect(r.ok && r.kind).toBe("jpeg");
+  });
+
+  it("flattens transparency onto white", async () => {
+    const png = await sharp({
+      create: { width: 20, height: 20, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
+    })
+      .composite([
+        { input: { create: { width: 4, height: 4, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 1 } } }, left: 0, top: 0 },
+      ])
+      .png()
+      .toBuffer();
+    const r = await inspectPublicDocument(new Uint8Array(png), "png");
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const { data, info } = await sharp(Buffer.from(r.bytes)).raw().toBuffer({ resolveWithObject: true });
+    const i = (15 * info.width + 15) * info.channels;
+    expect(data[i]).toBeGreaterThan(240);
+    expect(data[i + 1]).toBeGreaterThan(240);
+    expect(data[i + 2]).toBeGreaterThan(240);
   });
 
   it("rejects bytes sharp cannot decode", async () => {

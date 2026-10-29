@@ -37,6 +37,8 @@ import {
 const STALE_EXTRACTION_MS = 2 * 60 * 1000;
 /** Open imports untouched for this long are discarded by the nightly cron. */
 const STALE_IMPORT_MS = 7 * 24 * 60 * 60 * 1000;
+/** Public uploads without consent must not linger: discard after 24 h. */
+const STALE_PUBLIC_IMPORT_MS = 24 * 60 * 60 * 1000;
 const OPEN_STATUSES = ["UPLOADED", "EXTRACTING", "READY", "FAILED"] as const;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -372,14 +374,17 @@ export async function discardImport(importId: string, organizationId: string): P
 }
 
 /**
- * Nightly cleanup: discard open imports untouched for 7 days and delete their
- * files (an open import never has a CandidateDocument). Returns the count.
+ * Nightly cleanup: discard open imports untouched for 7 days (24 h for public
+ * uploads) and delete their files (an open import never has a CandidateDocument). Returns the count.
  */
 export async function discardStaleImports(now = new Date(), batchSize = 100): Promise<number> {
   const stale = await prisma.candidateImport.findMany({
     where: {
       status: { in: [...OPEN_STATUSES] },
-      updatedAt: { lt: new Date(now.getTime() - STALE_IMPORT_MS) },
+      OR: [
+        { updatedAt: { lt: new Date(now.getTime() - STALE_IMPORT_MS) } },
+        { origin: "PUBLIC_LINK", updatedAt: { lt: new Date(now.getTime() - STALE_PUBLIC_IMPORT_MS) } },
+      ],
     },
     select: { id: true, storagePath: true },
     take: batchSize,
@@ -420,5 +425,14 @@ export async function getImportForOrg(importId: string, organizationId: string) 
       poolId: true,
       updatedAt: true,
     },
+  });
+}
+
+/** A public-landing import, scoped to the landing's pool. */
+export async function getPublicImport(importId: string, poolId: string) {
+  if (!isUuid(importId)) return null;
+  return prisma.candidateImport.findFirst({
+    where: { id: importId, poolId, origin: "PUBLIC_LINK" },
+    select: { id: true, status: true, errorCode: true, draft: true },
   });
 }

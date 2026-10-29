@@ -237,6 +237,8 @@ describe("consent texts (critical, D74)", () => {
 
     expect(result.isCurated).toBe(false);
     expect(result.critical).toBe(true);
+    // D111d: what Consent.linkShown records.
+    expect(result.linkShown).toBe("https://example.com/privacy");
     expect(result.text).toBe(
       "[en] Titolare: ACME S.r.l.. Accetti?\n\n[en] Questa è una traduzione automatica. Il testo ufficiale, in italiano, è qui: https://example.com/privacy",
     );
@@ -261,6 +263,7 @@ describe("consent texts (critical, D74)", () => {
       isCurated: true,
       critical: true,
     });
+    expect(result.linkShown).toBeUndefined();
   });
 
   it("sends the Italian official text when the translation fails", async () => {

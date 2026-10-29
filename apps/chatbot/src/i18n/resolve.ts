@@ -40,6 +40,8 @@ export interface ResolvedText {
   readonly critical: boolean;
   /** Placeholders with no parameter, left visible (D71): runtime logs them. */
   readonly missingParams: readonly string[];
+  /** The official text's link added under a consent that is not curated (D74, D111d). */
+  readonly linkShown?: string;
 }
 
 export type SendTextEffect = Extract<Effect, { type: "SendText" }>;
@@ -183,12 +185,9 @@ export function createTextResolver(services: TemplateServices): TextResolver {
     const result = rendered(template, values, consent !== undefined);
     if (!consent || result.isCurated) return result;
     // D74: never a machine translation of a consent alone.
-    const link = await resolveSystem(
-      "consent.official_link",
-      { link: officialLink(consent, target.campaign) },
-      target,
-    );
-    return { ...result, text: `${result.text}\n\n${link.text}` };
+    const linkShown = officialLink(consent, target.campaign);
+    const link = await resolveSystem("consent.official_link", { link: linkShown }, target);
+    return { ...result, text: `${result.text}\n\n${link.text}`, linkShown };
   }
 
   function leadFor(effect: SendTextEffect, target: TextTarget): Promise<ResolvedText> | undefined {

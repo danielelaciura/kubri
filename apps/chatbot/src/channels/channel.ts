@@ -43,6 +43,11 @@ export class FakeChannel implements ChannelAdapter {
     this.crash = error;
   }
 
+  /** Adds an outcome to the script. */
+  enqueueOutcome(outcome: SendOutcome): void {
+    this.script.push(outcome);
+  }
+
   send(message: OutboundText): Promise<SendOutcome> {
     if (this.crash) {
       const error = this.crash;

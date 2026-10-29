@@ -47,6 +47,19 @@ describe("FakeChannel", () => {
     await expect(channel.send(MESSAGE)).rejects.toThrow("socket hang up");
     expect(await channel.send(MESSAGE)).toMatchObject({ ok: true });
   });
+
+  it("adds outcomes to its script after it was built", async () => {
+    const channel = new FakeChannel();
+    channel.enqueueOutcome({ ok: false, kind: "transient", code: "rate_limited" });
+
+    expect(await channel.send(MESSAGE)).toEqual({
+      ok: false,
+      kind: "transient",
+      code: "rate_limited",
+    });
+    expect(await channel.send(MESSAGE)).toMatchObject({ ok: true });
+    expect(channel.sent).toHaveLength(1);
+  });
 });
 
 describe("ConsoleChannel", () => {

@@ -42,6 +42,11 @@ export interface RuntimeConfig {
   /** Timeout of the turn transaction (D102): the NLU and the translations both wait inside it. */
   readonly turnTransactionMs: number;
   readonly sendLeaseMs: number;
+  /**
+   * How long send-messages waits for the channel: half the lease, so the outcome is written
+   * while the claim is still held (a later one is lost, D108).
+   */
+  readonly sendCallTimeoutMs: number;
   readonly sendMaxAttempts: number;
   readonly workerBatchSize: number;
   readonly queueSchema: string;
@@ -73,6 +78,7 @@ export function parseRuntimeConfig(
     nluDeadlineMs: env.TURN_NLU_DEADLINE_MS,
     turnTransactionMs: 2 * env.TURN_NLU_DEADLINE_MS + 30_000,
     sendLeaseMs: env.SEND_LEASE_MS,
+    sendCallTimeoutMs: Math.floor(env.SEND_LEASE_MS / 2),
     sendMaxAttempts: env.SEND_MAX_ATTEMPTS,
     workerBatchSize: env.WORKER_BATCH_SIZE,
     queueSchema: env.QUEUE_SCHEMA,

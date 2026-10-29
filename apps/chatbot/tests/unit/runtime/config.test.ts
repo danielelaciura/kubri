@@ -17,6 +17,7 @@ describe("parseRuntimeConfig", () => {
       nluDeadlineMs: 20_000,
       turnTransactionMs: 70_000,
       sendLeaseMs: 60_000,
+      sendCallTimeoutMs: 30_000,
       sendMaxAttempts: 5,
       workerBatchSize: 4,
       queueSchema: "bot_queue",
@@ -26,7 +27,7 @@ describe("parseRuntimeConfig", () => {
     });
   });
 
-  it("reads every variable and derives the transaction timeout", () => {
+  it("reads every variable and derives the transaction and channel call timeouts", () => {
     const config = parseRuntimeConfig({
       DEBOUNCE_MS: "0",
       DEBOUNCE_MAX_WAIT_MS: "500",
@@ -45,6 +46,7 @@ describe("parseRuntimeConfig", () => {
       nluDeadlineMs: 1000,
       turnTransactionMs: 32_000,
       sendLeaseMs: 2000,
+      sendCallTimeoutMs: 1000,
       sendMaxAttempts: 3,
       workerBatchSize: 1,
       queueSchema: "bot_queue_test",

@@ -45,6 +45,7 @@ export type CandidateImportMinAggregateOutputType = {
   fileName: string | null
   mimeType: string | null
   fileSize: number | null
+  contentSha256: string | null
   extractedText: string | null
   extractionMethod: string | null
   errorCode: string | null
@@ -64,6 +65,7 @@ export type CandidateImportMaxAggregateOutputType = {
   fileName: string | null
   mimeType: string | null
   fileSize: number | null
+  contentSha256: string | null
   extractedText: string | null
   extractionMethod: string | null
   errorCode: string | null
@@ -83,6 +85,7 @@ export type CandidateImportCountAggregateOutputType = {
   fileName: number
   mimeType: number
   fileSize: number
+  contentSha256: number
   extractedText: number
   extractionMethod: number
   draft: number
@@ -113,6 +116,7 @@ export type CandidateImportMinAggregateInputType = {
   fileName?: true
   mimeType?: true
   fileSize?: true
+  contentSha256?: true
   extractedText?: true
   extractionMethod?: true
   errorCode?: true
@@ -132,6 +136,7 @@ export type CandidateImportMaxAggregateInputType = {
   fileName?: true
   mimeType?: true
   fileSize?: true
+  contentSha256?: true
   extractedText?: true
   extractionMethod?: true
   errorCode?: true
@@ -151,6 +156,7 @@ export type CandidateImportCountAggregateInputType = {
   fileName?: true
   mimeType?: true
   fileSize?: true
+  contentSha256?: true
   extractedText?: true
   extractionMethod?: true
   draft?: true
@@ -258,6 +264,7 @@ export type CandidateImportGroupByOutputType = {
   fileName: string
   mimeType: string
   fileSize: number
+  contentSha256: string | null
   extractedText: string | null
   extractionMethod: string | null
   draft: runtime.JsonValue | null
@@ -301,6 +308,7 @@ export type CandidateImportWhereInput = {
   fileName?: Prisma.StringFilter<"CandidateImport"> | string
   mimeType?: Prisma.StringFilter<"CandidateImport"> | string
   fileSize?: Prisma.IntFilter<"CandidateImport"> | number
+  contentSha256?: Prisma.StringNullableFilter<"CandidateImport"> | string | null
   extractedText?: Prisma.StringNullableFilter<"CandidateImport"> | string | null
   extractionMethod?: Prisma.StringNullableFilter<"CandidateImport"> | string | null
   draft?: Prisma.JsonNullableFilter<"CandidateImport">
@@ -325,6 +333,7 @@ export type CandidateImportOrderByWithRelationInput = {
   fileName?: Prisma.SortOrder
   mimeType?: Prisma.SortOrder
   fileSize?: Prisma.SortOrder
+  contentSha256?: Prisma.SortOrderInput | Prisma.SortOrder
   extractedText?: Prisma.SortOrderInput | Prisma.SortOrder
   extractionMethod?: Prisma.SortOrderInput | Prisma.SortOrder
   draft?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -352,6 +361,7 @@ export type CandidateImportWhereUniqueInput = Prisma.AtLeast<{
   fileName?: Prisma.StringFilter<"CandidateImport"> | string
   mimeType?: Prisma.StringFilter<"CandidateImport"> | string
   fileSize?: Prisma.IntFilter<"CandidateImport"> | number
+  contentSha256?: Prisma.StringNullableFilter<"CandidateImport"> | string | null
   extractedText?: Prisma.StringNullableFilter<"CandidateImport"> | string | null
   extractionMethod?: Prisma.StringNullableFilter<"CandidateImport"> | string | null
   draft?: Prisma.JsonNullableFilter<"CandidateImport">
@@ -376,6 +386,7 @@ export type CandidateImportOrderByWithAggregationInput = {
   fileName?: Prisma.SortOrder
   mimeType?: Prisma.SortOrder
   fileSize?: Prisma.SortOrder
+  contentSha256?: Prisma.SortOrderInput | Prisma.SortOrder
   extractedText?: Prisma.SortOrderInput | Prisma.SortOrder
   extractionMethod?: Prisma.SortOrderInput | Prisma.SortOrder
   draft?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -404,6 +415,7 @@ export type CandidateImportScalarWhereWithAggregatesInput = {
   fileName?: Prisma.StringWithAggregatesFilter<"CandidateImport"> | string
   mimeType?: Prisma.StringWithAggregatesFilter<"CandidateImport"> | string
   fileSize?: Prisma.IntWithAggregatesFilter<"CandidateImport"> | number
+  contentSha256?: Prisma.StringNullableWithAggregatesFilter<"CandidateImport"> | string | null
   extractedText?: Prisma.StringNullableWithAggregatesFilter<"CandidateImport"> | string | null
   extractionMethod?: Prisma.StringNullableWithAggregatesFilter<"CandidateImport"> | string | null
   draft?: Prisma.JsonNullableWithAggregatesFilter<"CandidateImport">
@@ -421,6 +433,7 @@ export type CandidateImportCreateInput = {
   fileName: string
   mimeType: string
   fileSize: number
+  contentSha256?: string | null
   extractedText?: string | null
   extractionMethod?: string | null
   draft?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -444,6 +457,7 @@ export type CandidateImportUncheckedCreateInput = {
   fileName: string
   mimeType: string
   fileSize: number
+  contentSha256?: string | null
   extractedText?: string | null
   extractionMethod?: string | null
   draft?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -461,6 +475,7 @@ export type CandidateImportUpdateInput = {
   fileName?: Prisma.StringFieldUpdateOperationsInput | string
   mimeType?: Prisma.StringFieldUpdateOperationsInput | string
   fileSize?: Prisma.IntFieldUpdateOperationsInput | number
+  contentSha256?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractedText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractionMethod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   draft?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -484,6 +499,7 @@ export type CandidateImportUncheckedUpdateInput = {
   fileName?: Prisma.StringFieldUpdateOperationsInput | string
   mimeType?: Prisma.StringFieldUpdateOperationsInput | string
   fileSize?: Prisma.IntFieldUpdateOperationsInput | number
+  contentSha256?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractedText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractionMethod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   draft?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -504,6 +520,7 @@ export type CandidateImportCreateManyInput = {
   fileName: string
   mimeType: string
   fileSize: number
+  contentSha256?: string | null
   extractedText?: string | null
   extractionMethod?: string | null
   draft?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -521,6 +538,7 @@ export type CandidateImportUpdateManyMutationInput = {
   fileName?: Prisma.StringFieldUpdateOperationsInput | string
   mimeType?: Prisma.StringFieldUpdateOperationsInput | string
   fileSize?: Prisma.IntFieldUpdateOperationsInput | number
+  contentSha256?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractedText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractionMethod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   draft?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -540,6 +558,7 @@ export type CandidateImportUncheckedUpdateManyInput = {
   fileName?: Prisma.StringFieldUpdateOperationsInput | string
   mimeType?: Prisma.StringFieldUpdateOperationsInput | string
   fileSize?: Prisma.IntFieldUpdateOperationsInput | number
+  contentSha256?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractedText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractionMethod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   draft?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -570,6 +589,7 @@ export type CandidateImportCountOrderByAggregateInput = {
   fileName?: Prisma.SortOrder
   mimeType?: Prisma.SortOrder
   fileSize?: Prisma.SortOrder
+  contentSha256?: Prisma.SortOrder
   extractedText?: Prisma.SortOrder
   extractionMethod?: Prisma.SortOrder
   draft?: Prisma.SortOrder
@@ -594,6 +614,7 @@ export type CandidateImportMaxOrderByAggregateInput = {
   fileName?: Prisma.SortOrder
   mimeType?: Prisma.SortOrder
   fileSize?: Prisma.SortOrder
+  contentSha256?: Prisma.SortOrder
   extractedText?: Prisma.SortOrder
   extractionMethod?: Prisma.SortOrder
   errorCode?: Prisma.SortOrder
@@ -613,6 +634,7 @@ export type CandidateImportMinOrderByAggregateInput = {
   fileName?: Prisma.SortOrder
   mimeType?: Prisma.SortOrder
   fileSize?: Prisma.SortOrder
+  contentSha256?: Prisma.SortOrder
   extractedText?: Prisma.SortOrder
   extractionMethod?: Prisma.SortOrder
   errorCode?: Prisma.SortOrder
@@ -809,6 +831,7 @@ export type CandidateImportCreateWithoutOrganizationInput = {
   fileName: string
   mimeType: string
   fileSize: number
+  contentSha256?: string | null
   extractedText?: string | null
   extractionMethod?: string | null
   draft?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -830,6 +853,7 @@ export type CandidateImportUncheckedCreateWithoutOrganizationInput = {
   fileName: string
   mimeType: string
   fileSize: number
+  contentSha256?: string | null
   extractedText?: string | null
   extractionMethod?: string | null
   draft?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -879,6 +903,7 @@ export type CandidateImportScalarWhereInput = {
   fileName?: Prisma.StringFilter<"CandidateImport"> | string
   mimeType?: Prisma.StringFilter<"CandidateImport"> | string
   fileSize?: Prisma.IntFilter<"CandidateImport"> | number
+  contentSha256?: Prisma.StringNullableFilter<"CandidateImport"> | string | null
   extractedText?: Prisma.StringNullableFilter<"CandidateImport"> | string | null
   extractionMethod?: Prisma.StringNullableFilter<"CandidateImport"> | string | null
   draft?: Prisma.JsonNullableFilter<"CandidateImport">
@@ -896,6 +921,7 @@ export type CandidateImportCreateWithoutPoolInput = {
   fileName: string
   mimeType: string
   fileSize: number
+  contentSha256?: string | null
   extractedText?: string | null
   extractionMethod?: string | null
   draft?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -917,6 +943,7 @@ export type CandidateImportUncheckedCreateWithoutPoolInput = {
   fileName: string
   mimeType: string
   fileSize: number
+  contentSha256?: string | null
   extractedText?: string | null
   extractionMethod?: string | null
   draft?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -960,6 +987,7 @@ export type CandidateImportCreateWithoutCreatedByInput = {
   fileName: string
   mimeType: string
   fileSize: number
+  contentSha256?: string | null
   extractedText?: string | null
   extractionMethod?: string | null
   draft?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -981,6 +1009,7 @@ export type CandidateImportUncheckedCreateWithoutCreatedByInput = {
   fileName: string
   mimeType: string
   fileSize: number
+  contentSha256?: string | null
   extractedText?: string | null
   extractionMethod?: string | null
   draft?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1024,6 +1053,7 @@ export type CandidateImportCreateWithoutCandidateInput = {
   fileName: string
   mimeType: string
   fileSize: number
+  contentSha256?: string | null
   extractedText?: string | null
   extractionMethod?: string | null
   draft?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1046,6 +1076,7 @@ export type CandidateImportUncheckedCreateWithoutCandidateInput = {
   fileName: string
   mimeType: string
   fileSize: number
+  contentSha256?: string | null
   extractedText?: string | null
   extractionMethod?: string | null
   draft?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1090,6 +1121,7 @@ export type CandidateImportCreateManyOrganizationInput = {
   fileName: string
   mimeType: string
   fileSize: number
+  contentSha256?: string | null
   extractedText?: string | null
   extractionMethod?: string | null
   draft?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1107,6 +1139,7 @@ export type CandidateImportUpdateWithoutOrganizationInput = {
   fileName?: Prisma.StringFieldUpdateOperationsInput | string
   mimeType?: Prisma.StringFieldUpdateOperationsInput | string
   fileSize?: Prisma.IntFieldUpdateOperationsInput | number
+  contentSha256?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractedText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractionMethod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   draft?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1128,6 +1161,7 @@ export type CandidateImportUncheckedUpdateWithoutOrganizationInput = {
   fileName?: Prisma.StringFieldUpdateOperationsInput | string
   mimeType?: Prisma.StringFieldUpdateOperationsInput | string
   fileSize?: Prisma.IntFieldUpdateOperationsInput | number
+  contentSha256?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractedText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractionMethod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   draft?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1147,6 +1181,7 @@ export type CandidateImportUncheckedUpdateManyWithoutOrganizationInput = {
   fileName?: Prisma.StringFieldUpdateOperationsInput | string
   mimeType?: Prisma.StringFieldUpdateOperationsInput | string
   fileSize?: Prisma.IntFieldUpdateOperationsInput | number
+  contentSha256?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractedText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractionMethod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   draft?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1166,6 +1201,7 @@ export type CandidateImportCreateManyPoolInput = {
   fileName: string
   mimeType: string
   fileSize: number
+  contentSha256?: string | null
   extractedText?: string | null
   extractionMethod?: string | null
   draft?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1183,6 +1219,7 @@ export type CandidateImportUpdateWithoutPoolInput = {
   fileName?: Prisma.StringFieldUpdateOperationsInput | string
   mimeType?: Prisma.StringFieldUpdateOperationsInput | string
   fileSize?: Prisma.IntFieldUpdateOperationsInput | number
+  contentSha256?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractedText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractionMethod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   draft?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1204,6 +1241,7 @@ export type CandidateImportUncheckedUpdateWithoutPoolInput = {
   fileName?: Prisma.StringFieldUpdateOperationsInput | string
   mimeType?: Prisma.StringFieldUpdateOperationsInput | string
   fileSize?: Prisma.IntFieldUpdateOperationsInput | number
+  contentSha256?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractedText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractionMethod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   draft?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1223,6 +1261,7 @@ export type CandidateImportUncheckedUpdateManyWithoutPoolInput = {
   fileName?: Prisma.StringFieldUpdateOperationsInput | string
   mimeType?: Prisma.StringFieldUpdateOperationsInput | string
   fileSize?: Prisma.IntFieldUpdateOperationsInput | number
+  contentSha256?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractedText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractionMethod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   draft?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1242,6 +1281,7 @@ export type CandidateImportCreateManyCreatedByInput = {
   fileName: string
   mimeType: string
   fileSize: number
+  contentSha256?: string | null
   extractedText?: string | null
   extractionMethod?: string | null
   draft?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1259,6 +1299,7 @@ export type CandidateImportUpdateWithoutCreatedByInput = {
   fileName?: Prisma.StringFieldUpdateOperationsInput | string
   mimeType?: Prisma.StringFieldUpdateOperationsInput | string
   fileSize?: Prisma.IntFieldUpdateOperationsInput | number
+  contentSha256?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractedText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractionMethod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   draft?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1280,6 +1321,7 @@ export type CandidateImportUncheckedUpdateWithoutCreatedByInput = {
   fileName?: Prisma.StringFieldUpdateOperationsInput | string
   mimeType?: Prisma.StringFieldUpdateOperationsInput | string
   fileSize?: Prisma.IntFieldUpdateOperationsInput | number
+  contentSha256?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractedText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractionMethod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   draft?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1299,6 +1341,7 @@ export type CandidateImportUncheckedUpdateManyWithoutCreatedByInput = {
   fileName?: Prisma.StringFieldUpdateOperationsInput | string
   mimeType?: Prisma.StringFieldUpdateOperationsInput | string
   fileSize?: Prisma.IntFieldUpdateOperationsInput | number
+  contentSha256?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractedText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractionMethod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   draft?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1319,6 +1362,7 @@ export type CandidateImportCreateManyCandidateInput = {
   fileName: string
   mimeType: string
   fileSize: number
+  contentSha256?: string | null
   extractedText?: string | null
   extractionMethod?: string | null
   draft?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1335,6 +1379,7 @@ export type CandidateImportUpdateWithoutCandidateInput = {
   fileName?: Prisma.StringFieldUpdateOperationsInput | string
   mimeType?: Prisma.StringFieldUpdateOperationsInput | string
   fileSize?: Prisma.IntFieldUpdateOperationsInput | number
+  contentSha256?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractedText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractionMethod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   draft?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1357,6 +1402,7 @@ export type CandidateImportUncheckedUpdateWithoutCandidateInput = {
   fileName?: Prisma.StringFieldUpdateOperationsInput | string
   mimeType?: Prisma.StringFieldUpdateOperationsInput | string
   fileSize?: Prisma.IntFieldUpdateOperationsInput | number
+  contentSha256?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractedText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractionMethod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   draft?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1376,6 +1422,7 @@ export type CandidateImportUncheckedUpdateManyWithoutCandidateInput = {
   fileName?: Prisma.StringFieldUpdateOperationsInput | string
   mimeType?: Prisma.StringFieldUpdateOperationsInput | string
   fileSize?: Prisma.IntFieldUpdateOperationsInput | number
+  contentSha256?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractedText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractionMethod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   draft?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1397,6 +1444,7 @@ export type CandidateImportSelect<ExtArgs extends runtime.Types.Extensions.Inter
   fileName?: boolean
   mimeType?: boolean
   fileSize?: boolean
+  contentSha256?: boolean
   extractedText?: boolean
   extractionMethod?: boolean
   draft?: boolean
@@ -1421,6 +1469,7 @@ export type CandidateImportSelectCreateManyAndReturn<ExtArgs extends runtime.Typ
   fileName?: boolean
   mimeType?: boolean
   fileSize?: boolean
+  contentSha256?: boolean
   extractedText?: boolean
   extractionMethod?: boolean
   draft?: boolean
@@ -1445,6 +1494,7 @@ export type CandidateImportSelectUpdateManyAndReturn<ExtArgs extends runtime.Typ
   fileName?: boolean
   mimeType?: boolean
   fileSize?: boolean
+  contentSha256?: boolean
   extractedText?: boolean
   extractionMethod?: boolean
   draft?: boolean
@@ -1469,6 +1519,7 @@ export type CandidateImportSelectScalar = {
   fileName?: boolean
   mimeType?: boolean
   fileSize?: boolean
+  contentSha256?: boolean
   extractedText?: boolean
   extractionMethod?: boolean
   draft?: boolean
@@ -1478,7 +1529,7 @@ export type CandidateImportSelectScalar = {
   updatedAt?: boolean
 }
 
-export type CandidateImportOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "poolId" | "origin" | "status" | "createdById" | "storagePath" | "fileName" | "mimeType" | "fileSize" | "extractedText" | "extractionMethod" | "draft" | "errorCode" | "candidateId" | "createdAt" | "updatedAt", ExtArgs["result"]["candidateImport"]>
+export type CandidateImportOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "poolId" | "origin" | "status" | "createdById" | "storagePath" | "fileName" | "mimeType" | "fileSize" | "contentSha256" | "extractedText" | "extractionMethod" | "draft" | "errorCode" | "candidateId" | "createdAt" | "updatedAt", ExtArgs["result"]["candidateImport"]>
 export type CandidateImportInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   organization?: boolean | Prisma.OrganizationDefaultArgs<ExtArgs>
   pool?: boolean | Prisma.PoolDefaultArgs<ExtArgs>
@@ -1517,6 +1568,10 @@ export type $CandidateImportPayload<ExtArgs extends runtime.Types.Extensions.Int
     fileName: string
     mimeType: string
     fileSize: number
+    /**
+     * SHA-256 (hex) of the stored bytes, checked before extraction and confirm.
+     */
+    contentSha256: string | null
     extractedText: string | null
     extractionMethod: string | null
     draft: runtime.JsonValue | null
@@ -1961,6 +2016,7 @@ export interface CandidateImportFieldRefs {
   readonly fileName: Prisma.FieldRef<"CandidateImport", 'String'>
   readonly mimeType: Prisma.FieldRef<"CandidateImport", 'String'>
   readonly fileSize: Prisma.FieldRef<"CandidateImport", 'Int'>
+  readonly contentSha256: Prisma.FieldRef<"CandidateImport", 'String'>
   readonly extractedText: Prisma.FieldRef<"CandidateImport", 'String'>
   readonly extractionMethod: Prisma.FieldRef<"CandidateImport", 'String'>
   readonly draft: Prisma.FieldRef<"CandidateImport", 'Json'>

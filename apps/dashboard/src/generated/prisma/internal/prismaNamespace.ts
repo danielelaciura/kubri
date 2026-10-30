@@ -1765,6 +1765,7 @@ export const CandidateImportScalarFieldEnum = {
   fileName: 'fileName',
   mimeType: 'mimeType',
   fileSize: 'fileSize',
+  contentSha256: 'contentSha256',
   extractedText: 'extractedText',
   extractionMethod: 'extractionMethod',
   draft: 'draft',

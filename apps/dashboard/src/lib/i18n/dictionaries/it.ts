@@ -331,6 +331,7 @@ export const it = {
     listsSection: "Liste",
     notInAnyList: "Non in nessuna lista",
     deletedUser: "Utente eliminato",
+    documentFromLanding: "Caricato dal candidato tramite landing page",
     filterSearch: "Ricerca",
     filterLanguages: "Lingue",
     filterLanguagesPlaceholder: "es. Arabo, Francese",

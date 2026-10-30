@@ -1,3 +1,4 @@
+import { getLandingStoragePaths, mapDocumentRows } from "@/lib/candidates/documents";
 import { requireOrganization } from "@/lib/auth-utils";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
@@ -60,7 +61,7 @@ export default async function CandidateDetailPage({
     ? []
     : (await getOrgWritablePools(organizationId)).map((p) => p.id);
 
-  const [candidate, notes, lists, membershipByCandidate, status, documents] = await Promise.all([
+  const [candidate, notes, lists, membershipByCandidate, status, documents, landingPaths] = await Promise.all([
     (isKubriAdmin
       ? getCandidateByIdUnscoped(id)
       : getCandidateForOrg(organizationId, id)
@@ -79,8 +80,9 @@ export default async function CandidateDetailPage({
         ? { candidateId: id }
         : { candidateId: id, candidate: { poolId: { in: ownPoolIds } } },
       orderBy: { createdAt: "desc" },
-      select: { id: true, fileName: true, createdAt: true, uploadedBy: { select: { name: true } } },
+      select: { id: true, fileName: true, createdAt: true, storagePath: true, uploadedBy: { select: { name: true } } },
     }),
+    getLandingStoragePaths(id),
   ]);
 
   const memberOf = membershipByCandidate[id] ?? [];
@@ -145,12 +147,7 @@ export default async function CandidateDetailPage({
             candidateId={id}
             t={t}
             locale={locale}
-            documents={documents.map((d) => ({
-              id: d.id,
-              fileName: d.fileName,
-              createdAt: d.createdAt,
-              uploadedByName: d.uploadedBy?.name ?? null,
-            }))}
+            documents={mapDocumentRows(documents, landingPaths)}
           />
         </div>
 

@@ -333,6 +333,7 @@ export const en = {
     listsSection: "Lists",
     notInAnyList: "Not in any list",
     deletedUser: "Deleted user",
+    documentFromLanding: "Uploaded by the candidate via the landing page",
     filterSearch: "Search",
     filterLanguages: "Languages",
     filterLanguagesPlaceholder: "e.g. Arabic, French",

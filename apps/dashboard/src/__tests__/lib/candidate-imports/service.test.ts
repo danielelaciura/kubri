@@ -286,7 +286,9 @@ describe("confirmImport", () => {
     const r = await confirmImport({ importId: "22222222-2222-4222-8222-222222222222", organizationId: "o", userId: "u", fields: FIELDS });
 
     expect(r).toEqual({ candidateId: "c-1", attached: false, documentId: "d-1" });
-    expect(tx.candidateImport.findFirst.mock.calls[0]![0].where).toEqual({ id: "22222222-2222-4222-8222-222222222222", organizationId: "o" });
+    expect(tx.candidateImport.findFirst.mock.calls[0]![0].where).toEqual({
+      id: "22222222-2222-4222-8222-222222222222", organizationId: "o", origin: { not: "PUBLIC_LINK" },
+    });
     expect(tx.candidateImport.updateMany.mock.calls[0]![0]).toEqual({
       where: {
         id: "22222222-2222-4222-8222-222222222222",
@@ -442,12 +444,14 @@ describe("confirmImport", () => {
     ).resolves.toMatchObject({ candidateId: "c-new" });
   });
 
-  it("operator findFirst is not scoped by pool or origin", async () => {
+  it("operator findFirst is not scoped by pool and never matches a public import", async () => {
     tx.candidateImport.findFirst.mockResolvedValueOnce(IMPORT);
     tx.candidateImport.updateMany.mockResolvedValueOnce({ count: 1 });
     m(upsertCandidate).mockResolvedValueOnce({ id: "c-1" });
     await confirmImport({ importId: IMPORT.id, organizationId: "o", userId: "u", fields: FIELDS });
-    expect(tx.candidateImport.findFirst.mock.calls[0]![0].where).toEqual({ id: IMPORT.id, organizationId: "o" });
+    expect(tx.candidateImport.findFirst.mock.calls[0]![0].where).toEqual({
+      id: IMPORT.id, organizationId: "o", origin: { not: "PUBLIC_LINK" },
+    });
   });
 
   it("operator mode never looks up phones", async () => {
@@ -520,8 +524,12 @@ describe("discardImport / discardStaleImports", () => {
     m(prisma.candidateImport.findFirst).mockResolvedValueOnce({ storagePath: "p/i/cv.pdf" });
     m(prisma.candidateImport.updateMany).mockResolvedValueOnce({ count: 1 });
     await expect(discardImport("22222222-2222-4222-8222-222222222222", "o")).resolves.toBe(true);
+    expect(m(prisma.candidateImport.findFirst).mock.calls[0]![0].where).toEqual({
+      id: "22222222-2222-4222-8222-222222222222", organizationId: "o", origin: { not: "PUBLIC_LINK" },
+    });
     expect(m(prisma.candidateImport.updateMany).mock.calls[0]![0].where).toEqual({
-      id: "22222222-2222-4222-8222-222222222222", organizationId: "o", status: { in: ["UPLOADED", "EXTRACTING", "READY", "FAILED"] },
+      id: "22222222-2222-4222-8222-222222222222", organizationId: "o", origin: { not: "PUBLIC_LINK" },
+      status: { in: ["UPLOADED", "EXTRACTING", "READY", "FAILED"] },
     });
     expect(m(prisma.candidateImport.updateMany).mock.calls[0]![0].data).toEqual({
       status: "DISCARDED", extractedText: null, draft: Prisma.DbNull,
@@ -904,5 +912,27 @@ describe("removeOrphanUploads", () => {
     m(removeCandidateDocuments).mockRejectedValueOnce(new StorageError("x"));
     await expect(removeOrphanUploads(NOW)).resolves.toBe(0);
     expect(JSON.stringify(m(console.error).mock.calls)).not.toContain("cv.pdf");
+  });
+});
+
+describe("operator helpers ignore public imports", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("getImportForOrg excludes PUBLIC_LINK imports", async () => {
+    m(prisma.candidateImport.findFirst).mockResolvedValueOnce(null);
+    await expect(getImportForOrg(IMPORT_ID, "o")).resolves.toBeNull();
+    expect(m(prisma.candidateImport.findFirst).mock.calls[0]![0].where).toEqual({
+      id: IMPORT_ID, organizationId: "o", origin: { not: "PUBLIC_LINK" },
+    });
+  });
+
+  it("discardImport cannot discard a public import", async () => {
+    m(prisma.candidateImport.findFirst).mockResolvedValueOnce(null);
+    await expect(discardImport(IMPORT_ID, "o")).resolves.toBe(false);
+    expect(m(prisma.candidateImport.findFirst).mock.calls[0]![0].where).toMatchObject({
+      origin: { not: "PUBLIC_LINK" },
+    });
+    expect(m(prisma.candidateImport.updateMany)).not.toHaveBeenCalled();
+    expect(m(removeCandidateDocuments)).not.toHaveBeenCalled();
   });
 });

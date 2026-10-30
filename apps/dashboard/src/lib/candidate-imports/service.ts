@@ -46,6 +46,8 @@ const ORPHAN_UPLOAD_MS = 24 * 60 * 60 * 1000;
 const MAX_STALE_BATCHES = 20;
 /** Chunk size for id lookups and storage removals in the orphan sweep. */
 const ORPHAN_CHUNK = 100;
+/** Operator paths never see landing uploads (those belong to the public flow). */
+const NOT_PUBLIC = { not: "PUBLIC_LINK" } as const;
 const OPEN_STATUSES = ["UPLOADED", "EXTRACTING", "READY", "FAILED"] as const;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -352,7 +354,7 @@ export async function confirmImport(input: ConfirmImportInput): Promise<ConfirmI
     const imp = await tx.candidateImport.findFirst({
       where: isPublic
         ? { id: input.importId, organizationId: input.organizationId, poolId: input.poolId, origin: "PUBLIC_LINK" }
-        : { id: input.importId, organizationId: input.organizationId },
+        : { id: input.importId, organizationId: input.organizationId, origin: NOT_PUBLIC },
       include: { pool: true },
     });
     if (!imp) throw new ImportNotFoundError();
@@ -466,17 +468,17 @@ export async function confirmImport(input: ConfirmImportInput): Promise<ConfirmI
   return { candidateId: result.candidateId, attached: result.attached, documentId: result.documentId };
 }
 
-/** Discard an open import of the organization and delete its file. */
+/** Discard an open operator import of the organization and delete its file. */
 export async function discardImport(importId: string, organizationId: string): Promise<boolean> {
   if (!isUuid(importId)) return false;
   const imp = await prisma.candidateImport.findFirst({
-    where: { id: importId, organizationId },
+    where: { id: importId, organizationId, origin: NOT_PUBLIC },
     select: { storagePath: true },
   });
   if (!imp) return false;
 
   const res = await prisma.candidateImport.updateMany({
-    where: { id: importId, organizationId, status: { in: [...OPEN_STATUSES] } },
+    where: { id: importId, organizationId, origin: NOT_PUBLIC, status: { in: [...OPEN_STATUSES] } },
     data: { status: "DISCARDED", extractedText: null, draft: Prisma.DbNull },
   });
   if (res.count === 0) return false;
@@ -578,11 +580,11 @@ export async function removeOrphanUploads(now = new Date(), maxAgeMs = ORPHAN_UP
   return removed;
 }
 
-/** Everything the review page needs, scoped to the organization. */
+/** Everything the review page needs, scoped to the organization (operator imports only). */
 export async function getImportForOrg(importId: string, organizationId: string) {
   if (!isUuid(importId)) return null;
   return prisma.candidateImport.findFirst({
-    where: { id: importId, organizationId },
+    where: { id: importId, organizationId, origin: NOT_PUBLIC },
     select: {
       id: true,
       status: true,

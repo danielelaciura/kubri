@@ -68,9 +68,23 @@ describe("requestLandingUpload", () => {
     expect(rules.map((r) => r.key)).toEqual([
       `landing:ip:${CTX.ipHash}:h`, `landing:ip:${CTX.ipHash}:d`, `landing:page:${LANDING.id}:d`,
     ]);
+    expect(rules.map((r) => r.limit)).toEqual([5, 20, 100]);
     expect(m(createUploadTicket)).toHaveBeenCalledWith({
       poolId: "p-1", fileName: "cv.pdf", fileSize: 1000, maxBytes: PUBLIC_MAX_DOCUMENT_BYTES,
     });
+  });
+
+  it("reads limits from env, falling back to defaults on invalid values", async () => {
+    vi.stubEnv("LANDING_LIMIT_IP_HOUR", "7");
+    vi.stubEnv("LANDING_LIMIT_IP_DAY", "abc");
+    vi.stubEnv("LANDING_LIMIT_PAGE_DAY", "  ");
+    try {
+      await requestLandingUpload(LANDING, input, CTX);
+      const rules = m(consumeRateLimits).mock.calls[0]![0] as { limit: number }[];
+      expect(rules.map((r) => r.limit)).toEqual([7, 20, 100]);
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it("refuses oversize or empty files before the captcha", async () => {
@@ -98,7 +112,30 @@ describe("requestLandingUpload", () => {
 });
 
 describe("registerLandingUpload", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    m(consumeRateLimits).mockResolvedValue(true);
+  });
+
+  it("allows one registration per ticket", async () => {
+    m(registerUpload).mockResolvedValueOnce({ importId: IMPORT_ID });
+    await registerLandingUpload(LANDING, IMPORT_ID, "cv.pdf");
+    expect(m(consumeRateLimits)).toHaveBeenCalledWith([
+      { key: `landing:register:${IMPORT_ID}`, limit: 1, windowSec: 7200 },
+    ]);
+  });
+
+  it("refuses a second registration of the same ticket", async () => {
+    m(consumeRateLimits).mockResolvedValueOnce(false);
+    await expect(registerLandingUpload(LANDING, IMPORT_ID, "cv.pdf")).resolves.toEqual({ ok: false, error: "SESSION_EXPIRED" });
+    expect(m(registerUpload)).not.toHaveBeenCalled();
+  });
+
+  it("reports UNAVAILABLE when the limiter is down", async () => {
+    m(consumeRateLimits).mockRejectedValueOnce(new RateLimitUnavailableError());
+    await expect(registerLandingUpload(LANDING, IMPORT_ID, "cv.pdf")).resolves.toEqual({ ok: false, error: "UNAVAILABLE" });
+    expect(m(registerUpload)).not.toHaveBeenCalled();
+  });
 
   it("registers as PUBLIC_LINK with inspection and the public cap", async () => {
     m(registerUpload).mockResolvedValueOnce({ importId: IMPORT_ID });
@@ -136,7 +173,9 @@ describe("runLandingExtraction", () => {
     const r = await runLandingExtraction(LANDING, IMPORT_ID);
     expect(r.ok).toBe(true);
     const rules = m(consumeRateLimits).mock.calls[0]![0] as { key: string }[];
-    expect(rules.map((x) => x.key)).toEqual([`landing:import:${IMPORT_ID}:d`, "landing:extractions:d"]);
+    expect(rules.map((x) => x.key)).toEqual([
+      `landing:import:${IMPORT_ID}:d`, `landing:page:${LANDING.id}:extractions:d`, "landing:extractions:d",
+    ]);
     expect(m(runExtraction)).toHaveBeenCalledWith(IMPORT_ID, {
       maxOcrPages: PUBLIC_MAX_OCR_PAGES, textGate: passesCvQualityGate, rejectNonCv: true,
     });

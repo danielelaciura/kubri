@@ -30,15 +30,37 @@ export const CONSENT_TEXT_VERSION = "2026-10-29";
 
 const HOUR = 3600;
 const DAY = 24 * HOUR;
-const LIMITS = {
-  perIpHour: 3,
-  perIpDay: 10,
-  perLandingDay: 100,
-  /** Global budget cap on paid extractions (OCR + LLM), all landings together. */
-  extractionsDay: 300,
-  /** One retry per import. */
-  perImportDay: 2,
-} as const;
+const warnedEnv = new Set<string>();
+
+function intFromEnv(name: string, fallback: number): number {
+  const raw = process.env[name]?.trim();
+  if (!raw) return fallback;
+  const n = Number(raw);
+  if (Number.isInteger(n) && n > 0) return n;
+  if (!warnedEnv.has(name)) {
+    warnedEnv.add(name);
+    console.warn(`[landing] invalid ${name}, using default ${fallback}`);
+  }
+  return fallback;
+}
+
+/** Read at call time so deployments (and tests) can tune limits via env. */
+function getLimits() {
+  return {
+    perIpHour: intFromEnv("LANDING_LIMIT_IP_HOUR", 5),
+    perIpDay: intFromEnv("LANDING_LIMIT_IP_DAY", 20),
+    perLandingDay: intFromEnv("LANDING_LIMIT_PAGE_DAY", 100),
+    /** Paid extractions (OCR + LLM) per landing: one page cannot eat the global budget. */
+    perLandingExtractionsDay: intFromEnv("LANDING_LIMIT_PAGE_EXTRACTIONS_DAY", 100),
+    /** Global budget cap on paid extractions, all landings together. */
+    extractionsDay: intFromEnv("LANDING_LIMIT_EXTRACTIONS_DAY", 300),
+    /** One retry per import. */
+    perImportDay: intFromEnv("LANDING_LIMIT_IMPORT_DAY", 2),
+  };
+}
+
+/** Upload tickets live ~1h; a registration slot outlives them. */
+const REGISTER_WINDOW_SEC = 2 * HOUR;
 
 export type LandingErrorCode =
   | ImportErrorCode
@@ -104,6 +126,7 @@ export async function requestLandingUpload(
 
   if (!(await verifyTurnstile(turnstileToken, ctx.ip))) return fail("CAPTCHA_FAILED");
 
+  const LIMITS = getLimits();
   const rules: RateLimitRule[] = [
     { key: `landing:ip:${ctx.ipHash}:h`, limit: LIMITS.perIpHour, windowSec: HOUR },
     { key: `landing:ip:${ctx.ipHash}:d`, limit: LIMITS.perIpDay, windowSec: DAY },
@@ -131,6 +154,12 @@ export async function registerLandingUpload(
 ): Promise<LandingResult<null>> {
   if (!fileName || fileName.length > 255) return fail("VALIDATION");
   try {
+    // One ticket = one registration: a rejected file can't be swapped and
+    // re-registered without going back through Turnstile and the IP limits.
+    const slot = await consumeRateLimits([
+      { key: `landing:register:${importId}`, limit: 1, windowSec: REGISTER_WINDOW_SEC },
+    ]);
+    if (!slot) return fail("SESSION_EXPIRED");
     await registerUpload({
       importId,
       organizationId: landing.organization.id,
@@ -183,10 +212,12 @@ async function extractUnderBudget(
     return fail("IN_PROGRESS");
   }
 
-  // Per-import first: rules stop at the first refusal, so one import
-  // retrying cannot burn the global budget.
+  // Narrowest first: rules stop at the first refusal, so one import (or one
+  // landing) cannot burn the shared budget.
+  const LIMITS = getLimits();
   const withinBudget = await consumeRateLimits([
     { key: `landing:import:${imp.id}:d`, limit: LIMITS.perImportDay, windowSec: DAY },
+    { key: `landing:page:${landing.id}:extractions:d`, limit: LIMITS.perLandingExtractionsDay, windowSec: DAY },
     { key: "landing:extractions:d", limit: LIMITS.extractionsDay, windowSec: DAY },
   ]);
   if (!withinBudget) return fail("BUDGET_EXHAUSTED");

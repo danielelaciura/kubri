@@ -17,7 +17,7 @@ describe("mapDocumentRows", () => {
       new Set(["p/a"]),
     );
     expect(rows.map((r) => r.fromLanding)).toEqual([true, false, false]);
-    expect(rows[1].uploadedByName).toBe("Mario");
-    expect(rows[2].uploadedByName).toBeNull();
+    expect(rows[1]?.uploadedByName).toBe("Mario");
+    expect(rows[2]?.uploadedByName).toBeNull();
   });
 });

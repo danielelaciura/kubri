@@ -342,6 +342,8 @@ model CandidateImport {
   fileName         String
   mimeType         String
   fileSize         Int
+  /// SHA-256 (hex) of the stored bytes, checked before extraction and confirm.
+  contentSha256    String?
   extractedText    String?
   extractionMethod String?
   draft            Json?

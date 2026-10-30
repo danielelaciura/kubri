@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type { CandidateFields } from "@kubri/contracts";
 import { prisma } from "@/lib/db";
 import { Prisma, type CandidateImportOrigin } from "@/generated/prisma/client";
@@ -44,6 +44,9 @@ const OPEN_STATUSES = ["UPLOADED", "EXTRACTING", "READY", "FAILED"] as const;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /** Server-action arguments are untrusted: an object here would become a Prisma operator. */
 const isUuid = (v: unknown): v is string => typeof v === "string" && UUID_RE.test(v);
+
+/** Hex SHA-256 of the stored bytes: detects the object changing after registration. */
+const sha256Hex = (bytes: Uint8Array): string => createHash("sha256").update(bytes).digest("hex");
 
 export interface UploadTicket {
   importId: string;
@@ -180,6 +183,7 @@ export async function registerUpload(input: RegisterUploadInput): Promise<{ impo
         fileName: input.inspect ? withExtension(input.fileName, kind) : input.fileName.slice(0, MAX_FILE_NAME),
         mimeType: DOCUMENT_MIME[kind],
         fileSize: stored.byteLength,
+        contentSha256: sha256Hex(stored),
       },
     });
   } catch (e) {
@@ -228,7 +232,7 @@ export async function runExtraction(importId: string, opts: ExtractionOptions = 
 
   const imp = await prisma.candidateImport.findUniqueOrThrow({
     where: { id: importId },
-    select: { storagePath: true },
+    select: { storagePath: true, contentSha256: true },
   });
 
   // Final writes only apply while the import is still the one we claimed.
@@ -244,6 +248,13 @@ export async function runExtraction(importId: string, opts: ExtractionOptions = 
 
   try {
     const bytes = await downloadCandidateDocument(imp.storagePath);
+    if (imp.contentSha256 && sha256Hex(bytes) !== imp.contentSha256) {
+      // The object changed after it was verified at registration: tampered.
+      console.warn("[candidate import] stored file changed since registration", { importId });
+      await finish({ status: "FAILED", errorCode: "REJECTED_FILE" });
+      await removeQuietly(imp.storagePath, "tampered upload");
+      return;
+    }
     const kind = detectDocumentKind(bytes);
     if (!kind) throw new ImportError("FILE_UNREADABLE");
     const extracted = await extractDocumentText(bytes, kind, { maxOcrPages: opts.maxOcrPages });
@@ -361,6 +372,21 @@ export async function confirmImport(input: ConfirmImportInput): Promise<ConfirmI
     });
     if (claimed.count === 0) throw new ImportStateError(imp.status);
 
+    // Public uploads: the file must still be the one verified at registration.
+    // A mismatch throws and rolls the whole confirm back.
+    if (isPublic && imp.contentSha256) {
+      let bytes: Uint8Array;
+      try {
+        bytes = await downloadCandidateDocument(imp.storagePath);
+      } catch (e) {
+        throw new ImportError("STORAGE_ERROR", e);
+      }
+      if (sha256Hex(bytes) !== imp.contentSha256) {
+        console.warn("[candidate import] stored file changed since registration", { importId: imp.id });
+        throw new ImportError("REJECTED_FILE");
+      }
+    }
+
     const document = {
       kind: "CV" as const,
       storagePath: imp.storagePath,
@@ -426,7 +452,8 @@ export async function confirmImport(input: ConfirmImportInput): Promise<ConfirmI
     await closeImport(row.id);
     await writeAudit(row.id, false, doc.id);
     return { candidateId: row.id, row, attached: false, documentId: doc.id };
-  });
+    // Headroom over the 5 s default for the public integrity re-download.
+  }, { timeout: 15_000 });
 
   if (result.row) await refreshCandidateEmbedding(result.row, "candidate import");
   return { candidateId: result.candidateId, attached: result.attached, documentId: result.documentId };

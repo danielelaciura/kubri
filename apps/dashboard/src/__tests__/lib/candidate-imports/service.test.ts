@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { createHash } from "node:crypto";
 
 const tx = {
   candidateImport: { findFirst: vi.fn(), updateMany: vi.fn(), update: vi.fn() },
@@ -716,5 +717,98 @@ describe("getPublicImport", () => {
   it("returns null for a non-UUID id", async () => {
     await expect(getPublicImport("x", "p")).resolves.toBeNull();
     expect(m(prisma.candidateImport.findFirst)).not.toHaveBeenCalled();
+  });
+});
+
+describe("stored file integrity (contentSha256)", () => {
+  const sha = (b: Uint8Array) => createHash("sha256").update(b).digest("hex");
+  const OTHER = new TextEncoder().encode("%PDF-1.7 tampered");
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    m(prisma.candidateImport.findUnique).mockResolvedValue(null);
+  });
+
+  it("registerUpload stores the sha256 of the bytes as stored", async () => {
+    m(downloadCandidateDocument).mockResolvedValueOnce(PDF);
+    await registerUpload(REGISTER);
+    expect(m(prisma.candidateImport.create).mock.calls[0]![0].data.contentSha256).toBe(sha(PDF));
+  });
+
+  it("registerUpload with inspect hashes the re-encoded bytes, not the original", async () => {
+    const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1]);
+    const JPEG = new Uint8Array([0xff, 0xd8, 0xff, 1, 2]);
+    m(downloadCandidateDocument).mockResolvedValueOnce(PNG);
+    m(inspectPublicDocument).mockResolvedValueOnce({ ok: true, bytes: JPEG, kind: "jpeg" });
+    await registerUpload({ ...REGISTER, fileName: "foto.png", origin: "PUBLIC_LINK", createdById: null, inspect: true });
+    expect(m(prisma.candidateImport.create).mock.calls[0]![0].data.contentSha256).toBe(sha(JPEG));
+  });
+
+  it("runExtraction fails REJECTED_FILE and removes the object when the hash differs", async () => {
+    m(prisma.candidateImport.updateMany).mockResolvedValue({ count: 1 });
+    m(prisma.candidateImport.findUniqueOrThrow).mockResolvedValueOnce({
+      storagePath: "p/i/cv.pdf", contentSha256: sha(PDF),
+    });
+    m(downloadCandidateDocument).mockResolvedValueOnce(OTHER);
+    await runExtraction(IMPORT_ID);
+    expect(m(extractDocumentText)).not.toHaveBeenCalled();
+    expect(m(extractCandidateDraft)).not.toHaveBeenCalled();
+    expect(m(prisma.candidateImport.updateMany).mock.calls[1]![0].data).toEqual({
+      status: "FAILED", errorCode: "REJECTED_FILE",
+    });
+    expect(m(removeCandidateDocuments)).toHaveBeenCalledWith(["p/i/cv.pdf"]);
+  });
+
+  it("runExtraction proceeds when the hash matches", async () => {
+    m(prisma.candidateImport.updateMany).mockResolvedValue({ count: 1 });
+    m(prisma.candidateImport.findUniqueOrThrow).mockResolvedValueOnce({
+      storagePath: "p/i/cv.pdf", contentSha256: sha(PDF),
+    });
+    m(downloadCandidateDocument).mockResolvedValueOnce(PDF);
+    m(extractDocumentText).mockResolvedValueOnce({ text: "CV", method: "pdf", pageCount: 1 });
+    m(extractCandidateDraft).mockResolvedValueOnce(DRAFT);
+    await runExtraction(IMPORT_ID);
+    expect(m(prisma.candidateImport.updateMany).mock.calls[1]![0].data.status).toBe("READY");
+    expect(m(removeCandidateDocuments)).not.toHaveBeenCalled();
+  });
+
+  const IMP = {
+    id: IMPORT_ID, status: "READY", candidateId: null, storagePath: `p/${IMPORT_ID}/cv.pdf`,
+    fileName: "cv.pdf", mimeType: "application/pdf", fileSize: 10, createdById: null,
+    contentSha256: sha(PDF), draft: DRAFT, pool: { id: "p", isGlobal: false, globalSharing: "WEBHOOK" },
+  };
+  const PUBLIC_CONFIRM = {
+    importId: IMPORT_ID, organizationId: "o", userId: null, poolId: "p",
+    fields: { firstName: "A", lastName: "B", phone: "+39 333 1234567" } as never,
+    channel: "landing_cv" as const, attachToExistingByPhone: true,
+  };
+
+  it("public confirm rejects a file whose hash changed, before any document is created", async () => {
+    tx.candidateImport.findFirst.mockResolvedValueOnce(IMP);
+    tx.candidateImport.updateMany.mockResolvedValueOnce({ count: 1 });
+    m(downloadCandidateDocument).mockResolvedValueOnce(OTHER);
+    await expect(confirmImport(PUBLIC_CONFIRM)).rejects.toMatchObject({ code: "REJECTED_FILE" });
+    expect(m(downloadCandidateDocument)).toHaveBeenCalledWith(IMP.storagePath);
+    expect(tx.candidateDocument.create).not.toHaveBeenCalled();
+    expect(m(upsertCandidate)).not.toHaveBeenCalled();
+  });
+
+  it("public confirm succeeds when the hash matches", async () => {
+    tx.candidateImport.findFirst.mockResolvedValueOnce(IMP);
+    tx.candidateImport.updateMany.mockResolvedValueOnce({ count: 1 });
+    m(downloadCandidateDocument).mockResolvedValueOnce(PDF);
+    m(findCandidateIdBySamePhone).mockResolvedValueOnce(null);
+    m(upsertCandidate).mockResolvedValueOnce({ id: "c-new" });
+    await expect(confirmImport(PUBLIC_CONFIRM)).resolves.toMatchObject({ candidateId: "c-new" });
+  });
+
+  it("operator confirm does not re-download the file", async () => {
+    tx.candidateImport.findFirst.mockResolvedValueOnce({ ...IMP, createdById: "u" });
+    tx.candidateImport.updateMany.mockResolvedValueOnce({ count: 1 });
+    m(upsertCandidate).mockResolvedValueOnce({ id: "c-1" });
+    await confirmImport({ importId: IMPORT_ID, organizationId: "o", userId: "u", fields: { firstName: "A" } as never });
+    expect(m(downloadCandidateDocument)).not.toHaveBeenCalled();
   });
 });

@@ -48,6 +48,13 @@ const MAX_STALE_BATCHES = 20;
 const ORPHAN_CHUNK = 100;
 /** Operator paths never see landing uploads (those belong to the public flow). */
 const NOT_PUBLIC = { not: "PUBLIC_LINK" } as const;
+/** A discarded import keeps no extracted text, draft or original file name (GDPR). */
+const DISCARDED_DATA = {
+  status: "DISCARDED",
+  extractedText: null,
+  draft: Prisma.DbNull,
+  fileName: "discarded",
+} satisfies Prisma.CandidateImportUpdateManyMutationInput;
 const OPEN_STATUSES = ["UPLOADED", "EXTRACTING", "READY", "FAILED"] as const;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -120,11 +127,15 @@ function withExtension(name: string, kind: DocumentKind): string {
   return `${stem.slice(0, MAX_FILE_NAME - ext.length)}${ext}`;
 }
 
-async function removeQuietly(storagePath: string, why: string): Promise<void> {
+/** Error name + message only: storage errors can carry paths (which hold file names). */
+const errorSummary = (e: unknown) =>
+  e instanceof Error ? { error: e.name, message: e.message } : { error: String(e) };
+
+async function removeQuietly(storagePath: string, importId: string, why: string): Promise<void> {
   try {
     await removeCandidateDocuments([storagePath]);
   } catch (e) {
-    console.error(`[candidate import] ${why} removal failed`, { storagePath, error: e });
+    console.error(`[candidate import] ${why} removal failed`, { importId, ...errorSummary(e) });
   }
 }
 
@@ -155,7 +166,7 @@ export async function registerUpload(input: RegisterUploadInput): Promise<{ impo
   const tooLarge = bytes.byteLength > (input.maxBytes ?? MAX_DOCUMENT_BYTES);
   const detected = tooLarge ? null : detectDocumentKind(bytes);
   if (!detected) {
-    await removeQuietly(storagePath, "invalid upload");
+    await removeQuietly(storagePath, input.importId, "invalid upload");
     throw new ImportError(tooLarge ? "FILE_TOO_LARGE" : "UNSUPPORTED_TYPE");
   }
 
@@ -165,14 +176,14 @@ export async function registerUpload(input: RegisterUploadInput): Promise<{ impo
     const inspected = await inspectPublicDocument(bytes, detected);
     if (!inspected.ok) {
       console.warn("[candidate import] public upload rejected", { reason: inspected.reason });
-      await removeQuietly(storagePath, "rejected upload");
+      await removeQuietly(storagePath, input.importId, "rejected upload");
       throw new ImportError("REJECTED_FILE");
     }
     // Always re-upload so the stored Content-Type is the server's, never the browser's.
     try {
       await replaceCandidateDocument(storagePath, inspected.bytes, DOCUMENT_MIME[inspected.kind]);
     } catch (e) {
-      await removeQuietly(storagePath, "unreplaceable upload");
+      await removeQuietly(storagePath, input.importId, "unreplaceable upload");
       throw new ImportError("STORAGE_ERROR", e);
     }
     stored = inspected.bytes;
@@ -261,7 +272,7 @@ export async function runExtraction(importId: string, opts: ExtractionOptions = 
       // The object changed after it was verified at registration: tampered.
       console.warn("[candidate import] stored file changed since registration", { importId });
       await finish({ status: "FAILED", errorCode: "REJECTED_FILE" });
-      await removeQuietly(imp.storagePath, "tampered upload");
+      await removeQuietly(imp.storagePath, importId, "tampered upload");
       return;
     }
     const kind = detectDocumentKind(bytes);
@@ -479,14 +490,14 @@ export async function discardImport(importId: string, organizationId: string): P
 
   const res = await prisma.candidateImport.updateMany({
     where: { id: importId, organizationId, origin: NOT_PUBLIC, status: { in: [...OPEN_STATUSES] } },
-    data: { status: "DISCARDED", extractedText: null, draft: Prisma.DbNull },
+    data: DISCARDED_DATA,
   });
   if (res.count === 0) return false;
 
   try {
     await removeCandidateDocuments([imp.storagePath]);
   } catch (e) {
-    console.error("[candidate import] file removal failed", { importId, error: e });
+    console.error("[candidate import] file removal failed", { importId, ...errorSummary(e) });
   }
   return true;
 }
@@ -515,7 +526,7 @@ export async function discardStaleImports(now = new Date(), batchSize = 100): Pr
 
     const res = await prisma.candidateImport.updateMany({
       where: { id: { in: stale.map((s) => s.id) }, status: { in: [...OPEN_STATUSES] } },
-      data: { status: "DISCARDED", extractedText: null, draft: Prisma.DbNull },
+      data: DISCARDED_DATA,
     });
     const discarded = await prisma.candidateImport.findMany({
       where: { id: { in: stale.map((s) => s.id) }, status: "DISCARDED" },
@@ -524,7 +535,7 @@ export async function discardStaleImports(now = new Date(), batchSize = 100): Pr
     try {
       await removeCandidateDocuments(discarded.map((d) => d.storagePath));
     } catch (e) {
-      console.error("[candidate import] stale file removal failed", e);
+      console.error("[candidate import] stale file removal failed", errorSummary(e));
     }
     total += res.count;
     if (stale.length < batchSize) break;
@@ -573,7 +584,7 @@ export async function removeOrphanUploads(now = new Date(), maxAgeMs = ORPHAN_UP
     } catch (e) {
       console.error("[candidate import] orphan upload removal failed", {
         count: batch.length,
-        message: e instanceof Error ? e.message : String(e),
+        ...errorSummary(e),
       });
     }
   }

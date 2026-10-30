@@ -532,7 +532,7 @@ describe("discardImport / discardStaleImports", () => {
       status: { in: ["UPLOADED", "EXTRACTING", "READY", "FAILED"] },
     });
     expect(m(prisma.candidateImport.updateMany).mock.calls[0]![0].data).toEqual({
-      status: "DISCARDED", extractedText: null, draft: Prisma.DbNull,
+      status: "DISCARDED", extractedText: null, draft: Prisma.DbNull, fileName: "discarded",
     });
     expect(m(removeCandidateDocuments)).toHaveBeenCalledWith(["p/i/cv.pdf"]);
   });
@@ -558,7 +558,7 @@ describe("discardImport / discardStaleImports", () => {
       ],
     });
     expect(m(prisma.candidateImport.updateMany).mock.calls[0]![0].data).toEqual({
-      status: "DISCARDED", extractedText: null, draft: Prisma.DbNull,
+      status: "DISCARDED", extractedText: null, draft: Prisma.DbNull, fileName: "discarded",
     });
     expect(m(removeCandidateDocuments)).toHaveBeenCalledWith(["p/a/cv.pdf", "p/b/cv.pdf"]);
   });
@@ -934,5 +934,43 @@ describe("operator helpers ignore public imports", () => {
     });
     expect(m(prisma.candidateImport.updateMany)).not.toHaveBeenCalled();
     expect(m(removeCandidateDocuments)).not.toHaveBeenCalled();
+  });
+});
+
+describe("no file names or paths in logs", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    m(prisma.candidateImport.findUnique).mockResolvedValue(null);
+  });
+  const logged = () => JSON.stringify([...m(console.error).mock.calls, ...m(console.warn).mock.calls]);
+  const leaky = () => Object.assign(new StorageError("remove failed"), { path: "p/i/CV_Ahmed.pdf" });
+
+  it("a failed cleanup removal during register logs the import id, not the path", async () => {
+    m(downloadCandidateDocument).mockResolvedValueOnce(new TextEncoder().encode("hello"));
+    m(removeCandidateDocuments).mockRejectedValueOnce(leaky());
+    await expect(registerUpload(REGISTER)).rejects.toMatchObject({ code: "UNSUPPORTED_TYPE" });
+    expect(logged()).toContain(IMPORT_ID);
+    expect(logged()).not.toContain("CV_Ahmed");
+  });
+
+  it("discardImport logs only the error name and message", async () => {
+    m(prisma.candidateImport.findFirst).mockResolvedValueOnce({ storagePath: "p/i/CV_Ahmed.pdf" });
+    m(prisma.candidateImport.updateMany).mockResolvedValueOnce({ count: 1 });
+    m(removeCandidateDocuments).mockRejectedValueOnce(leaky());
+    await expect(discardImport(IMPORT_ID, "o")).resolves.toBe(true);
+    expect(logged()).toContain("remove failed");
+    expect(logged()).not.toContain("CV_Ahmed");
+  });
+
+  it("discardStaleImports logs no paths when removal fails", async () => {
+    m(prisma.candidateImport.findMany)
+      .mockResolvedValueOnce([{ id: "a", storagePath: "p/a/CV_Ahmed.pdf" }])
+      .mockResolvedValueOnce([{ storagePath: "p/a/CV_Ahmed.pdf" }]);
+    m(prisma.candidateImport.updateMany).mockResolvedValueOnce({ count: 1 });
+    m(removeCandidateDocuments).mockRejectedValueOnce(leaky());
+    await expect(discardStaleImports(new Date())).resolves.toBe(1);
+    expect(logged()).not.toContain("CV_Ahmed");
   });
 });

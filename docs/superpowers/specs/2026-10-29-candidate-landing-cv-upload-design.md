@@ -170,7 +170,8 @@ In the same transaction, after claiming the import:
   (`normalizePhone`: strip non-digits, drop leading `00`, prepend `39` to 10-digit
   numbers starting with `3` **only when the input has no `+` / `00` prefix**), equals the submitted normalized phone → create the
   `CandidateDocument` on that candidate, set `import.candidateId`, skip
-  `ingestCandidate` and the embedding refresh. Audit `candidate_document.attach`.
+  `ingestCandidate` and the embedding refresh. There is no separate attach audit:
+  the attach case is recorded in `candidate_import.public_confirm` with `attached: true`.
 - Otherwise → `ingestCandidate` as today with `channel`, then the document.
 
 The consent audit row `candidate_import.public_confirm` (`ipHash`, `consent`,
@@ -195,16 +196,28 @@ Principle: every layer is cheaper than the next; a request reaches the paid step
 - **Rate limits** on Upstash Redis (`@upstash/redis`, already a dependency),
   fixed-window counters via `INCR` + `EXPIRE`:
 
-  | Key | Limit |
-  |---|---|
-  | per IP (hashed) | 3 / hour, 10 / day |
-  | per landing | 100 / day |
-  | per import | 2 extraction runs / day (one retry) |
-  | global extractions | 300 / day (budget cap, checked in `runPublicExtraction`) |
+  | Key | Default | Env override |
+  |---|---|---|
+  | per IP (hashed), hour | 5 | `LANDING_LIMIT_IP_HOUR` |
+  | per IP (hashed), day | 20 | `LANDING_LIMIT_IP_DAY` |
+  | per landing, uploads / day | 100 | `LANDING_LIMIT_PAGE_DAY` |
+  | per import, extraction runs / day (one retry) | 2 | `LANDING_LIMIT_IMPORT_DAY` |
+  | per landing, extractions / day | 100 | `LANDING_LIMIT_PAGE_EXTRACTIONS_DAY` |
+  | global extractions / day (budget cap) | 300 | `LANDING_LIMIT_EXTRACTIONS_DAY` |
+
+  Limits are read from env at call time as positive integers; blank or invalid
+  values fall back to the default (logged once, without the value).
 
   Rules are evaluated in order and stop at the first refusal (later counters are
-  not incremented): per-IP before per-landing, per-import before global, so one
-  abuser or one retrying import cannot burn shared budgets.
+  not incremented): per-IP before per-landing, and per-import before per-landing
+  extractions before global, so one abuser, one retrying import or one landing
+  cannot burn the shared budgets.
+
+  **One ticket = one registration**: `registerLandingUpload` first consumes
+  `landing:register:<importId>` (1 per 2 h). A second registration of the same
+  ticket (for instance re-uploading after `REJECTED_FILE`) is refused with
+  `SESSION_EXPIRED`, so it cannot bypass Turnstile and the IP limits; an
+  unavailable limiter yields `UNAVAILABLE`.
 
 - **Fail closed**: in production, if Upstash is not configured or unreachable,
   public uploads are refused (an in-memory counter limits nothing on Vercel).

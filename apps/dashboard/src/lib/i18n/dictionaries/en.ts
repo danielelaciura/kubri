@@ -477,6 +477,8 @@ export const en = {
     originLanding: "From landing page (CV)",
   },
   landing: {
+    notFoundTitle: "Page not available",
+    notFoundBody: "This application page does not exist or is no longer active.",
     metaTitle: "Apply with {org}",
     intro: "Looking for work? Apply with {org} in two ways.",
     whatsappTitle: "Do the interview on WhatsApp",

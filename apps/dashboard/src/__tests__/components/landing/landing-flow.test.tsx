@@ -94,6 +94,21 @@ describe("LandingFlow", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(t.errors.busy);
   });
 
+  it("re-arms the captcha timeout when the upload step is entered again", () => {
+    vi.useFakeTimers();
+    setup("site-key");
+    fireEvent.click(screen.getByText("stub-error"));
+    expect(screen.getByRole("alert")).toHaveTextContent(t.errors.busy);
+    fireEvent.click(screen.getByRole("button", { name: t.back }));
+    fireEvent.click(screen.getByRole("button", { name: t.uploadCta }));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByText(t.verifying)).toBeInTheDocument();
+    act(() => {
+      vi.advanceTimersByTime(15_000);
+    });
+    expect(screen.getByRole("alert")).toHaveTextContent(t.errors.busy);
+  });
+
   it("offers Retry after an extraction LLM_ERROR", async () => {
     vi.mocked(runLandingExtractionAction).mockResolvedValue({ ok: false, error: "LLM_ERROR" });
     const { container } = setup();

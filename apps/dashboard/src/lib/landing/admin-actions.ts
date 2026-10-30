@@ -1,5 +1,6 @@
 "use server";
 
+import { z } from "zod/v4";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/auth-utils";
 import { Role } from "@/generated/prisma/client";
@@ -20,6 +21,8 @@ export async function saveLandingPageAction(
     return { status: "error", error: "FORBIDDEN" };
   }
   if (user.role !== Role.ADMIN_KUBRI) return { status: "error", error: "FORBIDDEN" };
+
+  if (!z.string().uuid().safeParse(organizationId).success) return { status: "error", error: "VALIDATION" };
 
   const parsed = landingPageInputSchema.safeParse({
     slug: formData.get("slug"),

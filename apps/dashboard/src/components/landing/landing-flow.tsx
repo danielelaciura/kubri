@@ -117,6 +117,11 @@ export function LandingFlow(props: LandingFlowProps) {
     };
   }, []);
 
+  // Entering the upload step again (Back → upload) gives Turnstile a fresh start.
+  useEffect(() => {
+    if (step.kind === "upload") setCaptchaFailed(false);
+  }, [step.kind]);
+
   // No token in time on the upload step: treat it like a Turnstile failure.
   useEffect(() => {
     if (step.kind !== "upload" || !waitingForCaptcha || captchaFailed) return;

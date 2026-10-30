@@ -475,6 +475,8 @@ export const it = {
     originLanding: "Da landing page (CV)",
   },
   landing: {
+    notFoundTitle: "Pagina non disponibile",
+    notFoundBody: "Questa pagina di candidatura non esiste o non è più attiva.",
     metaTitle: "Candidati con {org}",
     intro: "Stai cercando lavoro? Candidati con {org} in due modi.",
     whatsappTitle: "Fai il colloquio su WhatsApp",

@@ -13,6 +13,7 @@ import { saveLandingPageAction } from "@/lib/landing/admin-actions";
 
 const m = <T>(f: T) => f as unknown as ReturnType<typeof vi.fn>;
 const POOL_ID = "11111111-1111-4111-8111-111111111111";
+const ORG_ID = "22222222-2222-4222-8222-222222222222";
 const IDLE = { status: "idle" as const };
 
 function form(over: Record<string, string | null> = {}) {
@@ -37,32 +38,37 @@ beforeEach(() => {
 describe("saveLandingPageAction", () => {
   it("rejects non-admins without saving", async () => {
     m(getCurrentUser).mockResolvedValue({ id: "u-2", role: "ADMIN_CLIENTE" });
-    expect(await saveLandingPageAction("o-1", IDLE, form())).toEqual({ status: "error", error: "FORBIDDEN" });
+    expect(await saveLandingPageAction(ORG_ID, IDLE, form())).toEqual({ status: "error", error: "FORBIDDEN" });
     expect(saveLandingPage).not.toHaveBeenCalled();
   });
 
   it("returns VALIDATION on invalid input", async () => {
-    const r = await saveLandingPageAction("o-1", IDLE, form({ privacyPolicyUrl: "http://x.it" }));
+    const r = await saveLandingPageAction(ORG_ID, IDLE, form({ privacyPolicyUrl: "http://x.it" }));
     expect(r).toEqual({ status: "error", error: "VALIDATION" });
     expect(saveLandingPage).not.toHaveBeenCalled();
   });
 
+  it("returns VALIDATION when the organization id is not a UUID", async () => {
+    expect(await saveLandingPageAction("not-a-uuid", IDLE, form())).toEqual({ status: "error", error: "VALIDATION" });
+    expect(saveLandingPage).not.toHaveBeenCalled();
+  });
+
   it("passes enabled=false when the checkbox is unchecked", async () => {
-    await saveLandingPageAction("o-1", IDLE, form({ enabled: null }));
-    expect(saveLandingPage).toHaveBeenCalledWith("o-1", expect.objectContaining({ enabled: false }));
+    await saveLandingPageAction(ORG_ID, IDLE, form({ enabled: null }));
+    expect(saveLandingPage).toHaveBeenCalledWith(ORG_ID, expect.objectContaining({ enabled: false }));
   });
 
   it("passes SLUG_TAKEN through", async () => {
     m(saveLandingPage).mockResolvedValue({ ok: false, error: "SLUG_TAKEN" });
-    expect(await saveLandingPageAction("o-1", IDLE, form())).toEqual({ status: "error", error: "SLUG_TAKEN" });
+    expect(await saveLandingPageAction(ORG_ID, IDLE, form())).toEqual({ status: "error", error: "SLUG_TAKEN" });
     expect(logAudit).not.toHaveBeenCalled();
   });
 
   it("audits, revalidates and returns saved on success", async () => {
-    expect(await saveLandingPageAction("o-1", IDLE, form())).toEqual({ status: "saved" });
+    expect(await saveLandingPageAction(ORG_ID, IDLE, form())).toEqual({ status: "saved" });
     expect(logAudit).toHaveBeenCalledWith(
-      expect.objectContaining({ action: "landing_page.save", organizationId: "o-1", resourceId: "l-1", userId: "u-1" }),
+      expect.objectContaining({ action: "landing_page.save", organizationId: ORG_ID, resourceId: "l-1", userId: "u-1" }),
     );
-    expect(revalidatePath).toHaveBeenCalledWith("/admin/organizations/o-1");
+    expect(revalidatePath).toHaveBeenCalledWith(`/admin/organizations/${ORG_ID}`);
   });
 });

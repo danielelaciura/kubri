@@ -126,4 +126,36 @@ describe("candidate-documents storage", () => {
     bucket.list.mockResolvedValueOnce({ data: null, error: { message: "boom" } });
     await expect(listDocumentObjects()).rejects.toBeInstanceOf(StorageError);
   });
+
+  const folder = (name: string) => ({ name, id: null, created_at: null });
+  const file = (name: string) => ({ name, id: `id-${name}`, created_at: "2026-10-01T00:00:00Z" });
+  function bucketOf(pools: Record<string, string[]>) {
+    bucket.list.mockImplementation(async (prefix: string, opts: { offset: number }) => {
+      if (opts.offset > 0) return { data: [], error: null };
+      if (prefix === "") return { data: Object.keys(pools).map(folder), error: null };
+      if (prefix in pools) return { data: pools[prefix]!.map(folder), error: null };
+      return { data: [file("cv.pdf")], error: null };
+    });
+  }
+  const fileListCalls = () => bucket.list.mock.calls.filter(([p]) => String(p).split("/").length === 2);
+
+  it("listDocumentObjects stops after maxImportFolders import folders", async () => {
+    bucketOf({ a: ["i1", "i2"], b: ["i3", "i4"] });
+    const objects = await listDocumentObjects({ maxImportFolders: 3, random: () => 0 });
+    expect(objects.map((o) => o.importId)).toEqual(["i1", "i2", "i3"]);
+    expect(fileListCalls()).toHaveLength(3);
+  });
+
+  it("listDocumentObjects stops at the deadline", async () => {
+    bucketOf({ a: ["i1", "i2"] });
+    const objects = await listDocumentObjects({ deadline: Date.now() - 1 });
+    expect(objects).toEqual([]);
+    expect(fileListCalls()).toHaveLength(0);
+  });
+
+  it("listDocumentObjects starts from a random pool and import so a capped sweep rotates", async () => {
+    bucketOf({ a: ["i1", "i2"], b: ["i3", "i4"] });
+    const objects = await listDocumentObjects({ maxImportFolders: 1, random: () => 0.5 });
+    expect(objects.map((o) => o.importId)).toEqual(["i4"]);
+  });
 });

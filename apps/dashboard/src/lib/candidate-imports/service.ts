@@ -55,6 +55,11 @@ const DISCARDED_DATA = {
   draft: Prisma.DbNull,
   fileName: "discarded",
 } satisfies Prisma.CandidateImportUpdateManyMutationInput;
+/** `poolId/importId/<name>` → `poolId/importId/discarded`: no file name left on the row. */
+const discardedStoragePath = (path: string) => `${path.split("/").slice(0, 2).join("/")}/discarded`;
+/** Orphan sweep bounds per run. */
+const ORPHAN_MAX_IMPORT_FOLDERS = 500;
+const ORPHAN_BUDGET_MS = 30_000;
 const OPEN_STATUSES = ["UPLOADED", "EXTRACTING", "READY", "FAILED"] as const;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -345,6 +350,35 @@ export interface ConfirmImportResult {
 }
 
 /**
+ * Public confirm, before the transaction (no network inside it): the stored
+ * file must still be the one verified at registration. On mismatch the import
+ * is marked FAILED REJECTED_FILE (only while READY), the object is removed and
+ * ImportError(REJECTED_FILE) is thrown. Anything else (missing row, not READY,
+ * no recorded hash) is left to the transaction to decide.
+ */
+async function assertPublicFileIntact(importId: string, organizationId: string, poolId: string): Promise<void> {
+  const imp = await prisma.candidateImport.findFirst({
+    where: { id: importId, organizationId, poolId, origin: "PUBLIC_LINK" },
+    select: { id: true, status: true, storagePath: true, contentSha256: true },
+  });
+  if (!imp || imp.status !== "READY" || !imp.contentSha256) return;
+  let bytes: Uint8Array;
+  try {
+    bytes = await downloadCandidateDocument(imp.storagePath);
+  } catch (e) {
+    throw new ImportError("STORAGE_ERROR", e);
+  }
+  if (sha256Hex(bytes) === imp.contentSha256) return;
+  console.warn("[candidate import] stored file changed since registration", { importId: imp.id });
+  await prisma.candidateImport.updateMany({
+    where: { id: imp.id, status: "READY" },
+    data: { status: "FAILED", errorCode: "REJECTED_FILE" },
+  });
+  await removeQuietly(imp.storagePath, imp.id, "tampered upload");
+  throw new ImportError("REJECTED_FILE");
+}
+
+/**
  * Create the candidate from a READY import (or a FAILED one filled in by
  * hand) — or attach the CV to an existing same-phone candidate — atomically.
  * Idempotent: confirming a COMPLETED import returns its candidate. Throws
@@ -361,6 +395,7 @@ export async function confirmImport(input: ConfirmImportInput): Promise<ConfirmI
   const channel = input.channel ?? "dashboard_cv";
   const isPublic = channel === "landing_cv";
   if (isPublic && !input.poolId) throw new ImportNotFoundError();
+  if (isPublic) await assertPublicFileIntact(input.importId, input.organizationId, input.poolId!);
   const result = await prisma.$transaction(async (tx) => {
     const imp = await tx.candidateImport.findFirst({
       where: isPublic
@@ -391,21 +426,6 @@ export async function confirmImport(input: ConfirmImportInput): Promise<ConfirmI
       data: { status: "COMPLETED" },
     });
     if (claimed.count === 0) throw new ImportStateError(imp.status);
-
-    // Public uploads: the file must still be the one verified at registration.
-    // A mismatch throws and rolls the whole confirm back.
-    if (isPublic && imp.contentSha256) {
-      let bytes: Uint8Array;
-      try {
-        bytes = await downloadCandidateDocument(imp.storagePath);
-      } catch (e) {
-        throw new ImportError("STORAGE_ERROR", e);
-      }
-      if (sha256Hex(bytes) !== imp.contentSha256) {
-        console.warn("[candidate import] stored file changed since registration", { importId: imp.id });
-        throw new ImportError("REJECTED_FILE");
-      }
-    }
 
     const document = {
       kind: "CV" as const,
@@ -472,8 +492,7 @@ export async function confirmImport(input: ConfirmImportInput): Promise<ConfirmI
     await closeImport(row.id);
     await writeAudit(row.id, false, doc.id);
     return { candidateId: row.id, row, attached: false, documentId: doc.id };
-    // Headroom over the 5 s default for the public integrity re-download.
-  }, { timeout: 15_000 });
+  });
 
   if (result.row) await refreshCandidateEmbedding(result.row, "candidate import");
   return { candidateId: result.candidateId, attached: result.attached, documentId: result.documentId };
@@ -490,7 +509,7 @@ export async function discardImport(importId: string, organizationId: string): P
 
   const res = await prisma.candidateImport.updateMany({
     where: { id: importId, organizationId, origin: NOT_PUBLIC, status: { in: [...OPEN_STATUSES] } },
-    data: DISCARDED_DATA,
+    data: { ...DISCARDED_DATA, storagePath: discardedStoragePath(imp.storagePath) },
   });
   if (res.count === 0) return false;
 
@@ -524,20 +543,23 @@ export async function discardStaleImports(now = new Date(), batchSize = 100): Pr
     });
     if (stale.length === 0) break;
 
-    const res = await prisma.candidateImport.updateMany({
-      where: { id: { in: stale.map((s) => s.id) }, status: { in: [...OPEN_STATUSES] } },
-      data: DISCARDED_DATA,
-    });
-    const discarded = await prisma.candidateImport.findMany({
-      where: { id: { in: stale.map((s) => s.id) }, status: "DISCARDED" },
-      select: { storagePath: true },
-    });
+    // One conditional update per row (each gets its own name-free path), one round trip.
+    const results = await prisma.$transaction(
+      stale.map((row) =>
+        prisma.candidateImport.updateMany({
+          where: { id: row.id, status: { in: [...OPEN_STATUSES] } },
+          data: { ...DISCARDED_DATA, storagePath: discardedStoragePath(row.storagePath) },
+        }),
+      ),
+    );
+    // Only rows this run actually discarded: the original paths read above.
+    const discarded = stale.filter((_, i) => results[i]!.count > 0);
     try {
       await removeCandidateDocuments(discarded.map((d) => d.storagePath));
     } catch (e) {
       console.error("[candidate import] stale file removal failed", errorSummary(e));
     }
-    total += res.count;
+    total += discarded.length;
     if (stale.length < batchSize) break;
   }
   return total;
@@ -546,12 +568,18 @@ export async function discardStaleImports(now = new Date(), batchSize = 100): Pr
 /**
  * Nightly cleanup of uploads that were never registered: a ticket writes no
  * DB row, so an object whose import id has no CandidateImport row after
- * `maxAgeMs` is an orphan. Objects referenced by a CandidateDocument are
- * never touched. Returns the number of objects removed.
+ * `maxAgeMs` is an orphan, and so is the leftover file of a DISCARDED import
+ * whose removal failed. Objects referenced by a CandidateDocument are never
+ * touched. Returns the number of objects removed.
  */
 export async function removeOrphanUploads(now = new Date(), maxAgeMs = ORPHAN_UPLOAD_MS): Promise<number> {
   const cutoff = now.getTime() - maxAgeMs;
-  const old = (await listDocumentObjects()).filter(
+  // Bounded per run; the walk starts at a random point so successive runs cover the bucket.
+  const listed = await listDocumentObjects({
+    maxImportFolders: ORPHAN_MAX_IMPORT_FOLDERS,
+    deadline: Date.now() + ORPHAN_BUDGET_MS,
+  });
+  const old = listed.filter(
     (o) => o.createdAt !== null && o.createdAt.getTime() < cutoff && isUuid(o.importId),
   );
   if (old.length === 0) return 0;
@@ -560,7 +588,8 @@ export async function removeOrphanUploads(now = new Date(), maxAgeMs = ORPHAN_UP
   for (let i = 0; i < old.length; i += ORPHAN_CHUNK) {
     const chunk = old.slice(i, i + ORPHAN_CHUNK);
     const known = await prisma.candidateImport.findMany({
-      where: { id: { in: [...new Set(chunk.map((o) => o.importId))] } },
+      // A DISCARDED row does not protect its object: its file should already be gone.
+      where: { id: { in: [...new Set(chunk.map((o) => o.importId))] }, status: { not: "DISCARDED" } },
       select: { id: true },
     });
     const knownIds = new Set(known.map((k) => k.id));

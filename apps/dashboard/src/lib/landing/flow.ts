@@ -35,8 +35,9 @@ const warnedEnv = new Set<string>();
 function intFromEnv(name: string, fallback: number): number {
   const raw = process.env[name]?.trim();
   if (!raw) return fallback;
-  const n = Number(raw);
-  if (Number.isInteger(n) && n > 0) return n;
+  // Plain digits only: Number() would also accept "1e2" or "0x10".
+  const n = /^\d+$/.test(raw) ? Number(raw) : Number.NaN;
+  if (Number.isSafeInteger(n) && n > 0) return n;
   if (!warnedEnv.has(name)) {
     warnedEnv.add(name);
     console.warn(`[landing] invalid ${name}, using default ${fallback}`);

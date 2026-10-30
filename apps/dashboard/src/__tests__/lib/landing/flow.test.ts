@@ -87,6 +87,19 @@ describe("requestLandingUpload", () => {
     }
   });
 
+  it("accepts only plain digit strings as env limits", async () => {
+    vi.stubEnv("LANDING_LIMIT_IP_HOUR", "1e2");
+    vi.stubEnv("LANDING_LIMIT_IP_DAY", "0x10");
+    vi.stubEnv("LANDING_LIMIT_PAGE_DAY", "12");
+    try {
+      await requestLandingUpload(LANDING, input, CTX);
+      const rules = m(consumeRateLimits).mock.calls[0]![0] as { limit: number }[];
+      expect(rules.map((r) => r.limit)).toEqual([5, 20, 12]);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it("refuses oversize or empty files before the captcha", async () => {
     await expect(requestLandingUpload(LANDING, { ...input, fileSize: PUBLIC_MAX_DOCUMENT_BYTES + 1 }, CTX))
       .resolves.toEqual({ ok: false, error: "FILE_TOO_LARGE" });

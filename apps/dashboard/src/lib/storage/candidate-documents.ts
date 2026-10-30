@@ -106,16 +106,44 @@ async function listAll(prefix: string): Promise<ListedEntry[]> {
   }
 }
 
+export interface ListDocumentObjectsOptions {
+  /** Stop after listing the files of this many import folders. */
+  maxImportFolders?: number;
+  /** Epoch ms: stop listing once reached. */
+  deadline?: number;
+  /** Random source for the starting pool/import (tests inject it). */
+  random?: () => number;
+}
+
+/** `xs` rotated to start at a random index. */
+function rotate<T>(xs: T[], random: () => number): T[] {
+  if (xs.length < 2) return xs;
+  const k = Math.floor(random() * xs.length) % xs.length;
+  return [...xs.slice(k), ...xs.slice(0, k)];
+}
+
 /**
- * Walk the bucket (`poolId/importId/file`) and return every stored file.
- * Used by the nightly orphan cleanup. One list call per import folder.
+ * Walk the bucket (`poolId/importId/file`) and return the stored files.
+ * Used by the nightly orphan cleanup. One list call per import folder, so the
+ * walk is bounded (`maxImportFolders`, `deadline`) and starts at a random pool
+ * and import: successive capped runs cover different parts of the bucket.
  */
-export async function listDocumentObjects(): Promise<DocumentObject[]> {
+export async function listDocumentObjects(opts: ListDocumentObjectsOptions = {}): Promise<DocumentObject[]> {
+  const maxFolders = opts.maxImportFolders ?? Number.POSITIVE_INFINITY;
+  const deadline = opts.deadline ?? Number.POSITIVE_INFINITY;
+  const random = opts.random ?? Math.random;
+  let visited = 0;
+  const exhausted = () => visited >= maxFolders || Date.now() >= deadline;
+
   const objects: DocumentObject[] = [];
-  const pools = (await listAll("")).filter((e) => e.id === null);
+  if (exhausted()) return objects;
+  const pools = rotate((await listAll("")).filter((e) => e.id === null), random);
   for (const pool of pools) {
-    const imports = (await listAll(pool.name)).filter((e) => e.id === null);
+    if (exhausted()) break;
+    const imports = rotate((await listAll(pool.name)).filter((e) => e.id === null), random);
     for (const imp of imports) {
+      if (exhausted()) break;
+      visited++;
       const files = await listAll(`${pool.name}/${imp.name}`);
       for (const f of files) {
         // Folders and Supabase's ".emptyFolderPlaceholder" (sanitized uploads never start with ".").

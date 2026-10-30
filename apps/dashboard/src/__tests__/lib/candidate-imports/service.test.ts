@@ -23,7 +23,8 @@ vi.mock("@/lib/db", () => ({
       findMany: vi.fn(),
     },
     candidateDocument: { findMany: vi.fn() },
-    $transaction: vi.fn(async (fn: (t: typeof tx) => unknown) => fn(tx)),
+    $transaction: vi.fn(async (arg: unknown) =>
+      Array.isArray(arg) ? Promise.all(arg) : (arg as (t: typeof tx) => unknown)(tx)),
   },
 }));
 vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: vi.fn() }));
@@ -533,6 +534,7 @@ describe("discardImport / discardStaleImports", () => {
     });
     expect(m(prisma.candidateImport.updateMany).mock.calls[0]![0].data).toEqual({
       status: "DISCARDED", extractedText: null, draft: Prisma.DbNull, fileName: "discarded",
+      storagePath: "p/i/discarded",
     });
     expect(m(removeCandidateDocuments)).toHaveBeenCalledWith(["p/i/cv.pdf"]);
   });
@@ -543,11 +545,7 @@ describe("discardImport / discardStaleImports", () => {
       { id: "a", storagePath: "p/a/cv.pdf" },
       { id: "b", storagePath: "p/b/cv.pdf" },
     ]);
-    m(prisma.candidateImport.updateMany).mockResolvedValueOnce({ count: 2 });
-    m(prisma.candidateImport.findMany).mockResolvedValueOnce([
-      { storagePath: "p/a/cv.pdf" },
-      { storagePath: "p/b/cv.pdf" },
-    ]);
+    m(prisma.candidateImport.updateMany).mockResolvedValue({ count: 1 });
     await expect(discardStaleImports(now)).resolves.toBe(2);
     const where = m(prisma.candidateImport.findMany).mock.calls[0]![0].where;
     expect(where).toEqual({
@@ -557,27 +555,29 @@ describe("discardImport / discardStaleImports", () => {
         { origin: "PUBLIC_LINK", updatedAt: { lt: new Date("2026-10-22T03:00:00Z") } },
       ],
     });
-    expect(m(prisma.candidateImport.updateMany).mock.calls[0]![0].data).toEqual({
-      status: "DISCARDED", extractedText: null, draft: Prisma.DbNull, fileName: "discarded",
-    });
+    // One conditional update per row: each gets its own name-free path.
+    expect(m(prisma.candidateImport.updateMany).mock.calls.map((c) => c[0])).toEqual([
+      {
+        where: { id: "a", status: { in: ["UPLOADED", "EXTRACTING", "READY", "FAILED"] } },
+        data: { status: "DISCARDED", extractedText: null, draft: Prisma.DbNull, fileName: "discarded", storagePath: "p/a/discarded" },
+      },
+      {
+        where: { id: "b", status: { in: ["UPLOADED", "EXTRACTING", "READY", "FAILED"] } },
+        data: { status: "DISCARDED", extractedText: null, draft: Prisma.DbNull, fileName: "discarded", storagePath: "p/b/discarded" },
+      },
+    ]);
     expect(m(removeCandidateDocuments)).toHaveBeenCalledWith(["p/a/cv.pdf", "p/b/cv.pdf"]);
   });
 });
 
 it("removes files only for rows actually discarded", async () => {
-  m(prisma.candidateImport.findMany)
-    .mockResolvedValueOnce([
-      { id: "a", storagePath: "p/a/cv.pdf" },
-      { id: "b", storagePath: "p/b/cv.pdf" },
-    ])
-    .mockResolvedValueOnce([{ storagePath: "p/a/cv.pdf" }]);
-  m(prisma.candidateImport.updateMany).mockResolvedValueOnce({ count: 1 });
-  m(removeCandidateDocuments).mockClear();
+  vi.clearAllMocks();
+  m(prisma.candidateImport.findMany).mockResolvedValueOnce([
+    { id: "a", storagePath: "p/a/cv.pdf" },
+    { id: "b", storagePath: "p/b/cv.pdf" },
+  ]);
+  m(prisma.candidateImport.updateMany).mockResolvedValueOnce({ count: 1 }).mockResolvedValueOnce({ count: 0 });
   await expect(discardStaleImports(new Date())).resolves.toBe(1);
-  expect(m(prisma.candidateImport.findMany).mock.calls[1]![0]).toEqual({
-    where: { id: { in: ["a", "b"] }, status: "DISCARDED" },
-    select: { storagePath: true },
-  });
   expect(m(removeCandidateDocuments)).toHaveBeenCalledWith(["p/a/cv.pdf"]);
 });
 
@@ -797,23 +797,44 @@ describe("stored file integrity (contentSha256)", () => {
     channel: "landing_cv" as const, attachToExistingByPhone: true,
   };
 
-  it("public confirm rejects a file whose hash changed, before any document is created", async () => {
-    tx.candidateImport.findFirst.mockResolvedValueOnce(IMP);
-    tx.candidateImport.updateMany.mockResolvedValueOnce({ count: 1 });
+  it("public confirm checks the hash before the transaction: mismatch → FAILED, removed, thrown", async () => {
+    m(prisma.candidateImport.findFirst).mockResolvedValueOnce(IMP);
     m(downloadCandidateDocument).mockResolvedValueOnce(OTHER);
+    m(prisma.candidateImport.updateMany).mockResolvedValueOnce({ count: 1 });
     await expect(confirmImport(PUBLIC_CONFIRM)).rejects.toMatchObject({ code: "REJECTED_FILE" });
+    expect(m(prisma.candidateImport.findFirst).mock.calls[0]![0]).toEqual({
+      where: { id: IMPORT_ID, organizationId: "o", poolId: "p", origin: "PUBLIC_LINK" },
+      select: { id: true, status: true, storagePath: true, contentSha256: true },
+    });
     expect(m(downloadCandidateDocument)).toHaveBeenCalledWith(IMP.storagePath);
+    expect(m(prisma.candidateImport.updateMany)).toHaveBeenCalledWith({
+      where: { id: IMPORT_ID, status: "READY" },
+      data: { status: "FAILED", errorCode: "REJECTED_FILE" },
+    });
+    expect(m(removeCandidateDocuments)).toHaveBeenCalledWith([IMP.storagePath]);
+    expect(m(prisma.$transaction)).not.toHaveBeenCalled();
     expect(tx.candidateDocument.create).not.toHaveBeenCalled();
-    expect(m(upsertCandidate)).not.toHaveBeenCalled();
   });
 
-  it("public confirm succeeds when the hash matches", async () => {
+  it("public confirm with a matching hash proceeds on the default transaction", async () => {
+    m(prisma.candidateImport.findFirst).mockResolvedValueOnce(IMP);
+    m(downloadCandidateDocument).mockResolvedValueOnce(PDF);
     tx.candidateImport.findFirst.mockResolvedValueOnce(IMP);
     tx.candidateImport.updateMany.mockResolvedValueOnce({ count: 1 });
-    m(downloadCandidateDocument).mockResolvedValueOnce(PDF);
     m(findCandidateIdBySamePhone).mockResolvedValueOnce(null);
     m(upsertCandidate).mockResolvedValueOnce({ id: "c-new" });
     await expect(confirmImport(PUBLIC_CONFIRM)).resolves.toMatchObject({ candidateId: "c-new" });
+    expect(m(downloadCandidateDocument)).toHaveBeenCalledTimes(1);
+    expect(m(prisma.$transaction).mock.calls[0]).toHaveLength(1);
+    expect(m(prisma.candidateImport.updateMany)).not.toHaveBeenCalled();
+    expect(m(removeCandidateDocuments)).not.toHaveBeenCalled();
+  });
+
+  it("public confirm skips the pre-check for a non-READY import (the transaction decides)", async () => {
+    m(prisma.candidateImport.findFirst).mockResolvedValueOnce({ ...IMP, status: "COMPLETED" });
+    tx.candidateImport.findFirst.mockResolvedValueOnce({ ...IMP, status: "COMPLETED", candidateId: "c-9" });
+    await expect(confirmImport(PUBLIC_CONFIRM)).resolves.toMatchObject({ candidateId: "c-9" });
+    expect(m(downloadCandidateDocument)).not.toHaveBeenCalled();
   });
 
   it("operator confirm does not re-download the file", async () => {
@@ -833,13 +854,12 @@ describe("discardStaleImports batching", () => {
 
   it("loops until a batch is shorter than batchSize and returns the total", async () => {
     m(prisma.candidateImport.findMany)
-      .mockResolvedValueOnce(rows(2, "a")).mockResolvedValueOnce(rows(2, "a"))
-      .mockResolvedValueOnce(rows(2, "b")).mockResolvedValueOnce(rows(2, "b"))
-      .mockResolvedValueOnce(rows(1, "c")).mockResolvedValueOnce(rows(1, "c"));
-    m(prisma.candidateImport.updateMany)
-      .mockResolvedValueOnce({ count: 2 }).mockResolvedValueOnce({ count: 2 }).mockResolvedValueOnce({ count: 1 });
+      .mockResolvedValueOnce(rows(2, "a"))
+      .mockResolvedValueOnce(rows(2, "b"))
+      .mockResolvedValueOnce(rows(1, "c"));
+    m(prisma.candidateImport.updateMany).mockResolvedValue({ count: 1 });
     await expect(discardStaleImports(new Date(), 2)).resolves.toBe(5);
-    expect(m(prisma.candidateImport.updateMany)).toHaveBeenCalledTimes(3);
+    expect(m(prisma.candidateImport.findMany)).toHaveBeenCalledTimes(3);
     expect(m(removeCandidateDocuments)).toHaveBeenCalledTimes(3);
   });
 
@@ -848,6 +868,8 @@ describe("discardStaleImports batching", () => {
     m(prisma.candidateImport.updateMany).mockResolvedValue({ count: 1 });
     await expect(discardStaleImports(new Date(), 1)).resolves.toBe(20);
     expect(m(prisma.candidateImport.updateMany)).toHaveBeenCalledTimes(20);
+    m(prisma.candidateImport.findMany).mockReset();
+    m(prisma.candidateImport.updateMany).mockReset();
   });
 
   it("returns 0 without writing when nothing is stale", async () => {
@@ -884,10 +906,15 @@ describe("removeOrphanUploads", () => {
 
     await expect(removeOrphanUploads(NOW)).resolves.toBe(1);
 
+    // A DISCARDED row does not protect its object (its file should be gone already).
     expect(m(prisma.candidateImport.findMany).mock.calls[0]![0]).toEqual({
-      where: { id: { in: [A, B] } },
+      where: { id: { in: [A, B] }, status: { not: "DISCARDED" } },
       select: { id: true },
     });
+    expect(m(listDocumentObjects)).toHaveBeenCalledWith({ maxImportFolders: 500, deadline: expect.any(Number) });
+    const { deadline } = m(listDocumentObjects).mock.calls[0]![0] as { deadline: number };
+    expect(deadline - Date.now()).toBeGreaterThan(25_000);
+    expect(deadline - Date.now()).toBeLessThanOrEqual(30_000);
     expect(m(removeCandidateDocuments)).toHaveBeenCalledWith([`p/${A}/cv.pdf`]);
   });
 
@@ -965,9 +992,7 @@ describe("no file names or paths in logs", () => {
   });
 
   it("discardStaleImports logs no paths when removal fails", async () => {
-    m(prisma.candidateImport.findMany)
-      .mockResolvedValueOnce([{ id: "a", storagePath: "p/a/CV_Ahmed.pdf" }])
-      .mockResolvedValueOnce([{ storagePath: "p/a/CV_Ahmed.pdf" }]);
+    m(prisma.candidateImport.findMany).mockResolvedValueOnce([{ id: "a", storagePath: "p/a/CV_Ahmed.pdf" }]);
     m(prisma.candidateImport.updateMany).mockResolvedValueOnce({ count: 1 });
     m(removeCandidateDocuments).mockRejectedValueOnce(leaky());
     await expect(discardStaleImports(new Date())).resolves.toBe(1);

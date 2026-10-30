@@ -78,3 +78,55 @@ export async function replaceCandidateDocument(
   const { error } = await bucket().upload(path, bytes, { upsert: true, contentType });
   if (error) throw new StorageError(`replace failed: ${error.message}`);
 }
+
+export interface DocumentObject {
+  /** Full object path: `poolId/importId/fileName`. */
+  path: string;
+  importId: string;
+  createdAt: Date | null;
+}
+
+const LIST_PAGE_SIZE = 100;
+
+interface ListedEntry {
+  name: string;
+  /** Null for folders. */
+  id: string | null;
+  created_at: string | null;
+}
+
+/** Every entry directly under `prefix`, following limit/offset pages. */
+async function listAll(prefix: string): Promise<ListedEntry[]> {
+  const entries: ListedEntry[] = [];
+  for (let offset = 0; ; offset += LIST_PAGE_SIZE) {
+    const { data, error } = await bucket().list(prefix, { limit: LIST_PAGE_SIZE, offset });
+    if (error || !data) throw new StorageError(`list failed: ${error?.message ?? "no data"}`);
+    entries.push(...data);
+    if (data.length < LIST_PAGE_SIZE) return entries;
+  }
+}
+
+/**
+ * Walk the bucket (`poolId/importId/file`) and return every stored file.
+ * Used by the nightly orphan cleanup. One list call per import folder.
+ */
+export async function listDocumentObjects(): Promise<DocumentObject[]> {
+  const objects: DocumentObject[] = [];
+  const pools = (await listAll("")).filter((e) => e.id === null);
+  for (const pool of pools) {
+    const imports = (await listAll(pool.name)).filter((e) => e.id === null);
+    for (const imp of imports) {
+      const files = await listAll(`${pool.name}/${imp.name}`);
+      for (const f of files) {
+        // Folders and Supabase's ".emptyFolderPlaceholder" (sanitized uploads never start with ".").
+        if (f.id === null || f.name.startsWith(".")) continue;
+        objects.push({
+          path: `${pool.name}/${imp.name}/${f.name}`,
+          importId: imp.name,
+          createdAt: f.created_at ? new Date(f.created_at) : null,
+        });
+      }
+    }
+  }
+  return objects;
+}

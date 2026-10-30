@@ -6,6 +6,7 @@ const bucket = {
   createSignedUrl: vi.fn(),
   remove: vi.fn(),
   upload: vi.fn(),
+  list: vi.fn(),
 };
 const from = vi.fn(() => bucket);
 
@@ -18,6 +19,7 @@ import {
   createDocumentSignedUrl,
   createDocumentUploadUrl,
   downloadCandidateDocument,
+  listDocumentObjects,
   removeCandidateDocuments,
   replaceCandidateDocument,
   sanitizeFileName,
@@ -87,5 +89,41 @@ describe("candidate-documents storage", () => {
     await expect(
       replaceCandidateDocument("p/i/cv.png", new Uint8Array([1]), "image/jpeg"),
     ).rejects.toBeInstanceOf(StorageError);
+  });
+
+  it("listDocumentObjects walks pool and import folders and paginates", async () => {
+    const folder = (name: string) => ({ name, id: null, created_at: null });
+    const file = (name: string, created: string) => ({ name, id: `id-${name}`, created_at: created });
+    const pageOfImports = Array.from({ length: 100 }, (_, i) => folder(`imp-${i}`));
+    bucket.list.mockImplementation(async (prefix: string, opts: { limit: number; offset: number }) => {
+      if (prefix === "") return { data: opts.offset === 0 ? [folder("pool-a")] : [], error: null };
+      if (prefix === "pool-a") {
+        if (opts.offset === 0) return { data: pageOfImports, error: null };
+        if (opts.offset === 100) return { data: [folder("imp-last")], error: null };
+        return { data: [], error: null };
+      }
+      if (prefix === "pool-a/imp-last") {
+        return {
+          data: [file("cv.pdf", "2026-10-01T00:00:00Z"), file(".emptyFolderPlaceholder", "2026-10-01T00:00:00Z")],
+          error: null,
+        };
+      }
+      return { data: [], error: null };
+    });
+
+    const objects = await listDocumentObjects();
+
+    expect(objects).toEqual([
+      { path: "pool-a/imp-last/cv.pdf", importId: "imp-last", createdAt: new Date("2026-10-01T00:00:00Z") },
+    ]);
+    expect(bucket.list).toHaveBeenCalledWith("pool-a", { limit: 100, offset: 0 });
+    expect(bucket.list).toHaveBeenCalledWith("pool-a", { limit: 100, offset: 100 });
+    // A short page ends the walk of a prefix.
+    expect(bucket.list).not.toHaveBeenCalledWith("pool-a", { limit: 100, offset: 200 });
+  });
+
+  it("listDocumentObjects throws StorageError when a list fails", async () => {
+    bucket.list.mockResolvedValueOnce({ data: null, error: { message: "boom" } });
+    await expect(listDocumentObjects()).rejects.toBeInstanceOf(StorageError);
   });
 });

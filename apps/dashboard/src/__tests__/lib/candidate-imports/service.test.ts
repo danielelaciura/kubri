@@ -22,6 +22,7 @@ vi.mock("@/lib/db", () => ({
       findUnique: vi.fn(),
       findMany: vi.fn(),
     },
+    candidateDocument: { findMany: vi.fn() },
     $transaction: vi.fn(async (fn: (t: typeof tx) => unknown) => fn(tx)),
   },
 }));
@@ -36,6 +37,7 @@ vi.mock("@/lib/storage/candidate-documents", async () => {
     downloadCandidateDocument: vi.fn(),
     removeCandidateDocuments: vi.fn(),
     replaceCandidateDocument: vi.fn(),
+    listDocumentObjects: vi.fn(),
   };
 });
 vi.mock("@/lib/candidates/duplicates", () => ({ findCandidateIdBySamePhone: vi.fn() }));
@@ -52,6 +54,7 @@ import { Prisma } from "@/generated/prisma/client";
 import {
   createDocumentUploadUrl,
   downloadCandidateDocument,
+  listDocumentObjects,
   removeCandidateDocuments,
   replaceCandidateDocument,
 } from "@/lib/storage/candidate-documents";
@@ -71,6 +74,7 @@ import {
   getImportForOrg,
   getPublicImport,
   registerUpload,
+  removeOrphanUploads,
   runExtraction,
 } from "@/lib/candidate-imports/service";
 
@@ -810,5 +814,95 @@ describe("stored file integrity (contentSha256)", () => {
     m(upsertCandidate).mockResolvedValueOnce({ id: "c-1" });
     await confirmImport({ importId: IMPORT_ID, organizationId: "o", userId: "u", fields: { firstName: "A" } as never });
     expect(m(downloadCandidateDocument)).not.toHaveBeenCalled();
+  });
+});
+
+describe("discardStaleImports batching", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  const rows = (n: number, tag: string) =>
+    Array.from({ length: n }, (_, i) => ({ id: `${tag}${i}`, storagePath: `p/${tag}${i}/cv.pdf` }));
+
+  it("loops until a batch is shorter than batchSize and returns the total", async () => {
+    m(prisma.candidateImport.findMany)
+      .mockResolvedValueOnce(rows(2, "a")).mockResolvedValueOnce(rows(2, "a"))
+      .mockResolvedValueOnce(rows(2, "b")).mockResolvedValueOnce(rows(2, "b"))
+      .mockResolvedValueOnce(rows(1, "c")).mockResolvedValueOnce(rows(1, "c"));
+    m(prisma.candidateImport.updateMany)
+      .mockResolvedValueOnce({ count: 2 }).mockResolvedValueOnce({ count: 2 }).mockResolvedValueOnce({ count: 1 });
+    await expect(discardStaleImports(new Date(), 2)).resolves.toBe(5);
+    expect(m(prisma.candidateImport.updateMany)).toHaveBeenCalledTimes(3);
+    expect(m(removeCandidateDocuments)).toHaveBeenCalledTimes(3);
+  });
+
+  it("stops after 20 batches per run", async () => {
+    m(prisma.candidateImport.findMany).mockResolvedValue(rows(1, "x"));
+    m(prisma.candidateImport.updateMany).mockResolvedValue({ count: 1 });
+    await expect(discardStaleImports(new Date(), 1)).resolves.toBe(20);
+    expect(m(prisma.candidateImport.updateMany)).toHaveBeenCalledTimes(20);
+  });
+
+  it("returns 0 without writing when nothing is stale", async () => {
+    m(prisma.candidateImport.findMany).mockResolvedValueOnce([]);
+    await expect(discardStaleImports(new Date())).resolves.toBe(0);
+    expect(m(prisma.candidateImport.updateMany)).not.toHaveBeenCalled();
+  });
+});
+
+describe("removeOrphanUploads", () => {
+  const NOW = new Date("2026-10-30T03:00:00Z");
+  const OLD = new Date("2026-10-28T00:00:00Z");
+  const FRESH = new Date("2026-10-30T02:00:00Z");
+  const A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+  const B = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+  const C = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+  const D = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    m(prisma.candidateDocument.findMany).mockResolvedValue([]);
+  });
+
+  it("removes old objects whose import was never registered", async () => {
+    m(listDocumentObjects).mockResolvedValueOnce([
+      { path: `p/${A}/cv.pdf`, importId: A, createdAt: OLD }, // orphan → removed
+      { path: `p/${B}/cv.pdf`, importId: B, createdAt: OLD }, // registered → kept
+      { path: `p/${C}/cv.pdf`, importId: C, createdAt: FRESH }, // too young → kept
+      { path: "p/not-a-uuid/cv.pdf", importId: "not-a-uuid", createdAt: OLD }, // never queried
+      { path: `p/${D}/cv.pdf`, importId: D, createdAt: null }, // unknown age → kept
+    ]);
+    m(prisma.candidateImport.findMany).mockResolvedValueOnce([{ id: B }]);
+
+    await expect(removeOrphanUploads(NOW)).resolves.toBe(1);
+
+    expect(m(prisma.candidateImport.findMany).mock.calls[0]![0]).toEqual({
+      where: { id: { in: [A, B] } },
+      select: { id: true },
+    });
+    expect(m(removeCandidateDocuments)).toHaveBeenCalledWith([`p/${A}/cv.pdf`]);
+  });
+
+  it("never removes a file referenced by a CandidateDocument", async () => {
+    m(listDocumentObjects).mockResolvedValueOnce([{ path: `p/${A}/cv.pdf`, importId: A, createdAt: OLD }]);
+    m(prisma.candidateImport.findMany).mockResolvedValueOnce([]);
+    m(prisma.candidateDocument.findMany).mockResolvedValueOnce([{ storagePath: `p/${A}/cv.pdf` }]);
+    await expect(removeOrphanUploads(NOW)).resolves.toBe(0);
+    expect(m(removeCandidateDocuments)).not.toHaveBeenCalled();
+  });
+
+  it("does nothing when there is nothing old", async () => {
+    m(listDocumentObjects).mockResolvedValueOnce([{ path: `p/${C}/cv.pdf`, importId: C, createdAt: FRESH }]);
+    await expect(removeOrphanUploads(NOW)).resolves.toBe(0);
+    expect(m(prisma.candidateImport.findMany)).not.toHaveBeenCalled();
+    expect(m(removeCandidateDocuments)).not.toHaveBeenCalled();
+  });
+
+  it("logs no storage path when a removal fails", async () => {
+    m(listDocumentObjects).mockResolvedValueOnce([{ path: `p/${A}/cv.pdf`, importId: A, createdAt: OLD }]);
+    m(prisma.candidateImport.findMany).mockResolvedValueOnce([]);
+    m(removeCandidateDocuments).mockRejectedValueOnce(new StorageError("x"));
+    await expect(removeOrphanUploads(NOW)).resolves.toBe(0);
+    expect(JSON.stringify(m(console.error).mock.calls)).not.toContain("cv.pdf");
   });
 });

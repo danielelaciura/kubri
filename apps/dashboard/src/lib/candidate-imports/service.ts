@@ -17,6 +17,7 @@ import {
   buildDocumentPath,
   createDocumentUploadUrl,
   downloadCandidateDocument,
+  listDocumentObjects,
   removeCandidateDocuments,
   replaceCandidateDocument,
 } from "@/lib/storage/candidate-documents";
@@ -39,6 +40,12 @@ export const STALE_EXTRACTION_MS = 2 * 60 * 1000;
 const STALE_IMPORT_MS = 7 * 24 * 60 * 60 * 1000;
 /** Public uploads without consent must not linger: discard after 24 h. */
 const STALE_PUBLIC_IMPORT_MS = 24 * 60 * 60 * 1000;
+/** Uploaded objects with no CandidateImport row after this long are orphans. */
+const ORPHAN_UPLOAD_MS = 24 * 60 * 60 * 1000;
+/** Upper bound on stale-import batches per cron run. */
+const MAX_STALE_BATCHES = 20;
+/** Chunk size for id lookups and storage removals in the orphan sweep. */
+const ORPHAN_CHUNK = 100;
 const OPEN_STATUSES = ["UPLOADED", "EXTRACTING", "READY", "FAILED"] as const;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -484,36 +491,91 @@ export async function discardImport(importId: string, organizationId: string): P
 
 /**
  * Nightly cleanup: discard open imports untouched for 7 days (24 h for public
- * uploads) and delete their files (an open import never has a CandidateDocument). Returns the count.
+ * uploads) and delete their files (an open import never has a CandidateDocument).
+ * Loops batches until one comes back short, at most MAX_STALE_BATCHES per run.
+ * Returns the total discarded.
  */
 export async function discardStaleImports(now = new Date(), batchSize = 100): Promise<number> {
-  const stale = await prisma.candidateImport.findMany({
-    where: {
-      status: { in: [...OPEN_STATUSES] },
-      OR: [
-        { updatedAt: { lt: new Date(now.getTime() - STALE_IMPORT_MS) } },
-        { origin: "PUBLIC_LINK", updatedAt: { lt: new Date(now.getTime() - STALE_PUBLIC_IMPORT_MS) } },
-      ],
-    },
-    select: { id: true, storagePath: true },
-    take: batchSize,
-  });
-  if (stale.length === 0) return 0;
+  let total = 0;
+  for (let i = 0; i < MAX_STALE_BATCHES; i++) {
+    const stale = await prisma.candidateImport.findMany({
+      where: {
+        status: { in: [...OPEN_STATUSES] },
+        OR: [
+          { updatedAt: { lt: new Date(now.getTime() - STALE_IMPORT_MS) } },
+          { origin: "PUBLIC_LINK", updatedAt: { lt: new Date(now.getTime() - STALE_PUBLIC_IMPORT_MS) } },
+        ],
+      },
+      select: { id: true, storagePath: true },
+      take: batchSize,
+    });
+    if (stale.length === 0) break;
 
-  const res = await prisma.candidateImport.updateMany({
-    where: { id: { in: stale.map((s) => s.id) }, status: { in: [...OPEN_STATUSES] } },
-    data: { status: "DISCARDED", extractedText: null, draft: Prisma.DbNull },
-  });
-  const discarded = await prisma.candidateImport.findMany({
-    where: { id: { in: stale.map((s) => s.id) }, status: "DISCARDED" },
-    select: { storagePath: true },
-  });
-  try {
-    await removeCandidateDocuments(discarded.map((d) => d.storagePath));
-  } catch (e) {
-    console.error("[candidate import] stale file removal failed", e);
+    const res = await prisma.candidateImport.updateMany({
+      where: { id: { in: stale.map((s) => s.id) }, status: { in: [...OPEN_STATUSES] } },
+      data: { status: "DISCARDED", extractedText: null, draft: Prisma.DbNull },
+    });
+    const discarded = await prisma.candidateImport.findMany({
+      where: { id: { in: stale.map((s) => s.id) }, status: "DISCARDED" },
+      select: { storagePath: true },
+    });
+    try {
+      await removeCandidateDocuments(discarded.map((d) => d.storagePath));
+    } catch (e) {
+      console.error("[candidate import] stale file removal failed", e);
+    }
+    total += res.count;
+    if (stale.length < batchSize) break;
   }
-  return res.count;
+  return total;
+}
+
+/**
+ * Nightly cleanup of uploads that were never registered: a ticket writes no
+ * DB row, so an object whose import id has no CandidateImport row after
+ * `maxAgeMs` is an orphan. Objects referenced by a CandidateDocument are
+ * never touched. Returns the number of objects removed.
+ */
+export async function removeOrphanUploads(now = new Date(), maxAgeMs = ORPHAN_UPLOAD_MS): Promise<number> {
+  const cutoff = now.getTime() - maxAgeMs;
+  const old = (await listDocumentObjects()).filter(
+    (o) => o.createdAt !== null && o.createdAt.getTime() < cutoff && isUuid(o.importId),
+  );
+  if (old.length === 0) return 0;
+
+  const orphans: string[] = [];
+  for (let i = 0; i < old.length; i += ORPHAN_CHUNK) {
+    const chunk = old.slice(i, i + ORPHAN_CHUNK);
+    const known = await prisma.candidateImport.findMany({
+      where: { id: { in: [...new Set(chunk.map((o) => o.importId))] } },
+      select: { id: true },
+    });
+    const knownIds = new Set(known.map((k) => k.id));
+    const candidates = chunk.filter((o) => !knownIds.has(o.importId)).map((o) => o.path);
+    if (candidates.length === 0) continue;
+    // Defensive: a document whose import row is gone (e.g. org deleted) keeps its file.
+    const attached = await prisma.candidateDocument.findMany({
+      where: { storagePath: { in: candidates } },
+      select: { storagePath: true },
+    });
+    const attachedPaths = new Set(attached.map((a) => a.storagePath));
+    orphans.push(...candidates.filter((p) => !attachedPaths.has(p)));
+  }
+
+  let removed = 0;
+  for (let i = 0; i < orphans.length; i += ORPHAN_CHUNK) {
+    const batch = orphans.slice(i, i + ORPHAN_CHUNK);
+    try {
+      await removeCandidateDocuments(batch);
+      removed += batch.length;
+    } catch (e) {
+      console.error("[candidate import] orphan upload removal failed", {
+        count: batch.length,
+        message: e instanceof Error ? e.message : String(e),
+      });
+    }
+  }
+  return removed;
 }
 
 /** Everything the review page needs, scoped to the organization. */

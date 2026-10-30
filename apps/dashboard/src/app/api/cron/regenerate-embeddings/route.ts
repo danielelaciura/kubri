@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { discardStaleImports } from "@/lib/candidate-imports/service";
+import { discardStaleImports, removeOrphanUploads } from "@/lib/candidate-imports/service";
 import { generateEmbedding, vectorToPgLiteral } from "@/lib/embeddings/client";
 import {
   buildCandidateEmbeddingText,
@@ -37,6 +37,13 @@ export async function GET(req: Request): Promise<Response> {
     discardedImports = await discardStaleImports();
   } catch (e) {
     console.error("[cron] stale candidate import cleanup failed", e);
+  }
+
+  let removedOrphanUploads = 0;
+  try {
+    removedOrphanUploads = await removeOrphanUploads();
+  } catch (e) {
+    console.error("[cron] orphan upload cleanup failed", e instanceof Error ? e.message : String(e));
   }
 
   let candidates = 0;
@@ -90,5 +97,5 @@ export async function GET(req: Request): Promise<Response> {
     }
   }
 
-  return NextResponse.json({ candidates, jobs, discardedImports });
+  return NextResponse.json({ candidates, jobs, discardedImports, removedOrphanUploads });
 }

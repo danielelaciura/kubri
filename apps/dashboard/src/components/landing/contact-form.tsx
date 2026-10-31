@@ -162,7 +162,7 @@ export function ContactForm({
         </label>
       )}
 
-      <Button type="submit" className="w-full" disabled={busy}>
+      <Button type="submit" className="h-11 w-full text-base" disabled={busy}>
         {busy ? t.submitting : t.submit}
       </Button>
     </form>

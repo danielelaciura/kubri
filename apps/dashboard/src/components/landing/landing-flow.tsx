@@ -5,6 +5,7 @@ import { FileUp, MessageCircle } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
+import { cn } from "@/lib/utils";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useT } from "@/lib/i18n/provider";
 import type { LandingErrorCode, LandingResult } from "@/lib/landing/flow";
@@ -16,6 +17,7 @@ import {
   runLandingExtractionAction,
 } from "@/app/(public)/candidati/[slug]/actions";
 import { ContactForm, type ContactSubmission } from "./contact-form";
+import { LandingSteps } from "./landing-steps";
 import { TurnstileWidget } from "./turnstile-widget";
 
 const ACCEPT =
@@ -78,6 +80,15 @@ const RETRYABLE_EXTRACTION: ReadonlySet<LandingErrorCode> = new Set<LandingError
 
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
+/** Short orientation label on each option of the choose step. */
+function OptionTag({ children }: { children: string }) {
+  return (
+    <span className="w-fit rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+      {children}
+    </span>
+  );
+}
+
 export interface LandingFlowProps {
   slug: string;
   locale: string;
@@ -95,6 +106,7 @@ export function LandingFlow(props: LandingFlowProps) {
   const [error, setError] = useState<ErrorKey | null>(null);
   const [canRetryExtraction, setCanRetryExtraction] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const [placeResetKey, setPlaceResetKey] = useState(0);
   const [turnstileToken, setTurnstileToken] = useState("");
   const [turnstileKey, setTurnstileKey] = useState(0);
@@ -282,12 +294,17 @@ export function LandingFlow(props: LandingFlowProps) {
     }
   }
 
+  // CV path progress: verify/upload/working = upload, contact = check. Hidden elsewhere.
+  const stepIndex: 0 | 1 | null =
+    step.kind === "verify" || step.kind === "upload" || step.kind === "working" ? 0
+    : step.kind === "contact" ? 1
+    : null;
   const workingText = step.kind === "working" ? (step.label === "reading" ? t.reading : t.uploading) : "";
   const headingClass = "outline-none";
 
   // A real link styled as a button (base-ui Button would add role="button").
   const whatsappButton = props.waLink && (
-    <a href={props.waLink} target="_blank" rel="noreferrer" className={buttonVariants({ className: "w-full" })}>
+    <a href={props.waLink} target="_blank" rel="noreferrer" className={buttonVariants({ className: "h-11 w-full text-base" })}>
       <MessageCircle className="mr-2 h-4 w-4" aria-hidden="true" />
       {t.whatsappCta}
     </a>
@@ -295,6 +312,7 @@ export function LandingFlow(props: LandingFlowProps) {
 
   return (
     <div className="space-y-4">
+      {stepIndex !== null && <LandingSteps current={stepIndex} />}
       {/* Always mounted so screen readers announce progress changes. */}
       <p role="status" aria-live="polite" className="sr-only">{workingText}</p>
 
@@ -319,7 +337,8 @@ export function LandingFlow(props: LandingFlowProps) {
         <div className="grid gap-4 sm:grid-cols-2">
           {props.waLink && (
             <Card>
-              <CardHeader>
+              <CardHeader className="gap-2">
+                <OptionTag>{t.whatsappTag}</OptionTag>
                 <CardTitle ref={headingRef} tabIndex={-1} className={headingClass}>{t.whatsappTitle}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -329,7 +348,8 @@ export function LandingFlow(props: LandingFlowProps) {
             </Card>
           )}
           <Card>
-            <CardHeader>
+            <CardHeader className="gap-2">
+              <OptionTag>{t.uploadTag}</OptionTag>
               {props.waLink ? (
                 <CardTitle>{t.uploadTitle}</CardTitle>
               ) : (
@@ -338,7 +358,7 @@ export function LandingFlow(props: LandingFlowProps) {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">{org(t.uploadBody)}</p>
-              <Button variant="outline" className="w-full" onClick={() => setStep({ kind: "verify" })}>
+              <Button variant="outline" className="h-11 w-full text-base" onClick={() => setStep({ kind: "verify" })}>
                 <FileUp className="mr-2 h-4 w-4" aria-hidden="true" />
                 {t.uploadCta}
               </Button>
@@ -376,11 +396,11 @@ export function LandingFlow(props: LandingFlowProps) {
                 />
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button variant="ghost" onClick={() => { setError(null); setStep({ kind: "choose" }); }}>
+                <Button variant="ghost" className="h-11" onClick={() => { setError(null); setStep({ kind: "choose" }); }}>
                   {t.back}
                 </Button>
                 {captchaFailed && (
-                  <Button variant="outline" onClick={retryCaptcha}>{t.verifyRetry}</Button>
+                  <Button variant="outline" className="h-11" onClick={retryCaptcha}>{t.verifyRetry}</Button>
                 )}
               </div>
             </CardContent>
@@ -391,21 +411,43 @@ export function LandingFlow(props: LandingFlowProps) {
       {step.kind === "upload" && (
         <Card>
           <CardHeader>
-            <CardTitle ref={headingRef} tabIndex={-1} className={headingClass}>{t.uploadTitle}</CardTitle>
+            <CardTitle ref={headingRef} tabIndex={-1} className={headingClass}>{t.uploadStepTitle}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex flex-col items-center gap-3 rounded-lg border-2 border-dashed p-8 text-center">
-              <FileUp className="h-10 w-10 text-muted-foreground/60" aria-hidden="true" />
+            {/* The whole area opens the picker (big touch target) and accepts a dropped file.
+                The button inside stays the keyboard / screen-reader control. */}
+            <div
+              className={cn(
+                "flex cursor-pointer flex-col items-center gap-3 rounded-lg border-2 border-dashed p-8 text-center",
+                "transition-colors duration-150 hover:border-primary/50 hover:bg-primary/5 motion-reduce:transition-none",
+                dragging && "border-primary bg-primary/5",
+              )}
+              onClick={() => { if (!waitingForCaptcha) inputRef.current?.click(); }}
+              onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragging(false);
+                const f = e.dataTransfer.files?.[0];
+                if (f) void upload(f);
+              }}
+            >
+              <FileUp className="h-10 w-10 text-primary" aria-hidden="true" />
+              <p className="font-medium">{dragging ? t.dropzoneDrop : t.dropzoneTitle}</p>
               <p className="text-sm text-muted-foreground">{t.dropzoneHint}</p>
               <input
                 ref={inputRef} type="file" accept={ACCEPT} className="sr-only" tabIndex={-1}
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) void upload(f); e.target.value = ""; }}
               />
-              <Button type="button" disabled={waitingForCaptcha} onClick={() => inputRef.current?.click()}>
+              <Button
+                type="button" className="h-11 px-6 text-base" disabled={waitingForCaptcha}
+                // The area's own click handler opens the picker; don't open it twice.
+                onClick={(e) => { e.stopPropagation(); inputRef.current?.click(); }}
+              >
                 {t.chooseFile}
               </Button>
             </div>
-            <Button variant="ghost" onClick={() => { setError(null); setStep({ kind: "choose" }); }}>
+            <Button variant="ghost" className="h-11" onClick={() => { setError(null); setStep({ kind: "choose" }); }}>
               {t.back}
             </Button>
           </CardContent>

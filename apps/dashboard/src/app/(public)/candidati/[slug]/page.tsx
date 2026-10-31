@@ -53,11 +53,13 @@ export default async function CandidateLandingPage(props: Props) {
     <I18nProvider locale={locale}>
       {/* White top bar: Kubri wordmark on the left, language switch on the right. */}
       <div className="border-b bg-white">
-        <div className="mx-auto flex h-6 w-full max-w-2xl items-center justify-between px-4">
+        {/* Full width, not the content column: logo and switch sit at the page edges. */}
+        <div className="flex h-11 w-full items-center justify-between px-4 sm:px-6">
           <Image src="/kubri-wordmark.png" alt="Kubri" width={56} height={16} priority className="h-4 w-auto" />
           <a
             href={`?lang=${otherLocale}`} hrefLang={otherLocale} lang={otherLocale}
-            className="inline-flex items-center gap-1.5 text-xs text-neutral-700 hover:text-neutral-950 hover:underline"
+            // Full bar height: a 44px touch target.
+            className="-mr-2 inline-flex h-full items-center gap-1.5 px-2 text-xs text-neutral-700 hover:text-neutral-950 hover:underline"
             aria-label={`${t.languageLabel}: ${otherLanguageName}`}
           >
             <LocaleFlag locale={otherLocale} className="h-2.5 w-3.5 rounded-[1px] shadow-[0_0_0_1px_rgb(0_0_0/0.1)]" />

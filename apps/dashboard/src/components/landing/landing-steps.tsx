@@ -1,47 +1,40 @@
 "use client";
 
-import { Check } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n/provider";
 
 const STEPS = ["upload", "check", "send"] as const;
+const TOTAL = STEPS.length;
 
 /**
- * Where the candidate is in the CV path: upload → check details → send.
- * `current` is the index of the active step; earlier steps show as done.
+ * Minimal progress for the CV path: one line of text ("Passo 1 di 3 · Carica
+ * il CV", plus what is happening right now) over a thin bar that fills a third
+ * per step. `current` 0–2 is the active step; `TOTAL` means the application was
+ * sent (bar full).
  */
-export function LandingSteps({ current }: { current: 0 | 1 | 2 }) {
+export function LandingSteps({ current, status }: { current: 0 | 1 | 2 | typeof TOTAL; status?: string }) {
   const t = useT().landing;
+  const complete = current === TOTAL;
+  const position = complete ? TOTAL : current + 1;
+  const label = complete
+    ? t.stepsComplete
+    : `${t.stepOf.replace("{n}", String(position)).replace("{total}", String(TOTAL))} · ${t.steps[STEPS[current]]}`;
+
   return (
-    <ol aria-label={t.stepsLabel} className="flex items-start gap-2">
-      {STEPS.map((key, i) => {
-        const done = i < current;
-        const active = i === current;
-        return (
-          <li
-            key={key} aria-current={active ? "step" : undefined}
-            className="flex min-w-0 flex-1 flex-col gap-1.5"
-          >
-            <span
-              aria-hidden="true"
-              className={cn(
-                "h-1 rounded-full transition-colors duration-200 motion-reduce:transition-none",
-                done || active ? "bg-primary" : "bg-border",
-              )}
-            />
-            <span
-              className={cn(
-                "flex items-center gap-1 text-xs leading-tight",
-                active ? "font-medium text-foreground" : "text-muted-foreground",
-              )}
-            >
-              {done && <Check className="size-3.5 shrink-0 text-primary" aria-hidden="true" />}
-              {t.steps[key]}
-              {done && <span className="sr-only"> ({t.stepDone})</span>}
-            </span>
-          </li>
-        );
-      })}
-    </ol>
+    <div className="space-y-2">
+      <p className="text-sm">
+        <span className="font-medium">{label}</span>
+        {status && <span className="text-muted-foreground"> · {status}</span>}
+      </p>
+      <div
+        role="progressbar" aria-label={t.stepsLabel} aria-valuemin={0} aria-valuemax={TOTAL}
+        aria-valuenow={position} aria-valuetext={label}
+        className="h-1 overflow-hidden rounded-full bg-border"
+      >
+        <div
+          className="h-full origin-left rounded-full bg-primary transition-transform duration-200 ease-out motion-reduce:transition-none"
+          style={{ transform: `scaleX(${position / TOTAL})` }}
+        />
+      </div>
+    </div>
   );
 }

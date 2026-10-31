@@ -216,7 +216,10 @@ A Google arriva solo il testo dell'indirizzo, mai nome, telefono, email o CV.
 **Cosa succede se manca.** La landing non si blocca: i suggerimenti diventano solo
 comuni ISTAT ("Comune (PROV)") e il candidato viene salvato con le coordinate del
 centro del comune. Lo stesso fallback scatta se Google non risponde, va in timeout,
-restituisce una risposta malformata o la quota è esaurita.
+restituisce una risposta malformata o la quota è esaurita. Se Google non risponde proprio
+al momento della conferma, un indirizzo proveniente da Google non può essere risolto: il
+candidato vede "Non riusciamo a trovare questo indirizzo…" e sceglie di nuovo dall'elenco
+(che a quel punto propone i comuni ISTAT).
 
 **Passi:**
 

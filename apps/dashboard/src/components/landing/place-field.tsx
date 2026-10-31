@@ -32,7 +32,7 @@ export interface PlaceSelection extends PlaceSuggestion {
   sessionToken?: string;
 }
 
-type Status = "idle" | "empty" | "error";
+type Status = "idle" | "empty" | "error" | "expired";
 
 /**
  * "Dove abiti?" combobox. Suggestions come from the server (Google, or ISTAT
@@ -82,7 +82,7 @@ export function PlaceField({
         const found = r.ok ? r.data : [];
         setOptions(found);
         setActive(-1);
-        setStatus(!r.ok ? "error" : found.length ? "idle" : "empty");
+        setStatus(!r.ok ? (r.error === "SESSION_EXPIRED" ? "expired" : "error") : found.length ? "idle" : "empty");
         setOpen(true);
       })
       .catch(() => {
@@ -147,7 +147,7 @@ export function PlaceField({
   }
 
   const listOpen = open && options.length > 0;
-  const statusText = !open ? "" : status === "empty" ? t.placeNoResults : status === "error" ? t.errors.busy : "";
+  const statusText = !open ? "" : status === "empty" ? t.placeNoResults : status === "expired" ? t.errors.expired : status === "error" ? t.errors.busy : "";
 
   return (
     <div className="relative">

@@ -450,6 +450,14 @@ describe("confirmLandingImport", () => {
     expect(m(resolvePlace)).not.toHaveBeenCalled();
   });
 
+  it("does not consume the place-resolve limit for ISTAT ids", async () => {
+    m(consumeRateLimits).mockResolvedValue(false);
+    await confirmLandingImport(LANDING, IMPORT_ID, { ...CONTACT, placeId: "istat:015:milano" }, CTX);
+    const keys = m(consumeRateLimits).mock.calls.flatMap((c) => (c[0] as { key: string }[]).map((r) => r.key));
+    expect(keys.some((k) => k.includes("place-resolve"))).toBe(false);
+    expect(m(resolvePlace)).toHaveBeenCalled();
+  });
+
   it("rejects a contact without a place id", async () => {
     await expect(confirmLandingImport(LANDING, IMPORT_ID, { ...CONTACT, placeId: "" }, CTX))
       .resolves.toEqual({ ok: false, error: "VALIDATION" });

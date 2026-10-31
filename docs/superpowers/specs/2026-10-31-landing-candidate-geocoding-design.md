@@ -57,9 +57,9 @@ All Google requests use Italian: stored addresses are read by Italian operators.
 4. **ISTAT fallback.** When `GOOGLE_MAPS_API_KEY` is unset (local dev, preview) or Google errors/times out:
    - Search returns ISTAT comuni matching the query prefix (normalized with `normalizePlace`), ids `istat:<provinceCode>:<normalized municipality>`, labels "Comune (PROV)".
    - Confirm resolves `istat:` ids from `ITALY_ADMIN` (comune centroid), `source: "istat"`.
-   - Prefill uses the existing offline `geocodeFromAddress` / `resolvePlaceCoords` on the draft and, if it resolves, prefills the matching `istat:` id.
+   - Prefill uses the existing offline `geocodeFromAddress` / `resolvePlaceCoords` on the draft and, if it resolves, prefills the matching `istat:` id via `istatPlaceForText`.
    - ISTAT text matching takes the comune from the last comma-separated token; a trailing "(PROV)" code picks between homonymous comuni (e.g. Calliano TN / AT), otherwise the first match wins.
-   - "Google errors" includes malformed responses: a non-JSON body or an unexpected body shape counts as unavailable (`GoogleMapsUnavailableError`) and triggers the same fallback. Individual malformed results/suggestions are skipped, never thrown.
+   - "Google errors" includes malformed responses: a non-JSON body or an unexpected body shape counts as unavailable (`GoogleMapsUnavailableError`) and triggers the same fallback. A Place Details 400 whose message mentions the API key also counts as unavailable (other 400s mean a bad id: not found). Individual malformed results/suggestions are skipped, never thrown.
    - The landing never blocks an application because Google is down.
 
 ## Modules
@@ -67,8 +67,8 @@ All Google requests use Italian: stored addresses are read by Italian operators.
 | File | Purpose |
 |---|---|
 | `src/lib/geo/google.ts` | Minimal Google client over `fetch` (no new dependency): `geocodeAddress`, `autocompletePlaces`, `getPlaceDetails`. Timeout via `AbortSignal.timeout`, typed results, `GoogleMapsUnavailableError` on missing key / HTTP error / timeout / malformed (non-JSON or wrongly shaped) body. Always sends `language`/`languageCode` = `it`. Never logs query text. |
-| `src/lib/geo/istat-places.ts` | ISTAT side of the same interface: `searchIstatPlaces(query, limit)`, `resolveIstatPlace(id)`, `istatPlaceForDraft(address, location)`. |
-| `src/lib/landing/place.ts` | Landing logic: `prefillPlace(importId, draft, locale)`, `searchPlaces(query, locale, sessionToken)` (Google → ISTAT fallback), `resolvePlace(placeId, sessionToken)` → `{ address, location, latitude, longitude, placeId, source }`. |
+| `src/lib/geo/istat-places.ts` | ISTAT side of the same interface: `searchIstatPlaces(query, limit)`, `resolveIstatPlace(id)`, `istatPlaceForText(text)`, `nearestIstatLabel(latitude, longitude)`. |
+| `src/lib/landing/place.ts` | Landing logic: `prefillPlace(importId, draft)`, `searchPlaces(query, sessionToken)` (Google → ISTAT fallback), `resolvePlace(placeId, sessionToken)` (none of these take a locale) → `{ address, location, latitude, longitude, placeId, source }`. |
 | `src/app/(public)/candidati/[slug]/actions.ts` | New `searchLandingPlacesAction`. `runLandingExtractionAction` and `confirmLandingImportAction` carry the place data. |
 | `src/components/landing/place-field.tsx` | Accessible combobox (`role="combobox"`, `aria-expanded`, `aria-activedescendant`, listbox with options; arrows/Enter/Escape). |
 | `src/components/landing/contact-form.tsx` | Adds the field; validation. |
@@ -79,7 +79,7 @@ All Google requests use Italian: stored addresses are read by Italian operators.
 - Upstash rules (fail-closed in production, consumed sequentially like the existing ones), configurable through env:
   - `LANDING_LIMIT_PLACE_SEARCH_IMPORT` — 40 searches per import per day
   - `LANDING_LIMIT_PLACE_SEARCH_IP_HOUR` — 120 searches per IP hash per hour
-  - `LANDING_LIMIT_PLACE_RESOLVE_IMPORT` — 10 Place Details per import per day (confirm attempts)
+  - `LANDING_LIMIT_PLACE_RESOLVE_IMPORT` — 10 Place Details per import per day (confirm attempts); `istat:` ids skip this limit (local and free)
   - Search over the limit returns an empty list plus `RATE_LIMITED`, shown with the generic "busy" message.
 - Query length capped at 100 chars; whitespace collapsed; queries under 3 chars return nothing without calling Google.
 - Google Cloud console setup (setup guide): API key restricted to Geocoding API + Places API (New) only (application restriction by IP isn't possible on Vercel), daily quota per API, budget alert.
@@ -88,7 +88,7 @@ All Google requests use Italian: stored addresses are read by Italian operators.
 ## Privacy
 
 - Only the address text / search query is sent to Google — never name, phone, email or CV content.
-- Addresses and queries are never logged; errors log only the error class and HTTP status.
+- Addresses and queries are never logged; errors log only the error class/name (no HTTP status).
 - **Checklist (owner: Kubri, not code):** each landing's privacy notice must list Google as a recipient of the address. Google is already a recipient for chatbot candidates through Make.
 
 ## Configuration

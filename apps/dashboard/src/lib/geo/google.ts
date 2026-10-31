@@ -195,8 +195,20 @@ export async function getPlaceDetails(placeId: string, sessionToken?: string): P
     },
   });
   // Google answers 400 INVALID_ARGUMENT for unknown or malformed place ids. The field
-  // mask is a constant covered by tests, so a 400 here means the id, not our request.
-  if (res.status === 400 || res.status === 404) throw new GooglePlaceNotFoundError();
+  // mask is a constant covered by tests, so a 400 here means the id, not our request,
+  // unless the message says the API key itself is invalid.
+  if (res.status === 400) {
+    let message = "";
+    try {
+      const errBody = (await res.json()) as { error?: { message?: unknown } } | null;
+      if (typeof errBody?.error?.message === "string") message = errBody.error.message;
+    } catch {
+      // Unreadable body: treat as a plain bad id.
+    }
+    if (/api key/i.test(message)) throw new GoogleMapsUnavailableError("details API key rejected");
+    throw new GooglePlaceNotFoundError();
+  }
+  if (res.status === 404) throw new GooglePlaceNotFoundError();
   if (!res.ok) throw new GoogleMapsUnavailableError(`details HTTP ${res.status}`);
   const body = await readJson<{
     id?: unknown;

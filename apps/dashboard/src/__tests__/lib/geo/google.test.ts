@@ -222,6 +222,11 @@ describe("getPlaceDetails", () => {
     await expect(getPlaceDetails("p1")).rejects.toBeInstanceOf(GooglePlaceNotFoundError);
   });
 
+  it("treats a 400 about the API key as unavailable, not as a bad id", async () => {
+    fetchMock.mockResolvedValueOnce(json({ error: { status: "INVALID_ARGUMENT", message: "API key not valid. Please pass a valid API key." } }, 400));
+    await expect(getPlaceDetails("p1")).rejects.toBeInstanceOf(GoogleMapsUnavailableError);
+  });
+
   it("prefers the level_3 comune over a frazione locality", async () => {
     fetchMock.mockResolvedValueOnce(json({
       ...DETAILS,

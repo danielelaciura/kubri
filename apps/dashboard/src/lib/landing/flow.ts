@@ -28,6 +28,7 @@ import {
   type LandingPrefill,
 } from "./contact";
 import { MIN_PLACE_QUERY, normalizeQuery, prefillPlace, resolvePlace, searchPlaces } from "./place";
+import { isIstatPlaceId } from "@/lib/geo/istat-places";
 import type { PlaceSuggestion } from "@/lib/geo/place-types";
 import type { ActiveLanding } from "./service";
 
@@ -306,10 +307,13 @@ export async function confirmLandingImport(
     if (imp.status === "COMPLETED") return { ok: true, data: null };
     if (imp.status !== "READY") return fail("NOT_FOUND");
 
-    const allowed = await consumeRateLimits([
-      { key: `landing:import:${imp.id}:place-resolve:d`, limit: getLimits().placeResolvePerImportDay, windowSec: DAY },
-    ]);
-    if (!allowed) return fail("RATE_LIMITED");
+    // ISTAT resolution is local and free: only Google Place Details is budgeted.
+    if (!isIstatPlaceId(contact.placeId)) {
+      const allowed = await consumeRateLimits([
+        { key: `landing:import:${imp.id}:place-resolve:d`, limit: getLimits().placeResolvePerImportDay, windowSec: DAY },
+      ]);
+      if (!allowed) return fail("RATE_LIMITED");
+    }
     // Resolved here from the id only: the browser never supplies coordinates.
     const place = await resolvePlace(contact.placeId, contact.placeSessionToken);
     if (!place) return fail("PLACE_INVALID");

@@ -100,6 +100,14 @@ describe("PlaceField", () => {
     expect(screen.getByText(t.errors.busy)).toBeInTheDocument();
   });
 
+  it("tells the candidate the session expired instead of 'busy'", async () => {
+    vi.mocked(searchLandingPlacesAction).mockResolvedValueOnce({ ok: false, error: "SESSION_EXPIRED" });
+    const { input } = setup();
+    await typeAndWait(input, "zzzz");
+    expect(screen.getByText(t.errors.expired)).toBeInTheDocument();
+    expect(screen.queryByText(t.errors.busy)).not.toBeInTheDocument();
+  });
+
   it("wraps with ArrowUp and closes with Escape", async () => {
     const { input } = setup();
     await typeAndWait(input, "via roma");

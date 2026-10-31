@@ -494,6 +494,10 @@ export const it = {
     dropzoneDrop: "Rilascia il file qui",
     stepsLabel: "Passaggi della candidatura",
     stepDone: "completato",
+    footerPrivacy: "Privacy policy",
+    footerTerms: "Termini e condizioni",
+    footerRights: "Tutti i diritti riservati",
+    footerLabel: "Informazioni su Kubri",
     steps: {
       upload: "Carica il CV",
       check: "Controlla i dati",

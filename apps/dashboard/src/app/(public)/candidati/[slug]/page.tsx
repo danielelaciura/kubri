@@ -68,23 +68,26 @@ export default async function CandidateLandingPage(props: Props) {
           </a>
         </div>
       </div>
-      <main lang={locale} className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-10">
-        <header className="space-y-2">
-          <h1 className="text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
-            {t.headline.replace("{org}", landing.organization.name)}
-          </h1>
-          <p className="max-w-prose text-pretty text-muted-foreground">{t.intro}</p>
-        </header>
-        <LandingFlow
-          slug={landing.slug}
-          locale={locale}
-          orgName={landing.organization.name}
-          waLink={waLink}
-          privacyPolicyUrl={landing.privacyPolicyUrl}
-          showShare={landing.pool.globalSharing === "WEBHOOK"}
-          turnstileSiteKey={process.env.TURNSTILE_SITE_KEY ?? ""}
-        />
-      </main>
+      {/* Light grey page ground between the white top bar and footer; cards stay white. */}
+      <div className="flex-1 bg-[#f8f8f8]">
+        <main lang={locale} className="mx-auto w-full max-w-2xl space-y-6 px-4 py-10">
+          <header className="space-y-2">
+            <h1 className="text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
+              {t.headline.replace("{org}", landing.organization.name)}
+            </h1>
+            <p className="max-w-prose text-pretty text-muted-foreground">{t.intro}</p>
+          </header>
+          <LandingFlow
+            slug={landing.slug}
+            locale={locale}
+            orgName={landing.organization.name}
+            waLink={waLink}
+            privacyPolicyUrl={landing.privacyPolicyUrl}
+            showShare={landing.pool.globalSharing === "WEBHOOK"}
+            turnstileSiteKey={process.env.TURNSTILE_SITE_KEY ?? ""}
+          />
+        </main>
+      </div>
       <LandingFooter t={t} />
     </I18nProvider>
   );

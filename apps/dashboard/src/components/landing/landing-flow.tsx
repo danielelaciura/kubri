@@ -310,7 +310,7 @@ export function LandingFlow(props: LandingFlowProps) {
 
   // A real link styled as a button (base-ui Button would add role="button").
   const whatsappButton = props.waLink && (
-    <a href={props.waLink} target="_blank" rel="noreferrer" className={buttonVariants({ className: "h-11 w-full text-base" })}>
+    <a href={props.waLink} target="_blank" rel="noreferrer" className={cn(buttonVariants(), "h-11 w-full text-base")}>
       <MessageCircle className="mr-2 h-4 w-4" aria-hidden="true" />
       {t.whatsappCta}
     </a>

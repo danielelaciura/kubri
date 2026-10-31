@@ -13,6 +13,10 @@ vi.mock("@/lib/candidate-imports/service", () => ({
   getPublicImport: vi.fn(),
   confirmImport: vi.fn(),
 }));
+vi.mock("@/lib/landing/place", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/landing/place")>("@/lib/landing/place");
+  return { ...actual, prefillPlace: vi.fn(), searchPlaces: vi.fn(), resolvePlace: vi.fn() };
+});
 
 import { verifyTurnstile } from "@/lib/landing/turnstile";
 import { consumeRateLimits, RateLimitUnavailableError } from "@/lib/rate-limit";
@@ -27,6 +31,7 @@ import { ImportError, ImportStateError } from "@/lib/candidate-imports/errors";
 import { Prisma } from "@/generated/prisma/client";
 import { emptyCandidateDraftFields } from "@kubri/contracts";
 import { passesCvQualityGate } from "@/lib/documents/quality";
+import { prefillPlace, resolvePlace, searchPlaces } from "@/lib/landing/place";
 import {
   confirmLandingImport,
   PUBLIC_MAX_DOCUMENT_BYTES,
@@ -34,6 +39,7 @@ import {
   registerLandingUpload,
   requestLandingUpload,
   runLandingExtraction,
+  searchLandingPlaces,
 } from "@/lib/landing/flow";
 import type { ActiveLanding } from "@/lib/landing/service";
 
@@ -50,6 +56,11 @@ const DRAFT = {
   isCv: true, uncertain: [],
   fields: { ...emptyCandidateDraftFields(), firstName: "Ahmed", lastName: "Benali", phone: "333 1234567" },
 };
+const PLACE = {
+  placeId: "ChIJ1", source: "google" as const, address: "Via Roma, 12, 20121 Milano MI, Italia",
+  location: "Milano (MI)", latitude: 45.47, longitude: 9.19,
+};
+const PREFILL_PLACE = { placeId: "ChIJ1", label: "Via Roma, 12, 20121 Milano MI, Italia" };
 
 describe("requestLandingUpload", () => {
   beforeEach(() => {
@@ -169,12 +180,17 @@ describe("runLandingExtraction", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     m(consumeRateLimits).mockResolvedValue(true);
+    m(prefillPlace).mockResolvedValue(PREFILL_PLACE);
   });
 
   it("returns the contact prefill without spending budget when already READY", async () => {
     m(getPublicImport).mockResolvedValueOnce({ id: IMPORT_ID, status: "READY", errorCode: null, draft: DRAFT });
     const r = await runLandingExtraction(LANDING, IMPORT_ID);
-    expect(r).toEqual({ ok: true, data: { firstName: "Ahmed", lastName: "Benali", phone: "333 1234567", email: "" } });
+    expect(r).toEqual({
+      ok: true,
+      data: { firstName: "Ahmed", lastName: "Benali", phone: "333 1234567", email: "", place: PREFILL_PLACE },
+    });
+    expect(m(prefillPlace)).toHaveBeenCalledWith(IMPORT_ID, { address: null, location: null });
     expect(m(consumeRateLimits)).not.toHaveBeenCalled();
     expect(m(runExtraction)).not.toHaveBeenCalled();
   });
@@ -266,13 +282,61 @@ describe("runLandingExtraction", () => {
   });
 });
 
+describe("searchLandingPlaces", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    m(consumeRateLimits).mockResolvedValue(true);
+    m(getPublicImport).mockResolvedValue({ id: IMPORT_ID, status: "READY", errorCode: null, draft: DRAFT });
+    m(searchPlaces).mockResolvedValue([PREFILL_PLACE]);
+  });
+  const TOKEN = "6f1c1b6e-3a51-4b8f-9d3e-0c4c1c1e2a10";
+
+  it("searches for a READY import under the per-import and per-IP limits", async () => {
+    await expect(searchLandingPlaces(LANDING, IMPORT_ID, { query: " via  roma ", sessionToken: TOKEN }, CTX))
+      .resolves.toEqual({ ok: true, data: [PREFILL_PLACE] });
+    const rules = m(consumeRateLimits).mock.calls[0]![0] as { key: string; limit: number }[];
+    expect(rules.map((r) => r.key)).toEqual([
+      `landing:import:${IMPORT_ID}:places:d`, `landing:ip:${CTX.ipHash}:places:h`,
+    ]);
+    expect(rules.map((r) => r.limit)).toEqual([40, 120]);
+    expect(m(searchPlaces)).toHaveBeenCalledWith("via roma", TOKEN);
+  });
+
+  it("returns an empty list for short queries without touching the DB or limits", async () => {
+    await expect(searchLandingPlaces(LANDING, IMPORT_ID, { query: "ro" }, CTX)).resolves.toEqual({ ok: true, data: [] });
+    expect(m(getPublicImport)).not.toHaveBeenCalled();
+    expect(m(consumeRateLimits)).not.toHaveBeenCalled();
+  });
+
+  it("refuses imports that are not READY, invalid input, and over-limit searches", async () => {
+    m(getPublicImport).mockResolvedValueOnce({ id: IMPORT_ID, status: "COMPLETED", errorCode: null, draft: DRAFT });
+    await expect(searchLandingPlaces(LANDING, IMPORT_ID, { query: "via roma" }, CTX))
+      .resolves.toEqual({ ok: false, error: "SESSION_EXPIRED" });
+    await expect(searchLandingPlaces(LANDING, IMPORT_ID, { query: 42 }, CTX))
+      .resolves.toEqual({ ok: false, error: "VALIDATION" });
+    m(consumeRateLimits).mockResolvedValueOnce(false);
+    await expect(searchLandingPlaces(LANDING, IMPORT_ID, { query: "via roma" }, CTX))
+      .resolves.toEqual({ ok: false, error: "RATE_LIMITED" });
+    expect(m(searchPlaces)).not.toHaveBeenCalled();
+  });
+
+  it("maps an unavailable limiter to UNAVAILABLE", async () => {
+    m(consumeRateLimits).mockRejectedValueOnce(new RateLimitUnavailableError());
+    await expect(searchLandingPlaces(LANDING, IMPORT_ID, { query: "via roma" }, CTX))
+      .resolves.toEqual({ ok: false, error: "UNAVAILABLE" });
+  });
+});
+
 describe("confirmLandingImport", () => {
   const CONTACT = {
     firstName: "Ahmed", lastName: "Benali", phone: "+39 333 1234567", email: "",
     privacyAccepted: true, shareWithGlobal: true,
+    placeId: "ChIJ1", placeSessionToken: "6f1c1b6e-3a51-4b8f-9d3e-0c4c1c1e2a10",
   };
   beforeEach(() => {
     vi.clearAllMocks();
+    m(consumeRateLimits).mockResolvedValue(true);
+    m(resolvePlace).mockResolvedValue(PLACE);
     m(getPublicImport).mockResolvedValue({ id: IMPORT_ID, status: "READY", errorCode: null, draft: DRAFT });
     m(confirmImport).mockResolvedValue({ candidateId: "c-1", attached: false, documentId: "d-1" });
   });
@@ -284,15 +348,20 @@ describe("confirmLandingImport", () => {
     expect(args).toMatchObject({
       importId: IMPORT_ID, organizationId: "o-1", poolId: "p-1", userId: null, channel: "landing_cv",
       consentToShare: true, attachToExistingByPhone: true,
+      coords: { latitude: 45.47, longitude: 9.19 },
       rawPayloadExtra: {
         landingPageId: LANDING.id,
         consent: {
           privacyPolicyUrl: "https://x.it/p", acceptedAt: "2026-10-29T10:00:00.000Z",
           shareWithGlobal: true, textVersion: "2026-10-29",
         },
+        place: { placeId: "ChIJ1", source: "google", resolvedAt: "2026-10-29T10:00:00.000Z" },
       },
     });
-    expect(args.fields).toMatchObject({ firstName: "Ahmed", phone: "+39 333 1234567" });
+    expect(m(resolvePlace)).toHaveBeenCalledWith("ChIJ1", "6f1c1b6e-3a51-4b8f-9d3e-0c4c1c1e2a10");
+    expect(args.fields).toMatchObject({
+      firstName: "Ahmed", phone: "+39 333 1234567", address: PLACE.address, location: "Milano (MI)",
+    });
     expect(args.audit).toEqual({
       action: "candidate_import.public_confirm",
       organizationId: "o-1",
@@ -302,6 +371,7 @@ describe("confirmLandingImport", () => {
           privacyPolicyUrl: "https://x.it/p", acceptedAt: "2026-10-29T10:00:00.000Z",
           shareWithGlobal: true, textVersion: "2026-10-29",
         },
+        place: { placeId: "ChIJ1", source: "google", resolvedAt: "2026-10-29T10:00:00.000Z" },
       },
     });
   });
@@ -362,5 +432,26 @@ describe("confirmLandingImport", () => {
     await expect(confirmLandingImport(LANDING, IMPORT_ID, CONTACT, CTX)).resolves.toEqual({ ok: false, error: "INTERNAL_ERROR" });
     expect(spy).toHaveBeenCalledWith("[landing] confirm failed", { name: "PrismaClientKnownRequestError", code: "P2002" });
     spy.mockRestore();
+  });
+
+  it("returns PLACE_INVALID without confirming when the place cannot be resolved", async () => {
+    m(resolvePlace).mockResolvedValueOnce(null);
+    await expect(confirmLandingImport(LANDING, IMPORT_ID, CONTACT, CTX))
+      .resolves.toEqual({ ok: false, error: "PLACE_INVALID" });
+    expect(m(confirmImport)).not.toHaveBeenCalled();
+  });
+
+  it("limits place resolutions per import", async () => {
+    m(consumeRateLimits).mockResolvedValueOnce(false);
+    await expect(confirmLandingImport(LANDING, IMPORT_ID, CONTACT, CTX))
+      .resolves.toEqual({ ok: false, error: "RATE_LIMITED" });
+    const rules = m(consumeRateLimits).mock.calls[0]![0] as { key: string; limit: number }[];
+    expect(rules).toEqual([{ key: `landing:import:${IMPORT_ID}:place-resolve:d`, limit: 10, windowSec: 86400 }]);
+    expect(m(resolvePlace)).not.toHaveBeenCalled();
+  });
+
+  it("rejects a contact without a place id", async () => {
+    await expect(confirmLandingImport(LANDING, IMPORT_ID, { ...CONTACT, placeId: "" }, CTX))
+      .resolves.toEqual({ ok: false, error: "VALIDATION" });
   });
 });

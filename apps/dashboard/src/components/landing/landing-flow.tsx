@@ -82,17 +82,15 @@ const RETRYABLE_EXTRACTION: ReadonlySet<LandingErrorCode> = new Set<LandingError
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 /**
- * Heading of an option on the choose step: icon on the left (same box in both
- * cards, so they line up), orientation tag and title stacked on the right.
+ * Heading of an option on the choose step, centred: icon first (same box in
+ * both cards, so they line up), then the orientation tag and the title.
  */
 function OptionHeading({ icon, tag, children }: { icon: ReactNode; tag: string; children: ReactNode }) {
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex flex-col items-center gap-2 text-center">
       {icon}
-      <div className="flex min-w-0 flex-col items-start gap-1.5">
-        <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">{tag}</span>
-        {children}
-      </div>
+      <span className="mt-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">{tag}</span>
+      {children}
     </div>
   );
 }
@@ -351,7 +349,7 @@ export function LandingFlow(props: LandingFlowProps) {
                 </OptionHeading>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground">{t.whatsappBody}</p>
+                <p className="text-center text-sm text-muted-foreground">{t.whatsappBody}</p>
                 {whatsappButton}
               </CardContent>
             </Card>
@@ -367,7 +365,7 @@ export function LandingFlow(props: LandingFlowProps) {
               </OptionHeading>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">{org(t.uploadBody)}</p>
+              <p className="text-center text-sm text-muted-foreground">{org(t.uploadBody)}</p>
               <Button variant="outline" className="h-11 w-full text-base" onClick={() => setStep({ kind: "verify" })}>
                 <FileUp className="mr-2 h-4 w-4" aria-hidden="true" />
                 {t.uploadCta}

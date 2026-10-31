@@ -51,21 +51,21 @@ export default async function CandidateLandingPage(props: Props) {
   return (
     <I18nProvider locale={locale}>
       <main lang={locale} className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-10">
-        <header className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl tracking-tight">{landing.organization.name}</h1>
-            <p className="mt-1 text-muted-foreground">
-              {t.intro.replace("{org}", landing.organization.name)}
-            </p>
+        <header className="space-y-2">
+          <div className="flex items-start justify-between gap-4">
+            <h1 className="min-w-0 text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
+              {t.headline.replace("{org}", landing.organization.name)}
+            </h1>
+            <a
+              href={`?lang=${otherLocale}`} hrefLang={otherLocale} lang={otherLocale}
+              className="inline-flex shrink-0 items-center gap-2 rounded-md border px-2.5 py-1.5 text-sm hover:bg-muted"
+              aria-label={`${t.languageLabel}: ${otherLanguageName}`}
+            >
+              <LocaleFlag locale={otherLocale} className="h-3.5 w-5 rounded-[2px] shadow-[0_0_0_1px_rgb(0_0_0/0.1)]" />
+              {otherLanguageName}
+            </a>
           </div>
-          <a
-            href={`?lang=${otherLocale}`} hrefLang={otherLocale} lang={otherLocale}
-            className="inline-flex shrink-0 items-center gap-2 rounded-md border px-2.5 py-1.5 text-sm hover:bg-muted"
-            aria-label={`${t.languageLabel}: ${otherLanguageName}`}
-          >
-            <LocaleFlag locale={otherLocale} className="h-3.5 w-5 rounded-[2px] shadow-[0_0_0_1px_rgb(0_0_0/0.1)]" />
-            {otherLanguageName}
-          </a>
+          <p className="max-w-prose text-pretty text-muted-foreground">{t.intro}</p>
         </header>
         <LandingFlow
           slug={landing.slug}

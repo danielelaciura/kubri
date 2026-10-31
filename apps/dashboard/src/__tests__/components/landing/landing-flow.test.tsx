@@ -194,6 +194,28 @@ describe("LandingFlow", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(t.errors.verifyFailed);
   });
 
+  it("shows the CV path steps with the current one marked", async () => {
+    const { container } = setup();
+    const steps = screen.getByRole("list", { name: t.stepsLabel });
+    expect(steps.querySelector('[aria-current="step"]')).toHaveTextContent(t.steps.upload);
+    chooseFile(container);
+    await screen.findByLabelText(t.lastName);
+    expect(screen.getByRole("list", { name: t.stepsLabel }).querySelector('[aria-current="step"]'))
+      .toHaveTextContent(t.steps.check);
+  });
+
+  it("hides the steps on the choose screen", () => {
+    render(
+      <I18nProvider locale="it">
+        <LandingFlow
+          slug="coop-sole" locale="it" orgName="Coop Sole" waLink={null}
+          privacyPolicyUrl="https://x.it/p" showShare={false} turnstileSiteKey=""
+        />
+      </I18nProvider>,
+    );
+    expect(screen.queryByRole("list", { name: t.stepsLabel })).not.toBeInTheDocument();
+  });
+
   it("skips the verification step without a site key (local dev)", () => {
     setup();
     expect(screen.getByRole("button", { name: t.chooseFile })).toBeEnabled();

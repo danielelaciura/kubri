@@ -496,6 +496,10 @@ export const en = {
     dropzoneDrop: "Drop the file here",
     stepsLabel: "Application steps",
     stepDone: "done",
+    footerPrivacy: "Privacy policy",
+    footerTerms: "Terms and conditions",
+    footerRights: "All rights reserved",
+    footerLabel: "About Kubri",
     steps: {
       upload: "Upload your CV",
       check: "Check your details",

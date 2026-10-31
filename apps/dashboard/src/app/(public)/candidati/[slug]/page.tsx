@@ -9,6 +9,7 @@ import { resolvePublicLocale } from "@/lib/landing/locale";
 import { buildWaLink } from "@/lib/whatsapp/build-link";
 import { LandingFlow } from "@/components/landing/landing-flow";
 import { LocaleFlag } from "@/components/landing/locale-flag";
+import { LandingFooter } from "@/components/landing/landing-footer";
 
 // Route segment config: server actions invoked from this page (CV extraction)
 // inherit this budget (Next 16 docs, route-segment-config/maxDuration).
@@ -84,6 +85,7 @@ export default async function CandidateLandingPage(props: Props) {
           turnstileSiteKey={process.env.TURNSTILE_SITE_KEY ?? ""}
         />
       </main>
+      <LandingFooter t={t} />
     </I18nProvider>
   );
 }

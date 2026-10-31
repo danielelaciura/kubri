@@ -203,6 +203,10 @@ model Candidate {
   jobConstraints           String?
   hasDesiredJobExperience  String?
 
+  // Optional chatbot question: training the candidate would like to follow
+  // (free text, e.g. "excel"). From `learning_preferences.learning_preference`.
+  learningPreference  String?
+
   interviewLanguage   String?
   sourceOrganization  String?
   channel             String?

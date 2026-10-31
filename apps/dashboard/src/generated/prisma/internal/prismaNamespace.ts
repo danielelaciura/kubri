@@ -1617,6 +1617,7 @@ export const CandidateScalarFieldEnum = {
   preferredLocation: 'preferredLocation',
   jobConstraints: 'jobConstraints',
   hasDesiredJobExperience: 'hasDesiredJobExperience',
+  learningPreference: 'learningPreference',
   interviewLanguage: 'interviewLanguage',
   sourceOrganization: 'sourceOrganization',
   channel: 'channel',

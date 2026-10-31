@@ -34,6 +34,7 @@ function dbCandidateToApp(c: DbCandidate): Candidate {
       preferredLocation: c.preferredLocation ?? "",
       constraints: c.jobConstraints ?? "",
       hasDesiredJobExperience: c.hasDesiredJobExperience ?? "",
+      learningPreference: c.learningPreference ?? "",
     },
     centroPerImpiego: "",
     interviewLanguage: c.interviewLanguage ?? c.language ?? "",

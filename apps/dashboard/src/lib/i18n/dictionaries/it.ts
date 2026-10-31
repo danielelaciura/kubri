@@ -370,6 +370,7 @@ export const it = {
     partTime: "Part-time",
     fullTime: "Full-time",
     roleExperience: "Esperienza nel ruolo: ",
+    learningPreference: "Formazione di interesse: ",
     constraints: "Limitazioni: ",
     cv: "Curriculum Vitae",
     cvDownloadPdf: "Scarica PDF",

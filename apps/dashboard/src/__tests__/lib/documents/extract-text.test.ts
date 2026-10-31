@@ -35,7 +35,7 @@ describe("extractDocumentText", () => {
     ocr.mockResolvedValueOnce({ text: "Mario Rossi", pageCount: 1 });
     const r = await extractDocumentText(BYTES, "pdf");
     expect(r).toEqual({ text: "Mario Rossi", method: "ocr", pageCount: 1 });
-    expect(ocr).toHaveBeenCalledWith(BYTES, "application/pdf");
+    expect(ocr).toHaveBeenCalledWith(BYTES, "application/pdf", undefined, undefined);
   });
 
   it("maps an unparseable PDF to FILE_UNREADABLE", async () => {
@@ -61,7 +61,7 @@ describe("extractDocumentText", () => {
     const p = extractDocumentText(BYTES, "jpeg");
     await expect(p).rejects.toBeInstanceOf(DocumentError);
     await expect(p).rejects.toMatchObject({ code: "NO_TEXT" });
-    expect(ocr).toHaveBeenCalledWith(BYTES, "image/jpeg");
+    expect(ocr).toHaveBeenCalledWith(BYTES, "image/jpeg", undefined, undefined);
   });
 
   it("sends a multi-page PDF with a thin text layer to OCR and frees pdf.js", async () => {
@@ -94,5 +94,11 @@ describe("extractDocumentText", () => {
     pdfText.mockResolvedValueOnce({ totalPages: 1, text: "" });
     ocr.mockResolvedValueOnce({ text: "", pageCount: 1 });
     await expect(extractDocumentText(BYTES, "pdf")).rejects.toMatchObject({ code: "NO_TEXT" });
+  });
+
+  it("passes maxOcrPages through to OCR for images", async () => {
+    ocr.mockResolvedValueOnce({ text: "testo letto", pageCount: 1 });
+    await extractDocumentText(BYTES, "jpeg", { maxOcrPages: 3 });
+    expect(ocr).toHaveBeenCalledWith(BYTES, "image/jpeg", undefined, 3);
   });
 });

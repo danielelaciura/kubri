@@ -41,7 +41,11 @@ function dbCandidateToApp(c: DbCandidate): Candidate {
     sourceOrganization: c.sourceOrganization ?? "",
     channel,
     createdVia:
-      c.channel === "dashboard_form" || c.channel === "dashboard_cv" ? c.channel : null,
+      c.channel === "dashboard_form" ||
+      c.channel === "dashboard_cv" ||
+      c.channel === "landing_cv"
+        ? c.channel
+        : null,
     consent: false,
     cvPdfLink: "",
     cvDocLink: "",

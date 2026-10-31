@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 vi.mock("@/lib/db", () => ({ prisma: { candidate: { findMany: vi.fn() } } }));
 
 import { prisma } from "@/lib/db";
-import { findPossibleDuplicates, phoneSuffix } from "@/lib/candidates/duplicates";
+import { findCandidateIdBySamePhone, findPossibleDuplicates, phoneSuffix } from "@/lib/candidates/duplicates";
 
 const findMany = prisma.candidate.findMany as unknown as ReturnType<typeof vi.fn>;
 
@@ -36,5 +36,36 @@ describe("findPossibleDuplicates", () => {
         { email: { equals: "a@b.it", mode: "insensitive" } },
       ],
     });
+  });
+});
+
+describe("findCandidateIdBySamePhone", () => {
+  const db = { candidate: { findMany: vi.fn() } };
+
+  beforeEach(() => vi.clearAllMocks());
+
+  it("returns the candidate whose normalized phone matches exactly, in the given pool", async () => {
+    db.candidate.findMany.mockResolvedValueOnce([
+      { id: "c-other", phone: "+44 7333 1234567" },
+      { id: "c-same", phone: "333 1234567" },
+    ]);
+    const id = await findCandidateIdBySamePhone(db as never, "pool-1", "+39 333 123 4567");
+    expect(id).toBe("c-same");
+    expect(db.candidate.findMany.mock.calls[0]![0].where).toEqual({
+      poolId: "pool-1",
+      phone: { endsWith: "31234567" },
+    });
+  });
+
+  it("returns null without querying when the phone is not usable", async () => {
+    await expect(findCandidateIdBySamePhone(db as never, "pool-1", "123")).resolves.toBeNull();
+    expect(db.candidate.findMany).not.toHaveBeenCalled();
+  });
+
+  it("returns null when only suffixes match", async () => {
+    db.candidate.findMany.mockResolvedValueOnce([{ id: "c-x", phone: "+44 7333 1234567" }]);
+    await expect(
+      findCandidateIdBySamePhone(db as never, "pool-1", "+39 333 123 4567"),
+    ).resolves.toBeNull();
   });
 });

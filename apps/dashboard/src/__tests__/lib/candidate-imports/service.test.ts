@@ -1,8 +1,14 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { createHash } from "node:crypto";
 
 const tx = {
   candidateImport: { findFirst: vi.fn(), updateMany: vi.fn(), update: vi.fn() },
-  candidateDocument: { create: vi.fn() },
+  candidateDocument: {
+    create: vi.fn().mockResolvedValue({ id: "d-1" }),
+    findFirst: vi.fn().mockResolvedValue({ id: "d-9" }),
+  },
+  candidate: { findMany: vi.fn() },
+  auditLog: { create: vi.fn() },
 };
 
 vi.mock("@/lib/db", () => ({
@@ -13,9 +19,12 @@ vi.mock("@/lib/db", () => ({
       update: vi.fn(),
       findUniqueOrThrow: vi.fn(),
       findFirst: vi.fn(),
+      findUnique: vi.fn(),
       findMany: vi.fn(),
     },
-    $transaction: vi.fn(async (fn: (t: typeof tx) => unknown) => fn(tx)),
+    candidateDocument: { findMany: vi.fn() },
+    $transaction: vi.fn(async (arg: unknown) =>
+      Array.isArray(arg) ? Promise.all(arg) : (arg as (t: typeof tx) => unknown)(tx)),
   },
 }));
 vi.mock("@/lib/supabase/admin", () => ({ createSupabaseAdminClient: vi.fn() }));
@@ -28,8 +37,12 @@ vi.mock("@/lib/storage/candidate-documents", async () => {
     createDocumentUploadUrl: vi.fn(),
     downloadCandidateDocument: vi.fn(),
     removeCandidateDocuments: vi.fn(),
+    replaceCandidateDocument: vi.fn(),
+    listDocumentObjects: vi.fn(),
   };
 });
+vi.mock("@/lib/candidates/duplicates", () => ({ findCandidateIdBySamePhone: vi.fn() }));
+vi.mock("@/lib/documents/inspect", () => ({ inspectPublicDocument: vi.fn() }));
 vi.mock("@/lib/documents/extract-text", () => ({ extractDocumentText: vi.fn() }));
 vi.mock("@/lib/candidates/cv-extraction", () => ({ extractCandidateDraft: vi.fn() }));
 vi.mock("@/lib/candidates/ingest", () => ({
@@ -42,21 +55,27 @@ import { Prisma } from "@/generated/prisma/client";
 import {
   createDocumentUploadUrl,
   downloadCandidateDocument,
+  listDocumentObjects,
   removeCandidateDocuments,
+  replaceCandidateDocument,
 } from "@/lib/storage/candidate-documents";
+import { findCandidateIdBySamePhone } from "@/lib/candidates/duplicates";
+import { inspectPublicDocument } from "@/lib/documents/inspect";
 import { StorageError } from "@/lib/storage/errors";
 import { extractDocumentText } from "@/lib/documents/extract-text";
 import { extractCandidateDraft } from "@/lib/candidates/cv-extraction";
 import { refreshCandidateEmbedding, upsertCandidate } from "@/lib/candidates/ingest";
 import { LLMTimeoutError } from "@/lib/llm/errors";
-import { ImportError, ImportStateError } from "@/lib/candidate-imports/errors";
+import { ImportError, ImportNotFoundError, ImportStateError } from "@/lib/candidate-imports/errors";
 import {
   confirmImport,
   createUploadTicket,
   discardImport,
   discardStaleImports,
   getImportForOrg,
+  getPublicImport,
   registerUpload,
+  removeOrphanUploads,
   runExtraction,
 } from "@/lib/candidate-imports/service";
 
@@ -96,7 +115,18 @@ describe("createUploadTicket", () => {
 });
 
 describe("registerUpload", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    m(prisma.candidateImport.findUnique).mockResolvedValue(null);
+  });
+
+  it("rejects re-registering an existing import without touching storage", async () => {
+    m(prisma.candidateImport.findUnique).mockResolvedValueOnce({ id: IMPORT_ID });
+    await expect(registerUpload(REGISTER)).rejects.toBeInstanceOf(ImportStateError);
+    expect(m(prisma.candidateImport.findUnique)).toHaveBeenCalledWith({ where: { id: IMPORT_ID }, select: { id: true } });
+    expect(m(downloadCandidateDocument)).not.toHaveBeenCalled();
+    expect(m(removeCandidateDocuments)).not.toHaveBeenCalled();
+  });
 
   it("verifies the stored file and creates an UPLOADED import", async () => {
     m(downloadCandidateDocument).mockResolvedValueOnce(PDF);
@@ -256,8 +286,10 @@ describe("confirmImport", () => {
 
     const r = await confirmImport({ importId: "22222222-2222-4222-8222-222222222222", organizationId: "o", userId: "u", fields: FIELDS });
 
-    expect(r).toEqual({ candidateId: "c-1" });
-    expect(tx.candidateImport.findFirst.mock.calls[0]![0].where).toEqual({ id: "22222222-2222-4222-8222-222222222222", organizationId: "o" });
+    expect(r).toEqual({ candidateId: "c-1", attached: false, documentId: "d-1" });
+    expect(tx.candidateImport.findFirst.mock.calls[0]![0].where).toEqual({
+      id: "22222222-2222-4222-8222-222222222222", organizationId: "o", origin: { not: "PUBLIC_LINK" },
+    });
     expect(tx.candidateImport.updateMany.mock.calls[0]![0]).toEqual({
       where: {
         id: "22222222-2222-4222-8222-222222222222",
@@ -286,7 +318,7 @@ describe("confirmImport", () => {
     tx.candidateImport.updateMany.mockResolvedValueOnce({ count: 1 });
     m(upsertCandidate).mockResolvedValueOnce({ id: "c-2" });
     const r = await confirmImport({ importId: "22222222-2222-4222-8222-222222222222", organizationId: "o", userId: "u", fields: FIELDS });
-    expect(r).toEqual({ candidateId: "c-2" });
+    expect(r).toEqual({ candidateId: "c-2", attached: false, documentId: "d-1" });
     const where = tx.candidateImport.updateMany.mock.calls[0]![0].where;
     const stale = where.OR[1].updatedAt.lt as Date;
     expect(Date.now() - stale.getTime()).toBeGreaterThanOrEqual(2 * 60 * 1000 - 50);
@@ -295,8 +327,15 @@ describe("confirmImport", () => {
   it("is idempotent for an already completed import", async () => {
     tx.candidateImport.findFirst.mockResolvedValueOnce({ ...IMPORT, status: "COMPLETED", candidateId: "c-9" });
     const r = await confirmImport({ importId: "22222222-2222-4222-8222-222222222222", organizationId: "o", userId: "u", fields: FIELDS });
-    expect(r).toEqual({ candidateId: "c-9" });
+    expect(r).toEqual({ candidateId: "c-9", attached: false, documentId: "d-9" });
     expect(m(upsertCandidate)).not.toHaveBeenCalled();
+  });
+
+  it("returns a null documentId for a completed import with no document", async () => {
+    tx.candidateImport.findFirst.mockResolvedValueOnce({ ...IMPORT, status: "COMPLETED", candidateId: "c-9" });
+    tx.candidateDocument.findFirst.mockResolvedValueOnce(null);
+    const r = await confirmImport({ importId: "22222222-2222-4222-8222-222222222222", organizationId: "o", userId: "u", fields: FIELDS });
+    expect(r.documentId).toBeNull();
   });
 
   it("throws ImportStateError when the import lost the race", async () => {
@@ -313,6 +352,170 @@ describe("confirmImport", () => {
       confirmImport({ importId: "22222222-2222-4222-8222-222222222222", organizationId: "other", userId: "u", fields: FIELDS }),
     ).rejects.toThrow();
   });
+  it("public mode attaches the CV to the same-phone candidate of the pool", async () => {
+    tx.candidateImport.findFirst.mockResolvedValueOnce({ ...IMPORT, createdById: null });
+    tx.candidateImport.updateMany.mockResolvedValueOnce({ count: 1 });
+    m(findCandidateIdBySamePhone).mockResolvedValueOnce("c-existing");
+
+    const r = await confirmImport({
+      importId: IMPORT.id, organizationId: "o", userId: null,
+      fields: { firstName: "Ahmed", lastName: "Benali", phone: "+39 333 1234567" } as never,
+      channel: "landing_cv", poolId: "p", attachToExistingByPhone: true,
+    });
+
+    expect(r).toEqual({ candidateId: "c-existing", attached: true, documentId: "d-1" });
+    expect(m(findCandidateIdBySamePhone)).toHaveBeenCalledWith(tx, "p", "+39 333 1234567");
+    expect(m(upsertCandidate)).not.toHaveBeenCalled();
+    expect(tx.candidateDocument.create.mock.calls[0]![0].data).toMatchObject({
+      candidateId: "c-existing", kind: "CV", uploadedById: null,
+    });
+    expect(tx.candidateImport.update.mock.calls[0]![0].data).toEqual({
+      candidateId: "c-existing", extractedText: null, draft: Prisma.DbNull,
+    });
+    expect(m(refreshCandidateEmbedding)).not.toHaveBeenCalled();
+  });
+
+  it("public mode creates a landing candidate when no phone matches", async () => {
+    tx.candidateImport.findFirst.mockResolvedValueOnce({ ...IMPORT, createdById: null });
+    tx.candidateImport.updateMany.mockResolvedValueOnce({ count: 1 });
+    m(findCandidateIdBySamePhone).mockResolvedValueOnce(null);
+    m(upsertCandidate).mockResolvedValueOnce({ id: "c-new" });
+
+    const r = await confirmImport({
+      importId: IMPORT.id, organizationId: "o", userId: null,
+      fields: { firstName: "Ahmed", lastName: "Benali", phone: "+39 333 1234567" } as never,
+      channel: "landing_cv", poolId: "p", consentToShare: true, attachToExistingByPhone: true,
+      rawPayloadExtra: { landingPageId: "l-1", consent: { acceptedAt: "t" } },
+    });
+
+    expect(r).toEqual({ candidateId: "c-new", attached: false, documentId: "d-1" });
+    const [data] = m(upsertCandidate).mock.calls[0]!;
+    expect(data.channel).toBe("landing_cv");
+    expect(data.externalId).toMatch(/^landing:/);
+    expect(data.sharedWithGlobal).toBe(true);
+    expect(data.rawPayload).toMatchObject({
+      mode: "landing_cv", createdById: null, landingPageId: "l-1", consent: { acceptedAt: "t" },
+    });
+  });
+
+  it("public confirm without consent does not share with global on a WEBHOOK pool", async () => {
+    tx.candidateImport.findFirst.mockResolvedValueOnce({ ...IMPORT, createdById: null });
+    tx.candidateImport.updateMany.mockResolvedValueOnce({ count: 1 });
+    m(findCandidateIdBySamePhone).mockResolvedValueOnce(null);
+    m(upsertCandidate).mockResolvedValueOnce({ id: "c-new" });
+    await confirmImport({
+      importId: IMPORT.id, organizationId: "o", userId: null, poolId: "p",
+      fields: { firstName: "A", lastName: "B" } as never,
+      channel: "landing_cv", consentToShare: false, attachToExistingByPhone: true,
+    });
+    expect(m(upsertCandidate).mock.calls[0]![0].sharedWithGlobal).toBe(false);
+  });
+
+  it("public confirm only claims READY imports and scopes the lookup", async () => {
+    tx.candidateImport.findFirst.mockResolvedValueOnce({ ...IMPORT, createdById: null });
+    tx.candidateImport.updateMany.mockResolvedValueOnce({ count: 0 });
+    await expect(
+      confirmImport({
+        importId: IMPORT.id, organizationId: "o", userId: null, poolId: "p",
+        fields: FIELDS, channel: "landing_cv",
+      }),
+    ).rejects.toBeInstanceOf(ImportStateError);
+    expect(tx.candidateImport.findFirst.mock.calls[0]![0].where).toEqual({
+      id: IMPORT.id, organizationId: "o", poolId: "p", origin: "PUBLIC_LINK",
+    });
+    expect(tx.candidateImport.updateMany.mock.calls[0]![0].where).toEqual({ id: IMPORT.id, status: "READY" });
+  });
+
+  it("public confirm without a poolId is refused before any query", async () => {
+    await expect(
+      confirmImport({ importId: IMPORT.id, organizationId: "o", userId: null, fields: FIELDS, channel: "landing_cv" }),
+    ).rejects.toBeInstanceOf(ImportNotFoundError);
+    expect(tx.candidateImport.findFirst).not.toHaveBeenCalled();
+  });
+
+  it("public confirm on a READY import succeeds", async () => {
+    tx.candidateImport.findFirst.mockResolvedValueOnce({ ...IMPORT, createdById: null });
+    tx.candidateImport.updateMany.mockResolvedValueOnce({ count: 1 });
+    m(upsertCandidate).mockResolvedValueOnce({ id: "c-new" });
+    await expect(
+      confirmImport({
+        importId: IMPORT.id, organizationId: "o", userId: null, poolId: "p",
+        fields: FIELDS, channel: "landing_cv",
+      }),
+    ).resolves.toMatchObject({ candidateId: "c-new" });
+  });
+
+  it("operator findFirst is not scoped by pool and never matches a public import", async () => {
+    tx.candidateImport.findFirst.mockResolvedValueOnce(IMPORT);
+    tx.candidateImport.updateMany.mockResolvedValueOnce({ count: 1 });
+    m(upsertCandidate).mockResolvedValueOnce({ id: "c-1" });
+    await confirmImport({ importId: IMPORT.id, organizationId: "o", userId: "u", fields: FIELDS });
+    expect(tx.candidateImport.findFirst.mock.calls[0]![0].where).toEqual({
+      id: IMPORT.id, organizationId: "o", origin: { not: "PUBLIC_LINK" },
+    });
+  });
+
+  it("operator mode never looks up phones", async () => {
+    tx.candidateImport.findFirst.mockResolvedValueOnce(IMPORT);
+    tx.candidateImport.updateMany.mockResolvedValueOnce({ count: 1 });
+    m(upsertCandidate).mockResolvedValueOnce({ id: "c-1" });
+    await confirmImport({ importId: IMPORT.id, organizationId: "o", userId: "u", fields: FIELDS });
+    expect(m(findCandidateIdBySamePhone)).not.toHaveBeenCalled();
+  });
+
+  const AUDIT = { action: "candidate_import.public_confirm", organizationId: "o", metadata: { ipHash: "h", consent: { acceptedAt: "t" } } };
+  const PUBLIC = {
+    importId: IMPORT.id, organizationId: "o", userId: null,
+    fields: { firstName: "Ahmed", lastName: "Benali", phone: "+39 333 1234567" } as never,
+    channel: "landing_cv" as const, poolId: "p", attachToExistingByPhone: true, audit: AUDIT,
+  };
+
+  it("writes the audit row inside the transaction on attach", async () => {
+    tx.candidateImport.findFirst.mockResolvedValueOnce({ ...IMPORT, createdById: null });
+    tx.candidateImport.updateMany.mockResolvedValueOnce({ count: 1 });
+    m(findCandidateIdBySamePhone).mockResolvedValueOnce("c-existing");
+    await confirmImport(PUBLIC);
+    expect(tx.auditLog.create).toHaveBeenCalledWith({
+      data: {
+        userId: null, organizationId: "o", action: "candidate_import.public_confirm",
+        resourceType: "candidate_import", resourceId: IMPORT.id,
+        metadata: { ipHash: "h", consent: { acceptedAt: "t" }, candidateId: "c-existing", attached: true, documentId: "d-1" },
+      },
+    });
+  });
+
+  it("writes the audit row inside the transaction on create", async () => {
+    tx.candidateImport.findFirst.mockResolvedValueOnce({ ...IMPORT, createdById: null });
+    tx.candidateImport.updateMany.mockResolvedValueOnce({ count: 1 });
+    m(findCandidateIdBySamePhone).mockResolvedValueOnce(null);
+    m(upsertCandidate).mockResolvedValueOnce({ id: "c-new" });
+    await confirmImport(PUBLIC);
+    expect(tx.auditLog.create).toHaveBeenCalledWith({
+      data: {
+        userId: null, organizationId: "o", action: "candidate_import.public_confirm",
+        resourceType: "candidate_import", resourceId: IMPORT.id,
+        metadata: { ipHash: "h", consent: { acceptedAt: "t" }, candidateId: "c-new", attached: false, documentId: "d-1" },
+      },
+    });
+  });
+
+  it("a failing audit write fails the confirm (rolled back with the transaction)", async () => {
+    tx.candidateImport.findFirst.mockResolvedValueOnce({ ...IMPORT, createdById: null });
+    tx.candidateImport.updateMany.mockResolvedValueOnce({ count: 1 });
+    m(findCandidateIdBySamePhone).mockResolvedValueOnce("c-existing");
+    tx.auditLog.create.mockRejectedValueOnce(new Error("db"));
+    await expect(confirmImport(PUBLIC)).rejects.toThrow("db");
+  });
+
+  it("does not audit the idempotent COMPLETED return, nor without the audit param", async () => {
+    tx.candidateImport.findFirst.mockResolvedValueOnce({ ...IMPORT, status: "COMPLETED", candidateId: "c-9" });
+    await confirmImport(PUBLIC);
+    tx.candidateImport.findFirst.mockResolvedValueOnce(IMPORT);
+    tx.candidateImport.updateMany.mockResolvedValueOnce({ count: 1 });
+    m(upsertCandidate).mockResolvedValueOnce({ id: "c-1" });
+    await confirmImport({ importId: IMPORT.id, organizationId: "o", userId: "u", fields: FIELDS });
+    expect(tx.auditLog.create).not.toHaveBeenCalled();
+  });
 });
 
 describe("discardImport / discardStaleImports", () => {
@@ -322,11 +525,16 @@ describe("discardImport / discardStaleImports", () => {
     m(prisma.candidateImport.findFirst).mockResolvedValueOnce({ storagePath: "p/i/cv.pdf" });
     m(prisma.candidateImport.updateMany).mockResolvedValueOnce({ count: 1 });
     await expect(discardImport("22222222-2222-4222-8222-222222222222", "o")).resolves.toBe(true);
+    expect(m(prisma.candidateImport.findFirst).mock.calls[0]![0].where).toEqual({
+      id: "22222222-2222-4222-8222-222222222222", organizationId: "o", origin: { not: "PUBLIC_LINK" },
+    });
     expect(m(prisma.candidateImport.updateMany).mock.calls[0]![0].where).toEqual({
-      id: "22222222-2222-4222-8222-222222222222", organizationId: "o", status: { in: ["UPLOADED", "EXTRACTING", "READY", "FAILED"] },
+      id: "22222222-2222-4222-8222-222222222222", organizationId: "o", origin: { not: "PUBLIC_LINK" },
+      status: { in: ["UPLOADED", "EXTRACTING", "READY", "FAILED"] },
     });
     expect(m(prisma.candidateImport.updateMany).mock.calls[0]![0].data).toEqual({
-      status: "DISCARDED", extractedText: null, draft: Prisma.DbNull,
+      status: "DISCARDED", extractedText: null, draft: Prisma.DbNull, fileName: "discarded",
+      storagePath: "p/i/discarded",
     });
     expect(m(removeCandidateDocuments)).toHaveBeenCalledWith(["p/i/cv.pdf"]);
   });
@@ -337,35 +545,39 @@ describe("discardImport / discardStaleImports", () => {
       { id: "a", storagePath: "p/a/cv.pdf" },
       { id: "b", storagePath: "p/b/cv.pdf" },
     ]);
-    m(prisma.candidateImport.updateMany).mockResolvedValueOnce({ count: 2 });
-    m(prisma.candidateImport.findMany).mockResolvedValueOnce([
-      { storagePath: "p/a/cv.pdf" },
-      { storagePath: "p/b/cv.pdf" },
-    ]);
+    m(prisma.candidateImport.updateMany).mockResolvedValue({ count: 1 });
     await expect(discardStaleImports(now)).resolves.toBe(2);
     const where = m(prisma.candidateImport.findMany).mock.calls[0]![0].where;
-    expect(where.updatedAt.lt).toEqual(new Date("2026-10-16T03:00:00Z"));
-    expect(m(prisma.candidateImport.updateMany).mock.calls[0]![0].data).toEqual({
-      status: "DISCARDED", extractedText: null, draft: Prisma.DbNull,
+    expect(where).toEqual({
+      status: { in: ["UPLOADED", "EXTRACTING", "READY", "FAILED"] },
+      OR: [
+        { updatedAt: { lt: new Date("2026-10-16T03:00:00Z") } },
+        { origin: "PUBLIC_LINK", updatedAt: { lt: new Date("2026-10-22T03:00:00Z") } },
+      ],
     });
+    // One conditional update per row: each gets its own name-free path.
+    expect(m(prisma.candidateImport.updateMany).mock.calls.map((c) => c[0])).toEqual([
+      {
+        where: { id: "a", status: { in: ["UPLOADED", "EXTRACTING", "READY", "FAILED"] } },
+        data: { status: "DISCARDED", extractedText: null, draft: Prisma.DbNull, fileName: "discarded", storagePath: "p/a/discarded" },
+      },
+      {
+        where: { id: "b", status: { in: ["UPLOADED", "EXTRACTING", "READY", "FAILED"] } },
+        data: { status: "DISCARDED", extractedText: null, draft: Prisma.DbNull, fileName: "discarded", storagePath: "p/b/discarded" },
+      },
+    ]);
     expect(m(removeCandidateDocuments)).toHaveBeenCalledWith(["p/a/cv.pdf", "p/b/cv.pdf"]);
   });
 });
 
 it("removes files only for rows actually discarded", async () => {
-  m(prisma.candidateImport.findMany)
-    .mockResolvedValueOnce([
-      { id: "a", storagePath: "p/a/cv.pdf" },
-      { id: "b", storagePath: "p/b/cv.pdf" },
-    ])
-    .mockResolvedValueOnce([{ storagePath: "p/a/cv.pdf" }]);
-  m(prisma.candidateImport.updateMany).mockResolvedValueOnce({ count: 1 });
-  m(removeCandidateDocuments).mockClear();
+  vi.clearAllMocks();
+  m(prisma.candidateImport.findMany).mockResolvedValueOnce([
+    { id: "a", storagePath: "p/a/cv.pdf" },
+    { id: "b", storagePath: "p/b/cv.pdf" },
+  ]);
+  m(prisma.candidateImport.updateMany).mockResolvedValueOnce({ count: 1 }).mockResolvedValueOnce({ count: 0 });
   await expect(discardStaleImports(new Date())).resolves.toBe(1);
-  expect(m(prisma.candidateImport.findMany).mock.calls[1]![0]).toEqual({
-    where: { id: { in: ["a", "b"] }, status: "DISCARDED" },
-    select: { storagePath: true },
-  });
   expect(m(removeCandidateDocuments)).toHaveBeenCalledWith(["p/a/cv.pdf"]);
 });
 
@@ -389,5 +601,401 @@ describe("non-UUID import ids never reach the database", () => {
   it("runExtraction returns early", async () => {
     for (const id of bad) await expect(runExtraction(id)).resolves.toBeUndefined();
     expect(prisma.candidateImport.updateMany).not.toHaveBeenCalled();
+  });
+});
+
+describe("public upload options", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    m(prisma.candidateImport.findUnique).mockResolvedValue(null);
+  });
+
+  it("registerUpload with inspect re-uploads a PDF with the server-chosen type", async () => {
+    m(downloadCandidateDocument).mockResolvedValueOnce(PDF);
+    m(inspectPublicDocument).mockResolvedValueOnce({ ok: true, bytes: PDF, kind: "pdf" });
+    await registerUpload({ ...REGISTER, origin: "PUBLIC_LINK", createdById: null, inspect: true });
+    expect(m(replaceCandidateDocument)).toHaveBeenCalledWith(`p/${IMPORT_ID}/CV_Ahmed.pdf`, PDF, "application/pdf");
+  });
+
+  it("createUploadTicket honours a lower maxBytes", async () => {
+    await expect(
+      createUploadTicket({ poolId: "p", fileName: "cv.pdf", fileSize: 6 * 1024 * 1024, maxBytes: 5 * 1024 * 1024 }),
+    ).rejects.toMatchObject({ code: "FILE_TOO_LARGE" });
+  });
+
+  it("registerUpload with inspect rejects and removes an unsafe file", async () => {
+    m(downloadCandidateDocument).mockResolvedValueOnce(PDF);
+    m(inspectPublicDocument).mockResolvedValueOnce({ ok: false, reason: "pdf_active_content" });
+    await expect(
+      registerUpload({ ...REGISTER, origin: "PUBLIC_LINK", createdById: null, inspect: true }),
+    ).rejects.toMatchObject({ code: "REJECTED_FILE" });
+    expect(m(removeCandidateDocuments)).toHaveBeenCalledWith([`p/${IMPORT_ID}/CV_Ahmed.pdf`]);
+    expect(m(prisma.candidateImport.create)).not.toHaveBeenCalled();
+  });
+
+  it("registerUpload with inspect stores re-encoded bytes and their type", async () => {
+    const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1]);
+    const JPEG = new Uint8Array([0xff, 0xd8, 0xff, 1, 2]);
+    m(downloadCandidateDocument).mockResolvedValueOnce(PNG);
+    m(inspectPublicDocument).mockResolvedValueOnce({ ok: true, bytes: JPEG, kind: "jpeg" });
+    await registerUpload({ ...REGISTER, fileName: "foto.png", origin: "PUBLIC_LINK", createdById: null, inspect: true });
+    expect(m(replaceCandidateDocument)).toHaveBeenCalledWith(`p/${IMPORT_ID}/foto.png`, JPEG, "image/jpeg");
+    expect(m(prisma.candidateImport.create).mock.calls[0]![0].data).toMatchObject({
+      origin: "PUBLIC_LINK", createdById: null, mimeType: "image/jpeg", fileSize: 5,
+      fileName: "foto.jpg", storagePath: `p/${IMPORT_ID}/foto.png`,
+    });
+  });
+
+  it("registerUpload with inspect stores the kind's extension even when the type is unchanged", async () => {
+    const JPEG = new Uint8Array([0xff, 0xd8, 0xff, 1, 2]);
+    m(downloadCandidateDocument).mockResolvedValueOnce(JPEG);
+    m(inspectPublicDocument).mockResolvedValueOnce({ ok: true, bytes: JPEG, kind: "jpeg" });
+    await registerUpload({ ...REGISTER, fileName: "foto.png", origin: "PUBLIC_LINK", createdById: null, inspect: true });
+    expect(m(prisma.candidateImport.create).mock.calls[0]![0].data.fileName).toBe("foto.jpg");
+  });
+
+  it("registerUpload with inspect truncates the stem so the extension survives the 255 cap", async () => {
+    m(downloadCandidateDocument).mockResolvedValueOnce(PDF);
+    m(inspectPublicDocument).mockResolvedValueOnce({ ok: true, bytes: PDF, kind: "pdf" });
+    await registerUpload({ ...REGISTER, fileName: `${"a".repeat(300)}.pdf`, origin: "PUBLIC_LINK", createdById: null, inspect: true });
+    const name = m(prisma.candidateImport.create).mock.calls[0]![0].data.fileName as string;
+    expect(name).toHaveLength(255);
+    expect(name.endsWith("a.pdf")).toBe(true);
+  });
+
+  it("registerUpload maps a P2002 on create to ImportStateError", async () => {
+    m(downloadCandidateDocument).mockResolvedValueOnce(PDF);
+    m(prisma.candidateImport.create).mockRejectedValueOnce(
+      new Prisma.PrismaClientKnownRequestError("dup", { code: "P2002", clientVersion: "test" }),
+    );
+    await expect(registerUpload(REGISTER)).rejects.toBeInstanceOf(ImportStateError);
+    expect(m(removeCandidateDocuments)).not.toHaveBeenCalled();
+  });
+
+  it("registerUpload without inspect never calls the inspector", async () => {
+    m(downloadCandidateDocument).mockResolvedValueOnce(PDF);
+    await registerUpload(REGISTER);
+    expect(m(inspectPublicDocument)).not.toHaveBeenCalled();
+  });
+
+  it("registerUpload honours maxBytes on the stored object", async () => {
+    m(downloadCandidateDocument).mockResolvedValueOnce(new Uint8Array(11));
+    await expect(registerUpload({ ...REGISTER, maxBytes: 10 })).rejects.toMatchObject({ code: "FILE_TOO_LARGE" });
+  });
+});
+
+describe("runExtraction public options", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    m(prisma.candidateImport.updateMany).mockResolvedValue({ count: 1 });
+    m(prisma.candidateImport.findUniqueOrThrow).mockResolvedValue({ storagePath: "p/i/cv.pdf" });
+    m(downloadCandidateDocument).mockResolvedValue(PDF);
+    m(extractDocumentText).mockResolvedValue({ text: "testo del cv", method: "pdf", pageCount: 1 });
+  });
+
+  it("passes maxOcrPages to text extraction", async () => {
+    m(extractCandidateDraft).mockResolvedValueOnce(DRAFT);
+    await runExtraction(IMPORT_ID, { maxOcrPages: 3 });
+    expect(m(extractDocumentText)).toHaveBeenCalledWith(PDF, "pdf", { maxOcrPages: 3 });
+  });
+
+  it("fails NOT_A_CV without calling the LLM when the text gate says no", async () => {
+    await runExtraction(IMPORT_ID, { textGate: () => false });
+    expect(m(extractCandidateDraft)).not.toHaveBeenCalled();
+    const finish = m(prisma.candidateImport.updateMany).mock.calls[1]![0];
+    expect(finish.data).toEqual({ status: "FAILED", errorCode: "NOT_A_CV" });
+  });
+
+  it("rejectNonCv turns isCv=false into FAILED and keeps no text", async () => {
+    m(extractCandidateDraft).mockResolvedValueOnce({ ...DRAFT, isCv: false });
+    await runExtraction(IMPORT_ID, { rejectNonCv: true });
+    const finish = m(prisma.candidateImport.updateMany).mock.calls[1]![0];
+    expect(finish.data).toEqual({ status: "FAILED", errorCode: "NOT_A_CV" });
+  });
+});
+
+describe("getPublicImport", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("scopes by pool and PUBLIC_LINK origin", async () => {
+    m(prisma.candidateImport.findFirst).mockResolvedValueOnce({ id: IMPORT_ID });
+    await getPublicImport(IMPORT_ID, "p");
+    expect(m(prisma.candidateImport.findFirst).mock.calls[0]![0]).toEqual({
+      where: { id: IMPORT_ID, poolId: "p", origin: "PUBLIC_LINK" },
+      select: { id: true, status: true, errorCode: true, draft: true, updatedAt: true },
+    });
+  });
+
+  it("returns null for a non-UUID id", async () => {
+    await expect(getPublicImport("x", "p")).resolves.toBeNull();
+    expect(m(prisma.candidateImport.findFirst)).not.toHaveBeenCalled();
+  });
+});
+
+describe("stored file integrity (contentSha256)", () => {
+  const sha = (b: Uint8Array) => createHash("sha256").update(b).digest("hex");
+  const OTHER = new TextEncoder().encode("%PDF-1.7 tampered");
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    m(prisma.candidateImport.findUnique).mockResolvedValue(null);
+  });
+
+  it("registerUpload stores the sha256 of the bytes as stored", async () => {
+    m(downloadCandidateDocument).mockResolvedValueOnce(PDF);
+    await registerUpload(REGISTER);
+    expect(m(prisma.candidateImport.create).mock.calls[0]![0].data.contentSha256).toBe(sha(PDF));
+  });
+
+  it("registerUpload with inspect hashes the re-encoded bytes, not the original", async () => {
+    const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1]);
+    const JPEG = new Uint8Array([0xff, 0xd8, 0xff, 1, 2]);
+    m(downloadCandidateDocument).mockResolvedValueOnce(PNG);
+    m(inspectPublicDocument).mockResolvedValueOnce({ ok: true, bytes: JPEG, kind: "jpeg" });
+    await registerUpload({ ...REGISTER, fileName: "foto.png", origin: "PUBLIC_LINK", createdById: null, inspect: true });
+    expect(m(prisma.candidateImport.create).mock.calls[0]![0].data.contentSha256).toBe(sha(JPEG));
+  });
+
+  it("runExtraction fails REJECTED_FILE and removes the object when the hash differs", async () => {
+    m(prisma.candidateImport.updateMany).mockResolvedValue({ count: 1 });
+    m(prisma.candidateImport.findUniqueOrThrow).mockResolvedValueOnce({
+      storagePath: "p/i/cv.pdf", contentSha256: sha(PDF),
+    });
+    m(downloadCandidateDocument).mockResolvedValueOnce(OTHER);
+    await runExtraction(IMPORT_ID);
+    expect(m(extractDocumentText)).not.toHaveBeenCalled();
+    expect(m(extractCandidateDraft)).not.toHaveBeenCalled();
+    expect(m(prisma.candidateImport.updateMany).mock.calls[1]![0].data).toEqual({
+      status: "FAILED", errorCode: "REJECTED_FILE",
+    });
+    expect(m(removeCandidateDocuments)).toHaveBeenCalledWith(["p/i/cv.pdf"]);
+  });
+
+  it("runExtraction proceeds when the hash matches", async () => {
+    m(prisma.candidateImport.updateMany).mockResolvedValue({ count: 1 });
+    m(prisma.candidateImport.findUniqueOrThrow).mockResolvedValueOnce({
+      storagePath: "p/i/cv.pdf", contentSha256: sha(PDF),
+    });
+    m(downloadCandidateDocument).mockResolvedValueOnce(PDF);
+    m(extractDocumentText).mockResolvedValueOnce({ text: "CV", method: "pdf", pageCount: 1 });
+    m(extractCandidateDraft).mockResolvedValueOnce(DRAFT);
+    await runExtraction(IMPORT_ID);
+    expect(m(prisma.candidateImport.updateMany).mock.calls[1]![0].data.status).toBe("READY");
+    expect(m(removeCandidateDocuments)).not.toHaveBeenCalled();
+  });
+
+  const IMP = {
+    id: IMPORT_ID, status: "READY", candidateId: null, storagePath: `p/${IMPORT_ID}/cv.pdf`,
+    fileName: "cv.pdf", mimeType: "application/pdf", fileSize: 10, createdById: null,
+    contentSha256: sha(PDF), draft: DRAFT, pool: { id: "p", isGlobal: false, globalSharing: "WEBHOOK" },
+  };
+  const PUBLIC_CONFIRM = {
+    importId: IMPORT_ID, organizationId: "o", userId: null, poolId: "p",
+    fields: { firstName: "A", lastName: "B", phone: "+39 333 1234567" } as never,
+    channel: "landing_cv" as const, attachToExistingByPhone: true,
+  };
+
+  it("public confirm checks the hash before the transaction: mismatch → FAILED, removed, thrown", async () => {
+    m(prisma.candidateImport.findFirst).mockResolvedValueOnce(IMP);
+    m(downloadCandidateDocument).mockResolvedValueOnce(OTHER);
+    m(prisma.candidateImport.updateMany).mockResolvedValueOnce({ count: 1 });
+    await expect(confirmImport(PUBLIC_CONFIRM)).rejects.toMatchObject({ code: "REJECTED_FILE" });
+    expect(m(prisma.candidateImport.findFirst).mock.calls[0]![0]).toEqual({
+      where: { id: IMPORT_ID, organizationId: "o", poolId: "p", origin: "PUBLIC_LINK" },
+      select: { id: true, status: true, storagePath: true, contentSha256: true },
+    });
+    expect(m(downloadCandidateDocument)).toHaveBeenCalledWith(IMP.storagePath);
+    expect(m(prisma.candidateImport.updateMany)).toHaveBeenCalledWith({
+      where: { id: IMPORT_ID, status: "READY" },
+      data: { status: "FAILED", errorCode: "REJECTED_FILE" },
+    });
+    expect(m(removeCandidateDocuments)).toHaveBeenCalledWith([IMP.storagePath]);
+    expect(m(prisma.$transaction)).not.toHaveBeenCalled();
+    expect(tx.candidateDocument.create).not.toHaveBeenCalled();
+  });
+
+  it("public confirm with a matching hash proceeds on the default transaction", async () => {
+    m(prisma.candidateImport.findFirst).mockResolvedValueOnce(IMP);
+    m(downloadCandidateDocument).mockResolvedValueOnce(PDF);
+    tx.candidateImport.findFirst.mockResolvedValueOnce(IMP);
+    tx.candidateImport.updateMany.mockResolvedValueOnce({ count: 1 });
+    m(findCandidateIdBySamePhone).mockResolvedValueOnce(null);
+    m(upsertCandidate).mockResolvedValueOnce({ id: "c-new" });
+    await expect(confirmImport(PUBLIC_CONFIRM)).resolves.toMatchObject({ candidateId: "c-new" });
+    expect(m(downloadCandidateDocument)).toHaveBeenCalledTimes(1);
+    expect(m(prisma.$transaction).mock.calls[0]).toHaveLength(1);
+    expect(m(prisma.candidateImport.updateMany)).not.toHaveBeenCalled();
+    expect(m(removeCandidateDocuments)).not.toHaveBeenCalled();
+  });
+
+  it("public confirm skips the pre-check for a non-READY import (the transaction decides)", async () => {
+    m(prisma.candidateImport.findFirst).mockResolvedValueOnce({ ...IMP, status: "COMPLETED" });
+    tx.candidateImport.findFirst.mockResolvedValueOnce({ ...IMP, status: "COMPLETED", candidateId: "c-9" });
+    await expect(confirmImport(PUBLIC_CONFIRM)).resolves.toMatchObject({ candidateId: "c-9" });
+    expect(m(downloadCandidateDocument)).not.toHaveBeenCalled();
+  });
+
+  it("operator confirm does not re-download the file", async () => {
+    tx.candidateImport.findFirst.mockResolvedValueOnce({ ...IMP, createdById: "u" });
+    tx.candidateImport.updateMany.mockResolvedValueOnce({ count: 1 });
+    m(upsertCandidate).mockResolvedValueOnce({ id: "c-1" });
+    await confirmImport({ importId: IMPORT_ID, organizationId: "o", userId: "u", fields: { firstName: "A" } as never });
+    expect(m(downloadCandidateDocument)).not.toHaveBeenCalled();
+  });
+});
+
+describe("discardStaleImports batching", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  const rows = (n: number, tag: string) =>
+    Array.from({ length: n }, (_, i) => ({ id: `${tag}${i}`, storagePath: `p/${tag}${i}/cv.pdf` }));
+
+  it("loops until a batch is shorter than batchSize and returns the total", async () => {
+    m(prisma.candidateImport.findMany)
+      .mockResolvedValueOnce(rows(2, "a"))
+      .mockResolvedValueOnce(rows(2, "b"))
+      .mockResolvedValueOnce(rows(1, "c"));
+    m(prisma.candidateImport.updateMany).mockResolvedValue({ count: 1 });
+    await expect(discardStaleImports(new Date(), 2)).resolves.toBe(5);
+    expect(m(prisma.candidateImport.findMany)).toHaveBeenCalledTimes(3);
+    expect(m(removeCandidateDocuments)).toHaveBeenCalledTimes(3);
+  });
+
+  it("stops after 20 batches per run", async () => {
+    m(prisma.candidateImport.findMany).mockResolvedValue(rows(1, "x"));
+    m(prisma.candidateImport.updateMany).mockResolvedValue({ count: 1 });
+    await expect(discardStaleImports(new Date(), 1)).resolves.toBe(20);
+    expect(m(prisma.candidateImport.updateMany)).toHaveBeenCalledTimes(20);
+    m(prisma.candidateImport.findMany).mockReset();
+    m(prisma.candidateImport.updateMany).mockReset();
+  });
+
+  it("returns 0 without writing when nothing is stale", async () => {
+    m(prisma.candidateImport.findMany).mockResolvedValueOnce([]);
+    await expect(discardStaleImports(new Date())).resolves.toBe(0);
+    expect(m(prisma.candidateImport.updateMany)).not.toHaveBeenCalled();
+  });
+});
+
+describe("removeOrphanUploads", () => {
+  const NOW = new Date("2026-10-30T03:00:00Z");
+  const OLD = new Date("2026-10-28T00:00:00Z");
+  const FRESH = new Date("2026-10-30T02:00:00Z");
+  const A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+  const B = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+  const C = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+  const D = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    m(prisma.candidateDocument.findMany).mockResolvedValue([]);
+  });
+
+  it("removes old objects whose import was never registered", async () => {
+    m(listDocumentObjects).mockResolvedValueOnce([
+      { path: `p/${A}/cv.pdf`, importId: A, createdAt: OLD }, // orphan → removed
+      { path: `p/${B}/cv.pdf`, importId: B, createdAt: OLD }, // registered → kept
+      { path: `p/${C}/cv.pdf`, importId: C, createdAt: FRESH }, // too young → kept
+      { path: "p/not-a-uuid/cv.pdf", importId: "not-a-uuid", createdAt: OLD }, // never queried
+      { path: `p/${D}/cv.pdf`, importId: D, createdAt: null }, // unknown age → kept
+    ]);
+    m(prisma.candidateImport.findMany).mockResolvedValueOnce([{ id: B }]);
+
+    await expect(removeOrphanUploads(NOW)).resolves.toBe(1);
+
+    // A DISCARDED row does not protect its object (its file should be gone already).
+    expect(m(prisma.candidateImport.findMany).mock.calls[0]![0]).toEqual({
+      where: { id: { in: [A, B] }, status: { not: "DISCARDED" } },
+      select: { id: true },
+    });
+    expect(m(listDocumentObjects)).toHaveBeenCalledWith({ maxImportFolders: 500, deadline: expect.any(Number) });
+    const { deadline } = m(listDocumentObjects).mock.calls[0]![0] as { deadline: number };
+    expect(deadline - Date.now()).toBeGreaterThan(25_000);
+    expect(deadline - Date.now()).toBeLessThanOrEqual(30_000);
+    expect(m(removeCandidateDocuments)).toHaveBeenCalledWith([`p/${A}/cv.pdf`]);
+  });
+
+  it("never removes a file referenced by a CandidateDocument", async () => {
+    m(listDocumentObjects).mockResolvedValueOnce([{ path: `p/${A}/cv.pdf`, importId: A, createdAt: OLD }]);
+    m(prisma.candidateImport.findMany).mockResolvedValueOnce([]);
+    m(prisma.candidateDocument.findMany).mockResolvedValueOnce([{ storagePath: `p/${A}/cv.pdf` }]);
+    await expect(removeOrphanUploads(NOW)).resolves.toBe(0);
+    expect(m(removeCandidateDocuments)).not.toHaveBeenCalled();
+  });
+
+  it("does nothing when there is nothing old", async () => {
+    m(listDocumentObjects).mockResolvedValueOnce([{ path: `p/${C}/cv.pdf`, importId: C, createdAt: FRESH }]);
+    await expect(removeOrphanUploads(NOW)).resolves.toBe(0);
+    expect(m(prisma.candidateImport.findMany)).not.toHaveBeenCalled();
+    expect(m(removeCandidateDocuments)).not.toHaveBeenCalled();
+  });
+
+  it("logs no storage path when a removal fails", async () => {
+    m(listDocumentObjects).mockResolvedValueOnce([{ path: `p/${A}/cv.pdf`, importId: A, createdAt: OLD }]);
+    m(prisma.candidateImport.findMany).mockResolvedValueOnce([]);
+    m(removeCandidateDocuments).mockRejectedValueOnce(new StorageError("x"));
+    await expect(removeOrphanUploads(NOW)).resolves.toBe(0);
+    expect(JSON.stringify(m(console.error).mock.calls)).not.toContain("cv.pdf");
+  });
+});
+
+describe("operator helpers ignore public imports", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("getImportForOrg excludes PUBLIC_LINK imports", async () => {
+    m(prisma.candidateImport.findFirst).mockResolvedValueOnce(null);
+    await expect(getImportForOrg(IMPORT_ID, "o")).resolves.toBeNull();
+    expect(m(prisma.candidateImport.findFirst).mock.calls[0]![0].where).toEqual({
+      id: IMPORT_ID, organizationId: "o", origin: { not: "PUBLIC_LINK" },
+    });
+  });
+
+  it("discardImport cannot discard a public import", async () => {
+    m(prisma.candidateImport.findFirst).mockResolvedValueOnce(null);
+    await expect(discardImport(IMPORT_ID, "o")).resolves.toBe(false);
+    expect(m(prisma.candidateImport.findFirst).mock.calls[0]![0].where).toMatchObject({
+      origin: { not: "PUBLIC_LINK" },
+    });
+    expect(m(prisma.candidateImport.updateMany)).not.toHaveBeenCalled();
+    expect(m(removeCandidateDocuments)).not.toHaveBeenCalled();
+  });
+});
+
+describe("no file names or paths in logs", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    m(prisma.candidateImport.findUnique).mockResolvedValue(null);
+  });
+  const logged = () => JSON.stringify([...m(console.error).mock.calls, ...m(console.warn).mock.calls]);
+  const leaky = () => Object.assign(new StorageError("remove failed"), { path: "p/i/CV_Ahmed.pdf" });
+
+  it("a failed cleanup removal during register logs the import id, not the path", async () => {
+    m(downloadCandidateDocument).mockResolvedValueOnce(new TextEncoder().encode("hello"));
+    m(removeCandidateDocuments).mockRejectedValueOnce(leaky());
+    await expect(registerUpload(REGISTER)).rejects.toMatchObject({ code: "UNSUPPORTED_TYPE" });
+    expect(logged()).toContain(IMPORT_ID);
+    expect(logged()).not.toContain("CV_Ahmed");
+  });
+
+  it("discardImport logs only the error name and message", async () => {
+    m(prisma.candidateImport.findFirst).mockResolvedValueOnce({ storagePath: "p/i/CV_Ahmed.pdf" });
+    m(prisma.candidateImport.updateMany).mockResolvedValueOnce({ count: 1 });
+    m(removeCandidateDocuments).mockRejectedValueOnce(leaky());
+    await expect(discardImport(IMPORT_ID, "o")).resolves.toBe(true);
+    expect(logged()).toContain("remove failed");
+    expect(logged()).not.toContain("CV_Ahmed");
+  });
+
+  it("discardStaleImports logs no paths when removal fails", async () => {
+    m(prisma.candidateImport.findMany).mockResolvedValueOnce([{ id: "a", storagePath: "p/a/CV_Ahmed.pdf" }]);
+    m(prisma.candidateImport.updateMany).mockResolvedValueOnce({ count: 1 });
+    m(removeCandidateDocuments).mockRejectedValueOnce(leaky());
+    await expect(discardStaleImports(new Date())).resolves.toBe(1);
+    expect(logged()).not.toContain("CV_Ahmed");
   });
 });

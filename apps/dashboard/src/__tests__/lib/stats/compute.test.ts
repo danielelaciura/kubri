@@ -29,6 +29,7 @@ function makeCandidate(
       preferredLocation: "",
       constraints: "",
       hasDesiredJobExperience: "",
+      learningPreference: "",
     },
     centroPerImpiego: "",
     interviewLanguage: "it",

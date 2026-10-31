@@ -58,6 +58,7 @@ export type CandidateMinAggregateOutputType = {
   preferredLocation: string | null
   jobConstraints: string | null
   hasDesiredJobExperience: string | null
+  learningPreference: string | null
   interviewLanguage: string | null
   sourceOrganization: string | null
   channel: string | null
@@ -93,6 +94,7 @@ export type CandidateMaxAggregateOutputType = {
   preferredLocation: string | null
   jobConstraints: string | null
   hasDesiredJobExperience: string | null
+  learningPreference: string | null
   interviewLanguage: string | null
   sourceOrganization: string | null
   channel: string | null
@@ -132,6 +134,7 @@ export type CandidateCountAggregateOutputType = {
   preferredLocation: number
   jobConstraints: number
   hasDesiredJobExperience: number
+  learningPreference: number
   interviewLanguage: number
   sourceOrganization: number
   channel: number
@@ -181,6 +184,7 @@ export type CandidateMinAggregateInputType = {
   preferredLocation?: true
   jobConstraints?: true
   hasDesiredJobExperience?: true
+  learningPreference?: true
   interviewLanguage?: true
   sourceOrganization?: true
   channel?: true
@@ -216,6 +220,7 @@ export type CandidateMaxAggregateInputType = {
   preferredLocation?: true
   jobConstraints?: true
   hasDesiredJobExperience?: true
+  learningPreference?: true
   interviewLanguage?: true
   sourceOrganization?: true
   channel?: true
@@ -255,6 +260,7 @@ export type CandidateCountAggregateInputType = {
   preferredLocation?: true
   jobConstraints?: true
   hasDesiredJobExperience?: true
+  learningPreference?: true
   interviewLanguage?: true
   sourceOrganization?: true
   channel?: true
@@ -383,6 +389,7 @@ export type CandidateGroupByOutputType = {
   preferredLocation: string | null
   jobConstraints: string | null
   hasDesiredJobExperience: string | null
+  learningPreference: string | null
   interviewLanguage: string | null
   sourceOrganization: string | null
   channel: string | null
@@ -447,6 +454,7 @@ export type CandidateWhereInput = {
   preferredLocation?: Prisma.StringNullableFilter<"Candidate"> | string | null
   jobConstraints?: Prisma.StringNullableFilter<"Candidate"> | string | null
   hasDesiredJobExperience?: Prisma.StringNullableFilter<"Candidate"> | string | null
+  learningPreference?: Prisma.StringNullableFilter<"Candidate"> | string | null
   interviewLanguage?: Prisma.StringNullableFilter<"Candidate"> | string | null
   sourceOrganization?: Prisma.StringNullableFilter<"Candidate"> | string | null
   channel?: Prisma.StringNullableFilter<"Candidate"> | string | null
@@ -495,6 +503,7 @@ export type CandidateOrderByWithRelationInput = {
   preferredLocation?: Prisma.SortOrderInput | Prisma.SortOrder
   jobConstraints?: Prisma.SortOrderInput | Prisma.SortOrder
   hasDesiredJobExperience?: Prisma.SortOrderInput | Prisma.SortOrder
+  learningPreference?: Prisma.SortOrderInput | Prisma.SortOrder
   interviewLanguage?: Prisma.SortOrderInput | Prisma.SortOrder
   sourceOrganization?: Prisma.SortOrderInput | Prisma.SortOrder
   channel?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -547,6 +556,7 @@ export type CandidateWhereUniqueInput = Prisma.AtLeast<{
   preferredLocation?: Prisma.StringNullableFilter<"Candidate"> | string | null
   jobConstraints?: Prisma.StringNullableFilter<"Candidate"> | string | null
   hasDesiredJobExperience?: Prisma.StringNullableFilter<"Candidate"> | string | null
+  learningPreference?: Prisma.StringNullableFilter<"Candidate"> | string | null
   interviewLanguage?: Prisma.StringNullableFilter<"Candidate"> | string | null
   sourceOrganization?: Prisma.StringNullableFilter<"Candidate"> | string | null
   channel?: Prisma.StringNullableFilter<"Candidate"> | string | null
@@ -595,6 +605,7 @@ export type CandidateOrderByWithAggregationInput = {
   preferredLocation?: Prisma.SortOrderInput | Prisma.SortOrder
   jobConstraints?: Prisma.SortOrderInput | Prisma.SortOrder
   hasDesiredJobExperience?: Prisma.SortOrderInput | Prisma.SortOrder
+  learningPreference?: Prisma.SortOrderInput | Prisma.SortOrder
   interviewLanguage?: Prisma.SortOrderInput | Prisma.SortOrder
   sourceOrganization?: Prisma.SortOrderInput | Prisma.SortOrder
   channel?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -644,6 +655,7 @@ export type CandidateScalarWhereWithAggregatesInput = {
   preferredLocation?: Prisma.StringNullableWithAggregatesFilter<"Candidate"> | string | null
   jobConstraints?: Prisma.StringNullableWithAggregatesFilter<"Candidate"> | string | null
   hasDesiredJobExperience?: Prisma.StringNullableWithAggregatesFilter<"Candidate"> | string | null
+  learningPreference?: Prisma.StringNullableWithAggregatesFilter<"Candidate"> | string | null
   interviewLanguage?: Prisma.StringNullableWithAggregatesFilter<"Candidate"> | string | null
   sourceOrganization?: Prisma.StringNullableWithAggregatesFilter<"Candidate"> | string | null
   channel?: Prisma.StringNullableWithAggregatesFilter<"Candidate"> | string | null
@@ -685,6 +697,7 @@ export type CandidateCreateInput = {
   preferredLocation?: string | null
   jobConstraints?: string | null
   hasDesiredJobExperience?: string | null
+  learningPreference?: string | null
   interviewLanguage?: string | null
   sourceOrganization?: string | null
   channel?: string | null
@@ -732,6 +745,7 @@ export type CandidateUncheckedCreateInput = {
   preferredLocation?: string | null
   jobConstraints?: string | null
   hasDesiredJobExperience?: string | null
+  learningPreference?: string | null
   interviewLanguage?: string | null
   sourceOrganization?: string | null
   channel?: string | null
@@ -779,6 +793,7 @@ export type CandidateUpdateInput = {
   preferredLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   jobConstraints?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hasDesiredJobExperience?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningPreference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   interviewLanguage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceOrganization?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -826,6 +841,7 @@ export type CandidateUncheckedUpdateInput = {
   preferredLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   jobConstraints?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hasDesiredJobExperience?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningPreference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   interviewLanguage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceOrganization?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -873,6 +889,7 @@ export type CandidateCreateManyInput = {
   preferredLocation?: string | null
   jobConstraints?: string | null
   hasDesiredJobExperience?: string | null
+  learningPreference?: string | null
   interviewLanguage?: string | null
   sourceOrganization?: string | null
   channel?: string | null
@@ -914,6 +931,7 @@ export type CandidateUpdateManyMutationInput = {
   preferredLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   jobConstraints?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hasDesiredJobExperience?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningPreference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   interviewLanguage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceOrganization?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -954,6 +972,7 @@ export type CandidateUncheckedUpdateManyInput = {
   preferredLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   jobConstraints?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hasDesiredJobExperience?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningPreference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   interviewLanguage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceOrganization?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1015,6 +1034,7 @@ export type CandidateCountOrderByAggregateInput = {
   preferredLocation?: Prisma.SortOrder
   jobConstraints?: Prisma.SortOrder
   hasDesiredJobExperience?: Prisma.SortOrder
+  learningPreference?: Prisma.SortOrder
   interviewLanguage?: Prisma.SortOrder
   sourceOrganization?: Prisma.SortOrder
   channel?: Prisma.SortOrder
@@ -1057,6 +1077,7 @@ export type CandidateMaxOrderByAggregateInput = {
   preferredLocation?: Prisma.SortOrder
   jobConstraints?: Prisma.SortOrder
   hasDesiredJobExperience?: Prisma.SortOrder
+  learningPreference?: Prisma.SortOrder
   interviewLanguage?: Prisma.SortOrder
   sourceOrganization?: Prisma.SortOrder
   channel?: Prisma.SortOrder
@@ -1092,6 +1113,7 @@ export type CandidateMinOrderByAggregateInput = {
   preferredLocation?: Prisma.SortOrder
   jobConstraints?: Prisma.SortOrder
   hasDesiredJobExperience?: Prisma.SortOrder
+  learningPreference?: Prisma.SortOrder
   interviewLanguage?: Prisma.SortOrder
   sourceOrganization?: Prisma.SortOrder
   channel?: Prisma.SortOrder
@@ -1317,6 +1339,7 @@ export type CandidateCreateWithoutPoolInput = {
   preferredLocation?: string | null
   jobConstraints?: string | null
   hasDesiredJobExperience?: string | null
+  learningPreference?: string | null
   interviewLanguage?: string | null
   sourceOrganization?: string | null
   channel?: string | null
@@ -1363,6 +1386,7 @@ export type CandidateUncheckedCreateWithoutPoolInput = {
   preferredLocation?: string | null
   jobConstraints?: string | null
   hasDesiredJobExperience?: string | null
+  learningPreference?: string | null
   interviewLanguage?: string | null
   sourceOrganization?: string | null
   channel?: string | null
@@ -1438,6 +1462,7 @@ export type CandidateScalarWhereInput = {
   preferredLocation?: Prisma.StringNullableFilter<"Candidate"> | string | null
   jobConstraints?: Prisma.StringNullableFilter<"Candidate"> | string | null
   hasDesiredJobExperience?: Prisma.StringNullableFilter<"Candidate"> | string | null
+  learningPreference?: Prisma.StringNullableFilter<"Candidate"> | string | null
   interviewLanguage?: Prisma.StringNullableFilter<"Candidate"> | string | null
   sourceOrganization?: Prisma.StringNullableFilter<"Candidate"> | string | null
   channel?: Prisma.StringNullableFilter<"Candidate"> | string | null
@@ -1479,6 +1504,7 @@ export type CandidateCreateWithoutNotesInput = {
   preferredLocation?: string | null
   jobConstraints?: string | null
   hasDesiredJobExperience?: string | null
+  learningPreference?: string | null
   interviewLanguage?: string | null
   sourceOrganization?: string | null
   channel?: string | null
@@ -1525,6 +1551,7 @@ export type CandidateUncheckedCreateWithoutNotesInput = {
   preferredLocation?: string | null
   jobConstraints?: string | null
   hasDesiredJobExperience?: string | null
+  learningPreference?: string | null
   interviewLanguage?: string | null
   sourceOrganization?: string | null
   channel?: string | null
@@ -1587,6 +1614,7 @@ export type CandidateUpdateWithoutNotesInput = {
   preferredLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   jobConstraints?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hasDesiredJobExperience?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningPreference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   interviewLanguage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceOrganization?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1633,6 +1661,7 @@ export type CandidateUncheckedUpdateWithoutNotesInput = {
   preferredLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   jobConstraints?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hasDesiredJobExperience?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningPreference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   interviewLanguage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceOrganization?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1679,6 +1708,7 @@ export type CandidateCreateWithoutListMembershipsInput = {
   preferredLocation?: string | null
   jobConstraints?: string | null
   hasDesiredJobExperience?: string | null
+  learningPreference?: string | null
   interviewLanguage?: string | null
   sourceOrganization?: string | null
   channel?: string | null
@@ -1725,6 +1755,7 @@ export type CandidateUncheckedCreateWithoutListMembershipsInput = {
   preferredLocation?: string | null
   jobConstraints?: string | null
   hasDesiredJobExperience?: string | null
+  learningPreference?: string | null
   interviewLanguage?: string | null
   sourceOrganization?: string | null
   channel?: string | null
@@ -1787,6 +1818,7 @@ export type CandidateUpdateWithoutListMembershipsInput = {
   preferredLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   jobConstraints?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hasDesiredJobExperience?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningPreference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   interviewLanguage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceOrganization?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1833,6 +1865,7 @@ export type CandidateUncheckedUpdateWithoutListMembershipsInput = {
   preferredLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   jobConstraints?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hasDesiredJobExperience?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningPreference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   interviewLanguage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceOrganization?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1879,6 +1912,7 @@ export type CandidateCreateWithoutStatusesInput = {
   preferredLocation?: string | null
   jobConstraints?: string | null
   hasDesiredJobExperience?: string | null
+  learningPreference?: string | null
   interviewLanguage?: string | null
   sourceOrganization?: string | null
   channel?: string | null
@@ -1925,6 +1959,7 @@ export type CandidateUncheckedCreateWithoutStatusesInput = {
   preferredLocation?: string | null
   jobConstraints?: string | null
   hasDesiredJobExperience?: string | null
+  learningPreference?: string | null
   interviewLanguage?: string | null
   sourceOrganization?: string | null
   channel?: string | null
@@ -1987,6 +2022,7 @@ export type CandidateUpdateWithoutStatusesInput = {
   preferredLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   jobConstraints?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hasDesiredJobExperience?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningPreference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   interviewLanguage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceOrganization?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2033,6 +2069,7 @@ export type CandidateUncheckedUpdateWithoutStatusesInput = {
   preferredLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   jobConstraints?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hasDesiredJobExperience?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningPreference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   interviewLanguage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceOrganization?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2079,6 +2116,7 @@ export type CandidateCreateWithoutJobMatchesInput = {
   preferredLocation?: string | null
   jobConstraints?: string | null
   hasDesiredJobExperience?: string | null
+  learningPreference?: string | null
   interviewLanguage?: string | null
   sourceOrganization?: string | null
   channel?: string | null
@@ -2125,6 +2163,7 @@ export type CandidateUncheckedCreateWithoutJobMatchesInput = {
   preferredLocation?: string | null
   jobConstraints?: string | null
   hasDesiredJobExperience?: string | null
+  learningPreference?: string | null
   interviewLanguage?: string | null
   sourceOrganization?: string | null
   channel?: string | null
@@ -2187,6 +2226,7 @@ export type CandidateUpdateWithoutJobMatchesInput = {
   preferredLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   jobConstraints?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hasDesiredJobExperience?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningPreference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   interviewLanguage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceOrganization?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2233,6 +2273,7 @@ export type CandidateUncheckedUpdateWithoutJobMatchesInput = {
   preferredLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   jobConstraints?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hasDesiredJobExperience?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningPreference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   interviewLanguage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceOrganization?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2279,6 +2320,7 @@ export type CandidateCreateWithoutImportsInput = {
   preferredLocation?: string | null
   jobConstraints?: string | null
   hasDesiredJobExperience?: string | null
+  learningPreference?: string | null
   interviewLanguage?: string | null
   sourceOrganization?: string | null
   channel?: string | null
@@ -2325,6 +2367,7 @@ export type CandidateUncheckedCreateWithoutImportsInput = {
   preferredLocation?: string | null
   jobConstraints?: string | null
   hasDesiredJobExperience?: string | null
+  learningPreference?: string | null
   interviewLanguage?: string | null
   sourceOrganization?: string | null
   channel?: string | null
@@ -2387,6 +2430,7 @@ export type CandidateUpdateWithoutImportsInput = {
   preferredLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   jobConstraints?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hasDesiredJobExperience?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningPreference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   interviewLanguage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceOrganization?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2433,6 +2477,7 @@ export type CandidateUncheckedUpdateWithoutImportsInput = {
   preferredLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   jobConstraints?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hasDesiredJobExperience?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningPreference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   interviewLanguage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceOrganization?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2479,6 +2524,7 @@ export type CandidateCreateWithoutDocumentsInput = {
   preferredLocation?: string | null
   jobConstraints?: string | null
   hasDesiredJobExperience?: string | null
+  learningPreference?: string | null
   interviewLanguage?: string | null
   sourceOrganization?: string | null
   channel?: string | null
@@ -2525,6 +2571,7 @@ export type CandidateUncheckedCreateWithoutDocumentsInput = {
   preferredLocation?: string | null
   jobConstraints?: string | null
   hasDesiredJobExperience?: string | null
+  learningPreference?: string | null
   interviewLanguage?: string | null
   sourceOrganization?: string | null
   channel?: string | null
@@ -2587,6 +2634,7 @@ export type CandidateUpdateWithoutDocumentsInput = {
   preferredLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   jobConstraints?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hasDesiredJobExperience?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningPreference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   interviewLanguage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceOrganization?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2633,6 +2681,7 @@ export type CandidateUncheckedUpdateWithoutDocumentsInput = {
   preferredLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   jobConstraints?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hasDesiredJobExperience?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningPreference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   interviewLanguage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceOrganization?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2679,6 +2728,7 @@ export type CandidateCreateManyPoolInput = {
   preferredLocation?: string | null
   jobConstraints?: string | null
   hasDesiredJobExperience?: string | null
+  learningPreference?: string | null
   interviewLanguage?: string | null
   sourceOrganization?: string | null
   channel?: string | null
@@ -2719,6 +2769,7 @@ export type CandidateUpdateWithoutPoolInput = {
   preferredLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   jobConstraints?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hasDesiredJobExperience?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningPreference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   interviewLanguage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceOrganization?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2765,6 +2816,7 @@ export type CandidateUncheckedUpdateWithoutPoolInput = {
   preferredLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   jobConstraints?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hasDesiredJobExperience?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningPreference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   interviewLanguage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceOrganization?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2811,6 +2863,7 @@ export type CandidateUncheckedUpdateManyWithoutPoolInput = {
   preferredLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   jobConstraints?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   hasDesiredJobExperience?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningPreference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   interviewLanguage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourceOrganization?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2927,6 +2980,7 @@ export type CandidateSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   preferredLocation?: boolean
   jobConstraints?: boolean
   hasDesiredJobExperience?: boolean
+  learningPreference?: boolean
   interviewLanguage?: boolean
   sourceOrganization?: boolean
   channel?: boolean
@@ -2976,6 +3030,7 @@ export type CandidateSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ext
   preferredLocation?: boolean
   jobConstraints?: boolean
   hasDesiredJobExperience?: boolean
+  learningPreference?: boolean
   interviewLanguage?: boolean
   sourceOrganization?: boolean
   channel?: boolean
@@ -3018,6 +3073,7 @@ export type CandidateSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ext
   preferredLocation?: boolean
   jobConstraints?: boolean
   hasDesiredJobExperience?: boolean
+  learningPreference?: boolean
   interviewLanguage?: boolean
   sourceOrganization?: boolean
   channel?: boolean
@@ -3060,6 +3116,7 @@ export type CandidateSelectScalar = {
   preferredLocation?: boolean
   jobConstraints?: boolean
   hasDesiredJobExperience?: boolean
+  learningPreference?: boolean
   interviewLanguage?: boolean
   sourceOrganization?: boolean
   channel?: boolean
@@ -3075,7 +3132,7 @@ export type CandidateSelectScalar = {
   poolId?: boolean
 }
 
-export type CandidateOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "externalId" | "firstName" | "lastName" | "birthday" | "countryOfOrigin" | "address" | "location" | "latitude" | "longitude" | "phone" | "workingPermit" | "meanOfTransport" | "drivingLicense" | "educationAndTraining" | "workExperience" | "skillsAndCompetences" | "language" | "additionalLanguages" | "italianLevel" | "desiredJob" | "partTimePreference" | "preferredLocation" | "jobConstraints" | "hasDesiredJobExperience" | "interviewLanguage" | "sourceOrganization" | "channel" | "sharedWithGlobal" | "email" | "assessmentProfile" | "rawPayload" | "sourceUpdatedAt" | "createdAt" | "updatedAt" | "embeddingText" | "embeddingUpdatedAt" | "poolId", ExtArgs["result"]["candidate"]>
+export type CandidateOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "externalId" | "firstName" | "lastName" | "birthday" | "countryOfOrigin" | "address" | "location" | "latitude" | "longitude" | "phone" | "workingPermit" | "meanOfTransport" | "drivingLicense" | "educationAndTraining" | "workExperience" | "skillsAndCompetences" | "language" | "additionalLanguages" | "italianLevel" | "desiredJob" | "partTimePreference" | "preferredLocation" | "jobConstraints" | "hasDesiredJobExperience" | "learningPreference" | "interviewLanguage" | "sourceOrganization" | "channel" | "sharedWithGlobal" | "email" | "assessmentProfile" | "rawPayload" | "sourceUpdatedAt" | "createdAt" | "updatedAt" | "embeddingText" | "embeddingUpdatedAt" | "poolId", ExtArgs["result"]["candidate"]>
 export type CandidateInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   pool?: boolean | Prisma.PoolDefaultArgs<ExtArgs>
   notes?: boolean | Prisma.Candidate$notesArgs<ExtArgs>
@@ -3130,6 +3187,7 @@ export type $CandidatePayload<ExtArgs extends runtime.Types.Extensions.InternalA
     preferredLocation: string | null
     jobConstraints: string | null
     hasDesiredJobExperience: string | null
+    learningPreference: string | null
     interviewLanguage: string | null
     sourceOrganization: string | null
     channel: string | null
@@ -3598,6 +3656,7 @@ export interface CandidateFieldRefs {
   readonly preferredLocation: Prisma.FieldRef<"Candidate", 'String'>
   readonly jobConstraints: Prisma.FieldRef<"Candidate", 'String'>
   readonly hasDesiredJobExperience: Prisma.FieldRef<"Candidate", 'String'>
+  readonly learningPreference: Prisma.FieldRef<"Candidate", 'String'>
   readonly interviewLanguage: Prisma.FieldRef<"Candidate", 'String'>
   readonly sourceOrganization: Prisma.FieldRef<"Candidate", 'String'>
   readonly channel: Prisma.FieldRef<"Candidate", 'String'>

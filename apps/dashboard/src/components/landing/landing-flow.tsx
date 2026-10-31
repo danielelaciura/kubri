@@ -300,11 +300,17 @@ export function LandingFlow(props: LandingFlowProps) {
     }
   }
 
-  // CV path progress: verify/upload/working = upload, contact = check. Hidden elsewhere.
-  const stepIndex: 0 | 1 | null =
+  // CV path progress: verify/upload/working = upload, contact = check, done = complete.
+  const stepIndex: 0 | 1 | 3 | null =
     step.kind === "verify" || step.kind === "upload" || step.kind === "working" ? 0
     : step.kind === "contact" ? 1
+    : step.kind === "done" ? 3
     : null;
+  // What is happening inside the current step, shown next to its name.
+  const stepStatus =
+    step.kind === "verify" && waitingForCaptcha && !captchaFailed ? t.stepStatusVerify
+    : step.kind === "working" ? (step.label === "reading" ? t.reading : t.uploading)
+    : undefined;
   const workingText = step.kind === "working" ? (step.label === "reading" ? t.reading : t.uploading) : "";
   const headingClass = "outline-none";
 
@@ -318,7 +324,7 @@ export function LandingFlow(props: LandingFlowProps) {
 
   return (
     <div className="space-y-4">
-      {stepIndex !== null && <LandingSteps current={stepIndex} />}
+      {stepIndex !== null && <LandingSteps current={stepIndex} status={stepStatus} />}
       {/* Always mounted so screen readers announce progress changes. */}
       <p role="status" aria-live="polite" className="sr-only">{workingText}</p>
 

@@ -194,14 +194,28 @@ describe("LandingFlow", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(t.errors.verifyFailed);
   });
 
-  it("shows the CV path steps with the current one marked", async () => {
+  it("shows the CV path progress and closes it on the done screen", async () => {
     const { container } = setup();
-    const steps = screen.getByRole("list", { name: t.stepsLabel });
-    expect(steps.querySelector('[aria-current="step"]')).toHaveTextContent(t.steps.upload);
+    const bar = () => screen.getByRole("progressbar", { name: t.stepsLabel });
+    expect(bar()).toHaveAttribute("aria-valuenow", "1");
+    expect(bar()).toHaveAttribute("aria-valuetext", expect.stringContaining(t.steps.upload));
     chooseFile(container);
-    await screen.findByLabelText(t.lastName);
-    expect(screen.getByRole("list", { name: t.stepsLabel }).querySelector('[aria-current="step"]'))
-      .toHaveTextContent(t.steps.check);
+    const lastName = await screen.findByLabelText(t.lastName);
+    expect(bar()).toHaveAttribute("aria-valuenow", "2");
+    expect(bar()).toHaveAttribute("aria-valuetext", expect.stringContaining(t.steps.check));
+    fireEvent.change(lastName, { target: { value: "Benali" } });
+    fireEvent.click(screen.getByRole("checkbox"));
+    fireEvent.click(screen.getByRole("button", { name: t.submit }));
+    await screen.findByText(t.doneTitle);
+    expect(bar()).toHaveAttribute("aria-valuenow", "3");
+    expect(bar()).toHaveAttribute("aria-valuetext", t.stepsComplete);
+  });
+
+  it("shows what is happening inside the first step", () => {
+    setup("site-key");
+    expect(screen.getByText(`· ${t.stepStatusVerify}`)).toBeInTheDocument();
+    fireEvent.click(screen.getByText("stub-token"));
+    expect(screen.queryByText(`· ${t.stepStatusVerify}`)).not.toBeInTheDocument();
   });
 
   it("hides the steps on the choose screen", () => {
@@ -213,7 +227,7 @@ describe("LandingFlow", () => {
         />
       </I18nProvider>,
     );
-    expect(screen.queryByRole("list", { name: t.stepsLabel })).not.toBeInTheDocument();
+    expect(screen.queryByRole("progressbar", { name: t.stepsLabel })).not.toBeInTheDocument();
   });
 
   it("skips the verification step without a site key (local dev)", () => {

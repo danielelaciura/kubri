@@ -76,7 +76,7 @@ export function resolvePlaceCoords(label: string): LatLng | null {
 }
 
 /** "20100 Milano (MI)" → "Milano": drop a leading CAP and a trailing "(PROV)". */
-function stripPostcodeAndProvince(token: string): string {
+export function stripPostcodeAndProvince(token: string): string {
   return token
     .replace(/\s*\(\s*[A-Za-z]{2}\s*\)\s*$/, "")
     .replace(/^\d{5}\s+/, "")

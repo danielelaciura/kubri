@@ -1,4 +1,5 @@
 import { cache } from "react";
+import Image from "next/image";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { I18nProvider } from "@/lib/i18n/provider";
@@ -8,6 +9,7 @@ import { resolvePublicLocale } from "@/lib/landing/locale";
 import { buildWaLink } from "@/lib/whatsapp/build-link";
 import { LandingFlow } from "@/components/landing/landing-flow";
 import { LocaleFlag } from "@/components/landing/locale-flag";
+import { LandingFooter } from "@/components/landing/landing-footer";
 
 // Route segment config: server actions invoked from this page (CV extraction)
 // inherit this budget (Next 16 docs, route-segment-config/maxDuration).
@@ -50,21 +52,27 @@ export default async function CandidateLandingPage(props: Props) {
 
   return (
     <I18nProvider locale={locale}>
+      {/* White top bar: Kubri wordmark on the left, language switch on the right. */}
+      <div className="border-b bg-white">
+        {/* Full width, not the content column: logo and switch sit at the page edges. */}
+        <div className="flex h-11 w-full items-center justify-between px-4 sm:px-6">
+          <Image src="/kubri-wordmark.png" alt="Kubri" width={56} height={16} priority className="h-4 w-auto" />
+          <a
+            href={`?lang=${otherLocale}`} hrefLang={otherLocale} lang={otherLocale}
+            // Full bar height: a 44px touch target.
+            className="-mr-2 inline-flex h-full items-center gap-1.5 px-2 text-xs text-neutral-700 hover:text-neutral-950 hover:underline"
+            aria-label={`${t.languageLabel}: ${otherLanguageName}`}
+          >
+            <LocaleFlag locale={otherLocale} className="h-2.5 w-3.5 rounded-[1px] shadow-[0_0_0_1px_rgb(0_0_0/0.1)]" />
+            {otherLanguageName}
+          </a>
+        </div>
+      </div>
       <main lang={locale} className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-10">
         <header className="space-y-2">
-          <div className="flex items-start justify-between gap-4">
-            <h1 className="min-w-0 text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
-              {t.headline.replace("{org}", landing.organization.name)}
-            </h1>
-            <a
-              href={`?lang=${otherLocale}`} hrefLang={otherLocale} lang={otherLocale}
-              className="inline-flex shrink-0 items-center gap-2 rounded-md border px-2.5 py-1.5 text-sm hover:bg-muted"
-              aria-label={`${t.languageLabel}: ${otherLanguageName}`}
-            >
-              <LocaleFlag locale={otherLocale} className="h-3.5 w-5 rounded-[2px] shadow-[0_0_0_1px_rgb(0_0_0/0.1)]" />
-              {otherLanguageName}
-            </a>
-          </div>
+          <h1 className="text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
+            {t.headline.replace("{org}", landing.organization.name)}
+          </h1>
           <p className="max-w-prose text-pretty text-muted-foreground">{t.intro}</p>
         </header>
         <LandingFlow
@@ -77,6 +85,7 @@ export default async function CandidateLandingPage(props: Props) {
           turnstileSiteKey={process.env.TURNSTILE_SITE_KEY ?? ""}
         />
       </main>
+      <LandingFooter t={t} />
     </I18nProvider>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { FileUp, MessageCircle } from "lucide-react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { ArrowLeft, FileUp, MessageCircle } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
@@ -18,6 +18,7 @@ import {
 } from "@/app/(public)/candidati/[slug]/actions";
 import { ContactForm, type ContactSubmission } from "./contact-form";
 import { LandingSteps } from "./landing-steps";
+import { CvIcon, WhatsAppIcon } from "./landing-icons";
 import { TurnstileWidget } from "./turnstile-widget";
 
 const ACCEPT =
@@ -80,12 +81,17 @@ const RETRYABLE_EXTRACTION: ReadonlySet<LandingErrorCode> = new Set<LandingError
 
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-/** Short orientation label on each option of the choose step. */
-function OptionTag({ children }: { children: string }) {
+/**
+ * Heading of an option on the choose step, centred: icon first (same box in
+ * both cards, so they line up), then the orientation tag and the title.
+ */
+function OptionHeading({ icon, tag, children }: { icon: ReactNode; tag: string; children: ReactNode }) {
   return (
-    <span className="w-fit rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+    <div className="flex flex-col items-center gap-2 text-center">
+      {icon}
+      <span className="mt-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">{tag}</span>
       {children}
-    </span>
+    </div>
   );
 }
 
@@ -294,17 +300,23 @@ export function LandingFlow(props: LandingFlowProps) {
     }
   }
 
-  // CV path progress: verify/upload/working = upload, contact = check. Hidden elsewhere.
-  const stepIndex: 0 | 1 | null =
+  // CV path progress: verify/upload/working = upload, contact = check, done = complete.
+  const stepIndex: 0 | 1 | 3 | null =
     step.kind === "verify" || step.kind === "upload" || step.kind === "working" ? 0
     : step.kind === "contact" ? 1
+    : step.kind === "done" ? 3
     : null;
+  // What is happening inside the current step, shown next to its name.
+  const stepStatus =
+    step.kind === "verify" && waitingForCaptcha && !captchaFailed ? t.stepStatusVerify
+    : step.kind === "working" ? (step.label === "reading" ? t.reading : t.uploading)
+    : undefined;
   const workingText = step.kind === "working" ? (step.label === "reading" ? t.reading : t.uploading) : "";
   const headingClass = "outline-none";
 
   // A real link styled as a button (base-ui Button would add role="button").
   const whatsappButton = props.waLink && (
-    <a href={props.waLink} target="_blank" rel="noreferrer" className={buttonVariants({ className: "h-11 w-full text-base" })}>
+    <a href={props.waLink} target="_blank" rel="noreferrer" className={cn(buttonVariants(), "h-11 w-full text-base")}>
       <MessageCircle className="mr-2 h-4 w-4" aria-hidden="true" />
       {t.whatsappCta}
     </a>
@@ -312,7 +324,7 @@ export function LandingFlow(props: LandingFlowProps) {
 
   return (
     <div className="space-y-4">
-      {stepIndex !== null && <LandingSteps current={stepIndex} />}
+      {stepIndex !== null && <LandingSteps current={stepIndex} status={stepStatus} />}
       {/* Always mounted so screen readers announce progress changes. */}
       <p role="status" aria-live="polite" className="sr-only">{workingText}</p>
 
@@ -337,27 +349,29 @@ export function LandingFlow(props: LandingFlowProps) {
         <div className="grid gap-4 sm:grid-cols-2">
           {props.waLink && (
             <Card>
-              <CardHeader className="gap-2">
-                <OptionTag>{t.whatsappTag}</OptionTag>
-                <CardTitle ref={headingRef} tabIndex={-1} className={headingClass}>{t.whatsappTitle}</CardTitle>
+              <CardHeader>
+                <OptionHeading icon={<WhatsAppIcon className="size-11 text-primary" />} tag={t.whatsappTag}>
+                  <CardTitle ref={headingRef} tabIndex={-1} className={headingClass}>{t.whatsappTitle}</CardTitle>
+                </OptionHeading>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground">{t.whatsappBody}</p>
+                <p className="text-center text-sm text-muted-foreground">{t.whatsappBody}</p>
                 {whatsappButton}
               </CardContent>
             </Card>
           )}
           <Card>
-            <CardHeader className="gap-2">
-              <OptionTag>{t.uploadTag}</OptionTag>
-              {props.waLink ? (
-                <CardTitle>{t.uploadTitle}</CardTitle>
-              ) : (
-                <CardTitle ref={headingRef} tabIndex={-1} className={headingClass}>{t.uploadTitle}</CardTitle>
-              )}
+            <CardHeader>
+              <OptionHeading icon={<CvIcon className="size-11 text-primary" />} tag={t.uploadTag}>
+                {props.waLink ? (
+                  <CardTitle>{t.uploadTitle}</CardTitle>
+                ) : (
+                  <CardTitle ref={headingRef} tabIndex={-1} className={headingClass}>{t.uploadTitle}</CardTitle>
+                )}
+              </OptionHeading>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">{org(t.uploadBody)}</p>
+              <p className="text-center text-sm text-muted-foreground">{org(t.uploadBody)}</p>
               <Button variant="outline" className="h-11 w-full text-base" onClick={() => setStep({ kind: "verify" })}>
                 <FileUp className="mr-2 h-4 w-4" aria-hidden="true" />
                 {t.uploadCta}
@@ -395,14 +409,9 @@ export function LandingFlow(props: LandingFlowProps) {
                   }
                 />
               </div>
-              <div className="flex flex-wrap gap-2">
-                <Button variant="ghost" className="h-11" onClick={() => { setError(null); setStep({ kind: "choose" }); }}>
-                  {t.back}
-                </Button>
-                {captchaFailed && (
-                  <Button variant="outline" className="h-11" onClick={retryCaptcha}>{t.verifyRetry}</Button>
-                )}
-              </div>
+              {captchaFailed && (
+                <Button variant="outline" className="h-11" onClick={retryCaptcha}>{t.verifyRetry}</Button>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -432,7 +441,7 @@ export function LandingFlow(props: LandingFlowProps) {
                 if (f) void upload(f);
               }}
             >
-              <FileUp className="h-10 w-10 text-primary" aria-hidden="true" />
+              <CvIcon className="size-14 text-primary" />
               <p className="font-medium">{dragging ? t.dropzoneDrop : t.dropzoneTitle}</p>
               <p className="text-sm text-muted-foreground">{t.dropzoneHint}</p>
               <input
@@ -447,11 +456,19 @@ export function LandingFlow(props: LandingFlowProps) {
                 {t.chooseFile}
               </Button>
             </div>
-            <Button variant="ghost" className="h-11" onClick={() => { setError(null); setStep({ kind: "choose" }); }}>
-              {t.back}
-            </Button>
           </CardContent>
         </Card>
+      )}
+
+      {/* Back to the choice, below the step card; only where going back is safe. */}
+      {(step.kind === "verify" || step.kind === "upload") && (
+        <Button
+          variant="ghost" className="-ml-2.5 h-11 gap-2 px-2.5"
+          onClick={() => { setError(null); setStep({ kind: "choose" }); }}
+        >
+          <ArrowLeft className="size-4" aria-hidden="true" />
+          {t.back}
+        </Button>
       )}
 
       {step.kind === "working" && (

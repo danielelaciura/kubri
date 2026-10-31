@@ -116,9 +116,16 @@ export function LandingFlow(props: LandingFlowProps) {
     }
   }, []);
   const onCaptchaInteractive = useCallback(() => setCaptchaInteractive(true), []);
+  // Turnstile starts in the background on the choose step; a failure there
+  // stays silent until the visitor opens the verify step.
+  const stepKindRef = useRef(step.kind);
+  useEffect(() => {
+    stepKindRef.current = step.kind;
+  });
   // Turnstile unusable: say so (with the WhatsApp fallback); upload stays out of reach.
   const onCaptchaError = useCallback(() => {
     setCaptchaFailed(true);
+    if (stepKindRef.current !== "verify") return;
     setCanRetryExtraction(false);
     setError("verifyFailed");
   }, []);
@@ -138,9 +145,12 @@ export function LandingFlow(props: LandingFlowProps) {
     };
   }, []);
 
-  // Entering the verify step again (Back → upload) gives Turnstile a fresh start.
+  // Entering the verify step after a failure (in the background, or Back → upload)
+  // gives Turnstile a fresh start with a new widget.
   useEffect(() => {
-    if (step.kind === "verify") setCaptchaFailed(false);
+    if (step.kind !== "verify" || !captchaFailedRef.current) return;
+    setCaptchaFailed(false);
+    setTurnstileKey((k) => k + 1);
   }, [step.kind]);
 
   // A token moves the visitor on to the upload; an expired one sends them back.
@@ -331,8 +341,9 @@ export function LandingFlow(props: LandingFlowProps) {
         </div>
       )}
 
-      {(step.kind === "verify" || step.kind === "upload") && (
-        // Stays mounted (hidden) on the upload step so Turnstile can report an
+      {(step.kind === "choose" || step.kind === "verify" || step.kind === "upload") && (
+        // Mounted (hidden) from the choose step so the check runs while the visitor
+        // reads the page, and on the upload step so Turnstile can report an
         // expired token, which brings the visitor back here.
         <div hidden={step.kind !== "verify"}>
           <Card>
@@ -350,6 +361,12 @@ export function LandingFlow(props: LandingFlowProps) {
                 <TurnstileWidget
                   key={turnstileKey} siteKey={props.turnstileSiteKey} locale={props.locale} onToken={onToken}
                   onError={onCaptchaError} onInteractive={onCaptchaInteractive}
+                  placeholder={
+                    <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Spinner aria-hidden="true" role={undefined} />
+                      {t.verifyLoading}
+                    </p>
+                  }
                 />
               </div>
               <div className="flex flex-wrap gap-2">

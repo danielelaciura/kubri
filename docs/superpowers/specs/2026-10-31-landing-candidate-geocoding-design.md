@@ -29,9 +29,11 @@ Result: landing candidates whose CV has no address, or an address the offline ge
 
 ## Flow
 
+All Google requests use Italian: stored addresses are read by Italian operators.
+
 1. **Prefill (end of extraction).** `runLandingExtraction` returns the contact prefill as today, plus a `place` prefill:
    - Query text = draft `address`, else draft `location`. If both are empty, `place = null`.
-   - Server calls the Geocoding API once (`region=it`, `components=country:IT`, `language=<page locale>`, 3 s timeout).
+   - Server calls the Geocoding API once (`region=it`, `components=country:IT`, `language=it`, 3 s timeout).
    - Only results whose `types` include one of `street_address`, `premise`, `subpremise`, `route`, `locality`, `postal_code`, `administrative_area_level_3`, `sublocality` are accepted. Anything broader (e.g. "Italia", a region) gives `place = null`.
    - The client receives `{ placeId, label }` only (label = Google's `formatted_address`).
    - The prefill is cached in the existing cache store (`getCacheStore()`, key `landing:prefill:<importId>`, TTL 30 min, same as the import cookie), so polling, a second tab or a reload doesn't geocode again. A cache failure only costs a repeat geocode.
@@ -40,13 +42,13 @@ Result: landing candidates whose CV has no address, or an address the offline ge
 2. **"Dove abiti?" field** on the contact form (`PlaceField`):
    - Combobox input, hint "Puoi indicare anche solo la città". Prefilled with the prefill label when present.
    - Typing (≥3 chars, 300 ms debounce) calls `searchLandingPlacesAction(slug, query, sessionToken)` → up to 5 suggestions `{ placeId, label }`.
-   - Google Autocomplete (New): `includedRegionCodes: ["it"]`, `languageCode` = page locale, a client-generated UUID session token (one per field session, renewed after a selection), so the autocomplete requests are billed as one session closed by Place Details.
+   - Google Autocomplete (New): `includedRegionCodes: ["it"]`, `languageCode` = `it`, a client-generated UUID session token (one per field session, renewed after a selection), so the autocomplete requests are billed as one session closed by Place Details.
    - Selecting a suggestion stores `{ placeId, label }` in form state. Editing the text after a selection clears the selection.
    - Submit is blocked without a selection ("Scegli un indirizzo dalla lista"). The field error is in both dictionaries.
 
 3. **Confirm.** The landing contact schema gains `placeId: string` (max 300 chars, required) and `placeSessionToken?: string`.
-   - `confirmLandingImport` resolves the place **server-side** from the id: Google Place Details (New) with field mask `id,formattedAddress,location,addressComponents,types`, passing the session token when present. Coordinates sent by a client are never accepted (there is no such field).
-   - From the details: `address = formattedAddress`; `location = "<locality> (<province code>)"` built from `addressComponents` (`locality` or `administrative_area_level_3` for the comune, `administrative_area_level_2` short name for the province code), falling back to the closest ISTAT comune name if the components are incomplete; `latitude`/`longitude` from `location`.
+   - `confirmLandingImport` resolves the place **server-side** from the id: Google Place Details (New) with field mask `id,formattedAddress,location,addressComponents`, passing the session token when present. Coordinates sent by a client are never accepted (there is no such field).
+   - From the details: `address = formattedAddress`; `location = "<locality> (<province code>)"` built from `addressComponents` (`administrative_area_level_3` first, then `locality`, for the comune — in Italy `locality` is often a frazione, e.g. Lido di Camaiore; `administrative_area_level_2` short name for the province code), falling back to the closest ISTAT comune name if the components are incomplete; `latitude`/`longitude` from `location`.
    - The resolved values override the draft's `address` / `location` and are passed to `confirmImport` as explicit coordinates (new optional `coords` input, threaded to `buildDashboardCandidateInput`, which uses them instead of `geocodeFromAddress`).
    - `rawPayloadExtra.place = { placeId, source: "google" | "istat", resolvedAt }`.
    - An invalid/unknown place id, or a Place Details failure, returns a new landing error `PLACE_INVALID`, shown as "Non riusciamo a trovare questo indirizzo. Sceglilo di nuovo dalla lista." The form keeps all typed values; only the place selection is cleared.
@@ -56,13 +58,15 @@ Result: landing candidates whose CV has no address, or an address the offline ge
    - Search returns ISTAT comuni matching the query prefix (normalized with `normalizePlace`), ids `istat:<provinceCode>:<normalized municipality>`, labels "Comune (PROV)".
    - Confirm resolves `istat:` ids from `ITALY_ADMIN` (comune centroid), `source: "istat"`.
    - Prefill uses the existing offline `geocodeFromAddress` / `resolvePlaceCoords` on the draft and, if it resolves, prefills the matching `istat:` id.
+   - ISTAT text matching takes the comune from the last comma-separated token; a trailing "(PROV)" code picks between homonymous comuni (e.g. Calliano TN / AT), otherwise the first match wins.
+   - "Google errors" includes malformed responses: a non-JSON body or an unexpected body shape counts as unavailable (`GoogleMapsUnavailableError`) and triggers the same fallback. Individual malformed results/suggestions are skipped, never thrown.
    - The landing never blocks an application because Google is down.
 
 ## Modules
 
 | File | Purpose |
 |---|---|
-| `src/lib/geo/google.ts` | Minimal Google client over `fetch` (no new dependency): `geocodeAddress`, `autocompletePlaces`, `getPlaceDetails`. Timeout via `AbortSignal.timeout`, typed results, `GoogleMapsUnavailableError` on missing key / HTTP error / timeout. Never logs query text. |
+| `src/lib/geo/google.ts` | Minimal Google client over `fetch` (no new dependency): `geocodeAddress`, `autocompletePlaces`, `getPlaceDetails`. Timeout via `AbortSignal.timeout`, typed results, `GoogleMapsUnavailableError` on missing key / HTTP error / timeout / malformed (non-JSON or wrongly shaped) body. Always sends `language`/`languageCode` = `it`. Never logs query text. |
 | `src/lib/geo/istat-places.ts` | ISTAT side of the same interface: `searchIstatPlaces(query, limit)`, `resolveIstatPlace(id)`, `istatPlaceForDraft(address, location)`. |
 | `src/lib/landing/place.ts` | Landing logic: `prefillPlace(importId, draft, locale)`, `searchPlaces(query, locale, sessionToken)` (Google → ISTAT fallback), `resolvePlace(placeId, sessionToken)` → `{ address, location, latitude, longitude, placeId, source }`. |
 | `src/app/(public)/candidati/[slug]/actions.ts` | New `searchLandingPlacesAction`. `runLandingExtractionAction` and `confirmLandingImportAction` carry the place data. |

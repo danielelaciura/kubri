@@ -1509,7 +1509,7 @@ In `en.ts`, same positions:
 
 - [ ] **Step 2: Verify parity**
 
-Run: `DATABASE_URL= DIRECT_URL= pnpm exec vitest run src/__tests__/lib/i18n`
+Run: `DATABASE_URL= DIRECT_URL= pnpm exec vitest run src/lib/i18n/__tests__/index.test.ts`
 Expected: PASS (deep-parity test).
 
 - [ ] **Step 3: Commit**
@@ -2017,7 +2017,7 @@ Field, after `{field("email", …)}`:
 
 - [ ] **Step 5: Run tests, typecheck, lint**
 
-Run: `DATABASE_URL= DIRECT_URL= pnpm exec vitest run src/__tests__/components/landing src/__tests__/lib/landing src/__tests__/lib/geo src/__tests__/lib/i18n`, then the tsc command, then `pnpm exec eslint src/components/landing src/lib/landing src/lib/geo "src/app/(public)"`.
+Run: `DATABASE_URL= DIRECT_URL= pnpm exec vitest run src/__tests__/components/landing src/__tests__/lib/landing src/__tests__/lib/geo src/lib/i18n/__tests__/index.test.ts`, then the tsc command, then `pnpm exec eslint src/components/landing src/lib/landing src/lib/geo "src/app/(public)"`.
 Expected: all PASS; no new tsc errors; lint clean.
 
 - [ ] **Step 6: Commit**

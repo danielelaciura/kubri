@@ -188,7 +188,7 @@ Conventions:
 - All `Candidate` writes go through `ingestCandidate` / `upsertCandidate`. Never call `prisma.candidate.create/update/upsert` directly elsewhere (backfill scripts under `scripts/` excepted)
 - The webhook handler is responsible for upserting **and** for regenerating the embedding (sync). If embedding fails, log and leave `embedding = null`; a nightly cron will retry
 - The dashboard may create candidates (form or CV import) but never edit existing profile fields
-- The public candidate landing (`/candidati/[slug]`, `src/lib/landing/`) is a sanctioned write path: it creates `Candidate` rows with `channel = "landing_cv"` (or attaches the CV to an existing same-phone candidate of the same pool) through `confirmImport`. Every public upload goes through Turnstile, Upstash rate limits (fail-closed in production), `inspectPublicDocument` and the pre-LLM quality gate — never bypass them.
+- The public candidate landing (`/candidati/[slug]`, `src/lib/landing/`) is a sanctioned write path: it creates `Candidate` rows with `channel = "landing_cv"` (or attaches the CV to an existing same-phone candidate of the same pool) through `confirmImport`. Every public upload goes through Turnstile, Upstash rate limits (fail-closed in production), `inspectPublicDocument` and the pre-LLM quality gate — never bypass them. The candidate's address comes from the required place field: the place id is resolved server-side (`src/lib/landing/place.ts`, Google or ISTAT fallback); never accept client-sent coordinates.
 
 ### Semantic search (embeddings)
 - Embeddings are generated via a Supabase Edge Function running `gte-small` (multilingual, 384-dim, free, EU-hosted). Never send candidate text to an external embedding provider
@@ -363,7 +363,7 @@ See `.env.example` for the current authoritative list. The categories in use tod
 - **Make webhook**: shared secret for the candidate ingestion endpoint
 - **Mistral**: `MISTRAL_API_KEY` (CV OCR + draft extraction)
 - **Cron**: `CRON_SECRET` for protected scheduled jobs
-- **Candidate landing**: `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, `LANDING_COOKIE_SECRET` (≥32 chars), `LANDING_IP_SALT` (≥16 chars); Upstash Redis is required in production for its rate limits
+- **Candidate landing**: `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, `LANDING_COOKIE_SECRET` (≥32 chars), `LANDING_IP_SALT` (≥16 chars), `GOOGLE_MAPS_API_KEY` (server only; address autocomplete/geocoding, ISTAT fallback when unset); Upstash Redis is required in production for its rate limits
 
 ## Domain Context
 

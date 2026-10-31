@@ -373,7 +373,12 @@ export function LandingFlow(props: LandingFlowProps) {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-center text-sm text-muted-foreground">{org(t.uploadBody)}</p>
-              <Button variant="outline" className="h-11 w-full text-base" onClick={() => setStep({ kind: "verify" })}>
+              <Button
+                variant="outline"
+                // Clear hover/focus on the white card: brand border, tint and text.
+                className="h-11 w-full cursor-pointer text-base hover:border-primary hover:bg-primary/5 hover:text-primary"
+                onClick={() => setStep({ kind: "verify" })}
+              >
                 <FileUp className="mr-2 h-4 w-4" aria-hidden="true" />
                 {t.uploadCta}
               </Button>

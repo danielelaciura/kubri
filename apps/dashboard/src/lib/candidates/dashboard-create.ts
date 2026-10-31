@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { CandidateFields } from "@kubri/contracts";
 import type { GlobalSharingMode, Prisma } from "@/generated/prisma/client";
-import { geocodeFromAddress } from "@/lib/geo/proximity";
+import { geocodeFromAddress, type LatLng } from "@/lib/geo/proximity";
 import { resolveSharedWithGlobal } from "@/lib/pools/global-sharing";
 import { ingestCandidate } from "./ingest";
 
@@ -28,9 +28,11 @@ export function buildDashboardCandidateInput(args: {
   channel: CandidateCreateChannel;
   rawPayload: Prisma.InputJsonValue;
   consentToShare?: boolean;
+  /** Already resolved coordinates (public landing); skips offline geocoding. */
+  coords?: LatLng;
 }): Prisma.CandidateUncheckedCreateInput {
   const { pool, fields } = args;
-  const coords = geocodeFromAddress(fields.location) ?? geocodeFromAddress(fields.address);
+  const coords = args.coords ?? geocodeFromAddress(fields.location) ?? geocodeFromAddress(fields.address);
   const idPrefix = args.channel === "landing_cv" ? "landing" : "dashboard";
 
   return {

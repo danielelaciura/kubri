@@ -52,6 +52,7 @@ model Organization {
   candidateLists  CandidateList[]
   candidateStatuses CandidateStatus[]
   jobMatches        JobMatch[]
+  candidateImports  CandidateImport[]
 }
 
 model Pool {
@@ -66,6 +67,7 @@ model Pool {
 
   candidates    Candidate[]
   organizations OrganizationPool[]
+  candidateImports CandidateImport[]
 }
 
 model OrganizationPool {
@@ -100,6 +102,8 @@ model User {
   candidateLists       CandidateList[]
   listMembershipsAdded CandidateListMembership[]
   candidateStatusUpdates CandidateStatus[]
+  candidateImports       CandidateImport[]
+  candidateDocuments     CandidateDocument[]
 }
 
 model CandidateNote {
@@ -235,6 +239,8 @@ model Candidate {
   listMemberships CandidateListMembership[]
   statuses        CandidateStatus[]
   jobMatches      JobMatch[]
+  imports         CandidateImport[]
+  documents       CandidateDocument[]
 
   @@unique([poolId, externalId])
   @@index([poolId])
@@ -305,4 +311,70 @@ model JobMatch {
   @@id([jobDescriptionId, candidateId])
   @@index([organizationId, llmScore])
   @@index([organizationId, candidateId])
+}
+
+enum CandidateImportOrigin {
+  OPERATOR
+  PUBLIC_LINK
+  BULK
+}
+
+enum CandidateImportStatus {
+  UPLOADED
+  EXTRACTING
+  READY
+  COMPLETED
+  FAILED
+  DISCARDED
+}
+
+enum CandidateDocumentKind {
+  CV
+}
+
+/// A document → candidate conversion in progress (process record, prunable).
+model CandidateImport {
+  id               String                @id @default(uuid()) @db.Uuid
+  organizationId   String                @db.Uuid
+  poolId           String                @db.Uuid
+  origin           CandidateImportOrigin
+  status           CandidateImportStatus @default(UPLOADED)
+  createdById      String?               @db.Uuid
+  storagePath      String
+  fileName         String
+  mimeType         String
+  fileSize         Int
+  extractedText    String?
+  extractionMethod String?
+  draft            Json?
+  errorCode        String?
+  candidateId      String?               @db.Uuid
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  pool         Pool         @relation(fields: [poolId], references: [id], onDelete: Restrict)
+  createdBy    User?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  candidate    Candidate?   @relation(fields: [candidateId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt])
+  @@index([status, updatedAt])
+}
+
+/// A file permanently attached to a candidate (today: the uploaded CV).
+model CandidateDocument {
+  id           String                @id @default(uuid()) @db.Uuid
+  candidateId  String                @db.Uuid
+  kind         CandidateDocumentKind
+  storagePath  String
+  fileName     String
+  mimeType     String
+  size         Int
+  uploadedById String?               @db.Uuid
+  createdAt    DateTime              @default(now())
+
+  candidate  Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  uploadedBy User?     @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([candidateId])
 }

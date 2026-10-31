@@ -40,6 +40,7 @@ function makeCandidate(overrides: Partial<Candidate> = {}): Candidate {
     interviewLanguage: "it",
     sourceOrganization: "Telegram Bot",
     channel: "telegram",
+    createdVia: null,
     consent: true,
     cvPdfLink: "",
     cvDocLink: "",

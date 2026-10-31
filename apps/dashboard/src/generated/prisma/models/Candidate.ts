@@ -473,6 +473,8 @@ export type CandidateWhereInput = {
   listMemberships?: Prisma.CandidateListMembershipListRelationFilter
   statuses?: Prisma.CandidateStatusListRelationFilter
   jobMatches?: Prisma.JobMatchListRelationFilter
+  imports?: Prisma.CandidateImportListRelationFilter
+  documents?: Prisma.CandidateDocumentListRelationFilter
 }
 
 export type CandidateOrderByWithRelationInput = {
@@ -520,6 +522,8 @@ export type CandidateOrderByWithRelationInput = {
   listMemberships?: Prisma.CandidateListMembershipOrderByRelationAggregateInput
   statuses?: Prisma.CandidateStatusOrderByRelationAggregateInput
   jobMatches?: Prisma.JobMatchOrderByRelationAggregateInput
+  imports?: Prisma.CandidateImportOrderByRelationAggregateInput
+  documents?: Prisma.CandidateDocumentOrderByRelationAggregateInput
 }
 
 export type CandidateWhereUniqueInput = Prisma.AtLeast<{
@@ -571,6 +575,8 @@ export type CandidateWhereUniqueInput = Prisma.AtLeast<{
   listMemberships?: Prisma.CandidateListMembershipListRelationFilter
   statuses?: Prisma.CandidateStatusListRelationFilter
   jobMatches?: Prisma.JobMatchListRelationFilter
+  imports?: Prisma.CandidateImportListRelationFilter
+  documents?: Prisma.CandidateDocumentListRelationFilter
 }, "id" | "poolId_externalId">
 
 export type CandidateOrderByWithAggregationInput = {
@@ -709,6 +715,8 @@ export type CandidateCreateInput = {
   listMemberships?: Prisma.CandidateListMembershipCreateNestedManyWithoutCandidateInput
   statuses?: Prisma.CandidateStatusCreateNestedManyWithoutCandidateInput
   jobMatches?: Prisma.JobMatchCreateNestedManyWithoutCandidateInput
+  imports?: Prisma.CandidateImportCreateNestedManyWithoutCandidateInput
+  documents?: Prisma.CandidateDocumentCreateNestedManyWithoutCandidateInput
 }
 
 export type CandidateUncheckedCreateInput = {
@@ -755,6 +763,8 @@ export type CandidateUncheckedCreateInput = {
   listMemberships?: Prisma.CandidateListMembershipUncheckedCreateNestedManyWithoutCandidateInput
   statuses?: Prisma.CandidateStatusUncheckedCreateNestedManyWithoutCandidateInput
   jobMatches?: Prisma.JobMatchUncheckedCreateNestedManyWithoutCandidateInput
+  imports?: Prisma.CandidateImportUncheckedCreateNestedManyWithoutCandidateInput
+  documents?: Prisma.CandidateDocumentUncheckedCreateNestedManyWithoutCandidateInput
 }
 
 export type CandidateUpdateInput = {
@@ -801,6 +811,8 @@ export type CandidateUpdateInput = {
   listMemberships?: Prisma.CandidateListMembershipUpdateManyWithoutCandidateNestedInput
   statuses?: Prisma.CandidateStatusUpdateManyWithoutCandidateNestedInput
   jobMatches?: Prisma.JobMatchUpdateManyWithoutCandidateNestedInput
+  imports?: Prisma.CandidateImportUpdateManyWithoutCandidateNestedInput
+  documents?: Prisma.CandidateDocumentUpdateManyWithoutCandidateNestedInput
 }
 
 export type CandidateUncheckedUpdateInput = {
@@ -847,6 +859,8 @@ export type CandidateUncheckedUpdateInput = {
   listMemberships?: Prisma.CandidateListMembershipUncheckedUpdateManyWithoutCandidateNestedInput
   statuses?: Prisma.CandidateStatusUncheckedUpdateManyWithoutCandidateNestedInput
   jobMatches?: Prisma.JobMatchUncheckedUpdateManyWithoutCandidateNestedInput
+  imports?: Prisma.CandidateImportUncheckedUpdateManyWithoutCandidateNestedInput
+  documents?: Prisma.CandidateDocumentUncheckedUpdateManyWithoutCandidateNestedInput
 }
 
 export type CandidateCreateManyInput = {
@@ -1118,6 +1132,11 @@ export type CandidateSumOrderByAggregateInput = {
   longitude?: Prisma.SortOrder
 }
 
+export type CandidateNullableScalarRelationFilter = {
+  is?: Prisma.CandidateWhereInput | null
+  isNot?: Prisma.CandidateWhereInput | null
+}
+
 export type CandidateCreateNestedManyWithoutPoolInput = {
   create?: Prisma.XOR<Prisma.CandidateCreateWithoutPoolInput, Prisma.CandidateUncheckedCreateWithoutPoolInput> | Prisma.CandidateCreateWithoutPoolInput[] | Prisma.CandidateUncheckedCreateWithoutPoolInput[]
   connectOrCreate?: Prisma.CandidateCreateOrConnectWithoutPoolInput | Prisma.CandidateCreateOrConnectWithoutPoolInput[]
@@ -1264,6 +1283,36 @@ export type CandidateUpdateOneRequiredWithoutJobMatchesNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.CandidateUpdateToOneWithWhereWithoutJobMatchesInput, Prisma.CandidateUpdateWithoutJobMatchesInput>, Prisma.CandidateUncheckedUpdateWithoutJobMatchesInput>
 }
 
+export type CandidateCreateNestedOneWithoutImportsInput = {
+  create?: Prisma.XOR<Prisma.CandidateCreateWithoutImportsInput, Prisma.CandidateUncheckedCreateWithoutImportsInput>
+  connectOrCreate?: Prisma.CandidateCreateOrConnectWithoutImportsInput
+  connect?: Prisma.CandidateWhereUniqueInput
+}
+
+export type CandidateUpdateOneWithoutImportsNestedInput = {
+  create?: Prisma.XOR<Prisma.CandidateCreateWithoutImportsInput, Prisma.CandidateUncheckedCreateWithoutImportsInput>
+  connectOrCreate?: Prisma.CandidateCreateOrConnectWithoutImportsInput
+  upsert?: Prisma.CandidateUpsertWithoutImportsInput
+  disconnect?: Prisma.CandidateWhereInput | boolean
+  delete?: Prisma.CandidateWhereInput | boolean
+  connect?: Prisma.CandidateWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.CandidateUpdateToOneWithWhereWithoutImportsInput, Prisma.CandidateUpdateWithoutImportsInput>, Prisma.CandidateUncheckedUpdateWithoutImportsInput>
+}
+
+export type CandidateCreateNestedOneWithoutDocumentsInput = {
+  create?: Prisma.XOR<Prisma.CandidateCreateWithoutDocumentsInput, Prisma.CandidateUncheckedCreateWithoutDocumentsInput>
+  connectOrCreate?: Prisma.CandidateCreateOrConnectWithoutDocumentsInput
+  connect?: Prisma.CandidateWhereUniqueInput
+}
+
+export type CandidateUpdateOneRequiredWithoutDocumentsNestedInput = {
+  create?: Prisma.XOR<Prisma.CandidateCreateWithoutDocumentsInput, Prisma.CandidateUncheckedCreateWithoutDocumentsInput>
+  connectOrCreate?: Prisma.CandidateCreateOrConnectWithoutDocumentsInput
+  upsert?: Prisma.CandidateUpsertWithoutDocumentsInput
+  connect?: Prisma.CandidateWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.CandidateUpdateToOneWithWhereWithoutDocumentsInput, Prisma.CandidateUpdateWithoutDocumentsInput>, Prisma.CandidateUncheckedUpdateWithoutDocumentsInput>
+}
+
 export type CandidateCreateWithoutPoolInput = {
   id?: string
   externalId: string
@@ -1307,6 +1356,8 @@ export type CandidateCreateWithoutPoolInput = {
   listMemberships?: Prisma.CandidateListMembershipCreateNestedManyWithoutCandidateInput
   statuses?: Prisma.CandidateStatusCreateNestedManyWithoutCandidateInput
   jobMatches?: Prisma.JobMatchCreateNestedManyWithoutCandidateInput
+  imports?: Prisma.CandidateImportCreateNestedManyWithoutCandidateInput
+  documents?: Prisma.CandidateDocumentCreateNestedManyWithoutCandidateInput
 }
 
 export type CandidateUncheckedCreateWithoutPoolInput = {
@@ -1352,6 +1403,8 @@ export type CandidateUncheckedCreateWithoutPoolInput = {
   listMemberships?: Prisma.CandidateListMembershipUncheckedCreateNestedManyWithoutCandidateInput
   statuses?: Prisma.CandidateStatusUncheckedCreateNestedManyWithoutCandidateInput
   jobMatches?: Prisma.JobMatchUncheckedCreateNestedManyWithoutCandidateInput
+  imports?: Prisma.CandidateImportUncheckedCreateNestedManyWithoutCandidateInput
+  documents?: Prisma.CandidateDocumentUncheckedCreateNestedManyWithoutCandidateInput
 }
 
 export type CandidateCreateOrConnectWithoutPoolInput = {
@@ -1468,6 +1521,8 @@ export type CandidateCreateWithoutNotesInput = {
   listMemberships?: Prisma.CandidateListMembershipCreateNestedManyWithoutCandidateInput
   statuses?: Prisma.CandidateStatusCreateNestedManyWithoutCandidateInput
   jobMatches?: Prisma.JobMatchCreateNestedManyWithoutCandidateInput
+  imports?: Prisma.CandidateImportCreateNestedManyWithoutCandidateInput
+  documents?: Prisma.CandidateDocumentCreateNestedManyWithoutCandidateInput
 }
 
 export type CandidateUncheckedCreateWithoutNotesInput = {
@@ -1513,6 +1568,8 @@ export type CandidateUncheckedCreateWithoutNotesInput = {
   listMemberships?: Prisma.CandidateListMembershipUncheckedCreateNestedManyWithoutCandidateInput
   statuses?: Prisma.CandidateStatusUncheckedCreateNestedManyWithoutCandidateInput
   jobMatches?: Prisma.JobMatchUncheckedCreateNestedManyWithoutCandidateInput
+  imports?: Prisma.CandidateImportUncheckedCreateNestedManyWithoutCandidateInput
+  documents?: Prisma.CandidateDocumentUncheckedCreateNestedManyWithoutCandidateInput
 }
 
 export type CandidateCreateOrConnectWithoutNotesInput = {
@@ -1574,6 +1631,8 @@ export type CandidateUpdateWithoutNotesInput = {
   listMemberships?: Prisma.CandidateListMembershipUpdateManyWithoutCandidateNestedInput
   statuses?: Prisma.CandidateStatusUpdateManyWithoutCandidateNestedInput
   jobMatches?: Prisma.JobMatchUpdateManyWithoutCandidateNestedInput
+  imports?: Prisma.CandidateImportUpdateManyWithoutCandidateNestedInput
+  documents?: Prisma.CandidateDocumentUpdateManyWithoutCandidateNestedInput
 }
 
 export type CandidateUncheckedUpdateWithoutNotesInput = {
@@ -1619,6 +1678,8 @@ export type CandidateUncheckedUpdateWithoutNotesInput = {
   listMemberships?: Prisma.CandidateListMembershipUncheckedUpdateManyWithoutCandidateNestedInput
   statuses?: Prisma.CandidateStatusUncheckedUpdateManyWithoutCandidateNestedInput
   jobMatches?: Prisma.JobMatchUncheckedUpdateManyWithoutCandidateNestedInput
+  imports?: Prisma.CandidateImportUncheckedUpdateManyWithoutCandidateNestedInput
+  documents?: Prisma.CandidateDocumentUncheckedUpdateManyWithoutCandidateNestedInput
 }
 
 export type CandidateCreateWithoutListMembershipsInput = {
@@ -1664,6 +1725,8 @@ export type CandidateCreateWithoutListMembershipsInput = {
   notes?: Prisma.CandidateNoteCreateNestedManyWithoutCandidateInput
   statuses?: Prisma.CandidateStatusCreateNestedManyWithoutCandidateInput
   jobMatches?: Prisma.JobMatchCreateNestedManyWithoutCandidateInput
+  imports?: Prisma.CandidateImportCreateNestedManyWithoutCandidateInput
+  documents?: Prisma.CandidateDocumentCreateNestedManyWithoutCandidateInput
 }
 
 export type CandidateUncheckedCreateWithoutListMembershipsInput = {
@@ -1709,6 +1772,8 @@ export type CandidateUncheckedCreateWithoutListMembershipsInput = {
   notes?: Prisma.CandidateNoteUncheckedCreateNestedManyWithoutCandidateInput
   statuses?: Prisma.CandidateStatusUncheckedCreateNestedManyWithoutCandidateInput
   jobMatches?: Prisma.JobMatchUncheckedCreateNestedManyWithoutCandidateInput
+  imports?: Prisma.CandidateImportUncheckedCreateNestedManyWithoutCandidateInput
+  documents?: Prisma.CandidateDocumentUncheckedCreateNestedManyWithoutCandidateInput
 }
 
 export type CandidateCreateOrConnectWithoutListMembershipsInput = {
@@ -1770,6 +1835,8 @@ export type CandidateUpdateWithoutListMembershipsInput = {
   notes?: Prisma.CandidateNoteUpdateManyWithoutCandidateNestedInput
   statuses?: Prisma.CandidateStatusUpdateManyWithoutCandidateNestedInput
   jobMatches?: Prisma.JobMatchUpdateManyWithoutCandidateNestedInput
+  imports?: Prisma.CandidateImportUpdateManyWithoutCandidateNestedInput
+  documents?: Prisma.CandidateDocumentUpdateManyWithoutCandidateNestedInput
 }
 
 export type CandidateUncheckedUpdateWithoutListMembershipsInput = {
@@ -1815,6 +1882,8 @@ export type CandidateUncheckedUpdateWithoutListMembershipsInput = {
   notes?: Prisma.CandidateNoteUncheckedUpdateManyWithoutCandidateNestedInput
   statuses?: Prisma.CandidateStatusUncheckedUpdateManyWithoutCandidateNestedInput
   jobMatches?: Prisma.JobMatchUncheckedUpdateManyWithoutCandidateNestedInput
+  imports?: Prisma.CandidateImportUncheckedUpdateManyWithoutCandidateNestedInput
+  documents?: Prisma.CandidateDocumentUncheckedUpdateManyWithoutCandidateNestedInput
 }
 
 export type CandidateCreateWithoutStatusesInput = {
@@ -1860,6 +1929,8 @@ export type CandidateCreateWithoutStatusesInput = {
   notes?: Prisma.CandidateNoteCreateNestedManyWithoutCandidateInput
   listMemberships?: Prisma.CandidateListMembershipCreateNestedManyWithoutCandidateInput
   jobMatches?: Prisma.JobMatchCreateNestedManyWithoutCandidateInput
+  imports?: Prisma.CandidateImportCreateNestedManyWithoutCandidateInput
+  documents?: Prisma.CandidateDocumentCreateNestedManyWithoutCandidateInput
 }
 
 export type CandidateUncheckedCreateWithoutStatusesInput = {
@@ -1905,6 +1976,8 @@ export type CandidateUncheckedCreateWithoutStatusesInput = {
   notes?: Prisma.CandidateNoteUncheckedCreateNestedManyWithoutCandidateInput
   listMemberships?: Prisma.CandidateListMembershipUncheckedCreateNestedManyWithoutCandidateInput
   jobMatches?: Prisma.JobMatchUncheckedCreateNestedManyWithoutCandidateInput
+  imports?: Prisma.CandidateImportUncheckedCreateNestedManyWithoutCandidateInput
+  documents?: Prisma.CandidateDocumentUncheckedCreateNestedManyWithoutCandidateInput
 }
 
 export type CandidateCreateOrConnectWithoutStatusesInput = {
@@ -1966,6 +2039,8 @@ export type CandidateUpdateWithoutStatusesInput = {
   notes?: Prisma.CandidateNoteUpdateManyWithoutCandidateNestedInput
   listMemberships?: Prisma.CandidateListMembershipUpdateManyWithoutCandidateNestedInput
   jobMatches?: Prisma.JobMatchUpdateManyWithoutCandidateNestedInput
+  imports?: Prisma.CandidateImportUpdateManyWithoutCandidateNestedInput
+  documents?: Prisma.CandidateDocumentUpdateManyWithoutCandidateNestedInput
 }
 
 export type CandidateUncheckedUpdateWithoutStatusesInput = {
@@ -2011,6 +2086,8 @@ export type CandidateUncheckedUpdateWithoutStatusesInput = {
   notes?: Prisma.CandidateNoteUncheckedUpdateManyWithoutCandidateNestedInput
   listMemberships?: Prisma.CandidateListMembershipUncheckedUpdateManyWithoutCandidateNestedInput
   jobMatches?: Prisma.JobMatchUncheckedUpdateManyWithoutCandidateNestedInput
+  imports?: Prisma.CandidateImportUncheckedUpdateManyWithoutCandidateNestedInput
+  documents?: Prisma.CandidateDocumentUncheckedUpdateManyWithoutCandidateNestedInput
 }
 
 export type CandidateCreateWithoutJobMatchesInput = {
@@ -2056,6 +2133,8 @@ export type CandidateCreateWithoutJobMatchesInput = {
   notes?: Prisma.CandidateNoteCreateNestedManyWithoutCandidateInput
   listMemberships?: Prisma.CandidateListMembershipCreateNestedManyWithoutCandidateInput
   statuses?: Prisma.CandidateStatusCreateNestedManyWithoutCandidateInput
+  imports?: Prisma.CandidateImportCreateNestedManyWithoutCandidateInput
+  documents?: Prisma.CandidateDocumentCreateNestedManyWithoutCandidateInput
 }
 
 export type CandidateUncheckedCreateWithoutJobMatchesInput = {
@@ -2101,6 +2180,8 @@ export type CandidateUncheckedCreateWithoutJobMatchesInput = {
   notes?: Prisma.CandidateNoteUncheckedCreateNestedManyWithoutCandidateInput
   listMemberships?: Prisma.CandidateListMembershipUncheckedCreateNestedManyWithoutCandidateInput
   statuses?: Prisma.CandidateStatusUncheckedCreateNestedManyWithoutCandidateInput
+  imports?: Prisma.CandidateImportUncheckedCreateNestedManyWithoutCandidateInput
+  documents?: Prisma.CandidateDocumentUncheckedCreateNestedManyWithoutCandidateInput
 }
 
 export type CandidateCreateOrConnectWithoutJobMatchesInput = {
@@ -2162,6 +2243,8 @@ export type CandidateUpdateWithoutJobMatchesInput = {
   notes?: Prisma.CandidateNoteUpdateManyWithoutCandidateNestedInput
   listMemberships?: Prisma.CandidateListMembershipUpdateManyWithoutCandidateNestedInput
   statuses?: Prisma.CandidateStatusUpdateManyWithoutCandidateNestedInput
+  imports?: Prisma.CandidateImportUpdateManyWithoutCandidateNestedInput
+  documents?: Prisma.CandidateDocumentUpdateManyWithoutCandidateNestedInput
 }
 
 export type CandidateUncheckedUpdateWithoutJobMatchesInput = {
@@ -2207,6 +2290,416 @@ export type CandidateUncheckedUpdateWithoutJobMatchesInput = {
   notes?: Prisma.CandidateNoteUncheckedUpdateManyWithoutCandidateNestedInput
   listMemberships?: Prisma.CandidateListMembershipUncheckedUpdateManyWithoutCandidateNestedInput
   statuses?: Prisma.CandidateStatusUncheckedUpdateManyWithoutCandidateNestedInput
+  imports?: Prisma.CandidateImportUncheckedUpdateManyWithoutCandidateNestedInput
+  documents?: Prisma.CandidateDocumentUncheckedUpdateManyWithoutCandidateNestedInput
+}
+
+export type CandidateCreateWithoutImportsInput = {
+  id?: string
+  externalId: string
+  firstName?: string | null
+  lastName?: string | null
+  birthday?: string | null
+  countryOfOrigin?: string | null
+  address?: string | null
+  location?: string | null
+  latitude?: number | null
+  longitude?: number | null
+  phone?: string | null
+  workingPermit?: boolean | null
+  meanOfTransport?: string | null
+  drivingLicense?: boolean | null
+  educationAndTraining?: Prisma.CandidateCreateeducationAndTrainingInput | string[]
+  workExperience?: Prisma.CandidateCreateworkExperienceInput | string[]
+  skillsAndCompetences?: Prisma.CandidateCreateskillsAndCompetencesInput | string[]
+  language?: string | null
+  additionalLanguages?: Prisma.CandidateCreateadditionalLanguagesInput | string[]
+  italianLevel?: string | null
+  desiredJob?: string | null
+  partTimePreference?: boolean | null
+  preferredLocation?: string | null
+  jobConstraints?: string | null
+  hasDesiredJobExperience?: string | null
+  learningPreference?: string | null
+  interviewLanguage?: string | null
+  sourceOrganization?: string | null
+  channel?: string | null
+  sharedWithGlobal?: boolean
+  email?: string | null
+  assessmentProfile?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  rawPayload: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  sourceUpdatedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  embeddingText?: string | null
+  embeddingUpdatedAt?: Date | string | null
+  pool: Prisma.PoolCreateNestedOneWithoutCandidatesInput
+  notes?: Prisma.CandidateNoteCreateNestedManyWithoutCandidateInput
+  listMemberships?: Prisma.CandidateListMembershipCreateNestedManyWithoutCandidateInput
+  statuses?: Prisma.CandidateStatusCreateNestedManyWithoutCandidateInput
+  jobMatches?: Prisma.JobMatchCreateNestedManyWithoutCandidateInput
+  documents?: Prisma.CandidateDocumentCreateNestedManyWithoutCandidateInput
+}
+
+export type CandidateUncheckedCreateWithoutImportsInput = {
+  id?: string
+  externalId: string
+  firstName?: string | null
+  lastName?: string | null
+  birthday?: string | null
+  countryOfOrigin?: string | null
+  address?: string | null
+  location?: string | null
+  latitude?: number | null
+  longitude?: number | null
+  phone?: string | null
+  workingPermit?: boolean | null
+  meanOfTransport?: string | null
+  drivingLicense?: boolean | null
+  educationAndTraining?: Prisma.CandidateCreateeducationAndTrainingInput | string[]
+  workExperience?: Prisma.CandidateCreateworkExperienceInput | string[]
+  skillsAndCompetences?: Prisma.CandidateCreateskillsAndCompetencesInput | string[]
+  language?: string | null
+  additionalLanguages?: Prisma.CandidateCreateadditionalLanguagesInput | string[]
+  italianLevel?: string | null
+  desiredJob?: string | null
+  partTimePreference?: boolean | null
+  preferredLocation?: string | null
+  jobConstraints?: string | null
+  hasDesiredJobExperience?: string | null
+  learningPreference?: string | null
+  interviewLanguage?: string | null
+  sourceOrganization?: string | null
+  channel?: string | null
+  sharedWithGlobal?: boolean
+  email?: string | null
+  assessmentProfile?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  rawPayload: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  sourceUpdatedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  embeddingText?: string | null
+  embeddingUpdatedAt?: Date | string | null
+  poolId: string
+  notes?: Prisma.CandidateNoteUncheckedCreateNestedManyWithoutCandidateInput
+  listMemberships?: Prisma.CandidateListMembershipUncheckedCreateNestedManyWithoutCandidateInput
+  statuses?: Prisma.CandidateStatusUncheckedCreateNestedManyWithoutCandidateInput
+  jobMatches?: Prisma.JobMatchUncheckedCreateNestedManyWithoutCandidateInput
+  documents?: Prisma.CandidateDocumentUncheckedCreateNestedManyWithoutCandidateInput
+}
+
+export type CandidateCreateOrConnectWithoutImportsInput = {
+  where: Prisma.CandidateWhereUniqueInput
+  create: Prisma.XOR<Prisma.CandidateCreateWithoutImportsInput, Prisma.CandidateUncheckedCreateWithoutImportsInput>
+}
+
+export type CandidateUpsertWithoutImportsInput = {
+  update: Prisma.XOR<Prisma.CandidateUpdateWithoutImportsInput, Prisma.CandidateUncheckedUpdateWithoutImportsInput>
+  create: Prisma.XOR<Prisma.CandidateCreateWithoutImportsInput, Prisma.CandidateUncheckedCreateWithoutImportsInput>
+  where?: Prisma.CandidateWhereInput
+}
+
+export type CandidateUpdateToOneWithWhereWithoutImportsInput = {
+  where?: Prisma.CandidateWhereInput
+  data: Prisma.XOR<Prisma.CandidateUpdateWithoutImportsInput, Prisma.CandidateUncheckedUpdateWithoutImportsInput>
+}
+
+export type CandidateUpdateWithoutImportsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  externalId?: Prisma.StringFieldUpdateOperationsInput | string
+  firstName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthday?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  countryOfOrigin?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  location?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  latitude?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  longitude?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workingPermit?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  meanOfTransport?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  drivingLicense?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  educationAndTraining?: Prisma.CandidateUpdateeducationAndTrainingInput | string[]
+  workExperience?: Prisma.CandidateUpdateworkExperienceInput | string[]
+  skillsAndCompetences?: Prisma.CandidateUpdateskillsAndCompetencesInput | string[]
+  language?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  additionalLanguages?: Prisma.CandidateUpdateadditionalLanguagesInput | string[]
+  italianLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  desiredJob?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  partTimePreference?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  preferredLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jobConstraints?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasDesiredJobExperience?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningPreference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  interviewLanguage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceOrganization?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  channel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sharedWithGlobal?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assessmentProfile?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  rawPayload?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  sourceUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  embeddingText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  embeddingUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pool?: Prisma.PoolUpdateOneRequiredWithoutCandidatesNestedInput
+  notes?: Prisma.CandidateNoteUpdateManyWithoutCandidateNestedInput
+  listMemberships?: Prisma.CandidateListMembershipUpdateManyWithoutCandidateNestedInput
+  statuses?: Prisma.CandidateStatusUpdateManyWithoutCandidateNestedInput
+  jobMatches?: Prisma.JobMatchUpdateManyWithoutCandidateNestedInput
+  documents?: Prisma.CandidateDocumentUpdateManyWithoutCandidateNestedInput
+}
+
+export type CandidateUncheckedUpdateWithoutImportsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  externalId?: Prisma.StringFieldUpdateOperationsInput | string
+  firstName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthday?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  countryOfOrigin?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  location?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  latitude?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  longitude?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workingPermit?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  meanOfTransport?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  drivingLicense?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  educationAndTraining?: Prisma.CandidateUpdateeducationAndTrainingInput | string[]
+  workExperience?: Prisma.CandidateUpdateworkExperienceInput | string[]
+  skillsAndCompetences?: Prisma.CandidateUpdateskillsAndCompetencesInput | string[]
+  language?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  additionalLanguages?: Prisma.CandidateUpdateadditionalLanguagesInput | string[]
+  italianLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  desiredJob?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  partTimePreference?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  preferredLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jobConstraints?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasDesiredJobExperience?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningPreference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  interviewLanguage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceOrganization?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  channel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sharedWithGlobal?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assessmentProfile?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  rawPayload?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  sourceUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  embeddingText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  embeddingUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  poolId?: Prisma.StringFieldUpdateOperationsInput | string
+  notes?: Prisma.CandidateNoteUncheckedUpdateManyWithoutCandidateNestedInput
+  listMemberships?: Prisma.CandidateListMembershipUncheckedUpdateManyWithoutCandidateNestedInput
+  statuses?: Prisma.CandidateStatusUncheckedUpdateManyWithoutCandidateNestedInput
+  jobMatches?: Prisma.JobMatchUncheckedUpdateManyWithoutCandidateNestedInput
+  documents?: Prisma.CandidateDocumentUncheckedUpdateManyWithoutCandidateNestedInput
+}
+
+export type CandidateCreateWithoutDocumentsInput = {
+  id?: string
+  externalId: string
+  firstName?: string | null
+  lastName?: string | null
+  birthday?: string | null
+  countryOfOrigin?: string | null
+  address?: string | null
+  location?: string | null
+  latitude?: number | null
+  longitude?: number | null
+  phone?: string | null
+  workingPermit?: boolean | null
+  meanOfTransport?: string | null
+  drivingLicense?: boolean | null
+  educationAndTraining?: Prisma.CandidateCreateeducationAndTrainingInput | string[]
+  workExperience?: Prisma.CandidateCreateworkExperienceInput | string[]
+  skillsAndCompetences?: Prisma.CandidateCreateskillsAndCompetencesInput | string[]
+  language?: string | null
+  additionalLanguages?: Prisma.CandidateCreateadditionalLanguagesInput | string[]
+  italianLevel?: string | null
+  desiredJob?: string | null
+  partTimePreference?: boolean | null
+  preferredLocation?: string | null
+  jobConstraints?: string | null
+  hasDesiredJobExperience?: string | null
+  learningPreference?: string | null
+  interviewLanguage?: string | null
+  sourceOrganization?: string | null
+  channel?: string | null
+  sharedWithGlobal?: boolean
+  email?: string | null
+  assessmentProfile?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  rawPayload: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  sourceUpdatedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  embeddingText?: string | null
+  embeddingUpdatedAt?: Date | string | null
+  pool: Prisma.PoolCreateNestedOneWithoutCandidatesInput
+  notes?: Prisma.CandidateNoteCreateNestedManyWithoutCandidateInput
+  listMemberships?: Prisma.CandidateListMembershipCreateNestedManyWithoutCandidateInput
+  statuses?: Prisma.CandidateStatusCreateNestedManyWithoutCandidateInput
+  jobMatches?: Prisma.JobMatchCreateNestedManyWithoutCandidateInput
+  imports?: Prisma.CandidateImportCreateNestedManyWithoutCandidateInput
+}
+
+export type CandidateUncheckedCreateWithoutDocumentsInput = {
+  id?: string
+  externalId: string
+  firstName?: string | null
+  lastName?: string | null
+  birthday?: string | null
+  countryOfOrigin?: string | null
+  address?: string | null
+  location?: string | null
+  latitude?: number | null
+  longitude?: number | null
+  phone?: string | null
+  workingPermit?: boolean | null
+  meanOfTransport?: string | null
+  drivingLicense?: boolean | null
+  educationAndTraining?: Prisma.CandidateCreateeducationAndTrainingInput | string[]
+  workExperience?: Prisma.CandidateCreateworkExperienceInput | string[]
+  skillsAndCompetences?: Prisma.CandidateCreateskillsAndCompetencesInput | string[]
+  language?: string | null
+  additionalLanguages?: Prisma.CandidateCreateadditionalLanguagesInput | string[]
+  italianLevel?: string | null
+  desiredJob?: string | null
+  partTimePreference?: boolean | null
+  preferredLocation?: string | null
+  jobConstraints?: string | null
+  hasDesiredJobExperience?: string | null
+  learningPreference?: string | null
+  interviewLanguage?: string | null
+  sourceOrganization?: string | null
+  channel?: string | null
+  sharedWithGlobal?: boolean
+  email?: string | null
+  assessmentProfile?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  rawPayload: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  sourceUpdatedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  embeddingText?: string | null
+  embeddingUpdatedAt?: Date | string | null
+  poolId: string
+  notes?: Prisma.CandidateNoteUncheckedCreateNestedManyWithoutCandidateInput
+  listMemberships?: Prisma.CandidateListMembershipUncheckedCreateNestedManyWithoutCandidateInput
+  statuses?: Prisma.CandidateStatusUncheckedCreateNestedManyWithoutCandidateInput
+  jobMatches?: Prisma.JobMatchUncheckedCreateNestedManyWithoutCandidateInput
+  imports?: Prisma.CandidateImportUncheckedCreateNestedManyWithoutCandidateInput
+}
+
+export type CandidateCreateOrConnectWithoutDocumentsInput = {
+  where: Prisma.CandidateWhereUniqueInput
+  create: Prisma.XOR<Prisma.CandidateCreateWithoutDocumentsInput, Prisma.CandidateUncheckedCreateWithoutDocumentsInput>
+}
+
+export type CandidateUpsertWithoutDocumentsInput = {
+  update: Prisma.XOR<Prisma.CandidateUpdateWithoutDocumentsInput, Prisma.CandidateUncheckedUpdateWithoutDocumentsInput>
+  create: Prisma.XOR<Prisma.CandidateCreateWithoutDocumentsInput, Prisma.CandidateUncheckedCreateWithoutDocumentsInput>
+  where?: Prisma.CandidateWhereInput
+}
+
+export type CandidateUpdateToOneWithWhereWithoutDocumentsInput = {
+  where?: Prisma.CandidateWhereInput
+  data: Prisma.XOR<Prisma.CandidateUpdateWithoutDocumentsInput, Prisma.CandidateUncheckedUpdateWithoutDocumentsInput>
+}
+
+export type CandidateUpdateWithoutDocumentsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  externalId?: Prisma.StringFieldUpdateOperationsInput | string
+  firstName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthday?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  countryOfOrigin?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  location?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  latitude?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  longitude?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workingPermit?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  meanOfTransport?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  drivingLicense?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  educationAndTraining?: Prisma.CandidateUpdateeducationAndTrainingInput | string[]
+  workExperience?: Prisma.CandidateUpdateworkExperienceInput | string[]
+  skillsAndCompetences?: Prisma.CandidateUpdateskillsAndCompetencesInput | string[]
+  language?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  additionalLanguages?: Prisma.CandidateUpdateadditionalLanguagesInput | string[]
+  italianLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  desiredJob?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  partTimePreference?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  preferredLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jobConstraints?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasDesiredJobExperience?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningPreference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  interviewLanguage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceOrganization?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  channel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sharedWithGlobal?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assessmentProfile?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  rawPayload?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  sourceUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  embeddingText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  embeddingUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pool?: Prisma.PoolUpdateOneRequiredWithoutCandidatesNestedInput
+  notes?: Prisma.CandidateNoteUpdateManyWithoutCandidateNestedInput
+  listMemberships?: Prisma.CandidateListMembershipUpdateManyWithoutCandidateNestedInput
+  statuses?: Prisma.CandidateStatusUpdateManyWithoutCandidateNestedInput
+  jobMatches?: Prisma.JobMatchUpdateManyWithoutCandidateNestedInput
+  imports?: Prisma.CandidateImportUpdateManyWithoutCandidateNestedInput
+}
+
+export type CandidateUncheckedUpdateWithoutDocumentsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  externalId?: Prisma.StringFieldUpdateOperationsInput | string
+  firstName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthday?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  countryOfOrigin?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  location?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  latitude?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  longitude?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workingPermit?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  meanOfTransport?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  drivingLicense?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  educationAndTraining?: Prisma.CandidateUpdateeducationAndTrainingInput | string[]
+  workExperience?: Prisma.CandidateUpdateworkExperienceInput | string[]
+  skillsAndCompetences?: Prisma.CandidateUpdateskillsAndCompetencesInput | string[]
+  language?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  additionalLanguages?: Prisma.CandidateUpdateadditionalLanguagesInput | string[]
+  italianLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  desiredJob?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  partTimePreference?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  preferredLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jobConstraints?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasDesiredJobExperience?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningPreference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  interviewLanguage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceOrganization?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  channel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sharedWithGlobal?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assessmentProfile?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  rawPayload?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  sourceUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  embeddingText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  embeddingUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  poolId?: Prisma.StringFieldUpdateOperationsInput | string
+  notes?: Prisma.CandidateNoteUncheckedUpdateManyWithoutCandidateNestedInput
+  listMemberships?: Prisma.CandidateListMembershipUncheckedUpdateManyWithoutCandidateNestedInput
+  statuses?: Prisma.CandidateStatusUncheckedUpdateManyWithoutCandidateNestedInput
+  jobMatches?: Prisma.JobMatchUncheckedUpdateManyWithoutCandidateNestedInput
+  imports?: Prisma.CandidateImportUncheckedUpdateManyWithoutCandidateNestedInput
 }
 
 export type CandidateCreateManyPoolInput = {
@@ -2293,6 +2786,8 @@ export type CandidateUpdateWithoutPoolInput = {
   listMemberships?: Prisma.CandidateListMembershipUpdateManyWithoutCandidateNestedInput
   statuses?: Prisma.CandidateStatusUpdateManyWithoutCandidateNestedInput
   jobMatches?: Prisma.JobMatchUpdateManyWithoutCandidateNestedInput
+  imports?: Prisma.CandidateImportUpdateManyWithoutCandidateNestedInput
+  documents?: Prisma.CandidateDocumentUpdateManyWithoutCandidateNestedInput
 }
 
 export type CandidateUncheckedUpdateWithoutPoolInput = {
@@ -2338,6 +2833,8 @@ export type CandidateUncheckedUpdateWithoutPoolInput = {
   listMemberships?: Prisma.CandidateListMembershipUncheckedUpdateManyWithoutCandidateNestedInput
   statuses?: Prisma.CandidateStatusUncheckedUpdateManyWithoutCandidateNestedInput
   jobMatches?: Prisma.JobMatchUncheckedUpdateManyWithoutCandidateNestedInput
+  imports?: Prisma.CandidateImportUncheckedUpdateManyWithoutCandidateNestedInput
+  documents?: Prisma.CandidateDocumentUncheckedUpdateManyWithoutCandidateNestedInput
 }
 
 export type CandidateUncheckedUpdateManyWithoutPoolInput = {
@@ -2391,6 +2888,8 @@ export type CandidateCountOutputType = {
   listMemberships: number
   statuses: number
   jobMatches: number
+  imports: number
+  documents: number
 }
 
 export type CandidateCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2398,6 +2897,8 @@ export type CandidateCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensi
   listMemberships?: boolean | CandidateCountOutputTypeCountListMembershipsArgs
   statuses?: boolean | CandidateCountOutputTypeCountStatusesArgs
   jobMatches?: boolean | CandidateCountOutputTypeCountJobMatchesArgs
+  imports?: boolean | CandidateCountOutputTypeCountImportsArgs
+  documents?: boolean | CandidateCountOutputTypeCountDocumentsArgs
 }
 
 /**
@@ -2436,6 +2937,20 @@ export type CandidateCountOutputTypeCountStatusesArgs<ExtArgs extends runtime.Ty
  */
 export type CandidateCountOutputTypeCountJobMatchesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.JobMatchWhereInput
+}
+
+/**
+ * CandidateCountOutputType without action
+ */
+export type CandidateCountOutputTypeCountImportsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.CandidateImportWhereInput
+}
+
+/**
+ * CandidateCountOutputType without action
+ */
+export type CandidateCountOutputTypeCountDocumentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.CandidateDocumentWhereInput
 }
 
 
@@ -2484,6 +2999,8 @@ export type CandidateSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   listMemberships?: boolean | Prisma.Candidate$listMembershipsArgs<ExtArgs>
   statuses?: boolean | Prisma.Candidate$statusesArgs<ExtArgs>
   jobMatches?: boolean | Prisma.Candidate$jobMatchesArgs<ExtArgs>
+  imports?: boolean | Prisma.Candidate$importsArgs<ExtArgs>
+  documents?: boolean | Prisma.Candidate$documentsArgs<ExtArgs>
   _count?: boolean | Prisma.CandidateCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["candidate"]>
 
@@ -2622,6 +3139,8 @@ export type CandidateInclude<ExtArgs extends runtime.Types.Extensions.InternalAr
   listMemberships?: boolean | Prisma.Candidate$listMembershipsArgs<ExtArgs>
   statuses?: boolean | Prisma.Candidate$statusesArgs<ExtArgs>
   jobMatches?: boolean | Prisma.Candidate$jobMatchesArgs<ExtArgs>
+  imports?: boolean | Prisma.Candidate$importsArgs<ExtArgs>
+  documents?: boolean | Prisma.Candidate$documentsArgs<ExtArgs>
   _count?: boolean | Prisma.CandidateCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type CandidateIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2639,6 +3158,8 @@ export type $CandidatePayload<ExtArgs extends runtime.Types.Extensions.InternalA
     listMemberships: Prisma.$CandidateListMembershipPayload<ExtArgs>[]
     statuses: Prisma.$CandidateStatusPayload<ExtArgs>[]
     jobMatches: Prisma.$JobMatchPayload<ExtArgs>[]
+    imports: Prisma.$CandidateImportPayload<ExtArgs>[]
+    documents: Prisma.$CandidateDocumentPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -3079,6 +3600,8 @@ export interface Prisma__CandidateClient<T, Null = never, ExtArgs extends runtim
   listMemberships<T extends Prisma.Candidate$listMembershipsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Candidate$listMembershipsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CandidateListMembershipPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   statuses<T extends Prisma.Candidate$statusesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Candidate$statusesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CandidateStatusPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   jobMatches<T extends Prisma.Candidate$jobMatchesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Candidate$jobMatchesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$JobMatchPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  imports<T extends Prisma.Candidate$importsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Candidate$importsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CandidateImportPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  documents<T extends Prisma.Candidate$documentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Candidate$documentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CandidateDocumentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -3641,6 +4164,54 @@ export type Candidate$jobMatchesArgs<ExtArgs extends runtime.Types.Extensions.In
   take?: number
   skip?: number
   distinct?: Prisma.JobMatchScalarFieldEnum | Prisma.JobMatchScalarFieldEnum[]
+}
+
+/**
+ * Candidate.imports
+ */
+export type Candidate$importsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the CandidateImport
+   */
+  select?: Prisma.CandidateImportSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the CandidateImport
+   */
+  omit?: Prisma.CandidateImportOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CandidateImportInclude<ExtArgs> | null
+  where?: Prisma.CandidateImportWhereInput
+  orderBy?: Prisma.CandidateImportOrderByWithRelationInput | Prisma.CandidateImportOrderByWithRelationInput[]
+  cursor?: Prisma.CandidateImportWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.CandidateImportScalarFieldEnum | Prisma.CandidateImportScalarFieldEnum[]
+}
+
+/**
+ * Candidate.documents
+ */
+export type Candidate$documentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the CandidateDocument
+   */
+  select?: Prisma.CandidateDocumentSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the CandidateDocument
+   */
+  omit?: Prisma.CandidateDocumentOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CandidateDocumentInclude<ExtArgs> | null
+  where?: Prisma.CandidateDocumentWhereInput
+  orderBy?: Prisma.CandidateDocumentOrderByWithRelationInput | Prisma.CandidateDocumentOrderByWithRelationInput[]
+  cursor?: Prisma.CandidateDocumentWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.CandidateDocumentScalarFieldEnum | Prisma.CandidateDocumentScalarFieldEnum[]
 }
 
 /**

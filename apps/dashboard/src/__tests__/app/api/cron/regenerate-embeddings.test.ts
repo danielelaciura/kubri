@@ -12,6 +12,10 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 
+vi.mock("@/lib/candidate-imports/service", () => ({
+  discardStaleImports: vi.fn().mockResolvedValue(0),
+}));
+
 describe("GET /api/cron/regenerate-embeddings", () => {
   beforeEach(() => {
     process.env["CRON_SECRET"] = "test-cron";

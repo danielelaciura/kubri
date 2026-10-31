@@ -90,3 +90,12 @@ export async function getOrgCandidateVisibility(
     rows.some((r) => r.pool.isGlobal),
   );
 }
+
+/**
+ * Pools the organization may create candidates in: its own pools, never the
+ * Global pool. Org-scoped; no admin bypass.
+ */
+export async function getOrgWritablePools(organizationId: string): Promise<Pool[]> {
+  const pools = await getOrgAccessiblePools(organizationId);
+  return pools.filter((p) => !p.isGlobal).sort((a, b) => a.name.localeCompare(b.name));
+}

@@ -1,13 +1,11 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
 import { makeCandidateWebhookSchema } from "@/lib/validations/webhook-candidate";
 import { normalizeForUpsert } from "@/lib/make/normalize";
 import {
   resolvePoolByExternalKey,
   UnknownPoolError,
 } from "@/lib/pools/resolve";
-import { generateEmbedding, vectorToPgLiteral } from "@/lib/embeddings/client";
-import { buildCandidateEmbeddingText } from "@/lib/embeddings/text";
+import { ingestCandidate } from "@/lib/candidates/ingest";
 
 export async function POST(req: Request): Promise<Response> {
   const expected = process.env["MAKE_WEBHOOK_SECRET"];
@@ -53,52 +51,11 @@ export async function POST(req: Request): Promise<Response> {
 
   const upsertInput = normalizeForUpsert(parsed.data, pool);
   try {
-    const candidate = await prisma.candidate.upsert({
-      where: {
-        poolId_externalId: {
-          poolId: pool.id,
-          externalId: parsed.data.key,
-        },
-      },
-      create: upsertInput,
-      update: upsertInput,
-      select: {
-        id: true,
-        skillsAndCompetences: true,
-        workExperience: true,
-        educationAndTraining: true,
-        desiredJob: true,
-        jobConstraints: true,
-      },
-    });
-
-    const embeddingText = buildCandidateEmbeddingText({
-      skillsAndCompetences: candidate.skillsAndCompetences,
-      workExperience: candidate.workExperience,
-      educationAndTraining: candidate.educationAndTraining,
-      desiredJob: candidate.desiredJob,
-      jobConstraints: candidate.jobConstraints,
-    });
-
-    if (embeddingText.length > 0) {
-      try {
-        const vector = await generateEmbedding(embeddingText);
-        await prisma.$executeRaw`
-          UPDATE "Candidate"
-          SET "embedding" = ${vectorToPgLiteral(vector)}::vector,
-              "embeddingText" = ${embeddingText},
-              "embeddingUpdatedAt" = now()
-          WHERE id = ${candidate.id}::uuid
-        `;
-      } catch (e) {
-        console.error("[webhook make/candidate] embedding failed", {
-          candidateId: candidate.id,
-          error: e,
-        });
-      }
-    }
-
-    return NextResponse.json({ ok: true, candidateId: candidate.id });
+    const { candidateId } = await ingestCandidate(
+      upsertInput,
+      "webhook make/candidate",
+    );
+    return NextResponse.json({ ok: true, candidateId });
   } catch (e) {
     console.error("[webhook make/candidate] upsert failed", e);
     return NextResponse.json({ error: "internal_error" }, { status: 500 });

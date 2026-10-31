@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { discardStaleImports } from "@/lib/candidate-imports/service";
 import { generateEmbedding, vectorToPgLiteral } from "@/lib/embeddings/client";
 import {
   buildCandidateEmbeddingText,
@@ -29,6 +30,13 @@ export async function GET(req: Request): Promise<Response> {
   const auth = req.headers.get("authorization");
   if (!expected || auth !== `Bearer ${expected}`) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  let discardedImports = 0;
+  try {
+    discardedImports = await discardStaleImports();
+  } catch (e) {
+    console.error("[cron] stale candidate import cleanup failed", e);
   }
 
   let candidates = 0;
@@ -82,5 +90,5 @@ export async function GET(req: Request): Promise<Response> {
     }
   }
 
-  return NextResponse.json({ candidates, jobs });
+  return NextResponse.json({ candidates, jobs, discardedImports });
 }

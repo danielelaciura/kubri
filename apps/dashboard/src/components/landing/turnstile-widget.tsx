@@ -12,7 +12,7 @@ interface TurnstileApi {
       "expired-callback": () => void;
       "error-callback": () => void;
       "before-interactive-callback": () => void;
-      appearance: "interaction-only";
+      appearance: "always";
       language: string;
     },
   ): string;
@@ -33,7 +33,8 @@ const scriptProps = {
 };
 
 /**
- * Invisible-unless-needed Cloudflare Turnstile. Reports a fresh token (or ""
+ * Visible Cloudflare Turnstile (the landing shows it as its own step, so the
+ * visitor sees the check happen). Reports a fresh token (or ""
  * when it expires / errors). Tokens are single-use: remount it (change `key`)
  * after each upload attempt. Without a site key (local dev) it renders nothing
  * and the server accepts the empty token outside production. `onError` fires
@@ -79,7 +80,7 @@ export function TurnstileWidget({
         errCb.current?.();
       },
       "before-interactive-callback": () => interactiveCb.current?.(),
-      appearance: "interaction-only",
+      appearance: "always",
       language: locale,
     });
     return () => {

@@ -4,7 +4,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { I18nProvider } from "@/lib/i18n/provider";
 import { getDictionary } from "@/lib/i18n";
 import { searchLandingPlacesAction } from "@/app/(public)/candidati/[slug]/actions";
-import { PlaceField, type PlaceSelection } from "@/components/landing/place-field";
+import { PlaceField, newSessionToken, type PlaceSelection } from "@/components/landing/place-field";
 
 vi.mock("@/app/(public)/candidati/[slug]/actions", () => ({ searchLandingPlacesAction: vi.fn() }));
 
@@ -13,6 +13,18 @@ const OPTIONS = [
   { placeId: "p1", label: "Via Roma, Milano, MI, Italia" },
   { placeId: "p2", label: "Via Roma, Torino, TO, Italia" },
 ];
+
+const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+type SearchResult = Awaited<ReturnType<typeof searchLandingPlacesAction>>;
+
+function deferred() {
+  let resolve!: (r: SearchResult) => void;
+  const promise = new Promise<SearchResult>((r) => (resolve = r));
+  return { promise, resolve };
+}
+
+const tokenOf = (call: number) =>
+  (vi.mocked(searchLandingPlacesAction).mock.calls[call]![1] as { sessionToken: string }).sessionToken;
 
 function setup(value: PlaceSelection | null = null) {
   const onChange = vi.fn();
@@ -86,5 +98,98 @@ describe("PlaceField", () => {
     vi.mocked(searchLandingPlacesAction).mockResolvedValueOnce({ ok: false, error: "RATE_LIMITED" });
     await typeAndWait(input, "zzzzz");
     expect(screen.getByText(t.errors.busy)).toBeInTheDocument();
+  });
+
+  it("wraps with ArrowUp and closes with Escape", async () => {
+    const { input } = setup();
+    await typeAndWait(input, "via roma");
+    fireEvent.keyDown(input, { key: "ArrowUp" });
+    expect(input).toHaveAttribute("aria-activedescendant", "landing-place-option-1");
+    fireEvent.keyDown(input, { key: "Escape" });
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    expect(input).toHaveAttribute("aria-expanded", "false");
+    // ArrowDown reopens the loaded options on the first one.
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+    expect(input).toHaveAttribute("aria-activedescendant", "landing-place-option-0");
+  });
+
+  it("closes the no-results hint with Escape", async () => {
+    vi.mocked(searchLandingPlacesAction).mockResolvedValueOnce({ ok: true, data: [] });
+    const { input } = setup();
+    await typeAndWait(input, "zzzz");
+    expect(screen.getByRole("status")).toHaveTextContent(t.placeNoResults);
+    fireEvent.keyDown(input, { key: "Escape" });
+    expect(screen.queryByText(t.placeNoResults)).not.toBeInTheDocument();
+  });
+
+  it("ignores a stale response that arrives after a newer one", async () => {
+    const first = deferred();
+    vi.mocked(searchLandingPlacesAction)
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValueOnce({ ok: true, data: OPTIONS });
+    const { input } = setup();
+    await typeAndWait(input, "via rom");
+    await typeAndWait(input, "via roma");
+    expect(screen.getAllByRole("option")).toHaveLength(2);
+    await act(async () => {
+      first.resolve({ ok: true, data: [{ placeId: "stale", label: "Stale result" }] });
+    });
+    expect(screen.queryByText("Stale result")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("option")).toHaveLength(2);
+  });
+
+  it("does not reopen the list when a response arrives after blur", async () => {
+    const pending = deferred();
+    vi.mocked(searchLandingPlacesAction).mockReturnValueOnce(pending.promise);
+    const { input } = setup();
+    await typeAndWait(input, "via roma");
+    fireEvent.blur(input);
+    await act(async () => {
+      pending.resolve({ ok: true, data: OPTIONS });
+    });
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  });
+
+  it("does not search again when selecting while a debounce is pending", async () => {
+    const { input, onChange } = setup();
+    await typeAndWait(input, "via roma");
+    fireEvent.change(input, { target: { value: "via roma 1" } });
+    fireEvent.mouseDown(screen.getByRole("option", { name: OPTIONS[0]!.label }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+    expect(searchLandingPlacesAction).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ placeId: "p1" }));
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  });
+
+  it("starts a new session token after a selection", async () => {
+    const { input } = setup();
+    await typeAndWait(input, "via roma");
+    await typeAndWait(input, "via roma 1");
+    expect(tokenOf(1)).toBe(tokenOf(0));
+    fireEvent.mouseDown(screen.getByRole("option", { name: OPTIONS[0]!.label }));
+    await typeAndWait(input, "via milano");
+    expect(tokenOf(2)).toMatch(UUID_V4);
+    expect(tokenOf(2)).not.toBe(tokenOf(0));
+  });
+});
+
+describe("newSessionToken", () => {
+  it("returns a v4 UUID", () => {
+    expect(newSessionToken()).toMatch(UUID_V4);
+  });
+
+  it("falls back to getRandomValues without crypto.randomUUID", () => {
+    const original = crypto.randomUUID;
+    Object.defineProperty(crypto, "randomUUID", { value: undefined, configurable: true, writable: true });
+    try {
+      const a = newSessionToken();
+      expect(a).toMatch(UUID_V4);
+      expect(newSessionToken()).not.toBe(a);
+    } finally {
+      Object.defineProperty(crypto, "randomUUID", { value: original, configurable: true, writable: true });
+    }
   });
 });

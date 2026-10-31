@@ -424,7 +424,8 @@ export function LandingFlow(props: LandingFlowProps) {
       )}
 
       {step.kind === "contact" && (
-        <Card>
+        // overflow-visible: the place suggestions may overlay below the card (phones).
+        <Card className="overflow-visible">
           <CardHeader>
             <CardTitle ref={headingRef} tabIndex={-1} className={headingClass}>{t.contactTitle}</CardTitle>
           </CardHeader>

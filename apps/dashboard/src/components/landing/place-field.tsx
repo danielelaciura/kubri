@@ -13,6 +13,20 @@ const MIN_QUERY = 3;
 const LISTBOX_ID = "landing-place-listbox";
 const optionId = (i: number) => `landing-place-option-${i}`;
 
+/**
+ * A random RFC 4122 v4 UUID (the server validates the format).
+ * `crypto.randomUUID` is missing on old Android WebViews and outside secure
+ * contexts; `crypto.getRandomValues` is available there.
+ */
+export function newSessionToken(): string {
+  if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  const b = crypto.getRandomValues(new Uint8Array(16));
+  b[6] = (b[6]! & 0x0f) | 0x40; // version 4
+  b[8] = (b[8]! & 0x3f) | 0x80; // RFC 4122 variant
+  const h = Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+}
+
 /** A chosen place, with the autocomplete session it closes (Google billing). */
 export interface PlaceSelection extends PlaceSuggestion {
   sessionToken?: string;
@@ -44,13 +58,21 @@ export function PlaceField({
   const [active, setActive] = useState(-1);
   const [status, setStatus] = useState<Status>("idle");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Bumped to invalidate a pending timer's or in-flight search's result.
   const seq = useRef(0);
   const session = useRef<string | null>(null);
-  const sessionToken = () => (session.current ??= crypto.randomUUID());
+  const sessionToken = () => (session.current ??= newSessionToken());
 
   useEffect(() => () => {
     if (timer.current) clearTimeout(timer.current);
   }, []);
+
+  /** Drops the pending debounce and any in-flight response. */
+  function cancelSearch() {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
+    seq.current++;
+  }
 
   function search(query: string) {
     const mine = ++seq.current;
@@ -74,10 +96,9 @@ export function PlaceField({
   function onInput(next: string) {
     setText(next);
     if (value) onChange(null);
-    if (timer.current) clearTimeout(timer.current);
+    cancelSearch();
     const query = next.replace(/\s+/g, " ").trim();
     if (query.length < MIN_QUERY) {
-      seq.current++;
       setOptions([]);
       setOpen(false);
       setStatus("idle");
@@ -87,6 +108,7 @@ export function PlaceField({
   }
 
   function select(option: PlaceSuggestion) {
+    cancelSearch();
     onChange({ ...option, sessionToken: session.current ?? undefined });
     // A selection closes the Google session: the next search starts a new one.
     session.current = null;
@@ -94,10 +116,24 @@ export function PlaceField({
     setOptions([]);
     setOpen(false);
     setActive(-1);
+    setStatus("idle");
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
-    if (!open || options.length === 0) return;
+    if (e.key === "Escape") {
+      if (open) e.preventDefault();
+      setOpen(false);
+      return;
+    }
+    if (options.length === 0) return;
+    if (!open) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setOpen(true);
+        setActive(0);
+      }
+      return;
+    }
     if (e.key === "ArrowDown") {
       e.preventDefault();
       setActive((i) => (i + 1) % options.length);
@@ -107,27 +143,36 @@ export function PlaceField({
     } else if (e.key === "Enter" && active >= 0) {
       e.preventDefault();
       select(options[active]!);
-    } else if (e.key === "Escape") {
-      setOpen(false);
     }
   }
+
+  const listOpen = open && options.length > 0;
+  const statusText = !open ? "" : status === "empty" ? t.placeNoResults : status === "error" ? t.errors.busy : "";
 
   return (
     <div className="relative">
       <Input
         id="landing-placeId" role="combobox" autoComplete="off" maxLength={100}
-        aria-expanded={open} aria-controls={LISTBOX_ID} aria-autocomplete="list"
-        aria-activedescendant={open && active >= 0 ? optionId(active) : undefined}
+        aria-expanded={listOpen} aria-controls={LISTBOX_ID} aria-autocomplete="list"
+        aria-activedescendant={listOpen && active >= 0 ? optionId(active) : undefined}
         aria-invalid={invalid ? true : undefined} aria-describedby={describedBy}
         placeholder={t.placePlaceholder} value={text}
-        onChange={(e) => onInput(e.target.value)} onKeyDown={onKeyDown} onBlur={() => setOpen(false)}
+        onChange={(e) => onInput(e.target.value)} onKeyDown={onKeyDown}
+        onBlur={() => {
+          // A late response must not reopen the list once the field is left.
+          cancelSearch();
+          setOpen(false);
+        }}
       />
-      {open && (
-        <ul id={LISTBOX_ID} role="listbox" className="absolute z-10 mt-1 w-full rounded-md border bg-popover p-1 shadow-md">
+      {listOpen && (
+        <ul
+          id={LISTBOX_ID} role="listbox"
+          className="absolute z-10 mt-1 max-h-60 w-full overflow-y-auto rounded-md border bg-popover p-1 shadow-md"
+        >
           {options.map((o, i) => (
             <li
               key={o.placeId} id={optionId(i)} role="option" aria-selected={i === active}
-              className={cn("cursor-pointer rounded-sm px-2 py-1.5 text-sm", i === active && "bg-muted")}
+              className={cn("cursor-pointer rounded-sm px-2 py-2.5 text-sm", i === active && "bg-muted")}
               // mousedown + preventDefault: select before the input's blur closes the list.
               onMouseDown={(e) => {
                 e.preventDefault();
@@ -137,10 +182,17 @@ export function PlaceField({
               {o.label}
             </li>
           ))}
-          {status === "empty" && <li className="px-2 py-1.5 text-sm text-muted-foreground">{t.placeNoResults}</li>}
-          {status === "error" && <li className="px-2 py-1.5 text-sm text-muted-foreground">{t.errors.busy}</li>}
         </ul>
       )}
+      {/* Always mounted so screen readers announce "no results" / errors. */}
+      <p
+        role="status" aria-live="polite"
+        className={statusText
+          ? "absolute z-10 mt-1 w-full rounded-md border bg-popover px-3 py-2.5 text-sm text-muted-foreground shadow-md"
+          : "sr-only"}
+      >
+        {statusText}
+      </p>
     </div>
   );
 }

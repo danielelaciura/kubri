@@ -71,12 +71,14 @@ export function ContactForm({
     const e: Partial<Record<FieldKey, string>> = {};
     if (!parsed.success) {
       for (const issue of parsed.error.issues) {
-        const key = issue.path[0] as FieldKey | "placeSessionToken" | undefined;
-        if (!key || (key !== "placeSessionToken" && e[key])) continue;
+        const raw = issue.path[0] as FieldKey | "placeSessionToken" | undefined;
+        // A bad session token means the place must be chosen again.
+        const key: FieldKey | undefined = raw === "placeSessionToken" ? "placeId" : raw;
+        if (!key || e[key]) continue;
         if (key === "phone") e.phone = values.phone.trim() ? t.phoneInvalid : t.fieldRequired;
         else if (key === "email") e.email = t.emailInvalid;
         else if (key === "privacyAccepted") e.privacyAccepted = t.privacyRequired;
-        else if (key === "placeId" || key === "placeSessionToken") e.placeId = t.placeRequired;
+        else if (key === "placeId") e.placeId = t.placeRequired;
         else e[key] = t.fieldRequired;
       }
     }

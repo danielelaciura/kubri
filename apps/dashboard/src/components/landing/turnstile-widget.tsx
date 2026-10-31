@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import Script from "next/script";
 
 interface TurnstileApi {
@@ -41,6 +41,7 @@ const scriptProps = {
  * when the script cannot load or the widget fails (e.g. blocked by the network).
  * `onInteractive` fires when Cloudflare asks the visitor to interact (the
  * "Verify you are human" checkbox): the challenge is working, just waiting.
+ * `placeholder` shows while the Turnstile script is still loading.
  */
 export function TurnstileWidget({
   siteKey,
@@ -48,12 +49,14 @@ export function TurnstileWidget({
   onToken,
   onError,
   onInteractive,
+  placeholder,
 }: {
   siteKey: string;
   locale: string;
   onToken: (token: string) => void;
   onError?: () => void;
   onInteractive?: () => void;
+  placeholder?: ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   // Latest callback without re-rendering the widget when the parent re-renders.
@@ -99,6 +102,8 @@ export function TurnstileWidget({
           errCb.current?.();
         }}
       />
+      {/* The widget renders as soon as the script is ready. */}
+      {!scriptReady && placeholder}
       <div ref={ref} />
     </>
   );

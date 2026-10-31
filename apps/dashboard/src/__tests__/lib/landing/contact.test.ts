@@ -1,10 +1,16 @@
 import { describe, it, expect } from "vitest";
 import { emptyCandidateDraftFields } from "@kubri/contracts";
-import { contactFromDraft, landingContactSchema, mergeContactIntoDraft } from "@/lib/landing/contact";
+import {
+  contactFromDraft,
+  landingContactSchema,
+  mergeContactIntoDraft,
+  placeQueryFromDraft,
+} from "@/lib/landing/contact";
 
 const CONTACT = {
   firstName: "Ahmed", lastName: "Benali", phone: "+39 333 1234567",
   email: "", privacyAccepted: true, shareWithGlobal: false,
+  placeId: "istat:MI:milano",
 };
 
 describe("landingContactSchema", () => {
@@ -76,5 +82,43 @@ describe("mergeContactIntoDraft", () => {
   it("works with a missing draft", () => {
     const fields = mergeContactIntoDraft(null, landingContactSchema.parse(CONTACT));
     expect(fields.firstName).toBe("Ahmed");
+  });
+});
+
+describe("landingContactSchema place", () => {
+  it("requires a place id and accepts an optional UUID session token", () => {
+    expect(landingContactSchema.safeParse({ ...CONTACT, placeId: "" }).success).toBe(false);
+    expect(landingContactSchema.safeParse({ ...CONTACT, placeId: "x".repeat(301) }).success).toBe(false);
+    expect(landingContactSchema.safeParse({ ...CONTACT, placeSessionToken: "nope" }).success).toBe(false);
+    expect(
+      landingContactSchema.safeParse({ ...CONTACT, placeSessionToken: "6f1c1b6e-3a51-4b8f-9d3e-0c4c1c1e2a10" }).success,
+    ).toBe(true);
+  });
+});
+
+describe("mergeContactIntoDraft with a place", () => {
+  it("overrides the draft address and location with the resolved place", () => {
+    const draft = {
+      isCv: true, uncertain: [],
+      fields: { ...emptyCandidateDraftFields(), address: "Old 1, Roma", location: "Roma (RM)" },
+    };
+    const place = {
+      placeId: "ChIJ1", source: "google" as const, address: "Via Roma, 12, 20121 Milano MI, Italia",
+      location: "Milano (MI)", latitude: 45.47, longitude: 9.19,
+    };
+    const fields = mergeContactIntoDraft(draft, landingContactSchema.parse(CONTACT), place);
+    expect(fields.address).toBe("Via Roma, 12, 20121 Milano MI, Italia");
+    expect(fields.location).toBe("Milano (MI)");
+  });
+});
+
+describe("placeQueryFromDraft", () => {
+  it("returns the draft address and location", () => {
+    const draft = {
+      isCv: true, uncertain: [],
+      fields: { ...emptyCandidateDraftFields(), address: "Via X 1, Torino", location: null },
+    };
+    expect(placeQueryFromDraft(draft)).toEqual({ address: "Via X 1, Torino", location: null });
+    expect(placeQueryFromDraft(null)).toEqual({ address: null, location: null });
   });
 });

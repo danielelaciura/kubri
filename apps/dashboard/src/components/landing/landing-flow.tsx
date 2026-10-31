@@ -18,6 +18,7 @@ import {
 } from "@/app/(public)/candidati/[slug]/actions";
 import { ContactForm, type ContactSubmission } from "./contact-form";
 import { LandingSteps } from "./landing-steps";
+import { SuccessCheck } from "./success-check";
 import { CvIcon, WhatsAppIcon } from "./landing-icons";
 import { TurnstileWidget } from "./turnstile-widget";
 
@@ -501,7 +502,8 @@ export function LandingFlow(props: LandingFlowProps) {
 
       {step.kind === "done" && (
         <Card>
-          <CardContent className="space-y-2 py-12 text-center">
+          <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
+            <SuccessCheck />
             <p ref={headingRef} tabIndex={-1} className={`text-xl font-medium ${headingClass}`}>{t.doneTitle}</p>
             <p className="text-muted-foreground">{org(t.doneBody)}</p>
           </CardContent>

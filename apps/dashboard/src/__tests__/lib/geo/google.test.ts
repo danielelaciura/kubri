@@ -73,6 +73,33 @@ describe("geocodeAddress", () => {
     await expect(geocodeAddress("Italia")).resolves.toBeNull();
   });
 
+  it("tolerates a result missing address_components, and skips one missing geometry", async () => {
+    const noComponents: Record<string, unknown> = { ...GEOCODE_HIT.results[0] };
+    delete noComponents.address_components;
+    fetchMock.mockResolvedValueOnce(json({ status: "OK", results: [noComponents] }));
+    await expect(geocodeAddress("Via Roma 12 Milano")).resolves.toEqual({
+      placeId: "ChIJgeo",
+      formattedAddress: "Via Roma, 12, 20121 Milano MI, Italia",
+      latitude: 45.47,
+      longitude: 9.19,
+      municipality: null,
+      provinceCode: null,
+    });
+    const noGeometry: Record<string, unknown> = { ...GEOCODE_HIT.results[0] };
+    delete noGeometry.geometry;
+    fetchMock.mockResolvedValueOnce(json({ status: "OK", results: [noGeometry, GEOCODE_HIT.results[0]] }));
+    await expect(geocodeAddress("Via Roma 12 Milano")).resolves.toMatchObject({ municipality: "Milano" });
+    fetchMock.mockResolvedValueOnce(json({ status: "OK", results: [noGeometry] }));
+    await expect(geocodeAddress("Via Roma 12 Milano")).resolves.toBeNull();
+  });
+
+  it("maps a malformed OK body to GoogleMapsUnavailableError", async () => {
+    fetchMock.mockResolvedValueOnce(json({ status: "OK", results: "nope" }));
+    await expect(geocodeAddress("x")).rejects.toBeInstanceOf(GoogleMapsUnavailableError);
+    fetchMock.mockResolvedValueOnce(json(null));
+    await expect(geocodeAddress("x")).rejects.toBeInstanceOf(GoogleMapsUnavailableError);
+  });
+
   it("throws GoogleMapsUnavailableError on missing key, HTTP or API errors and network failures", async () => {
     vi.stubEnv("GOOGLE_MAPS_API_KEY", "");
     await expect(geocodeAddress("x")).rejects.toBeInstanceOf(GoogleMapsUnavailableError);
@@ -125,6 +152,15 @@ describe("autocompletePlaces", () => {
       input: "via roma", includedRegionCodes: ["it"], regionCode: "it", languageCode: "it", sessionToken: "tok",
     });
     expect((init.headers as Record<string, string>)["X-Goog-Api-Key"]).toBe("k");
+  });
+
+  it("skips malformed suggestions instead of throwing", async () => {
+    fetchMock.mockResolvedValueOnce(json({
+      suggestions: [null, { placePrediction: { placeId: 7, text: null } }, { placePrediction: { placeId: "p1", text: { text: "Roma" } } }],
+    }));
+    await expect(autocompletePlaces("roma")).resolves.toEqual([{ placeId: "p1", label: "Roma" }]);
+    fetchMock.mockResolvedValueOnce(json({ suggestions: "nope" }));
+    await expect(autocompletePlaces("roma")).resolves.toEqual([]);
   });
 
   it("throws GoogleMapsUnavailableError on HTTP errors", async () => {
@@ -205,5 +241,7 @@ describe("getPlaceDetails", () => {
     await expect(getPlaceDetails("p1")).rejects.toBeInstanceOf(GoogleMapsUnavailableError);
     fetchMock.mockResolvedValueOnce(json({ id: "p1" }));
     await expect(getPlaceDetails("p1")).rejects.toBeInstanceOf(GooglePlaceNotFoundError);
+    fetchMock.mockResolvedValueOnce(json({ ...DETAILS, addressComponents: [null, { types: "x" }] }));
+    await expect(getPlaceDetails("p1")).resolves.toMatchObject({ municipality: null, provinceCode: null });
   });
 });

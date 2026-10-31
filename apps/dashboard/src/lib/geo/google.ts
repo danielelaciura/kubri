@@ -88,12 +88,47 @@ function adminFrom(components: Component[]): Pick<GooglePlace, "municipality" | 
   };
 }
 
+/** Raw address components → our shape; anything malformed is dropped, never thrown. */
+function componentsFrom(raw: unknown, longKey: string, shortKey: string): Component[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.flatMap((c: unknown) => {
+    if (!c || typeof c !== "object") return [];
+    const o = c as Record<string, unknown>;
+    const types = Array.isArray(o.types) ? o.types.filter((t): t is string => typeof t === "string") : [];
+    const long = typeof o[longKey] === "string" ? (o[longKey] as string) : "";
+    const short = typeof o[shortKey] === "string" ? (o[shortKey] as string) : "";
+    return [{ long, short, types }];
+  });
+}
+
+/** Partial on purpose: Google bodies are untrusted, every field is checked before use. */
 interface GeocodeResult {
-  place_id: string;
-  formatted_address: string;
-  types: string[];
-  geometry: { location: { lat: number; lng: number } };
-  address_components: { long_name: string; short_name: string; types: string[] }[];
+  place_id?: unknown;
+  formatted_address?: unknown;
+  types?: unknown;
+  geometry?: { location?: { lat?: unknown; lng?: unknown } } | null;
+  address_components?: unknown;
+}
+
+function geocodePlace(r: GeocodeResult | null | undefined): GooglePlace | null {
+  if (!r || typeof r !== "object") return null;
+  const types = Array.isArray(r.types) ? r.types : [];
+  if (!types.some((t) => typeof t === "string" && PRECISE_TYPES.has(t))) return null;
+  const lat = r.geometry?.location?.lat;
+  const lng = r.geometry?.location?.lng;
+  if (
+    typeof r.place_id !== "string" || typeof r.formatted_address !== "string" ||
+    typeof lat !== "number" || typeof lng !== "number"
+  ) {
+    return null;
+  }
+  return {
+    placeId: r.place_id,
+    formattedAddress: r.formatted_address,
+    latitude: lat,
+    longitude: lng,
+    ...adminFrom(componentsFrom(r.address_components, "long_name", "short_name")),
+  };
 }
 
 /** Best precise match in Italy, or null (no result / too generic). */
@@ -103,18 +138,17 @@ export async function geocodeAddress(text: string): Promise<GooglePlace | null> 
   });
   const res = await call(`${GEOCODE_URL}?${params.toString()}`);
   if (!res.ok) throw new GoogleMapsUnavailableError(`geocode HTTP ${res.status}`);
-  const body = await readJson<{ status?: string; results?: GeocodeResult[] }>(res);
-  if (body.status === "ZERO_RESULTS") return null;
-  if (body.status !== "OK") throw new GoogleMapsUnavailableError(`geocode status ${body.status ?? "?"}`);
-  const hit = body.results?.find((r) => r.types.some((t) => PRECISE_TYPES.has(t)));
-  if (!hit) return null;
-  return {
-    placeId: hit.place_id,
-    formattedAddress: hit.formatted_address,
-    latitude: hit.geometry.location.lat,
-    longitude: hit.geometry.location.lng,
-    ...adminFrom(hit.address_components.map((c) => ({ long: c.long_name, short: c.short_name, types: c.types }))),
-  };
+  const body = await readJson<{ status?: unknown; results?: unknown } | null>(res);
+  const status = typeof body?.status === "string" ? body.status : "?";
+  if (status === "ZERO_RESULTS") return null;
+  if (status !== "OK") throw new GoogleMapsUnavailableError(`geocode status ${status}`);
+  if (!Array.isArray(body?.results)) throw new GoogleMapsUnavailableError("geocode body shape");
+  // Malformed results are skipped; the first usable precise result wins.
+  for (const r of body.results as (GeocodeResult | null)[]) {
+    const place = geocodePlace(r);
+    if (place) return place;
+  }
+  return null;
 }
 
 /** Places Autocomplete (New), restricted to Italy. */
@@ -135,13 +169,16 @@ export async function autocompletePlaces(input: string, sessionToken?: string): 
     }),
   });
   if (!res.ok) throw new GoogleMapsUnavailableError(`autocomplete HTTP ${res.status}`);
-  const body = await readJson<{
-    suggestions?: { placePrediction?: { placeId?: string; text?: { text?: string } } }[];
-  }>(res);
-  return (body.suggestions ?? [])
+  const body = await readJson<{ suggestions?: unknown } | null>(res);
+  const suggestions = Array.isArray(body?.suggestions) ? body.suggestions : [];
+  return (suggestions as ({ placePrediction?: { placeId?: unknown; text?: { text?: unknown } | null } | null } | null)[])
     .flatMap((s) => {
-      const p = s.placePrediction;
-      return p?.placeId && p.text?.text ? [{ placeId: p.placeId, label: p.text.text }] : [];
+      const p = s?.placePrediction;
+      const placeId = p?.placeId;
+      const label = p?.text?.text;
+      return typeof placeId === "string" && placeId && typeof label === "string" && label
+        ? [{ placeId, label }]
+        : [];
     })
     .slice(0, MAX_SUGGESTIONS);
 }
@@ -162,21 +199,26 @@ export async function getPlaceDetails(placeId: string, sessionToken?: string): P
   if (res.status === 400 || res.status === 404) throw new GooglePlaceNotFoundError();
   if (!res.ok) throw new GoogleMapsUnavailableError(`details HTTP ${res.status}`);
   const body = await readJson<{
-    id?: string;
-    formattedAddress?: string;
-    location?: { latitude?: number; longitude?: number };
-    addressComponents?: { longText: string; shortText: string; types: string[] }[];
-  }>(res);
-  const lat = body.location?.latitude;
-  const lng = body.location?.longitude;
-  if (!body.id || !body.formattedAddress || typeof lat !== "number" || typeof lng !== "number") {
+    id?: unknown;
+    formattedAddress?: unknown;
+    location?: { latitude?: unknown; longitude?: unknown } | null;
+    addressComponents?: unknown;
+  } | null>(res);
+  const id = body?.id;
+  const formattedAddress = body?.formattedAddress;
+  const lat = body?.location?.latitude;
+  const lng = body?.location?.longitude;
+  if (
+    typeof id !== "string" || !id || typeof formattedAddress !== "string" || !formattedAddress ||
+    typeof lat !== "number" || typeof lng !== "number"
+  ) {
     throw new GooglePlaceNotFoundError();
   }
   return {
-    placeId: body.id,
-    formattedAddress: body.formattedAddress,
+    placeId: id,
+    formattedAddress,
     latitude: lat,
     longitude: lng,
-    ...adminFrom((body.addressComponents ?? []).map((c) => ({ long: c.longText, short: c.shortText, types: c.types }))),
+    ...adminFrom(componentsFrom(body?.addressComponents, "longText", "shortText")),
   };
 }

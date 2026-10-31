@@ -326,6 +326,8 @@ export interface ConfirmImportInput {
   consentToShare?: boolean;
   /** Merged into the candidate's rawPayload (landing id, consent record). */
   rawPayloadExtra?: Record<string, unknown>;
+  /** Resolved coordinates for a new candidate (public landing place picker). */
+  coords?: { latitude: number; longitude: number };
   /**
    * Public landing: when a candidate of the import's pool has the same
    * normalized phone, attach the CV to it instead of creating a new row. The
@@ -473,6 +475,7 @@ export async function confirmImport(input: ConfirmImportInput): Promise<ConfirmI
         fields: input.fields,
         channel,
         consentToShare: input.consentToShare,
+        coords: input.coords,
         rawPayload: {
           mode: channel === "landing_cv" ? "landing_cv" : "cv",
           importId: imp.id,

@@ -81,6 +81,19 @@ describe("buildDashboardCandidateInput", () => {
     });
     expect(input.sharedWithGlobal).toBe(true);
   });
+
+  it("uses explicit coordinates instead of offline geocoding", () => {
+    const row = buildDashboardCandidateInput({
+      pool: POOL,
+      fields: FIELDS,
+      channel: "landing_cv",
+      rawPayload: {},
+      coords: { latitude: 45.1, longitude: 9.2 },
+    });
+    expect(row.latitude).toBe(45.1);
+    expect(row.longitude).toBe(9.2);
+    expect(geocode).not.toHaveBeenCalled();
+  });
 });
 
 describe("createCandidateManually", () => {

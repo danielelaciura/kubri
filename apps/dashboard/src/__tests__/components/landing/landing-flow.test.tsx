@@ -16,6 +16,7 @@ vi.mock("@/app/(public)/candidati/[slug]/actions", () => ({
   registerLandingUploadAction: vi.fn(),
   runLandingExtractionAction: vi.fn(),
   confirmLandingImportAction: vi.fn(),
+  searchLandingPlacesAction: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase/client", () => ({
@@ -44,7 +45,10 @@ vi.mock("@/components/landing/turnstile-widget", () => ({
 }));
 
 const t = getDictionary("it").landing;
-const PREFILL = { firstName: "Ahmed", lastName: "", phone: "333 1234567", email: "" };
+const PREFILL = {
+  firstName: "Ahmed", lastName: "", phone: "333 1234567", email: "",
+  place: { placeId: "istat:MI:milano", label: "Milano (MI)" },
+};
 
 function setup(siteKey = "") {
   const view = render(
@@ -237,5 +241,18 @@ describe("LandingFlow", () => {
     expect(runLandingExtractionAction).toHaveBeenCalledTimes(16);
     expect(screen.getByRole("alert")).toHaveTextContent(t.errors.generic);
     expect(screen.getByRole("button", { name: t.retry })).toBeInTheDocument();
+  });
+
+  it("shows the place error and clears the selection on PLACE_INVALID", async () => {
+    vi.mocked(confirmLandingImportAction).mockResolvedValue({ ok: false, error: "PLACE_INVALID" });
+    const { container } = setup();
+    chooseFile(container);
+    const lastName = await screen.findByLabelText(t.lastName);
+    fireEvent.change(lastName, { target: { value: "Benali" } });
+    fireEvent.click(screen.getByRole("checkbox"));
+    fireEvent.click(screen.getByRole("button", { name: t.submit }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(t.errors.placeInvalid);
+    expect(screen.getByRole("combobox")).toHaveValue("");
+    expect(screen.getByLabelText(t.lastName)).toHaveValue("Benali");
   });
 });

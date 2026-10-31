@@ -21,6 +21,7 @@ sequenza di go-live e la tabella di troubleshooting.
 | **Cloudflare Turnstile** | anti-bot prima di ogni upload | in prod **tutti gli upload vengono rifiutati** | gratuito |
 | **Upstash Redis** | rate limit e tetto di spesa giornaliero | in prod **tutti gli upload vengono rifiutati** (fail-closed) | piano free sufficiente |
 | **Mistral** | OCR (scansioni/foto) + estrazione dati dal CV | estrazione sempre in errore (`LLM_ERROR`) | ~0,1–1 cent per CV |
+| **Google Maps Platform** | campo "Dove abiti?": precompilazione dal CV, suggerimenti e coordinate dell'indirizzo | suggerimenti solo per comune ("Comune (PROV)", dati ISTAT), coordinate al centro del comune; l'upload funziona | probabilmente €0 entro l'uso gratuito mensile |
 | **Vercel** | hosting, variabili d'ambiente, cron notturno di pulizia | — | già in uso |
 | **WhatsApp (numero Kubri)** | pulsante "Fai il colloquio su WhatsApp" | il pulsante WhatsApp non compare (l'upload funziona) | — |
 
@@ -161,6 +162,9 @@ deploy di codice impostando queste variabili (interi; vuoto o non valido = defau
 | `LANDING_LIMIT_PAGE_EXTRACTIONS_DAY` | 100 | estrazioni (a pagamento) per landing al giorno |
 | `LANDING_LIMIT_EXTRACTIONS_DAY` | 300 | estrazioni totali al giorno, tutte le landing — è il tetto di spesa |
 | `LANDING_LIMIT_IMPORT_DAY` | 2 | tentativi di estrazione per singolo CV |
+| `LANDING_LIMIT_PLACE_SEARCH_IMPORT` | 40 | ricerche indirizzo per singolo CV al giorno |
+| `LANDING_LIMIT_PLACE_SEARCH_IP_HOUR` | 120 | ricerche indirizzo per IP all'ora |
+| `LANDING_LIMIT_PLACE_RESOLVE_IMPORT` | 10 | risoluzioni dell'indirizzo scelto (Place Details) per singolo CV al giorno, cioè tentativi di conferma |
 
 Per eventi con molti candidati dietro lo stesso Wi-Fi (fiere, sportelli) alzate
 `LANDING_LIMIT_IP_HOUR` / `LANDING_LIMIT_IP_DAY` per la durata dell'evento.
@@ -193,6 +197,59 @@ Per eventi con molti candidati dietro lo stesso Wi-Fi (fiere, sportelli) alzate
 
 **Verifica.** Upload di una foto di un CV dalla landing: arriva al passo "Controlla i
 tuoi dati" con nome e telefono precompilati.
+
+---
+
+## 5b. Google Maps Platform — indirizzo del candidato
+
+**Cosa serve.** `GOOGLE_MAPS_API_KEY` (solo lato server, mai `NEXT_PUBLIC_`). La
+landing la usa per il campo obbligatorio "Dove abiti?":
+
+- **Geocoding API**: una chiamata a fine estrazione per precompilare il campo con
+  l'indirizzo del CV;
+- **Places API (New)**: Autocomplete mentre il candidato scrive, poi Place Details
+  alla conferma per ricavare indirizzo e coordinate dal luogo scelto.
+
+Tutte le chiamate passano dal nostro server, sempre in italiano e limitate all'Italia.
+A Google arriva solo il testo dell'indirizzo, mai nome, telefono, email o CV.
+
+**Cosa succede se manca.** La landing non si blocca: i suggerimenti diventano solo
+comuni ISTAT ("Comune (PROV)") e il candidato viene salvato con le coordinate del
+centro del comune. Lo stesso fallback scatta se Google non risponde, va in timeout,
+restituisce una risposta malformata o la quota è esaurita. Se Google non risponde proprio
+al momento della conferma, un indirizzo proveniente da Google non può essere risolto: il
+candidato vede "Non riusciamo a trovare questo indirizzo…" e sceglie di nuovo dall'elenco
+(che a quel punto propone i comuni ISTAT).
+
+**Passi:**
+
+1. console.cloud.google.com: create o scegliete un progetto con la **fatturazione
+   attiva** (senza billing le API rispondono con errore).
+2. APIs & Services → Library: abilitate **Geocoding API** e **Places API (New)**.
+3. APIs & Services → Credentials → Create credentials → API key. In *API
+   restrictions* consentite **solo** quelle due API. Le restrizioni per IP non sono
+   possibili su Vercel (IP di uscita dinamici): per questo la chiave resta solo lato
+   server.
+4. Quote e budget: impostate una quota giornaliera per ciascuna API (es. 1.000
+   richieste/giorno) e un **avviso di budget** sul progetto (Billing → Budgets &
+   alerts).
+5. Vercel: inserite la chiave in **Production** come `GOOGLE_MAPS_API_KEY`. In
+   **Preview** lasciatela vuota per provare il fallback ISTAT, oppure usate una chiave
+   separata.
+6. Controllate nella console l'uso gratuito mensile attuale per **Place Details
+   Essentials** e **Geocoding**: le soglie riportate dalle varie fonti non coincidono.
+7. **Privacy:** l'informativa di ogni landing deve citare Google tra i destinatari
+   dell'indirizzo (per i candidati del chatbot lo è già, tramite Make).
+8. **Decisione nota:** i termini di Google consentono di conservare lat/lng ottenuti
+   dal geocoding per 30 giorni; Kubri li conserva in modo permanente per scelta, come
+   già avviene con Make.
+
+**Limiti.** Ricerche e conferme hanno rate limit dedicati (`LANDING_LIMIT_PLACE_*`,
+§4); la ricerca è possibile solo con un CV già caricato ed estratto nella stessa
+sessione del browser.
+
+**Verifica.** Caricate un CV con un indirizzo: al passo "Controlla i tuoi dati" il
+campo "Dove abiti?" mostra l'indirizzo formattato da Google (non "Comune (PROV)").
 
 ---
 
@@ -229,6 +286,7 @@ openssl rand -hex 24
 | `LANDING_IP_SALT` | ✅ | ✅ (diverso) | §6 |
 | `UPSTASH_REDIS_REST_URL` / `_TOKEN` | ✅ | ✅ (può essere lo stesso DB) | §4 |
 | `MISTRAL_API_KEY` | ✅ | ✅ | §5, probabilmente già presente |
+| `GOOGLE_MAPS_API_KEY` | ✅ | facoltativa (vuota = fallback ISTAT, o chiave separata) | §5b, solo lato server |
 | `NEXT_PUBLIC_APP_URL` | dominio prod, es. `https://app.kubri.it` | facoltativo | usato per link e **QR stampabili**: se manca, il QR prende il dominio da cui l'admin apre la pagina (anche un dominio di preview) |
 | `KUBRI_WHATSAPP_NUMBER` | es. `393331234567` (senza `+`) | idem | già usata per i QR dei pool |
 | `KUBRI_WHATSAPP_MESSAGE_TEMPLATE` | testo del messaggio | idem | già usata |
@@ -302,6 +360,10 @@ Linux durante la build Vercel. Se la prima build di preview segnala errori su `s
 - [ ] Documento che non è un CV → "Non riusciamo a leggere un curriculum in questo
       file".
 - [ ] Landing disattivata → pagina "Pagina non disponibile".
+- [ ] CV con un indirizzo → "Dove abiti?" precompilato con l'indirizzo di Google.
+- [ ] CV senza indirizzo → campo vuoto; scelta di una città dai suggerimenti →
+      candidato salvato con le coordinate.
+- [ ] Dettaglio del candidato in dashboard → l'indirizzo è visibile.
 
 ---
 
@@ -317,6 +379,7 @@ Linux durante la build Vercel. Se la prima build di preview segnala errori su `s
 | Molti "Troppi tentativi" durante un evento | limiti per IP troppo bassi per un Wi-Fi condiviso | §4, alzare `LANDING_LIMIT_IP_*` |
 | QR punta a un dominio `*.vercel.app` | `NEXT_PUBLIC_APP_URL` non impostata | §7 |
 | Pulsante WhatsApp assente | `KUBRI_WHATSAPP_NUMBER` o `_MESSAGE_TEMPLATE` vuote | §7 |
+| Suggerimenti di "Dove abiti?" solo nel formato "Comune (PROV)" | `GOOGLE_MAPS_API_KEY` mancante o non valida, oppure quota esaurita: il codice è passato al fallback ISTAT | log Vercel: `[landing] place search fell back` (anche `prefill` / `resolve`); §5b |
 | La landing restituisce 404 | landing disattivata, pool sganciato dall'azienda o pool globale | Admin → card "Landing candidati" |
 
 ---
@@ -325,4 +388,5 @@ Riferimenti esterni:
 [Turnstile – chiavi di test](https://developers.cloudflare.com/turnstile/troubleshooting/testing/) ·
 [Upstash su Vercel Marketplace](https://vercel.com/marketplace/upstash/upstash-kv) ·
 [Mistral – uso dei dati per l'addestramento](https://help.mistral.ai/en/articles/347617-do-you-use-my-user-data-to-train-your-artificial-intelligence-models) ·
-[Mistral – Data Processing Addendum](https://legal.mistral.ai/terms/data-processing-addendum)
+[Mistral – Data Processing Addendum](https://legal.mistral.ai/terms/data-processing-addendum) ·
+[Google Maps Platform – console](https://console.cloud.google.com/google/maps-apis)

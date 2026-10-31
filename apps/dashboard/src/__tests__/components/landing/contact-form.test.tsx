@@ -3,16 +3,20 @@ import "@testing-library/jest-dom/vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { I18nProvider } from "@/lib/i18n/provider";
 import { ContactForm } from "@/components/landing/contact-form";
+import type { LandingPrefill } from "@/lib/landing/contact";
 
-const PREFILL = { firstName: "Ahmed", lastName: "", phone: "333 1234567", email: "" };
+vi.mock("@/app/(public)/candidati/[slug]/actions", () => ({ searchLandingPlacesAction: vi.fn() }));
 
-function setup(showShare = true, busy = false) {
+const PLACE = { placeId: "istat:MI:milano", label: "Milano (MI)" };
+const PREFILL: LandingPrefill = { firstName: "Ahmed", lastName: "", phone: "333 1234567", email: "", place: PLACE };
+
+function setup(showShare = true, busy = false, prefill = PREFILL) {
   const onSubmit = vi.fn();
   render(
     <I18nProvider locale="it">
       <ContactForm
-        orgName="Coop Sole" prefill={PREFILL} privacyPolicyUrl="https://x.it/p"
-        showShare={showShare} busy={busy} onSubmit={onSubmit}
+        slug="coop-sole" orgName="Coop Sole" prefill={prefill} privacyPolicyUrl="https://x.it/p"
+        showShare={showShare} busy={busy} placeResetKey={0} onSubmit={onSubmit}
       />
     </I18nProvider>,
   );
@@ -41,7 +45,7 @@ describe("ContactForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "Invia candidatura" }));
     expect(onSubmit).toHaveBeenCalledWith({
       firstName: "Ahmed", lastName: "Benali", phone: "333 1234567", email: "",
-      privacyAccepted: true, shareWithGlobal: false,
+      privacyAccepted: true, shareWithGlobal: false, placeId: "istat:MI:milano", placeSessionToken: undefined,
     });
   });
 
@@ -88,5 +92,19 @@ describe("ContactForm", () => {
     fireEvent.click(screen.getByLabelText(/altre organizzazioni/));
     fireEvent.click(screen.getByRole("button", { name: "Invia candidatura" }));
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ shareWithGlobal: true }));
+  });
+
+  it("shows the place prefill", () => {
+    setup();
+    expect(screen.getByRole("combobox", { name: "Dove abiti?" })).toHaveValue("Milano (MI)");
+  });
+
+  it("blocks submit without a place", () => {
+    const onSubmit = setup(true, false, { ...PREFILL, lastName: "Benali", place: null });
+    fireEvent.click(screen.getByLabelText(/Ho letto l'informativa/));
+    fireEvent.click(screen.getByRole("button", { name: "Invia candidatura" }));
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.getByText("Scegli un indirizzo dalla lista")).toBeInTheDocument();
+    expect(screen.getByRole("combobox")).toHaveFocus();
   });
 });

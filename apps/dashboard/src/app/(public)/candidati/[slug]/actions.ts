@@ -9,10 +9,12 @@ import {
   registerLandingUpload,
   requestLandingUpload,
   runLandingExtraction,
+  searchLandingPlaces,
   type LandingResult,
   type RequestContext,
 } from "@/lib/landing/flow";
-import type { ContactPrefill } from "@/lib/landing/contact";
+import type { LandingPrefill } from "@/lib/landing/contact";
+import type { PlaceSuggestion } from "@/lib/geo/place-types";
 import {
   cookieSecretReady,
   hashIp,
@@ -104,12 +106,25 @@ export async function registerLandingUploadAction(
   return registerLandingUpload(landing, importId, typeof fileName === "string" ? fileName : "");
 }
 
-export async function runLandingExtractionAction(slug: string): Promise<LandingResult<ContactPrefill>> {
+export async function runLandingExtractionAction(slug: string): Promise<LandingResult<LandingPrefill>> {
   const landing = await landingFor(slug);
   if (isFail(landing)) return landing;
   const importId = await boundImportId(landing);
   if (!importId) return { ok: false, error: "SESSION_EXPIRED" };
   return runLandingExtraction(landing, importId);
+}
+
+export async function searchLandingPlacesAction(
+  slug: string,
+  input: unknown,
+): Promise<LandingResult<PlaceSuggestion[]>> {
+  const landing = await landingFor(slug);
+  if (isFail(landing)) return landing;
+  const importId = await boundImportId(landing);
+  if (!importId) return { ok: false, error: "SESSION_EXPIRED" };
+  const ctx = await requestContext();
+  if (!ctx) return { ok: false, error: "UNAVAILABLE" };
+  return searchLandingPlaces(landing, importId, input, ctx);
 }
 
 export async function confirmLandingImportAction(

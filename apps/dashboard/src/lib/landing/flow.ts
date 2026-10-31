@@ -20,7 +20,16 @@ import {
 import { passesCvQualityGate } from "@/lib/documents/quality";
 import { consumeRateLimits, RateLimitUnavailableError, type RateLimitRule } from "@/lib/rate-limit";
 import { verifyTurnstile } from "./turnstile";
-import { contactFromDraft, landingContactSchema, mergeContactIntoDraft, type ContactPrefill } from "./contact";
+import {
+  contactFromDraft,
+  landingContactSchema,
+  mergeContactIntoDraft,
+  placeQueryFromDraft,
+  type LandingPrefill,
+} from "./contact";
+import { MIN_PLACE_QUERY, normalizeQuery, prefillPlace, resolvePlace, searchPlaces } from "./place";
+import { isIstatPlaceId } from "@/lib/geo/istat-places";
+import type { PlaceSuggestion } from "@/lib/geo/place-types";
 import type { ActiveLanding } from "./service";
 
 export const PUBLIC_MAX_DOCUMENT_BYTES = 5 * 1024 * 1024;
@@ -57,6 +66,11 @@ function getLimits() {
     extractionsDay: intFromEnv("LANDING_LIMIT_EXTRACTIONS_DAY", 300),
     /** One retry per import. */
     perImportDay: intFromEnv("LANDING_LIMIT_IMPORT_DAY", 2),
+    /** "Dove abiti?" autocomplete: per import and per IP. */
+    placeSearchPerImportDay: intFromEnv("LANDING_LIMIT_PLACE_SEARCH_IMPORT", 40),
+    placeSearchPerIpHour: intFromEnv("LANDING_LIMIT_PLACE_SEARCH_IP_HOUR", 120),
+    /** Place Details calls at confirm (each confirm attempt). */
+    placeResolvePerImportDay: intFromEnv("LANDING_LIMIT_PLACE_RESOLVE_IMPORT", 10),
   };
 }
 
@@ -73,7 +87,9 @@ export type LandingErrorCode =
   /** Another request is extracting this import right now: poll again. */
   | "IN_PROGRESS"
   | "VALIDATION"
-  | "NOT_FOUND";
+  | "NOT_FOUND"
+  /** The chosen place id could not be resolved: pick the address again. */
+  | "PLACE_INVALID";
 
 export type LandingResult<T> = { ok: true; data: T } | { ok: false; error: LandingErrorCode };
 
@@ -177,6 +193,10 @@ export async function registerLandingUpload(
   }
 }
 
+async function prefillFor(importId: string, draft: unknown): Promise<LandingPrefill> {
+  return { ...contactFromDraft(draft), place: await prefillPlace(importId, placeQueryFromDraft(draft)) };
+}
+
 /**
  * Step 3: run the paid extraction under the global budget and return the
  * contact prefill. Re-entrant: a READY import returns its prefill for free.
@@ -185,7 +205,7 @@ export async function runLandingExtraction(
   landing: ActiveLanding,
   importId: string,
   now = new Date(),
-): Promise<LandingResult<ContactPrefill>> {
+): Promise<LandingResult<LandingPrefill>> {
   try {
     return await extractUnderBudget(landing, importId, now);
   } catch (e) {
@@ -197,10 +217,10 @@ async function extractUnderBudget(
   landing: ActiveLanding,
   importId: string,
   now: Date,
-): Promise<LandingResult<ContactPrefill>> {
+): Promise<LandingResult<LandingPrefill>> {
   const imp = await getPublicImport(importId, landing.pool.id);
   if (!imp) return fail("SESSION_EXPIRED");
-  if (imp.status === "READY") return { ok: true, data: contactFromDraft(imp.draft) };
+  if (imp.status === "READY") return { ok: true, data: await prefillFor(imp.id, imp.draft) };
   if (imp.status === "COMPLETED" || imp.status === "DISCARDED") return fail("SESSION_EXPIRED");
   // A final failure is re-reported for free; only retryable ones re-run.
   if (imp.status === "FAILED") {
@@ -229,10 +249,44 @@ async function extractUnderBudget(
   });
 
   const after = await getPublicImport(imp.id, landing.pool.id);
-  if (after?.status === "READY") return { ok: true, data: contactFromDraft(after.draft) };
+  if (after?.status === "READY") return { ok: true, data: await prefillFor(after.id, after.draft) };
   if (after?.status === "FAILED" && isImportErrorCode(after.errorCode)) return fail(after.errorCode);
   if (after?.status === "EXTRACTING") return fail("IN_PROGRESS");
   return fail("INTERNAL_ERROR");
+}
+
+const placeSearchSchema = z.object({
+  query: z.string().max(200),
+  sessionToken: z.uuid().optional(),
+});
+
+/**
+ * "Dove abiti?" autocomplete. Only for a READY import bound to this browser,
+ * so the Google key can't be used without an upload that passed Turnstile.
+ */
+export async function searchLandingPlaces(
+  landing: ActiveLanding,
+  importId: string,
+  input: unknown,
+  ctx: RequestContext,
+): Promise<LandingResult<PlaceSuggestion[]>> {
+  const parsed = placeSearchSchema.safeParse(input);
+  if (!parsed.success) return fail("VALIDATION");
+  const query = normalizeQuery(parsed.data.query);
+  if (query.length < MIN_PLACE_QUERY) return { ok: true, data: [] };
+  try {
+    const imp = await getPublicImport(importId, landing.pool.id);
+    if (!imp || imp.status !== "READY") return fail("SESSION_EXPIRED");
+    const LIMITS = getLimits();
+    const allowed = await consumeRateLimits([
+      { key: `landing:import:${imp.id}:places:d`, limit: LIMITS.placeSearchPerImportDay, windowSec: DAY },
+      { key: `landing:ip:${ctx.ipHash}:places:h`, limit: LIMITS.placeSearchPerIpHour, windowSec: HOUR },
+    ]);
+    if (!allowed) return fail("RATE_LIMITED");
+    return { ok: true, data: await searchPlaces(query, parsed.data.sessionToken) };
+  } catch (e) {
+    return toLandingError(e, "place search");
+  }
 }
 
 /** Step 4: the candidate's confirmed contact + consent → candidate (or CV attached). */
@@ -253,6 +307,18 @@ export async function confirmLandingImport(
     if (imp.status === "COMPLETED") return { ok: true, data: null };
     if (imp.status !== "READY") return fail("NOT_FOUND");
 
+    // ISTAT resolution is local and free: only Google Place Details is budgeted.
+    if (!isIstatPlaceId(contact.placeId)) {
+      const allowed = await consumeRateLimits([
+        { key: `landing:import:${imp.id}:place-resolve:d`, limit: getLimits().placeResolvePerImportDay, windowSec: DAY },
+      ]);
+      if (!allowed) return fail("RATE_LIMITED");
+    }
+    // Resolved here from the id only: the browser never supplies coordinates.
+    const place = await resolvePlace(contact.placeId, contact.placeSessionToken);
+    if (!place) return fail("PLACE_INVALID");
+    const placeRecord = { placeId: place.placeId, source: place.source, resolvedAt: now.toISOString() };
+
     // The sharing checkbox only means something for consent-driven pools.
     const shareWithGlobal = landing.pool.globalSharing === "WEBHOOK" && contact.shareWithGlobal;
     const consent = {
@@ -268,18 +334,19 @@ export async function confirmLandingImport(
         organizationId: landing.organization.id,
         poolId: landing.pool.id,
         userId: null,
-        fields: mergeContactIntoDraft(imp.draft, contact),
+        fields: mergeContactIntoDraft(imp.draft, contact, place),
+        coords: { latitude: place.latitude, longitude: place.longitude },
         channel: "landing_cv",
         consentToShare: shareWithGlobal,
         attachToExistingByPhone: true,
-        rawPayloadExtra: { landingPageId: landing.id, consent },
+        rawPayloadExtra: { landingPageId: landing.id, consent, place: placeRecord },
         // Written inside the confirm transaction: the consent proof exists iff
         // the candidate/document does. On attach the existing candidate's
         // rawPayload is untouched, so this row is the only consent record.
         audit: {
           action: "candidate_import.public_confirm",
           organizationId: landing.organization.id,
-          metadata: { ipHash: ctx.ipHash, consent },
+          metadata: { ipHash: ctx.ipHash, consent, place: placeRecord },
         },
       });
     } catch (e) {

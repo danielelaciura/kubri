@@ -11,6 +11,7 @@ interface TurnstileApi {
       callback: (token: string) => void;
       "expired-callback": () => void;
       "error-callback": () => void;
+      "before-interactive-callback": () => void;
       appearance: "interaction-only";
       language: string;
     },
@@ -37,25 +38,31 @@ const scriptProps = {
  * after each upload attempt. Without a site key (local dev) it renders nothing
  * and the server accepts the empty token outside production. `onError` fires
  * when the script cannot load or the widget fails (e.g. blocked by the network).
+ * `onInteractive` fires when Cloudflare asks the visitor to interact (the
+ * "Verify you are human" checkbox): the challenge is working, just waiting.
  */
 export function TurnstileWidget({
   siteKey,
   locale,
   onToken,
   onError,
+  onInteractive,
 }: {
   siteKey: string;
   locale: string;
   onToken: (token: string) => void;
   onError?: () => void;
+  onInteractive?: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   // Latest callback without re-rendering the widget when the parent re-renders.
   const cb = useRef(onToken);
   const errCb = useRef(onError);
+  const interactiveCb = useRef(onInteractive);
   useEffect(() => {
     cb.current = onToken;
     errCb.current = onError;
+    interactiveCb.current = onInteractive;
   });
   const [scriptReady, setScriptReady] = useState(
     () => typeof window !== "undefined" && window.turnstile !== undefined,
@@ -71,6 +78,7 @@ export function TurnstileWidget({
         cb.current("");
         errCb.current?.();
       },
+      "before-interactive-callback": () => interactiveCb.current?.(),
       appearance: "interaction-only",
       language: locale,
     });

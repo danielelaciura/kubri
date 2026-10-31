@@ -99,7 +99,21 @@ export function LandingFlow(props: LandingFlowProps) {
   const mounted = useRef(false);
   const firstRender = useRef(true);
   const [captchaFailed, setCaptchaFailed] = useState(false);
-  const onToken = useCallback((token: string) => setTurnstileToken(token), []);
+  const captchaFailedRef = useRef(false);
+  useEffect(() => {
+    captchaFailedRef.current = captchaFailed;
+  }, [captchaFailed]);
+  // Cloudflare is showing its checkbox: the visitor may take a while, no timeout.
+  const [captchaInteractive, setCaptchaInteractive] = useState(false);
+  const onToken = useCallback((token: string) => {
+    setTurnstileToken(token);
+    // A late token (after the timeout fired) means Turnstile works after all.
+    if (token && captchaFailedRef.current) {
+      setCaptchaFailed(false);
+      setError((current) => (current === "busy" ? null : current));
+    }
+  }, []);
+  const onCaptchaInteractive = useCallback(() => setCaptchaInteractive(true), []);
   // Turnstile unusable: show "busy" (with the WhatsApp fallback); upload stays disabled.
   const onCaptchaError = useCallback(() => {
     setCaptchaFailed(true);
@@ -122,12 +136,18 @@ export function LandingFlow(props: LandingFlowProps) {
     if (step.kind === "upload") setCaptchaFailed(false);
   }, [step.kind]);
 
-  // No token in time on the upload step: treat it like a Turnstile failure.
+  // Each new widget (fresh mount after an upload attempt) starts non-interactive.
   useEffect(() => {
-    if (step.kind !== "upload" || !waitingForCaptcha || captchaFailed) return;
+    setCaptchaInteractive(false);
+  }, [turnstileKey]);
+
+  // No token in time on the upload step: treat it like a Turnstile failure —
+  // unless Cloudflare is waiting for the visitor to tick its checkbox.
+  useEffect(() => {
+    if (step.kind !== "upload" || !waitingForCaptcha || captchaFailed || captchaInteractive) return;
     const timer = setTimeout(onCaptchaError, CAPTCHA_TIMEOUT_MS);
     return () => clearTimeout(timer);
-  }, [step.kind, waitingForCaptcha, captchaFailed, onCaptchaError]);
+  }, [step.kind, waitingForCaptcha, captchaFailed, captchaInteractive, onCaptchaError]);
 
   // Move focus to the new step's heading, or to the alert when an error shows.
   // Not on first render: don't steal focus on page load.
@@ -323,7 +343,7 @@ export function LandingFlow(props: LandingFlowProps) {
             </div>
             <TurnstileWidget
               key={turnstileKey} siteKey={props.turnstileSiteKey} locale={props.locale} onToken={onToken}
-              onError={onCaptchaError}
+              onError={onCaptchaError} onInteractive={onCaptchaInteractive}
             />
             <Button variant="ghost" onClick={() => { setError(null); setStep({ kind: "choose" }); }}>
               {t.back}

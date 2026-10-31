@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { FileUp, MessageCircle } from "lucide-react";
+import { ArrowLeft, FileUp, MessageCircle } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
@@ -403,14 +403,9 @@ export function LandingFlow(props: LandingFlowProps) {
                   }
                 />
               </div>
-              <div className="flex flex-wrap gap-2">
-                <Button variant="ghost" className="h-11" onClick={() => { setError(null); setStep({ kind: "choose" }); }}>
-                  {t.back}
-                </Button>
-                {captchaFailed && (
-                  <Button variant="outline" className="h-11" onClick={retryCaptcha}>{t.verifyRetry}</Button>
-                )}
-              </div>
+              {captchaFailed && (
+                <Button variant="outline" className="h-11" onClick={retryCaptcha}>{t.verifyRetry}</Button>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -455,11 +450,19 @@ export function LandingFlow(props: LandingFlowProps) {
                 {t.chooseFile}
               </Button>
             </div>
-            <Button variant="ghost" className="h-11" onClick={() => { setError(null); setStep({ kind: "choose" }); }}>
-              {t.back}
-            </Button>
           </CardContent>
         </Card>
+      )}
+
+      {/* Back to the choice, below the step card; only where going back is safe. */}
+      {(step.kind === "verify" || step.kind === "upload") && (
+        <Button
+          variant="ghost" className="-ml-2.5 h-11 gap-2 px-2.5"
+          onClick={() => { setError(null); setStep({ kind: "choose" }); }}
+        >
+          <ArrowLeft className="size-4" aria-hidden="true" />
+          {t.back}
+        </Button>
       )}
 
       {step.kind === "working" && (

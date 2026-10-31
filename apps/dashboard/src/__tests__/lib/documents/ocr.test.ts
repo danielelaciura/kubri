@@ -69,4 +69,11 @@ describe("ocrDocument", () => {
     const imgBody = JSON.parse(fetchMock.mock.calls[1]![1].body);
     expect(imgBody.pages).toBeUndefined();
   });
+
+  it("requests only the first maxPages pages of a PDF", async () => {
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ pages: [{ markdown: "testo" }] })));
+    await ocrDocument(new Uint8Array([1, 2, 3]), "application/pdf", 20000, 3);
+    const body = JSON.parse(fetchMock.mock.calls[0]![1].body as string) as { pages: number[] };
+    expect(body.pages).toEqual([0, 1, 2]);
+  });
 });

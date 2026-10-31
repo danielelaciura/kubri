@@ -6,6 +6,8 @@ import { resolveSharedWithGlobal } from "@/lib/pools/global-sharing";
 import { ingestCandidate } from "./ingest";
 
 export type DashboardChannel = "dashboard_form" | "dashboard_cv";
+/** Every channel that creates candidates from inside the app (not a webhook). */
+export type CandidateCreateChannel = DashboardChannel | "landing_cv";
 
 interface PoolRef {
   id: string;
@@ -14,28 +16,31 @@ interface PoolRef {
 }
 
 /**
- * Map form fields to a Candidate row for a dashboard-created candidate.
- * `externalId` is synthetic ("dashboard:<uuid>") so it never collides with
- * Make keys or assessment phones. No candidate consent is collected, so
- * sharing follows the pool's globalSharing mode with consent = false.
+ * Map form fields to a Candidate row for an in-app created candidate
+ * (operator form/CV, or the public landing). `externalId` is synthetic
+ * ("dashboard:<uuid>" / "landing:<uuid>") so it never collides with Make keys
+ * or assessment phones. Sharing follows the pool's globalSharing mode with the
+ * candidate's own consent — only the public landing collects one.
  */
 export function buildDashboardCandidateInput(args: {
   pool: PoolRef;
   fields: CandidateFields;
-  channel: DashboardChannel;
+  channel: CandidateCreateChannel;
   rawPayload: Prisma.InputJsonValue;
+  consentToShare?: boolean;
 }): Prisma.CandidateUncheckedCreateInput {
   const { pool, fields } = args;
   const coords = geocodeFromAddress(fields.location) ?? geocodeFromAddress(fields.address);
+  const idPrefix = args.channel === "landing_cv" ? "landing" : "dashboard";
 
   return {
     ...fields,
-    externalId: `dashboard:${randomUUID()}`,
+    externalId: `${idPrefix}:${randomUUID()}`,
     poolId: pool.id,
     latitude: coords?.latitude ?? null,
     longitude: coords?.longitude ?? null,
     channel: args.channel,
-    sharedWithGlobal: resolveSharedWithGlobal(pool, false),
+    sharedWithGlobal: resolveSharedWithGlobal(pool, args.consentToShare === true),
     rawPayload: args.rawPayload,
   };
 }

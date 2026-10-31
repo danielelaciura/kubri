@@ -13,6 +13,11 @@ export interface ExtractedText {
   pageCount: number | null;
 }
 
+export interface ExtractTextOptions {
+  /** Cap on pages sent to OCR (public uploads use a lower cap than operators). */
+  maxOcrPages?: number;
+}
+
 /**
  * File bytes → plain text. Digital PDFs and DOCX are parsed locally (fast,
  * free); images and PDFs without a usable text layer go through Mistral OCR.
@@ -21,6 +26,7 @@ export interface ExtractedText {
 export async function extractDocumentText(
   bytes: Uint8Array,
   kind: DocumentKind,
+  opts: ExtractTextOptions = {},
 ): Promise<ExtractedText> {
   switch (kind) {
     case "pdf": {
@@ -46,7 +52,7 @@ export async function extractDocumentText(
       // Thin or empty text layer: prefer OCR, but keep the local text as a
       // safety net if OCR fails or finds nothing.
       try {
-        return await ocrOrThrow(bytes, kind);
+        return await ocrOrThrow(bytes, kind, opts.maxOcrPages);
       } catch (e) {
         if (text) return { text, method: "pdf", pageCount };
         throw e;
@@ -65,12 +71,16 @@ export async function extractDocumentText(
     }
     case "jpeg":
     case "png":
-      return ocrOrThrow(bytes, kind);
+      return ocrOrThrow(bytes, kind, opts.maxOcrPages);
   }
 }
 
-async function ocrOrThrow(bytes: Uint8Array, kind: DocumentKind): Promise<ExtractedText> {
-  const r = await ocrDocument(bytes, DOCUMENT_MIME[kind]);
+async function ocrOrThrow(
+  bytes: Uint8Array,
+  kind: DocumentKind,
+  maxOcrPages?: number,
+): Promise<ExtractedText> {
+  const r = await ocrDocument(bytes, DOCUMENT_MIME[kind], undefined, maxOcrPages);
   const text = r.text.trim();
   if (!text) throw new DocumentError("NO_TEXT");
   return { text, method: "ocr", pageCount: r.pageCount };

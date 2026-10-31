@@ -111,3 +111,9 @@ export type CandidateImport = Prisma.CandidateImportModel
  * A file permanently attached to a candidate (today: the uploaded CV).
  */
 export type CandidateDocument = Prisma.CandidateDocumentModel
+/**
+ * Model CandidateLandingPage
+ * Public candidate landing (/candidati/<slug>): one per organization, pointing
+ * at one non-global pool linked to it. Offers WhatsApp or CV upload.
+ */
+export type CandidateLandingPage = Prisma.CandidateLandingPageModel

@@ -53,6 +53,7 @@ model Organization {
   candidateStatuses CandidateStatus[]
   jobMatches        JobMatch[]
   candidateImports  CandidateImport[]
+  landingPage       CandidateLandingPage?
 }
 
 model Pool {
@@ -68,6 +69,7 @@ model Pool {
   candidates    Candidate[]
   organizations OrganizationPool[]
   candidateImports CandidateImport[]
+  landingPages     CandidateLandingPage[]
 }
 
 model OrganizationPool {
@@ -344,6 +346,8 @@ model CandidateImport {
   fileName         String
   mimeType         String
   fileSize         Int
+  /// SHA-256 (hex) of the stored bytes, checked before extraction and confirm.
+  contentSha256    String?
   extractedText    String?
   extractionMethod String?
   draft            Json?
@@ -377,4 +381,22 @@ model CandidateDocument {
   uploadedBy User?     @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
 
   @@index([candidateId])
+}
+
+/// Public candidate landing (/candidati/<slug>): one per organization, pointing
+/// at one non-global pool linked to it. Offers WhatsApp or CV upload.
+model CandidateLandingPage {
+  id               String   @id @default(uuid()) @db.Uuid
+  slug             String   @unique
+  organizationId   String   @unique @db.Uuid
+  poolId           String   @db.Uuid
+  enabled          Boolean  @default(true)
+  privacyPolicyUrl String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  pool         Pool         @relation(fields: [poolId], references: [id], onDelete: Restrict)
+
+  @@index([poolId])
 }

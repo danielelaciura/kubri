@@ -42,6 +42,17 @@ describe("middleware auth gating", () => {
     expect(res.headers.get("location")).toBeNull();
   });
 
+  it("lets anonymous visitors reach the candidate landing", async () => {
+    const res = await run("/candidati/coop-sole", null);
+    expect(res.status).not.toBe(307);
+    expect(res.headers.get("location")).toBeNull();
+  });
+
+  it("does not open look-alike prefixes of the candidate landing", async () => {
+    const res = await run("/candidatix", null);
+    expect(res.headers.get("location")).toContain("/login");
+  });
+
   it("redirects unauthenticated access to a protected route to /login", async () => {
     const res = await run("/dashboard/profile", null);
     expect(res.status).toBe(307);

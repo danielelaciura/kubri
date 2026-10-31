@@ -132,7 +132,7 @@ This is the ingestion path. The Make scenario POSTs a candidate payload here whe
 5. Generates the embedding via the Supabase Edge Function and writes `embedding` / `embeddingText` / `embeddingUpdatedAt`
 6. Returns 200
 
-Every write to `Candidate` goes through `src/lib/candidates/ingest.ts` (`upsertCandidate` / `ingestCandidate`). Sanctioned callers: the Make webhook, the assessment webhook, dashboard candidate creation (manual form and CV import, `src/lib/candidates/dashboard-create.ts` and `src/lib/candidate-imports/`), and backfill scripts. Editing existing candidates from the UI is not supported.
+Every write to `Candidate` goes through `src/lib/candidates/ingest.ts` (`upsertCandidate` / `ingestCandidate`). Sanctioned callers: the Make webhook, the assessment webhook, dashboard candidate creation (manual form and CV import, `src/lib/candidates/dashboard-create.ts` and `src/lib/candidate-imports/`), the public candidate landing (`src/lib/landing/`), and backfill scripts. Editing existing candidates from the UI is not supported.
 
 ### Legacy `src/lib/make/` module
 
@@ -188,6 +188,7 @@ Conventions:
 - All `Candidate` writes go through `ingestCandidate` / `upsertCandidate`. Never call `prisma.candidate.create/update/upsert` directly elsewhere (backfill scripts under `scripts/` excepted)
 - The webhook handler is responsible for upserting **and** for regenerating the embedding (sync). If embedding fails, log and leave `embedding = null`; a nightly cron will retry
 - The dashboard may create candidates (form or CV import) but never edit existing profile fields
+- The public candidate landing (`/candidati/[slug]`, `src/lib/landing/`) is a sanctioned write path: it creates `Candidate` rows with `channel = "landing_cv"` (or attaches the CV to an existing same-phone candidate of the same pool) through `confirmImport`. Every public upload goes through Turnstile, Upstash rate limits (fail-closed in production), `inspectPublicDocument` and the pre-LLM quality gate — never bypass them.
 
 ### Semantic search (embeddings)
 - Embeddings are generated via a Supabase Edge Function running `gte-small` (multilingual, 384-dim, free, EU-hosted). Never send candidate text to an external embedding provider
@@ -362,6 +363,7 @@ See `.env.example` for the current authoritative list. The categories in use tod
 - **Make webhook**: shared secret for the candidate ingestion endpoint
 - **Mistral**: `MISTRAL_API_KEY` (CV OCR + draft extraction)
 - **Cron**: `CRON_SECRET` for protected scheduled jobs
+- **Candidate landing**: `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, `LANDING_COOKIE_SECRET` (≥32 chars), `LANDING_IP_SALT` (≥16 chars); Upstash Redis is required in production for its rate limits
 
 ## Domain Context
 
@@ -422,3 +424,4 @@ Next:
 4. Candidate data is personal sensitive data (GDPR) — audit log access, no data leaks between orgs
 5. Embedding text and vectors never leave the Supabase infrastructure (Edge Function with `gte-small`)
 6. The Supabase service role key is server-side only, never shipped to the client
+7. Public endpoints (`/candidati`) never trust a request-supplied import id: the import is bound to the browser by the signed `kubri_landing_import` cookie

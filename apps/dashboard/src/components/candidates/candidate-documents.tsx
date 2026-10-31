@@ -7,6 +7,7 @@ export interface CandidateDocumentRow {
   fileName: string;
   createdAt: Date;
   uploadedByName: string | null;
+  fromLanding?: boolean;
 }
 
 export function CandidateDocuments({
@@ -19,6 +20,7 @@ export function CandidateDocuments({
 }) {
   if (documents.length === 0) return null;
   const tc = t.candidateCreate;
+  const dateOf = (date: Date) => date.toLocaleDateString(locale === "it" ? "it-IT" : "en-GB");
   return (
     <Card className="shadow-sm border-border/60">
       <CardHeader>
@@ -32,9 +34,11 @@ export function CandidateDocuments({
               <div className="min-w-0">
                 <p className="truncate text-sm">{d.fileName}</p>
                 <p className="text-xs text-muted-foreground">
-                  {tc.documentUploaded
-                    .replace("{name}", d.uploadedByName ?? t.candidates.deletedUser)
-                    .replace("{date}", d.createdAt.toLocaleDateString(locale === "it" ? "it-IT" : "en-GB"))}
+                  {d.fromLanding
+                    ? `${t.candidates.documentFromLanding} · ${dateOf(d.createdAt)}`
+                    : tc.documentUploaded
+                        .replace("{name}", d.uploadedByName ?? t.candidates.deletedUser)
+                        .replace("{date}", dateOf(d.createdAt))}
                 </p>
               </div>
             </div>

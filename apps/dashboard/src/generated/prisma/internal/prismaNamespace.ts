@@ -397,7 +397,8 @@ export const ModelName = {
   CandidateStatus: 'CandidateStatus',
   JobMatch: 'JobMatch',
   CandidateImport: 'CandidateImport',
-  CandidateDocument: 'CandidateDocument'
+  CandidateDocument: 'CandidateDocument',
+  CandidateLandingPage: 'CandidateLandingPage'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -413,7 +414,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "organization" | "pool" | "organizationPool" | "user" | "candidateNote" | "auditLog" | "jobDescription" | "candidate" | "candidateList" | "candidateListMembership" | "candidateStatus" | "jobMatch" | "candidateImport" | "candidateDocument"
+    modelProps: "organization" | "pool" | "organizationPool" | "user" | "candidateNote" | "auditLog" | "jobDescription" | "candidate" | "candidateList" | "candidateListMembership" | "candidateStatus" | "jobMatch" | "candidateImport" | "candidateDocument" | "candidateLandingPage"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1453,6 +1454,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    CandidateLandingPage: {
+      payload: Prisma.$CandidateLandingPagePayload<ExtArgs>
+      fields: Prisma.CandidateLandingPageFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CandidateLandingPageFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CandidateLandingPagePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CandidateLandingPageFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CandidateLandingPagePayload>
+        }
+        findFirst: {
+          args: Prisma.CandidateLandingPageFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CandidateLandingPagePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CandidateLandingPageFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CandidateLandingPagePayload>
+        }
+        findMany: {
+          args: Prisma.CandidateLandingPageFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CandidateLandingPagePayload>[]
+        }
+        create: {
+          args: Prisma.CandidateLandingPageCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CandidateLandingPagePayload>
+        }
+        createMany: {
+          args: Prisma.CandidateLandingPageCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CandidateLandingPageCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CandidateLandingPagePayload>[]
+        }
+        delete: {
+          args: Prisma.CandidateLandingPageDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CandidateLandingPagePayload>
+        }
+        update: {
+          args: Prisma.CandidateLandingPageUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CandidateLandingPagePayload>
+        }
+        deleteMany: {
+          args: Prisma.CandidateLandingPageDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CandidateLandingPageUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CandidateLandingPageUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CandidateLandingPagePayload>[]
+        }
+        upsert: {
+          args: Prisma.CandidateLandingPageUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CandidateLandingPagePayload>
+        }
+        aggregate: {
+          args: Prisma.CandidateLandingPageAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCandidateLandingPage>
+        }
+        groupBy: {
+          args: Prisma.CandidateLandingPageGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CandidateLandingPageGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CandidateLandingPageCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CandidateLandingPageCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1691,6 +1766,7 @@ export const CandidateImportScalarFieldEnum = {
   fileName: 'fileName',
   mimeType: 'mimeType',
   fileSize: 'fileSize',
+  contentSha256: 'contentSha256',
   extractedText: 'extractedText',
   extractionMethod: 'extractionMethod',
   draft: 'draft',
@@ -1716,6 +1792,20 @@ export const CandidateDocumentScalarFieldEnum = {
 } as const
 
 export type CandidateDocumentScalarFieldEnum = (typeof CandidateDocumentScalarFieldEnum)[keyof typeof CandidateDocumentScalarFieldEnum]
+
+
+export const CandidateLandingPageScalarFieldEnum = {
+  id: 'id',
+  slug: 'slug',
+  organizationId: 'organizationId',
+  poolId: 'poolId',
+  enabled: 'enabled',
+  privacyPolicyUrl: 'privacyPolicyUrl',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CandidateLandingPageScalarFieldEnum = (typeof CandidateLandingPageScalarFieldEnum)[keyof typeof CandidateLandingPageScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -2055,6 +2145,7 @@ export type GlobalOmitConfig = {
   jobMatch?: Prisma.JobMatchOmit
   candidateImport?: Prisma.CandidateImportOmit
   candidateDocument?: Prisma.CandidateDocumentOmit
+  candidateLandingPage?: Prisma.CandidateLandingPageOmit
 }
 
 /* Types for Logging */

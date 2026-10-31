@@ -96,3 +96,29 @@ describe("createCandidateManually", () => {
     expect(tag).toBe("dashboard create");
   });
 });
+
+describe("buildDashboardCandidateInput for the public landing", () => {
+  const pool = { id: "p", isGlobal: false, globalSharing: "WEBHOOK" as const };
+  const fields = { firstName: "Ahmed", lastName: "Benali" } as never;
+
+  it("uses a landing: externalId and the landing channel", () => {
+    const data = buildDashboardCandidateInput({ pool, fields, channel: "landing_cv", rawPayload: {} });
+    expect(data.externalId).toMatch(/^landing:[0-9a-f-]{36}$/);
+    expect(data.channel).toBe("landing_cv");
+  });
+
+  it("shares with global only on consent when the pool is consent-driven", () => {
+    expect(
+      buildDashboardCandidateInput({ pool, fields, channel: "landing_cv", rawPayload: {}, consentToShare: true })
+        .sharedWithGlobal,
+    ).toBe(true);
+    expect(
+      buildDashboardCandidateInput({ pool, fields, channel: "landing_cv", rawPayload: {} }).sharedWithGlobal,
+    ).toBe(false);
+  });
+
+  it("keeps dashboard: ids for operator channels", () => {
+    const data = buildDashboardCandidateInput({ pool, fields, channel: "dashboard_cv", rawPayload: {} });
+    expect(data.externalId).toMatch(/^dashboard:/);
+  });
+});

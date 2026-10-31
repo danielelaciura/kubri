@@ -5,6 +5,7 @@ import { StorageError } from "@/lib/storage/errors";
 export const IMPORT_ERROR_CODES = [
   "FILE_TOO_LARGE",
   "UNSUPPORTED_TYPE",
+  "REJECTED_FILE",
   "STORAGE_ERROR",
   "FILE_UNREADABLE",
   "NO_TEXT",

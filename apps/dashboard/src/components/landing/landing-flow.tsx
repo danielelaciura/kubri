@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { FileUp, MessageCircle } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +18,7 @@ import {
 } from "@/app/(public)/candidati/[slug]/actions";
 import { ContactForm, type ContactSubmission } from "./contact-form";
 import { LandingSteps } from "./landing-steps";
+import { CvIcon, WhatsAppIcon } from "./landing-icons";
 import { TurnstileWidget } from "./turnstile-widget";
 
 const ACCEPT =
@@ -80,12 +81,19 @@ const RETRYABLE_EXTRACTION: ReadonlySet<LandingErrorCode> = new Set<LandingError
 
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-/** Short orientation label on each option of the choose step. */
-function OptionTag({ children }: { children: string }) {
+/**
+ * Heading of an option on the choose step: icon on the left (same box in both
+ * cards, so they line up), orientation tag and title stacked on the right.
+ */
+function OptionHeading({ icon, tag, children }: { icon: ReactNode; tag: string; children: ReactNode }) {
   return (
-    <span className="w-fit rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
-      {children}
-    </span>
+    <div className="flex items-center gap-3">
+      {icon}
+      <div className="flex min-w-0 flex-col items-start gap-1.5">
+        <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">{tag}</span>
+        {children}
+      </div>
+    </div>
   );
 }
 
@@ -337,9 +345,10 @@ export function LandingFlow(props: LandingFlowProps) {
         <div className="grid gap-4 sm:grid-cols-2">
           {props.waLink && (
             <Card>
-              <CardHeader className="gap-2">
-                <OptionTag>{t.whatsappTag}</OptionTag>
-                <CardTitle ref={headingRef} tabIndex={-1} className={headingClass}>{t.whatsappTitle}</CardTitle>
+              <CardHeader>
+                <OptionHeading icon={<WhatsAppIcon className="size-11 text-primary" />} tag={t.whatsappTag}>
+                  <CardTitle ref={headingRef} tabIndex={-1} className={headingClass}>{t.whatsappTitle}</CardTitle>
+                </OptionHeading>
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-sm text-muted-foreground">{t.whatsappBody}</p>
@@ -348,13 +357,14 @@ export function LandingFlow(props: LandingFlowProps) {
             </Card>
           )}
           <Card>
-            <CardHeader className="gap-2">
-              <OptionTag>{t.uploadTag}</OptionTag>
-              {props.waLink ? (
-                <CardTitle>{t.uploadTitle}</CardTitle>
-              ) : (
-                <CardTitle ref={headingRef} tabIndex={-1} className={headingClass}>{t.uploadTitle}</CardTitle>
-              )}
+            <CardHeader>
+              <OptionHeading icon={<CvIcon className="size-11 text-primary" />} tag={t.uploadTag}>
+                {props.waLink ? (
+                  <CardTitle>{t.uploadTitle}</CardTitle>
+                ) : (
+                  <CardTitle ref={headingRef} tabIndex={-1} className={headingClass}>{t.uploadTitle}</CardTitle>
+                )}
+              </OptionHeading>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">{org(t.uploadBody)}</p>
@@ -432,7 +442,7 @@ export function LandingFlow(props: LandingFlowProps) {
                 if (f) void upload(f);
               }}
             >
-              <FileUp className="h-10 w-10 text-primary" aria-hidden="true" />
+              <CvIcon className="size-14 text-primary" />
               <p className="font-medium">{dragging ? t.dropzoneDrop : t.dropzoneTitle}</p>
               <p className="text-sm text-muted-foreground">{t.dropzoneHint}</p>
               <input

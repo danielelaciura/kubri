@@ -13,6 +13,31 @@ import {
 const extract = extractStructured as unknown as ReturnType<typeof vi.fn>;
 
 describe("normalizeLlmDraft", () => {
+  it("unwraps list items the model wrapped as {value, uncertain}", () => {
+    const d = normalizeLlmDraft({
+      isCv: true,
+      fields: {
+        workExperience: [
+          { value: "Magazziniere, Logistica Nord", uncertain: false },
+          { value: "Aiuto cuoco, Il Ponte", uncertain: false },
+        ],
+      },
+    });
+    expect(d.fields.workExperience).toEqual(["Magazziniere, Logistica Nord", "Aiuto cuoco, Il Ponte"]);
+    expect(d.uncertain).not.toContain("workExperience");
+  });
+
+  it("flags a list when any wrapped item is uncertain, inside or outside the field wrapper", () => {
+    const d = normalizeLlmDraft({
+      isCv: true,
+      fields: {
+        skillsAndCompetences: { value: [{ value: "Muletto", uncertain: true }, "HACCP"], uncertain: false },
+      },
+    });
+    expect(d.fields.skillsAndCompetences).toEqual(["Muletto", "HACCP"]);
+    expect(d.uncertain).toContain("skillsAndCompetences");
+  });
+
   it("keeps valid values and their uncertain flags", () => {
     const d = normalizeLlmDraft({
       isCv: true,

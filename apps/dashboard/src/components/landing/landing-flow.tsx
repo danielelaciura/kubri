@@ -31,12 +31,14 @@ const CAPTCHA_TIMEOUT_MS = 15_000;
 
 type Step =
   | { kind: "choose" }
+  // Turnstile first, as its own step: the visitor sees why they wait.
+  | { kind: "verify" }
   | { kind: "upload" }
   | { kind: "working"; label: "uploading" | "reading" }
   | { kind: "contact"; prefill: ContactPrefill }
   | { kind: "done" };
 
-type ErrorKey = "busy" | "badFile" | "notCv" | "generic" | "expired";
+type ErrorKey = "busy" | "badFile" | "notCv" | "generic" | "expired" | "verifyFailed";
 
 /** Generic on purpose: never tell an abuser which check fired. */
 function errorKey(code: LandingErrorCode): ErrorKey {
@@ -110,16 +112,21 @@ export function LandingFlow(props: LandingFlowProps) {
     // A late token (after the timeout fired) means Turnstile works after all.
     if (token && captchaFailedRef.current) {
       setCaptchaFailed(false);
-      setError((current) => (current === "busy" ? null : current));
+      setError((current) => (current === "verifyFailed" ? null : current));
     }
   }, []);
   const onCaptchaInteractive = useCallback(() => setCaptchaInteractive(true), []);
-  // Turnstile unusable: show "busy" (with the WhatsApp fallback); upload stays disabled.
+  // Turnstile unusable: say so (with the WhatsApp fallback); upload stays out of reach.
   const onCaptchaError = useCallback(() => {
     setCaptchaFailed(true);
     setCanRetryExtraction(false);
-    setError("busy");
+    setError("verifyFailed");
   }, []);
+  const retryCaptcha = () => {
+    setCaptchaFailed(false);
+    setError(null);
+    setTurnstileKey((k) => k + 1);
+  };
 
   // Without a site key (local dev) the server accepts the empty token.
   const waitingForCaptcha = Boolean(props.turnstileSiteKey) && !turnstileToken;
@@ -131,20 +138,26 @@ export function LandingFlow(props: LandingFlowProps) {
     };
   }, []);
 
-  // Entering the upload step again (Back → upload) gives Turnstile a fresh start.
+  // Entering the verify step again (Back → upload) gives Turnstile a fresh start.
   useEffect(() => {
-    if (step.kind === "upload") setCaptchaFailed(false);
+    if (step.kind === "verify") setCaptchaFailed(false);
   }, [step.kind]);
+
+  // A token moves the visitor on to the upload; an expired one sends them back.
+  useEffect(() => {
+    if (step.kind === "verify" && !waitingForCaptcha) setStep({ kind: "upload" });
+    else if (step.kind === "upload" && waitingForCaptcha) setStep({ kind: "verify" });
+  }, [step.kind, waitingForCaptcha]);
 
   // Each new widget (fresh mount after an upload attempt) starts non-interactive.
   useEffect(() => {
     setCaptchaInteractive(false);
   }, [turnstileKey]);
 
-  // No token in time on the upload step: treat it like a Turnstile failure —
+  // No token in time on the verify step: treat it like a Turnstile failure —
   // unless Cloudflare is waiting for the visitor to tick its checkbox.
   useEffect(() => {
-    if (step.kind !== "upload" || !waitingForCaptcha || captchaFailed || captchaInteractive) return;
+    if (step.kind !== "verify" || !waitingForCaptcha || captchaFailed || captchaInteractive) return;
     const timer = setTimeout(onCaptchaError, CAPTCHA_TIMEOUT_MS);
     return () => clearTimeout(timer);
   }, [step.kind, waitingForCaptcha, captchaFailed, captchaInteractive, onCaptchaError]);
@@ -167,7 +180,7 @@ export function LandingFlow(props: LandingFlowProps) {
     const key = errorKey(code);
     setError(key);
     setCanRetryExtraction(opts.retryExtraction && RETRYABLE_EXTRACTION.has(code));
-    if (key === "expired") setStep({ kind: "upload" });
+    if (key === "expired") setStep({ kind: "verify" });
     else if (back) setStep(back);
   }
 
@@ -175,7 +188,8 @@ export function LandingFlow(props: LandingFlowProps) {
     setError(null);
     setCanRetryExtraction(false);
     setStep({ kind: "working", label: "reading" });
-    const fail = (code: LandingErrorCode) => showError(code, { kind: "upload" }, { retryExtraction: true });
+    // Back to verify: a new file needs a new (single-use) Turnstile token.
+    const fail = (code: LandingErrorCode) => showError(code, { kind: "verify" }, { retryExtraction: true });
     try {
       // First call, then up to POLL_ATTEMPTS more while another request extracts.
       for (let attempt = 0; attempt <= POLL_ATTEMPTS; attempt++) {
@@ -196,7 +210,7 @@ export function LandingFlow(props: LandingFlowProps) {
     if (waitingForCaptcha) return;
     setError(null);
     setCanRetryExtraction(false);
-    const fail = (code: LandingErrorCode) => showError(code, { kind: "upload" }, { retryExtraction: false });
+    const fail = (code: LandingErrorCode) => showError(code, { kind: "verify" }, { retryExtraction: false });
     if (!ALLOWED_EXTENSIONS.some((ext) => file.name.toLowerCase().endsWith(ext)) || file.size > MAX_BYTES) {
       setError("badFile");
       return;
@@ -277,7 +291,7 @@ export function LandingFlow(props: LandingFlowProps) {
           {canRetryExtraction && (
             <Button size="sm" variant="outline" onClick={() => void extract()}>{t.retry}</Button>
           )}
-          {props.waLink && (error === "busy" || error === "notCv" || error === "generic") && (
+          {props.waLink && (error === "busy" || error === "notCv" || error === "generic" || error === "verifyFailed") && (
             <a href={props.waLink} target="_blank" rel="noreferrer" className="block underline">
               {t.orWhatsapp}
             </a>
@@ -308,10 +322,44 @@ export function LandingFlow(props: LandingFlowProps) {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">{org(t.uploadBody)}</p>
-              <Button variant="outline" className="w-full" onClick={() => setStep({ kind: "upload" })}>
+              <Button variant="outline" className="w-full" onClick={() => setStep({ kind: "verify" })}>
                 <FileUp className="mr-2 h-4 w-4" aria-hidden="true" />
                 {t.uploadCta}
               </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {(step.kind === "verify" || step.kind === "upload") && (
+        // Stays mounted (hidden) on the upload step so Turnstile can report an
+        // expired token, which brings the visitor back here.
+        <div hidden={step.kind !== "verify"}>
+          <Card>
+            <CardHeader>
+              {step.kind === "verify" ? (
+                <CardTitle ref={headingRef} tabIndex={-1} className={headingClass}>{t.verifyTitle}</CardTitle>
+              ) : (
+                <CardTitle>{t.verifyTitle}</CardTitle>
+              )}
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">{t.verifyBody}</p>
+              {/* Reserve the widget's height so the card doesn't jump while the script loads. */}
+              <div className="flex min-h-[65px] items-center justify-center">
+                <TurnstileWidget
+                  key={turnstileKey} siteKey={props.turnstileSiteKey} locale={props.locale} onToken={onToken}
+                  onError={onCaptchaError} onInteractive={onCaptchaInteractive}
+                />
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="ghost" onClick={() => { setError(null); setStep({ kind: "choose" }); }}>
+                  {t.back}
+                </Button>
+                {captchaFailed && (
+                  <Button variant="outline" onClick={retryCaptcha}>{t.verifyRetry}</Button>
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -330,21 +378,10 @@ export function LandingFlow(props: LandingFlowProps) {
                 ref={inputRef} type="file" accept={ACCEPT} className="sr-only" tabIndex={-1}
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) void upload(f); e.target.value = ""; }}
               />
-              <Button
-                type="button" disabled={waitingForCaptcha}
-                aria-describedby={waitingForCaptcha && !captchaFailed ? "landing-verifying" : undefined}
-                onClick={() => inputRef.current?.click()}
-              >
+              <Button type="button" disabled={waitingForCaptcha} onClick={() => inputRef.current?.click()}>
                 {t.chooseFile}
               </Button>
-              {waitingForCaptcha && !captchaFailed && (
-                <p id="landing-verifying" className="text-xs text-muted-foreground">{t.verifying}</p>
-              )}
             </div>
-            <TurnstileWidget
-              key={turnstileKey} siteKey={props.turnstileSiteKey} locale={props.locale} onToken={onToken}
-              onError={onCaptchaError} onInteractive={onCaptchaInteractive}
-            />
             <Button variant="ghost" onClick={() => { setError(null); setStep({ kind: "choose" }); }}>
               {t.back}
             </Button>

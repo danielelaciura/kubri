@@ -36,6 +36,7 @@ vi.mock("@/components/landing/turnstile-widget", () => ({
   }) => (
     <div>
       <button type="button" onClick={() => onToken("tok")}>stub-token</button>
+      <button type="button" onClick={() => onToken("")}>stub-expire</button>
       <button type="button" onClick={() => onError?.()}>stub-error</button>
       <button type="button" onClick={() => onInteractive?.()}>stub-interactive</button>
     </div>
@@ -78,29 +79,40 @@ afterEach(() => {
 });
 
 describe("LandingFlow", () => {
-  it("keeps the upload button disabled until Turnstile returns a token", () => {
+  it("shows the verification step before the upload and moves on with a token", () => {
     setup("site-key");
-    const button = screen.getByRole("button", { name: t.chooseFile });
-    expect(button).toBeDisabled();
-    expect(screen.getByText(t.verifying)).toBeInTheDocument();
+    expect(screen.getByText(t.verifyTitle)).toBeVisible();
+    expect(screen.queryByRole("button", { name: t.chooseFile })).not.toBeInTheDocument();
     fireEvent.click(screen.getByText("stub-token"));
-    expect(button).toBeEnabled();
+    expect(screen.getByRole("button", { name: t.chooseFile })).toBeEnabled();
+    expect(screen.getByText(t.verifyTitle)).not.toBeVisible();
   });
 
-  it("shows the busy alert when Turnstile fails", () => {
+  it("goes back to the verification step when the token expires", () => {
+    setup("site-key");
+    fireEvent.click(screen.getByText("stub-token"));
+    expect(screen.getByRole("button", { name: t.chooseFile })).toBeInTheDocument();
+    fireEvent.click(screen.getByText("stub-expire"));
+    expect(screen.queryByRole("button", { name: t.chooseFile })).not.toBeInTheDocument();
+    expect(screen.getByText(t.verifyTitle)).toBeVisible();
+  });
+
+  it("shows the verification error with a retry when Turnstile fails", () => {
     setup("site-key");
     fireEvent.click(screen.getByText("stub-error"));
-    expect(screen.getByRole("alert")).toHaveTextContent(t.errors.busy);
-    expect(screen.getByRole("button", { name: t.chooseFile })).toBeDisabled();
+    expect(screen.getByRole("alert")).toHaveTextContent(t.errors.verifyFailed);
+    expect(screen.queryByRole("button", { name: t.chooseFile })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: t.verifyRetry }));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
-  it("shows the busy alert when no Turnstile token arrives in 15 s", () => {
+  it("shows the verification error when no Turnstile token arrives in 15 s", () => {
     vi.useFakeTimers();
     setup("site-key");
     act(() => {
       vi.advanceTimersByTime(15_000);
     });
-    expect(screen.getByRole("alert")).toHaveTextContent(t.errors.busy);
+    expect(screen.getByRole("alert")).toHaveTextContent(t.errors.verifyFailed);
   });
 
   it("does not time out while Turnstile shows an interactive challenge", () => {
@@ -121,25 +133,30 @@ describe("LandingFlow", () => {
     act(() => {
       vi.advanceTimersByTime(15_000);
     });
-    expect(screen.getByRole("alert")).toHaveTextContent(t.errors.busy);
+    expect(screen.getByRole("alert")).toHaveTextContent(t.errors.verifyFailed);
     fireEvent.click(screen.getByText("stub-token"));
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: t.chooseFile })).toBeEnabled();
   });
 
-  it("re-arms the captcha timeout when the upload step is entered again", () => {
+  it("re-arms the captcha timeout when the verification step is entered again", () => {
     vi.useFakeTimers();
     setup("site-key");
     fireEvent.click(screen.getByText("stub-error"));
-    expect(screen.getByRole("alert")).toHaveTextContent(t.errors.busy);
+    expect(screen.getByRole("alert")).toHaveTextContent(t.errors.verifyFailed);
     fireEvent.click(screen.getByRole("button", { name: t.back }));
     fireEvent.click(screen.getByRole("button", { name: t.uploadCta }));
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    expect(screen.getByText(t.verifying)).toBeInTheDocument();
+    expect(screen.getByText(t.verifyTitle)).toBeVisible();
     act(() => {
       vi.advanceTimersByTime(15_000);
     });
-    expect(screen.getByRole("alert")).toHaveTextContent(t.errors.busy);
+    expect(screen.getByRole("alert")).toHaveTextContent(t.errors.verifyFailed);
+  });
+
+  it("skips the verification step without a site key (local dev)", () => {
+    setup();
+    expect(screen.getByRole("button", { name: t.chooseFile })).toBeEnabled();
   });
 
   it("offers Retry after an extraction LLM_ERROR", async () => {

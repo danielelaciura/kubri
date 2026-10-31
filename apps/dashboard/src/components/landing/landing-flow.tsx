@@ -317,7 +317,7 @@ export function LandingFlow(props: LandingFlowProps) {
 
   // A real link styled as a button (base-ui Button would add role="button").
   const whatsappButton = props.waLink && (
-    <a href={props.waLink} target="_blank" rel="noreferrer" className={cn(buttonVariants(), "h-11 w-full text-base")}>
+    <a href={props.waLink} target="_blank" rel="noreferrer" className={cn(buttonVariants(), "h-11 w-full text-sm")}>
       <MessageCircle className="mr-2 h-4 w-4" aria-hidden="true" />
       {t.whatsappCta}
     </a>
@@ -352,7 +352,7 @@ export function LandingFlow(props: LandingFlowProps) {
             <Card>
               <CardHeader>
                 <OptionHeading icon={<WhatsAppIcon className="size-11 text-primary" />} tag={t.whatsappTag}>
-                  <CardTitle ref={headingRef} tabIndex={-1} className={headingClass}>{t.whatsappTitle}</CardTitle>
+                  <CardTitle ref={headingRef} tabIndex={-1} className={cn("text-lg", headingClass)}>{t.whatsappTitle}</CardTitle>
                 </OptionHeading>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -365,9 +365,9 @@ export function LandingFlow(props: LandingFlowProps) {
             <CardHeader>
               <OptionHeading icon={<CvIcon className="size-11 text-primary" />} tag={t.uploadTag}>
                 {props.waLink ? (
-                  <CardTitle>{t.uploadTitle}</CardTitle>
+                  <CardTitle className="text-lg">{t.uploadTitle}</CardTitle>
                 ) : (
-                  <CardTitle ref={headingRef} tabIndex={-1} className={headingClass}>{t.uploadTitle}</CardTitle>
+                  <CardTitle ref={headingRef} tabIndex={-1} className={cn("text-lg", headingClass)}>{t.uploadTitle}</CardTitle>
                 )}
               </OptionHeading>
             </CardHeader>
@@ -376,7 +376,7 @@ export function LandingFlow(props: LandingFlowProps) {
               <Button
                 variant="outline"
                 // Clear hover/focus on the white card: brand border, tint and text.
-                className="h-11 w-full cursor-pointer text-base hover:border-primary hover:bg-primary/5 hover:text-primary"
+                className="h-11 w-full cursor-pointer text-sm hover:border-primary hover:bg-primary/5 hover:text-primary"
                 onClick={() => setStep({ kind: "verify" })}
               >
                 <FileUp className="mr-2 h-4 w-4" aria-hidden="true" />

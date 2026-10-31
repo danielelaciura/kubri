@@ -25,10 +25,19 @@ vi.mock("@/lib/supabase/client", () => ({
 }));
 
 vi.mock("@/components/landing/turnstile-widget", () => ({
-  TurnstileWidget: ({ onToken, onError }: { onToken: (t: string) => void; onError?: () => void }) => (
+  TurnstileWidget: ({
+    onToken,
+    onError,
+    onInteractive,
+  }: {
+    onToken: (t: string) => void;
+    onError?: () => void;
+    onInteractive?: () => void;
+  }) => (
     <div>
       <button type="button" onClick={() => onToken("tok")}>stub-token</button>
       <button type="button" onClick={() => onError?.()}>stub-error</button>
+      <button type="button" onClick={() => onInteractive?.()}>stub-interactive</button>
     </div>
   ),
 }));
@@ -92,6 +101,30 @@ describe("LandingFlow", () => {
       vi.advanceTimersByTime(15_000);
     });
     expect(screen.getByRole("alert")).toHaveTextContent(t.errors.busy);
+  });
+
+  it("does not time out while Turnstile shows an interactive challenge", () => {
+    vi.useFakeTimers();
+    setup("site-key");
+    fireEvent.click(screen.getByText("stub-interactive"));
+    act(() => {
+      vi.advanceTimersByTime(60_000);
+    });
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText("stub-token"));
+    expect(screen.getByRole("button", { name: t.chooseFile })).toBeEnabled();
+  });
+
+  it("clears the timeout alert when a token arrives late", () => {
+    vi.useFakeTimers();
+    setup("site-key");
+    act(() => {
+      vi.advanceTimersByTime(15_000);
+    });
+    expect(screen.getByRole("alert")).toHaveTextContent(t.errors.busy);
+    fireEvent.click(screen.getByText("stub-token"));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: t.chooseFile })).toBeEnabled();
   });
 
   it("re-arms the captcha timeout when the upload step is entered again", () => {

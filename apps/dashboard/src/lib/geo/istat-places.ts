@@ -11,14 +11,33 @@ interface IndexedRow {
   id: string;
 }
 
-let _rows: IndexedRow[] | null = null;
-function rows(): IndexedRow[] {
-  if (_rows) return _rows;
-  _rows = ITALY_ADMIN.map((row) => {
+interface Index {
+  all: IndexedRow[];
+  byId: Map<string, IndexedRow>;
+  byName: Map<string, IndexedRow[]>;
+}
+
+let _index: Index | null = null;
+function index(): Index {
+  if (_index) return _index;
+  const all = ITALY_ADMIN.map((row) => {
     const key = normalizePlace(row.municipality);
     return { row, key, id: `${PREFIX}${row.provinceCode}:${key}` };
   });
-  return _rows;
+  const byId = new Map<string, IndexedRow>();
+  const byName = new Map<string, IndexedRow[]>();
+  for (const r of all) {
+    byId.set(r.id, r);
+    const list = byName.get(r.key);
+    if (list) list.push(r);
+    else byName.set(r.key, [r]);
+  }
+  _index = { all, byId, byName };
+  return _index;
+}
+
+function rows(): IndexedRow[] {
+  return index().all;
 }
 
 export function isIstatPlaceId(id: string): boolean {
@@ -52,7 +71,7 @@ export function searchIstatPlaces(query: string, limit = 5): PlaceSuggestion[] {
 /** The comune centroid for an `istat:` id, or null. */
 export function resolveIstatPlace(id: string): ResolvedPlace | null {
   if (!isIstatPlaceId(id)) return null;
-  const hit = rows().find((r) => r.id === id);
+  const hit = index().byId.get(id);
   if (!hit) return null;
   const text = label(hit.row);
   return {
@@ -65,14 +84,23 @@ export function resolveIstatPlace(id: string): ResolvedPlace | null {
   };
 }
 
-/** Free text such as "Via X 1, 20121 Milano (MI)" → the comune in its last token. */
+const PROVINCE_RE = /\(\s*([A-Za-z]{2})\s*\)\s*$/;
+
+/**
+ * Free text such as "Via X 1, 20121 Milano (MI)" → the comune in its last token.
+ * A "(PROV)" suffix picks between homonymous comuni (e.g. Calliano TN / AT);
+ * without one the first match wins.
+ */
 export function istatPlaceForText(text: string): PlaceSuggestion | null {
   const parts = text.split(",").map((s) => s.trim()).filter(Boolean);
   const last = parts[parts.length - 1];
   if (!last) return null;
   const key = normalizePlace(stripPostcodeAndProvince(last));
-  const hit = rows().find((r) => r.key === key);
-  return hit ? suggestion(hit) : null;
+  const matches = index().byName.get(key);
+  if (!matches?.length) return null;
+  const province = PROVINCE_RE.exec(last)?.[1]?.toUpperCase();
+  const hit = (province && matches.find((r) => r.row.provinceCode === province)) || matches[0]!;
+  return suggestion(hit);
 }
 
 /** "Comune (PROV)" of the comune whose centroid is closest to the point. */

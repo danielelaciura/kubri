@@ -68,9 +68,19 @@ async function call(url: string, init: RequestInit = {}): Promise<Response> {
   }
 }
 
+/** Parse a JSON body; a timeout while reading or a non-JSON body means Google is unavailable. */
+async function readJson<T>(res: Response): Promise<T> {
+  try {
+    return (await res.json()) as T;
+  } catch (e) {
+    throw new GoogleMapsUnavailableError("body", e);
+  }
+}
+
 function adminFrom(components: Component[]): Pick<GooglePlace, "municipality" | "provinceCode"> {
   const find = (type: string) => components.find((c) => c.types.includes(type));
-  const comune = find("locality") ?? find("administrative_area_level_3");
+  // In Italy level_3 is the comune; "locality" is often a frazione (Lido di Camaiore).
+  const comune = find("administrative_area_level_3") ?? find("locality");
   const province = find("administrative_area_level_2")?.short ?? "";
   return {
     municipality: comune?.long ?? null,
@@ -93,7 +103,7 @@ export async function geocodeAddress(text: string): Promise<GooglePlace | null> 
   });
   const res = await call(`${GEOCODE_URL}?${params.toString()}`);
   if (!res.ok) throw new GoogleMapsUnavailableError(`geocode HTTP ${res.status}`);
-  const body = (await res.json()) as { status?: string; results?: GeocodeResult[] };
+  const body = await readJson<{ status?: string; results?: GeocodeResult[] }>(res);
   if (body.status === "ZERO_RESULTS") return null;
   if (body.status !== "OK") throw new GoogleMapsUnavailableError(`geocode status ${body.status ?? "?"}`);
   const hit = body.results?.find((r) => r.types.some((t) => PRECISE_TYPES.has(t)));
@@ -125,9 +135,9 @@ export async function autocompletePlaces(input: string, sessionToken?: string): 
     }),
   });
   if (!res.ok) throw new GoogleMapsUnavailableError(`autocomplete HTTP ${res.status}`);
-  const body = (await res.json()) as {
+  const body = await readJson<{
     suggestions?: { placePrediction?: { placeId?: string; text?: { text?: string } } }[];
-  };
+  }>(res);
   return (body.suggestions ?? [])
     .flatMap((s) => {
       const p = s.placePrediction;
@@ -147,14 +157,16 @@ export async function getPlaceDetails(placeId: string, sessionToken?: string): P
       "X-Goog-FieldMask": "id,formattedAddress,location,addressComponents",
     },
   });
+  // Google answers 400 INVALID_ARGUMENT for unknown or malformed place ids. The field
+  // mask is a constant covered by tests, so a 400 here means the id, not our request.
   if (res.status === 400 || res.status === 404) throw new GooglePlaceNotFoundError();
   if (!res.ok) throw new GoogleMapsUnavailableError(`details HTTP ${res.status}`);
-  const body = (await res.json()) as {
+  const body = await readJson<{
     id?: string;
     formattedAddress?: string;
     location?: { latitude?: number; longitude?: number };
     addressComponents?: { longText: string; shortText: string; types: string[] }[];
-  };
+  }>(res);
   const lat = body.location?.latitude;
   const lng = body.location?.longitude;
   if (!body.id || !body.formattedAddress || typeof lat !== "number" || typeof lng !== "number") {

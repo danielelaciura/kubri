@@ -49,6 +49,16 @@ describe("istatPlaceForText", () => {
     expect(istatPlaceForText("Torino")).toEqual({ placeId: "istat:TO:torino", label: "Torino (TO)" });
   });
 
+  it("uses the province code to pick between homonymous comuni", () => {
+    expect(istatPlaceForText("Via X 1, Calliano (TN)")).toEqual({
+      placeId: "istat:TN:calliano", label: "Calliano (TN)",
+    });
+    expect(istatPlaceForText("Calliano (AT)")).toEqual({
+      placeId: "istat:AT:calliano", label: "Calliano (AT)",
+    });
+    expect(istatPlaceForText("Calliano (at)")?.placeId).toBe("istat:AT:calliano");
+  });
+
   it("returns null when no comune matches", () => {
     expect(istatPlaceForText("Casablanca, Marocco")).toBeNull();
     expect(istatPlaceForText("  ")).toBeNull();

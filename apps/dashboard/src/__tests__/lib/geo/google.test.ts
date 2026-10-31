@@ -86,6 +86,26 @@ describe("geocodeAddress", () => {
   });
 });
 
+describe("unreadable bodies", () => {
+  const badJson = () => new Response("<html>oops</html>", { status: 200 });
+  const rejectingJson = () => {
+    const res = new Response("{}", { status: 200 });
+    vi.spyOn(res, "json").mockRejectedValue(new DOMException("timeout", "TimeoutError"));
+    return res;
+  };
+
+  it("maps a non-JSON or aborted body to GoogleMapsUnavailableError", async () => {
+    for (const make of [badJson, rejectingJson]) {
+      fetchMock.mockResolvedValueOnce(make());
+      await expect(geocodeAddress("x")).rejects.toBeInstanceOf(GoogleMapsUnavailableError);
+      fetchMock.mockResolvedValueOnce(make());
+      await expect(autocompletePlaces("via roma")).rejects.toBeInstanceOf(GoogleMapsUnavailableError);
+      fetchMock.mockResolvedValueOnce(make());
+      await expect(getPlaceDetails("p1")).rejects.toBeInstanceOf(GoogleMapsUnavailableError);
+    }
+  });
+});
+
 describe("autocompletePlaces", () => {
   it("posts the query with Italy restriction and session token, maps up to 5 suggestions", async () => {
     fetchMock.mockResolvedValueOnce(json({
@@ -164,6 +184,20 @@ describe("getPlaceDetails", () => {
     await expect(getPlaceDetails("p1")).rejects.toBeInstanceOf(GooglePlaceNotFoundError);
     fetchMock.mockResolvedValueOnce(json({}, 400));
     await expect(getPlaceDetails("p1")).rejects.toBeInstanceOf(GooglePlaceNotFoundError);
+  });
+
+  it("prefers the level_3 comune over a frazione locality", async () => {
+    fetchMock.mockResolvedValueOnce(json({
+      ...DETAILS,
+      addressComponents: [
+        { longText: "Lido di Camaiore", shortText: "Lido di Camaiore", types: ["locality", "political"] },
+        { longText: "Camaiore", shortText: "Camaiore", types: ["administrative_area_level_3", "political"] },
+        { longText: "Provincia di Lucca", shortText: "LU", types: ["administrative_area_level_2"] },
+      ],
+    }));
+    await expect(getPlaceDetails("p1")).resolves.toMatchObject({
+      municipality: "Camaiore", provinceCode: "LU",
+    });
   });
 
   it("throws unavailable on 5xx and not found on an incomplete body", async () => {

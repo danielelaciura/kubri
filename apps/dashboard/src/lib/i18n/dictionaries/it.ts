@@ -494,6 +494,7 @@ export const it = {
     verifyTitle: "Verifica di sicurezza",
     verifyBody: "Prima di caricare il CV controlliamo che tu non sia un robot. Di solito bastano pochi secondi; se compare una casella, selezionala.",
     verifyRetry: "Riprova la verifica",
+    verifyLoading: "Caricamento della verifica…",
     contactTitle: "Controlla i tuoi dati",
     contactBody: "Li abbiamo letti dal CV. Correggili se necessario: {org} li userà per contattarti.",
     firstName: "Nome",

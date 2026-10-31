@@ -154,6 +154,42 @@ describe("LandingFlow", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(t.errors.verifyFailed);
   });
 
+  it("runs the check while the visitor is on the choose step", () => {
+    render(
+      <I18nProvider locale="it">
+        <LandingFlow
+          slug="coop-sole" locale="it" orgName="Coop Sole" waLink={null}
+          privacyPolicyUrl="https://x.it/p" showShare={false} turnstileSiteKey="site-key"
+        />
+      </I18nProvider>,
+    );
+    expect(screen.getByText(t.verifyTitle)).not.toBeVisible();
+    fireEvent.click(screen.getByText("stub-token"));
+    fireEvent.click(screen.getByRole("button", { name: t.uploadCta }));
+    expect(screen.getByRole("button", { name: t.chooseFile })).toBeEnabled();
+  });
+
+  it("keeps a background check failure silent and retries on the verify step", () => {
+    vi.useFakeTimers();
+    render(
+      <I18nProvider locale="it">
+        <LandingFlow
+          slug="coop-sole" locale="it" orgName="Coop Sole" waLink={null}
+          privacyPolicyUrl="https://x.it/p" showShare={false} turnstileSiteKey="site-key"
+        />
+      </I18nProvider>,
+    );
+    fireEvent.click(screen.getByText("stub-error"));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: t.uploadCta }));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByText(t.verifyTitle)).toBeVisible();
+    act(() => {
+      vi.advanceTimersByTime(15_000);
+    });
+    expect(screen.getByRole("alert")).toHaveTextContent(t.errors.verifyFailed);
+  });
+
   it("skips the verification step without a site key (local dev)", () => {
     setup();
     expect(screen.getByRole("button", { name: t.chooseFile })).toBeEnabled();

@@ -496,6 +496,7 @@ export const en = {
     verifyTitle: "Security check",
     verifyBody: "Before you upload your CV we check that you are not a robot. It usually takes a few seconds; if a checkbox appears, tick it.",
     verifyRetry: "Try the check again",
+    verifyLoading: "Loading the check…",
     contactTitle: "Check your details",
     contactBody: "We read them from your CV. Fix them if needed: {org} uses them to contact you.",
     firstName: "First name",

@@ -8,7 +8,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useT } from "@/lib/i18n/provider";
 import type { LandingErrorCode, LandingResult } from "@/lib/landing/flow";
-import type { ContactPrefill } from "@/lib/landing/contact";
+import type { LandingPrefill } from "@/lib/landing/contact";
 import {
   confirmLandingImportAction,
   registerLandingUploadAction,
@@ -35,10 +35,10 @@ type Step =
   | { kind: "verify" }
   | { kind: "upload" }
   | { kind: "working"; label: "uploading" | "reading" }
-  | { kind: "contact"; prefill: ContactPrefill }
+  | { kind: "contact"; prefill: LandingPrefill }
   | { kind: "done" };
 
-type ErrorKey = "busy" | "badFile" | "notCv" | "generic" | "expired" | "verifyFailed";
+type ErrorKey = "busy" | "badFile" | "notCv" | "generic" | "expired" | "verifyFailed" | "placeInvalid";
 
 /** Generic on purpose: never tell an abuser which check fired. */
 function errorKey(code: LandingErrorCode): ErrorKey {
@@ -59,6 +59,8 @@ function errorKey(code: LandingErrorCode): ErrorKey {
     case "SESSION_EXPIRED":
     case "NOT_FOUND":
       return "expired";
+    case "PLACE_INVALID":
+      return "placeInvalid";
     // IN_PROGRESS only reaches here once polling has given up.
     case "IN_PROGRESS":
     default:
@@ -93,6 +95,7 @@ export function LandingFlow(props: LandingFlowProps) {
   const [error, setError] = useState<ErrorKey | null>(null);
   const [canRetryExtraction, setCanRetryExtraction] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [placeResetKey, setPlaceResetKey] = useState(0);
   const [turnstileToken, setTurnstileToken] = useState("");
   const [turnstileKey, setTurnstileKey] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -268,7 +271,10 @@ export function LandingFlow(props: LandingFlowProps) {
       if (r.ok) {
         setError(null);
         setStep({ kind: "done" });
-      } else showError(r.error, null, { retryExtraction: false });
+      } else {
+        if (r.error === "PLACE_INVALID") setPlaceResetKey((k) => k + 1);
+        showError(r.error, null, { retryExtraction: false });
+      }
     } catch {
       showError("INTERNAL_ERROR", null, { retryExtraction: false });
     } finally {
@@ -425,8 +431,8 @@ export function LandingFlow(props: LandingFlowProps) {
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">{org(t.contactBody)}</p>
             <ContactForm
-              orgName={props.orgName} prefill={step.prefill} privacyPolicyUrl={props.privacyPolicyUrl}
-              showShare={props.showShare} busy={busy}
+              slug={props.slug} orgName={props.orgName} prefill={step.prefill} privacyPolicyUrl={props.privacyPolicyUrl}
+              showShare={props.showShare} busy={busy} placeResetKey={placeResetKey}
               onSubmit={(values) => void confirm(values)}
             />
           </CardContent>

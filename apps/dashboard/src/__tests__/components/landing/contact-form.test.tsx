@@ -41,15 +41,23 @@ describe("ContactForm", () => {
   it("submits the confirmed contact", () => {
     const onSubmit = setup();
     fireEvent.change(screen.getByLabelText("Cognome"), { target: { value: "Benali" } });
-    fireEvent.click(screen.getByLabelText(/Ho letto l'informativa/));
+    fireEvent.click(screen.getByLabelText(/Ho letto le informative/));
     fireEvent.click(screen.getByRole("button", { name: "Invia candidatura" }));
     expect(onSubmit).toHaveBeenCalledWith({
       firstName: "Ahmed", lastName: "Benali", phone: "333 1234567", email: "",
-      privacyAccepted: true, shareWithGlobal: false, placeId: "istat:MI:milano", placeSessionToken: undefined,
+      privacyAccepted: true, shareWithGlobal: true, placeId: "istat:MI:milano", placeSessionToken: undefined,
     });
   });
 
-  it("hides the sharing checkbox when not applicable", () => {
+  it("uses one consent for Kubri's and the organization's notices", () => {
+    setup();
+    expect(screen.getAllByRole("checkbox")).toHaveLength(1);
+    expect(screen.getByRole("link", { name: "Kubri" })).toHaveAttribute("href", "https://www.kubri.it/privacy");
+    expect(screen.getByRole("link", { name: "Coop Sole" })).toHaveAttribute("href", "https://x.it/p");
+    expect(screen.getByLabelText(/altre organizzazioni/)).toBeInTheDocument();
+  });
+
+  it("leaves out the sharing sentence when not applicable", () => {
     setup(false);
     expect(screen.queryByLabelText(/altre organizzazioni/)).toBeNull();
   });
@@ -85,15 +93,6 @@ describe("ContactForm", () => {
     expect(screen.getByRole("button", { name: "Invio…" })).toBeDisabled();
   });
 
-  it("submits shareWithGlobal when checked and shows it when applicable", () => {
-    const onSubmit = setup(true);
-    fireEvent.change(screen.getByLabelText("Cognome"), { target: { value: "Benali" } });
-    fireEvent.click(screen.getByLabelText(/Ho letto l'informativa/));
-    fireEvent.click(screen.getByLabelText(/altre organizzazioni/));
-    fireEvent.click(screen.getByRole("button", { name: "Invia candidatura" }));
-    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ shareWithGlobal: true }));
-  });
-
   it("shows the place prefill", () => {
     setup();
     expect(screen.getByRole("combobox", { name: "Dove abiti?" })).toHaveValue("Milano (MI)");
@@ -101,7 +100,7 @@ describe("ContactForm", () => {
 
   it("blocks submit without a place", () => {
     const onSubmit = setup(true, false, { ...PREFILL, lastName: "Benali", place: null });
-    fireEvent.click(screen.getByLabelText(/Ho letto l'informativa/));
+    fireEvent.click(screen.getByLabelText(/Ho letto le informative/));
     fireEvent.click(screen.getByRole("button", { name: "Invia candidatura" }));
     expect(onSubmit).not.toHaveBeenCalled();
     expect(screen.getByText("Scegli un indirizzo dalla lista")).toBeInTheDocument();

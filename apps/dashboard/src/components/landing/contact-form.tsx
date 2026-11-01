@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useT } from "@/lib/i18n/provider";
+import { KUBRI_PRIVACY_URL } from "@/lib/landing/legal";
 import { landingContactSchema, type ContactPrefill, type LandingPrefill } from "@/lib/landing/contact";
 import { PlaceField, type PlaceSelection } from "./place-field";
 
@@ -58,10 +59,11 @@ export function ContactForm({
     setSeenResetKey(placeResetKey);
     setPlace(null);
   }
+  // One consent covers Kubri's and the organization's notices, and (on
+  // consent-driven pools) sharing the profile: it sets both fields.
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
-  const [shareWithGlobal, setShareWithGlobal] = useState(false);
+  const shareWithGlobal = privacyAccepted;
   const [errors, setErrors] = useState<Partial<Record<FieldKey, string>>>({});
-  const org = (s: string) => s.replace("{org}", orgName);
 
   function validate(): boolean {
     const parsed = landingContactSchema.safeParse({
@@ -143,24 +145,20 @@ export function ContactForm({
             onChange={(ev) => setPrivacyAccepted(ev.target.checked)}
           />
           <span>
-            {org(t.privacyLabel)}{" "}
-            <a href={privacyPolicyUrl} target="_blank" rel="noreferrer" className="underline">
-              {t.privacyLink}
-            </a>
+            {t.privacyLabel.split(/(\{kubri\}|\{org\})/).map((part, i) =>
+              part === "{kubri}" ? (
+                <a key={i} href={KUBRI_PRIVACY_URL} target="_blank" rel="noreferrer" className="underline">Kubri</a>
+              ) : part === "{org}" ? (
+                <a key={i} href={privacyPolicyUrl} target="_blank" rel="noreferrer" className="underline">{orgName}</a>
+              ) : (
+                part
+              ),
+            )}
+            {showShare && <> {t.privacyShare}</>}
           </span>
         </label>
         {errors.privacyAccepted && <p id="landing-privacyAccepted-error" role="alert" className="text-sm text-destructive">{errors.privacyAccepted}</p>}
       </div>
-
-      {showShare && (
-        <label className="flex items-start gap-2 text-sm">
-          <input
-            type="checkbox" className="mt-1 h-4 w-4" checked={shareWithGlobal}
-            onChange={(ev) => setShareWithGlobal(ev.target.checked)}
-          />
-          <span>{t.shareLabel}</span>
-        </label>
-      )}
 
       <Button type="submit" className="h-11 w-full text-base" disabled={busy}>
         {busy ? t.submitting : t.submit}

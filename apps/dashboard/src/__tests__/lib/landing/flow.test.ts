@@ -352,8 +352,8 @@ describe("confirmLandingImport", () => {
       rawPayloadExtra: {
         landingPageId: LANDING.id,
         consent: {
-          privacyPolicyUrl: "https://x.it/p", acceptedAt: "2026-10-29T10:00:00.000Z",
-          shareWithGlobal: true, textVersion: "2026-10-29",
+          privacyPolicyUrl: "https://x.it/p", kubriPrivacyPolicyUrl: "https://www.kubri.it/privacy",
+          acceptedAt: "2026-10-29T10:00:00.000Z", shareWithGlobal: true, textVersion: "2026-11-01",
         },
         place: { placeId: "ChIJ1", source: "google", resolvedAt: "2026-10-29T10:00:00.000Z" },
       },
@@ -368,8 +368,8 @@ describe("confirmLandingImport", () => {
       metadata: {
         ipHash: CTX.ipHash,
         consent: {
-          privacyPolicyUrl: "https://x.it/p", acceptedAt: "2026-10-29T10:00:00.000Z",
-          shareWithGlobal: true, textVersion: "2026-10-29",
+          privacyPolicyUrl: "https://x.it/p", kubriPrivacyPolicyUrl: "https://www.kubri.it/privacy",
+          acceptedAt: "2026-10-29T10:00:00.000Z", shareWithGlobal: true, textVersion: "2026-11-01",
         },
         place: { placeId: "ChIJ1", source: "google", resolvedAt: "2026-10-29T10:00:00.000Z" },
       },

@@ -20,6 +20,7 @@ import {
 import { passesCvQualityGate } from "@/lib/documents/quality";
 import { consumeRateLimits, RateLimitUnavailableError, type RateLimitRule } from "@/lib/rate-limit";
 import { verifyTurnstile } from "./turnstile";
+import { KUBRI_PRIVACY_URL } from "./legal";
 import {
   contactFromDraft,
   landingContactSchema,
@@ -35,7 +36,7 @@ import type { ActiveLanding } from "./service";
 export const PUBLIC_MAX_DOCUMENT_BYTES = 5 * 1024 * 1024;
 export const PUBLIC_MAX_OCR_PAGES = 3;
 /** Bump when the consent copy in the dictionaries changes. */
-export const CONSENT_TEXT_VERSION = "2026-10-29";
+export const CONSENT_TEXT_VERSION = "2026-11-01";
 
 const HOUR = 3600;
 const DAY = 24 * HOUR;
@@ -319,10 +320,11 @@ export async function confirmLandingImport(
     if (!place) return fail("PLACE_INVALID");
     const placeRecord = { placeId: place.placeId, source: place.source, resolvedAt: now.toISOString() };
 
-    // The sharing checkbox only means something for consent-driven pools.
+    // Sharing (set by the single consent) only means something for consent-driven pools.
     const shareWithGlobal = landing.pool.globalSharing === "WEBHOOK" && contact.shareWithGlobal;
     const consent = {
       privacyPolicyUrl: landing.privacyPolicyUrl,
+      kubriPrivacyPolicyUrl: KUBRI_PRIVACY_URL,
       acceptedAt: now.toISOString(),
       shareWithGlobal,
       textVersion: CONSENT_TEXT_VERSION,

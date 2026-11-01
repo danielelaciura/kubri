@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { ArrowLeft, FileUp, MessageCircle } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
@@ -91,6 +92,20 @@ function OptionHeading({ icon, tag, children }: { icon: ReactNode; tag: string; 
     <div className="flex flex-col items-center gap-2 text-center">
       {icon}
       <span className="mt-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">{tag}</span>
+      {children}
+    </div>
+  );
+}
+
+const STEP_KEYS = ["upload", "check", "send"] as const;
+
+/**
+ * Fixed-height middle block of an option card (QR, how it works), shown only on
+ * mouse-driven (desktop) browsers, where the two cards sit side by side.
+ */
+function OptionPanel({ children }: { children: ReactNode }) {
+  return (
+    <div className="hidden h-44 flex-col items-center justify-center gap-3 rounded-md border bg-muted/30 p-3 [@media(hover:hover)_and_(pointer:fine)]:flex">
       {children}
     </div>
   );
@@ -316,10 +331,11 @@ export function LandingFlow(props: LandingFlowProps) {
   const headingClass = "outline-none";
 
   // A real link styled as a button (base-ui Button would add role="button").
-  const whatsappButton = props.waLink && (
-    <a href={props.waLink} target="_blank" rel="noreferrer" className={cn(buttonVariants(), "h-11 w-full text-sm")}>
+  // Mouse-driven (desktop) browsers get a different button label; same link.
+  const whatsappButton = (label: string, className: string) => (
+    <a href={props.waLink!} target="_blank" rel="noreferrer" className={cn(buttonVariants(), "mt-auto h-11 w-full text-sm", className)}>
       <MessageCircle className="mr-2 h-4 w-4" aria-hidden="true" />
-      {t.whatsappCta}
+      {label}
     </a>
   );
 
@@ -355,9 +371,20 @@ export function LandingFlow(props: LandingFlowProps) {
                   <CardTitle ref={headingRef} tabIndex={-1} className={cn("text-lg", headingClass)}>{t.whatsappTitle}</CardTitle>
                 </OptionHeading>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="flex flex-1 flex-col gap-4">
                 <p className="text-center text-sm text-muted-foreground">{t.whatsappBody}</p>
-                {whatsappButton}
+                {/* Desktop: WhatsApp Web may not be linked, so the phone is the sure
+                    path. Same wa.me link, same prefilled message. */}
+                <OptionPanel>
+                  <QRCodeSVG
+                    value={props.waLink} size={104} marginSize={2} role="img" aria-label={t.whatsappQrLabel}
+                    className="rounded-sm bg-white"
+                  />
+                  <p className="text-sm font-medium">{t.whatsappQrTitle}</p>
+                </OptionPanel>
+                {whatsappButton(t.whatsappDesktopCta, "hidden [@media(hover:hover)_and_(pointer:fine)]:inline-flex")}
+                {/* Touch devices: straight into the app. */}
+                {whatsappButton(t.whatsappCta, "[@media(hover:hover)_and_(pointer:fine)]:hidden")}
               </CardContent>
             </Card>
           )}
@@ -371,12 +398,28 @@ export function LandingFlow(props: LandingFlowProps) {
                 )}
               </OptionHeading>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="flex flex-1 flex-col gap-4">
               <p className="text-center text-sm text-muted-foreground">{org(t.uploadBody)}</p>
+              {/* Mirrors the QR panel so the two cards line up side by side. */}
+              {props.waLink && (
+                <OptionPanel>
+                  <p className="text-sm font-medium">{t.uploadHowTitle}</p>
+                  <ol className="space-y-1.5 text-sm text-muted-foreground">
+                    {STEP_KEYS.map((key, i) => (
+                      <li key={key} className="flex items-center gap-2">
+                        <span className="flex size-5 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">
+                          {i + 1}
+                        </span>
+                        {t.steps[key]}
+                      </li>
+                    ))}
+                  </ol>
+                </OptionPanel>
+              )}
               <Button
                 variant="outline"
                 // Clear hover/focus on the white card: brand border, tint and text.
-                className="h-11 w-full cursor-pointer text-sm hover:border-primary hover:bg-primary/5 hover:text-primary"
+                className="mt-auto h-11 w-full cursor-pointer text-sm hover:border-primary hover:bg-primary/5 hover:text-primary"
                 onClick={() => setStep({ kind: "verify" })}
               >
                 <FileUp className="mr-2 h-4 w-4" aria-hidden="true" />

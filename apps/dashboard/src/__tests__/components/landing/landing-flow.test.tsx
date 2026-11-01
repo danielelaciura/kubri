@@ -83,6 +83,23 @@ afterEach(() => {
 });
 
 describe("LandingFlow", () => {
+  it("offers the WhatsApp chat by QR (desktop) and by direct link (touch)", () => {
+    const wa = "https://wa.me/390000000000?text=ciao";
+    render(
+      <I18nProvider locale="it">
+        <LandingFlow
+          slug="coop-sole" locale="it" orgName="Coop Sole" waLink={wa}
+          privacyPolicyUrl="https://x.it/p" showShare={false} turnstileSiteKey=""
+        />
+      </I18nProvider>,
+    );
+    expect(screen.getByRole("img", { name: t.whatsappQrLabel })).toBeInTheDocument();
+    // Both buttons are rendered; CSS shows one per pointer type.
+    expect(screen.getByRole("link", { name: t.whatsappDesktopCta })).toHaveAttribute("href", wa);
+    expect(screen.getByRole("link", { name: t.whatsappCta })).toHaveAttribute("href", wa);
+    expect(screen.getByText(t.uploadHowTitle)).toBeInTheDocument();
+  });
+
   it("shows the verification step before the upload and moves on with a token", () => {
     setup("site-key");
     expect(screen.getByText(t.verifyTitle)).toBeVisible();

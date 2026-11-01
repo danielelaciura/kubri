@@ -89,7 +89,7 @@ const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, 
  */
 function OptionHeading({ icon, tag, children }: { icon: ReactNode; tag: string; children: ReactNode }) {
   return (
-    <div className="flex flex-col items-center gap-2 text-center">
+    <div className="flex flex-col items-center gap-1.5 text-center">
       {icon}
       <span className="mt-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">{tag}</span>
       {children}
@@ -105,7 +105,7 @@ const STEP_KEYS = ["upload", "check", "send"] as const;
  */
 function OptionPanel({ children }: { children: ReactNode }) {
   return (
-    <div className="hidden h-44 flex-col items-center justify-center gap-3 rounded-md border bg-muted/30 p-3 [@media(hover:hover)_and_(pointer:fine)]:flex">
+    <div className="hidden h-36 flex-col items-center justify-center gap-2 rounded-md border bg-muted/30 p-2 [@media(hover:hover)_and_(pointer:fine)]:flex">
       {children}
     </div>
   );
@@ -365,19 +365,19 @@ export function LandingFlow(props: LandingFlowProps) {
       {step.kind === "choose" && (
         <div className="grid gap-4 sm:grid-cols-2">
           {props.waLink && (
-            <Card>
+            <Card className="gap-3">
               <CardHeader>
-                <OptionHeading icon={<WhatsAppIcon className="size-11 text-primary" />} tag={t.whatsappTag}>
+                <OptionHeading icon={<WhatsAppIcon className="size-10 text-primary" />} tag={t.whatsappTag}>
                   <CardTitle ref={headingRef} tabIndex={-1} className={cn("text-lg", headingClass)}>{t.whatsappTitle}</CardTitle>
                 </OptionHeading>
               </CardHeader>
-              <CardContent className="flex flex-1 flex-col gap-4">
+              <CardContent className="flex flex-1 flex-col gap-3">
                 <p className="text-center text-sm text-muted-foreground">{t.whatsappBody}</p>
                 {/* Desktop: WhatsApp Web may not be linked, so the phone is the sure
                     path. Same wa.me link, same prefilled message. */}
                 <OptionPanel>
                   <QRCodeSVG
-                    value={props.waLink} size={104} marginSize={2} role="img" aria-label={t.whatsappQrLabel}
+                    value={props.waLink} size={88} marginSize={2} role="img" aria-label={t.whatsappQrLabel}
                     className="rounded-sm bg-white"
                   />
                   <p className="text-sm font-medium">{t.whatsappQrTitle}</p>
@@ -388,9 +388,9 @@ export function LandingFlow(props: LandingFlowProps) {
               </CardContent>
             </Card>
           )}
-          <Card>
+          <Card className="gap-3">
             <CardHeader>
-              <OptionHeading icon={<CvIcon className="size-11 text-primary" />} tag={t.uploadTag}>
+              <OptionHeading icon={<CvIcon className="size-10 text-primary" />} tag={t.uploadTag}>
                 {props.waLink ? (
                   <CardTitle className="text-lg">{t.uploadTitle}</CardTitle>
                 ) : (
@@ -398,13 +398,13 @@ export function LandingFlow(props: LandingFlowProps) {
                 )}
               </OptionHeading>
             </CardHeader>
-            <CardContent className="flex flex-1 flex-col gap-4">
+            <CardContent className="flex flex-1 flex-col gap-3">
               <p className="text-center text-sm text-muted-foreground">{org(t.uploadBody)}</p>
               {/* Mirrors the QR panel so the two cards line up side by side. */}
               {props.waLink && (
                 <OptionPanel>
                   <p className="text-sm font-medium">{t.uploadHowTitle}</p>
-                  <ol className="space-y-1.5 text-sm text-muted-foreground">
+                  <ol className="space-y-1 text-sm text-muted-foreground">
                     {STEP_KEYS.map((key, i) => (
                       <li key={key} className="flex items-center gap-2">
                         <span className="flex size-5 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">

@@ -163,7 +163,8 @@ step(state, event, campaignVersion) → { state, effects }
 - Sent **only on significant events** (`consents.accepted`, `block.completed`,
   `interview.completed`, `profile.updated`) — never per message. The dashboard drops a send
   older than the stored one (`last_updated`).
-- 5xx/429/timeout/network → pg-boss retry; other 4xx or a contract error → dead letter at once
+- 5xx/429/timeout/network/`invalid_response` → pg-boss retry (`KUBRI_WEBHOOK_RETRY_LIMIT`, hours
+  of backoff); a redirect, other 4xx, a contract error or the last attempt → dead letter
   (`JobQueue.deadLetter`, with the reason) + flag `kubri_webhook_failed` (D126).
 - `src/integrations/` is the only code that calls Kubri or renders PDFs; `runtime` uses it
   through interfaces (`KubriClient`, `renderCv`), so tests use `FakeKubriClient`.

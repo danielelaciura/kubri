@@ -117,8 +117,18 @@ export function requireConsentHashSecret(config: RuntimeConfig): string {
   return config.consentHashSecret;
 }
 
-/** pg-boss retries of every queue but send-messages (see sendRetryLimit). */
+/** pg-boss retries of every queue but send-messages and kubri-webhook (see below). */
 export const DEFAULT_RETRY_LIMIT = 5;
+
+/**
+ * pg-boss retries of a kubri-webhook job (D126): enough to outlast a dashboard deploy or a short
+ * outage before the job gives up (dead letter + `kubri_webhook_failed`). With the queue's 10 s
+ * retryDelay and retryBackoff (no retryDelayMax), the wait after the n-th failure is
+ * 10 × 2^(n−1) to 10 × 2^n seconds (jitter), so 10 retries span 10 × (2^10 − 1) = 10 230 s
+ * (≈ 2 h 50 min) at least and ≈ 5 h 40 min at most from the first failure to the last attempt.
+ * Each run sends the profile as it is then (D125), so a late success is never stale data.
+ */
+export const KUBRI_WEBHOOK_RETRY_LIMIT = 10;
 
 /**
  * pg-boss retries of a send-messages job (D108). Every run claims the head message once and a

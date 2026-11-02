@@ -2,7 +2,7 @@ import type { Logger } from "pino";
 import type { KubriClient } from "../../integrations/kubri/client";
 import { buildKubriPayload, KubriContractError } from "../../integrations/kubri/payload";
 import type { Database } from "../../store/db";
-import type { JobPayloads, JobQueue } from "../../store/queue";
+import type { JobAttempt, JobPayloads, JobQueue } from "../../store/queue";
 import { loadSnapshot, type Snapshot } from "../../store/snapshot";
 import { insertFlag } from "../../store/turns";
 import { TransientJobError } from "./errors";
@@ -61,8 +61,15 @@ async function giveUp(deps: KubriJobDeps, job: Job, reason: string): Promise<Kub
 /**
  * Spec §12.1 as a job (D125): read the profile as it is now, map it, send it, classify the
  * outcome. Sending the current state makes the job safe to repeat and to run out of order.
+ * A transient failure throws for pg-boss to retry, except on the last attempt: then the job
+ * gives up like a definitive one (dead letter with the code + flag), so it never reaches the
+ * dead letter queue unflagged.
  */
-export async function handleKubriWebhook(deps: KubriJobDeps, job: Job): Promise<KubriJobResult> {
+export async function handleKubriWebhook(
+  deps: KubriJobDeps,
+  job: Job,
+  attempt: JobAttempt,
+): Promise<KubriJobResult> {
   const ids = { sessionId: job.sessionId, event: job.event };
   const kubri = deps.kubri;
   if (!kubri) {
@@ -97,8 +104,11 @@ export async function handleKubriWebhook(deps: KubriJobDeps, job: Job): Promise<
     );
     return "sent";
   }
-  if (result.kind === "transient") {
-    deps.logger.warn({ ...ids, code: result.code }, "kubri webhook failed: retrying");
+  if (result.kind === "transient" && !attempt.lastAttempt) {
+    deps.logger.warn(
+      { ...ids, code: result.code, retryCount: attempt.retryCount },
+      "kubri webhook failed: retrying",
+    );
     throw new TransientJobError(result.code);
   }
   return giveUp(deps, job, result.code);

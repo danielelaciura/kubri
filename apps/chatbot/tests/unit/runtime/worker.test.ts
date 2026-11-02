@@ -1,6 +1,6 @@
 import { pino } from "pino";
 import { describe, expect, it } from "vitest";
-import { parseRuntimeConfig } from "../../../src/runtime/config";
+import { KUBRI_WEBHOOK_RETRY_LIMIT, parseRuntimeConfig } from "../../../src/runtime/config";
 import { MemoryJobQueue } from "../../../src/runtime/memory-queue";
 import type { RuntimeDeps } from "../../../src/runtime/process-contact";
 import type { SendDeps } from "../../../src/runtime/send-messages";
@@ -84,7 +84,16 @@ describe("workerQueueSettings", () => {
 
     expect(settings.connectionString).toBe(QUEUE_URL);
     expect(settings.schema).toBe("bot_queue");
-    expect(settings.retryLimits).toEqual({ "send-messages": 8 });
+    expect(settings.retryLimits).toMatchObject({ "send-messages": 8 });
+  });
+
+  it("keeps retrying kubri-webhook through a dashboard deploy or outage (D126)", () => {
+    const settings = workerQueueSettings(config, pino({ level: "silent" }));
+
+    expect(settings.retryLimits?.["kubri-webhook"]).toBe(KUBRI_WEBHOOK_RETRY_LIMIT);
+    // pg-boss backoff with the default 10 s delay: at least 10 × (2^limit − 1) seconds in all.
+    expect(10 * (2 ** KUBRI_WEBHOOK_RETRY_LIMIT - 1)).toBeGreaterThanOrEqual(3600);
+    expect(settings.retryDelaySeconds ?? 10).toBe(10);
   });
 
   it("refuses to start without QUEUE_DATABASE_URL outside development and test", () => {

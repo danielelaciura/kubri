@@ -2,6 +2,7 @@ import type { Logger } from "pino";
 import type { KubriClient } from "../integrations/kubri/client";
 import type { QueueRuntime, QueueSettings } from "../store/queue";
 import {
+  KUBRI_WEBHOOK_RETRY_LIMIT,
   requireQueueDatabaseUrl,
   sendRetryLimit,
   workerStopTimeoutMs,
@@ -33,14 +34,20 @@ export interface WorkerDeps {
  * other's retry limits.
  *
  * The direct connection (never the transaction pooler, and never
- * DATABASE_URL in production), enough retries for send-messages (D108), and connection errors
+ * DATABASE_URL in production), enough retries for send-messages (D108) and kubri-webhook
+ * (D126), and connection errors
  * logged by name and SQLSTATE only, since their messages can carry the user or the host.
  */
 export function workerQueueSettings(config: RuntimeConfig, logger: Logger): QueueSettings {
   return {
     connectionString: requireQueueDatabaseUrl(config),
     schema: config.queueSchema,
-    retryLimits: { "send-messages": sendRetryLimit(config) },
+    // send-messages: enough for SEND_MAX_ATTEMPTS (D108); kubri-webhook: hours, to outlast a
+    // dashboard deploy (D126). The others keep the default.
+    retryLimits: {
+      "send-messages": sendRetryLimit(config),
+      "kubri-webhook": KUBRI_WEBHOOK_RETRY_LIMIT,
+    },
     // A turn interrupted mid-transaction rolls back and runs again, but a send would go twice.
     stopTimeoutMs: workerStopTimeoutMs(config),
     onError: (error) => {
@@ -98,10 +105,11 @@ export async function startWorker(deps: WorkerDeps): Promise<void> {
   const oneByOne = { ...options, batchSize: 1 };
   await deps.queue.work(
     "kubri-webhook",
-    async (payload) => {
+    async (payload, attempt) => {
       await handleKubriWebhook(
         { db, logger, queue: deps.queue.queue, kubri: deps.kubri ?? null },
         payload,
+        attempt,
       );
     },
     oneByOne,

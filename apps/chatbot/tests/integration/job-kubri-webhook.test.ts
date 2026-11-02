@@ -15,6 +15,9 @@ let sessionId = "";
 let kubri: FakeKubriClient;
 let queue: MemoryJobQueue;
 
+const NOT_LAST = { retryCount: 0, lastAttempt: false } as const;
+const LAST = { retryCount: 10, lastAttempt: true } as const;
+
 const deps = (): KubriJobDeps => ({ db, logger: silentLogger, queue, kubri });
 const job = (event: KubriEvent = "consents.accepted") => ({ sessionId, event });
 const flags = () => db.sessionFlag.findMany({ where: { sessionId } });
@@ -37,7 +40,7 @@ afterAll(async () => {
 
 describe("handleKubriWebhook (D125, D126, R7)", () => {
   it("creates the candidate at the consent threshold, even with an empty profile (D24)", async () => {
-    expect(await handleKubriWebhook(deps(), job())).toBe("sent");
+    expect(await handleKubriWebhook(deps(), job(), NOT_LAST)).toBe("sent");
 
     expect(kubri.sent).toHaveLength(1);
     expect(kubri.sent[0]).toMatchObject({
@@ -59,7 +62,7 @@ describe("handleKubriWebhook (D125, D126, R7)", () => {
     ]);
     const { updatedAt } = await db.candidateProfile.findUniqueOrThrow({ where: { sessionId } });
 
-    await handleKubriWebhook(deps(), job("interview.completed"));
+    await handleKubriWebhook(deps(), job("interview.completed"), NOT_LAST);
 
     expect(kubri.sent[0]?.data).toMatchObject({
       first_name: "Karim",
@@ -81,7 +84,7 @@ describe("handleKubriWebhook (D125, D126, R7)", () => {
       },
     ]);
 
-    await handleKubriWebhook(deps(), job());
+    await handleKubriWebhook(deps(), job(), NOT_LAST);
 
     expect(kubri.sent[0]?.data).toMatchObject({
       first_name: e.first_name,
@@ -93,7 +96,7 @@ describe("handleKubriWebhook (D125, D126, R7)", () => {
   it("skips a session that no longer exists", async () => {
     await db.contact.delete({ where: { id: s.contactId } });
 
-    expect(await handleKubriWebhook(deps(), job())).toBe("skipped");
+    expect(await handleKubriWebhook(deps(), job(), NOT_LAST)).toBe("skipped");
     expect(kubri.sent).toEqual([]);
   });
 
@@ -104,7 +107,7 @@ describe("handleKubriWebhook (D125, D126, R7)", () => {
     await purgeSessionData(db, sessionId);
     await stop();
 
-    expect(await handleKubriWebhook(deps(), job("profile.updated"))).toBe("skipped");
+    expect(await handleKubriWebhook(deps(), job("profile.updated"), NOT_LAST)).toBe("skipped");
     expect(kubri.sent).toEqual([]);
   });
 
@@ -114,23 +117,38 @@ describe("handleKubriWebhook (D125, D126, R7)", () => {
     ]);
     await stop();
 
-    expect(await handleKubriWebhook(deps(), job())).toBe("sent");
+    expect(await handleKubriWebhook(deps(), job(), NOT_LAST)).toBe("sent");
     expect(kubri.sent[0]?.data).toMatchObject({ interview_status: "stopped" });
   });
 
   it("counts a send the dashboard skipped as stale as done", async () => {
     kubri = new FakeKubriClient([{ ok: true, skipped: "stale" }]);
 
-    expect(await handleKubriWebhook(deps(), job())).toBe("sent");
+    expect(await handleKubriWebhook(deps(), job(), NOT_LAST)).toBe("sent");
     expect(queue.deadLetters).toEqual([]);
   });
 
   it("asks pg-boss for a retry on a transient failure, without flagging", async () => {
     kubri = new FakeKubriClient([{ ok: false, kind: "transient", code: "http_503", status: 503 }]);
 
-    await expect(handleKubriWebhook(deps(), job())).rejects.toThrow(TransientJobError);
+    await expect(handleKubriWebhook(deps(), job(), NOT_LAST)).rejects.toThrow(TransientJobError);
     expect(queue.deadLetters).toEqual([]);
     expect(await flags()).toEqual([]);
+  });
+
+  it("gives up like a definitive failure when the last attempt fails for now (D126)", async () => {
+    kubri = new FakeKubriClient([{ ok: false, kind: "transient", code: "http_503", status: 503 }]);
+
+    expect(await handleKubriWebhook(deps(), job(), LAST)).toBe("dead");
+
+    expect(queue.deadLetters).toEqual([
+      { name: "kubri-webhook", payload: job(), reason: "http_503" },
+    ]);
+    expect(await flags()).toMatchObject([
+      { reason: "kubri_webhook_failed", needsAttention: false, turnId: null },
+    ]);
+    const session = await db.session.findUniqueOrThrow({ where: { id: sessionId } });
+    expect(session.status).toBe("active");
   });
 
   it.each(["unauthorized", "validation_failed", "unknown_pool"])(
@@ -138,7 +156,7 @@ describe("handleKubriWebhook (D125, D126, R7)", () => {
     async (code) => {
       kubri = new FakeKubriClient([{ ok: false, kind: "permanent", code, status: 400 }]);
 
-      expect(await handleKubriWebhook(deps(), job())).toBe("dead");
+      expect(await handleKubriWebhook(deps(), job(), NOT_LAST)).toBe("dead");
 
       expect(queue.deadLetters).toEqual([{ name: "kubri-webhook", payload: job(), reason: code }]);
       expect(await flags()).toMatchObject([
@@ -150,7 +168,7 @@ describe("handleKubriWebhook (D125, D126, R7)", () => {
   );
 
   it("sends every job to the dead letter queue when Kubri is not configured (R9, development)", async () => {
-    expect(await handleKubriWebhook({ ...deps(), kubri: null }, job())).toBe("dead");
+    expect(await handleKubriWebhook({ ...deps(), kubri: null }, job(), NOT_LAST)).toBe("dead");
 
     expect(queue.deadLetters).toEqual([
       { name: "kubri-webhook", payload: job(), reason: "not_configured" },
@@ -164,7 +182,7 @@ describe("handleKubriWebhook (D125, D126, R7)", () => {
       { field: "country", value: "Marocco", confidence: 0.95, status: "inferred" },
     ]);
 
-    expect(await handleKubriWebhook(deps(), job())).toBe("dead");
+    expect(await handleKubriWebhook(deps(), job(), NOT_LAST)).toBe("dead");
 
     expect(kubri.sent).toEqual([]);
     expect(queue.deadLetters).toEqual([

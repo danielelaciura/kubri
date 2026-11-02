@@ -170,7 +170,9 @@ describe("scoreCase", () => {
       failure: "invalid_output",
       nlu: { runs: 1, passed: 0, repaired: 1, invalidOutput: 1, unavailable: 0 },
     });
-    expect(result.checks.intent?.ok).toBe(true);
+    // Scored against no interpretation: the fallback's `unclear` is not the model's reading.
+    expect(result.checks.intent).toEqual({ expected: "unclear", actual: null, ok: false });
+    expect(result.actual).toBeNull();
   });
 
   it("counts a repair that worked, and a run over the deadline, without failing the case", () => {

@@ -58,7 +58,7 @@ export interface Metrics {
   readonly completeness: Ratio;
   readonly editTarget: Ratio;
   readonly fields: Readonly<Record<string, FieldMetrics>>;
-  /** expected intent → actual intent ("none" = unavailable) → count. */
+  /** expected intent → actual intent ("none" = unavailable, "invalid" = invalid output) → count. */
   readonly confusion: Readonly<Record<string, Readonly<Record<string, number>>>>;
   readonly byLanguage: Readonly<Record<string, GroupMetrics>>;
   readonly byTag: Readonly<Record<string, GroupMetrics>>;
@@ -149,10 +149,10 @@ function fieldMetrics(results: readonly CaseResult[]): Record<string, FieldMetri
 
 function confusionMatrix(results: readonly CaseResult[]): Record<string, Record<string, number>> {
   const matrix: Record<string, Record<string, number>> = {};
-  for (const { checks } of results) {
+  for (const { checks, failure } of results) {
     if (!checks.intent) continue;
     const row = (matrix[checks.intent.expected] ??= {});
-    const column = checks.intent.actual ?? "none";
+    const column = failure === "invalid_output" ? "invalid" : (checks.intent.actual ?? "none");
     row[column] = (row[column] ?? 0) + 1;
   }
   return matrix;

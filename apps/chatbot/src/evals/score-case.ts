@@ -171,18 +171,20 @@ function checksPass(checks: Checks): boolean {
 
 /**
  * D93: judges one answer of the NLU (null = unavailable) against the case. An answer that was
- * not valid is the `unclear` fallback, not the model's reading: it always fails (E2).
+ * not valid is the `unclear` fallback, not the model's reading (E2): the case is scored as if
+ * the NLU had said nothing, so every check it asks is wrong and every expected field missing.
  */
 export function scoreCase(
   c: EvalCase,
   campaign: CampaignDefinition,
-  actual: Interpretation | null,
+  reply: Interpretation | null,
   run: RunStats,
 ): CaseResult {
+  const failure: NluFailure | null =
+    reply === null ? "unavailable" : run.valid ? null : "invalid_output";
+  const actual = failure === null ? reply : null;
   const checks = scoreChecks(c, campaign, actual);
   const patch = scorePatch(c, campaign, actual);
-  const failure: NluFailure | null =
-    actual === null ? "unavailable" : run.valid ? null : "invalid_output";
   const pass =
     failure === null &&
     checksPass(checks) &&

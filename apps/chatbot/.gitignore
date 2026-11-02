@@ -9,6 +9,6 @@ src/generated/
 !.env.example
 !.env.test
 
-# local eval runs; committed baselines live in evals/reports/baselines/
-evals/reports/*
-!evals/reports/baselines/
+# per-run eval reports stay local; baselines (evals/baselines/) and judge calibrations
+# (evals/calibration/) are committed (spec D97)
+evals/reports/

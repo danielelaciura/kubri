@@ -116,13 +116,29 @@ step(state, event, campaignVersion) → { state, effects }
 - Scorers: deterministic first, structured second, LLM-as-judge only where unavoidable (and
   calibrated against human labels).
 - Key metric: **hallucination rate** (fields extracted that the candidate never said). Gates
-  (blocking, `evals run` exits 1): hallucinations ≤ 1%, intent accuracy ≥ 95%, no language
-  losing more than 2 points against the baseline, for languages with ≥ 10 cases (D98).
-- A reply still invalid after the repair fails its case (`invalid_output`): evals call
+  (blocking, `evals run` exits 1, `src/evals/gates.ts`, D98):
+  - calls: unavailable ≤ 2%, invalid output ≤ 2% of the runs;
+  - quality: hallucinations ≤ 1%, intent accuracy ≥ 95%, language accuracy ≥ 95% (cases that
+    expect a language: the `language` suite), no language losing more than 2 points against the
+    baseline, compared case by case on the ids both runs share, for languages with ≥ 10 of them.
+  - A gate with nothing to measure is skipped; a run whose quality gates are **all** skipped
+    fails ("no gate applied"). A failing run is never saved as the baseline (except with
+    `--force-baseline`).
+- A reply still invalid after the repair fails its case (`invalid_output`) and is scored as no
+  interpretation at all (wrong intent/language/choice, expected fields missing): evals call
   `interpretContext` directly, never the `Interpreter` that hides it behind `unclear` (D96).
+- `--repeat N`: a case passes only if every run passes; accuracies, hallucinations, fields and
+  the confusion matrix count every run (D96).
+- `evals run` disables the fallback model (it measures the model under test alone) and records
+  per run the model that answered (D96).
 - The translation judge lives in `nlu` (`src/nlu/judge.ts`), never falls back to another model,
-  and is trusted only after a passing `evals calibrate` for that model and judge prompt (D100).
-- Reports go in `evals/reports/` (JSON + Markdown).
+  must differ from `NLU_TRANSLATE_MODEL` and `NLU_FALLBACK_MODEL`, and is trusted only after a
+  passing `evals calibrate` for that model, judge prompt and calibration dataset; `evals
+  translation` stops at the first grade given by another dated model than the calibrated one
+  (D100). It exits 1 when a translation fails or loses its placeholders.
+- Per-run reports go in `evals/reports/` (JSON + Markdown) and stay local (gitignored).
+  Baselines (`evals/baselines/`) and judge calibrations (`evals/calibration/`) are committed
+  (D97).
 - **The project owner is learning evals through this project.** When working on evals, explain
   the concept behind each piece (what it measures, why, trade-offs) in plain terms, not just the
   code.
@@ -312,12 +328,13 @@ pnpm cli worker start --channel meta --nlu llm --translator llm   # replies go t
   seed the evals (plan 07).
 
 - `evals` call the real LLM (`MISTRAL_API_KEY`) and cost money: run them on a prompt, model or
-  interpretation-schema change, not on every commit. Reports go in `evals/reports/`, baselines
-  in `evals/baselines/`, judge calibrations in `evals/calibration/` (all committed, all outside
-  Prettier). `--save-baseline` writes the baseline only when the gates pass (`--force-baseline`
-  accepts a worse run on purpose). `evals translation` refuses an uncalibrated judge unless
-  `--uncalibrated` (recorded in the report). Datasets are **synthetic**: never real candidate
-  data. The judge model (`NLU_JUDGE_MODEL`) must differ from `NLU_TRANSLATE_MODEL`.
+  interpretation-schema change, not on every commit. Reports go in `evals/reports/` (local,
+  gitignored); baselines in `evals/baselines/` and judge calibrations in `evals/calibration/`
+  are committed (all three outside Prettier). `--save-baseline` writes the baseline only when
+  the gates pass (`--force-baseline` accepts a worse run on purpose). `evals translation`
+  refuses an uncalibrated judge unless `--uncalibrated` (recorded in the report). Datasets are
+  **synthetic**: never real candidate data. The judge model (`NLU_JUDGE_MODEL`) must differ
+  from `NLU_TRANSLATE_MODEL` and `NLU_FALLBACK_MODEL`.
   First baseline (owner, once the key exists): `pnpm cli evals calibrate`, then
   `pnpm cli evals run --suite <suite> --save-baseline` for each of the four suites.
 

@@ -31,6 +31,8 @@ export interface CliDeps {
   readonly openInput: () => LineInput;
   /** The current time, ISO-8601: the engine gets time from its events. */
   readonly now: () => string;
+  /** Writes a text file, creating its folder (evals reports and baselines). */
+  readonly writeFile: (path: string, content: string) => Promise<void>;
   /** The LLM and its configuration, built only by commands that need them (D81). */
   readonly nlu: () => NluServices;
 }

@@ -1,4 +1,5 @@
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname } from "node:path";
 import { createInterface } from "node:readline";
 import { parseEnv, parseNodeEnv } from "../config/env";
 import { createNluServices } from "../nlu/services";
@@ -40,6 +41,10 @@ const deps: CliDeps = {
     };
   },
   now: () => new Date().toISOString(),
+  writeFile: async (path, content) => {
+    await mkdir(dirname(path), { recursive: true });
+    await writeFile(path, content, "utf8");
+  },
   nlu: () => createNluServices(process.env),
 };
 

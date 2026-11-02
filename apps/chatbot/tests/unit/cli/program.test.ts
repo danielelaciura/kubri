@@ -32,7 +32,7 @@ describe("kubri-bot CLI", () => {
     expect(runCli(["--help"]).output).toContain("Usage: kubri-bot");
   });
 
-  it.each(["orgs", "senders", "campaigns", "worker", "web", "inbound"])(
+  it.each(["orgs", "senders", "campaigns", "evals", "worker", "web", "inbound"])(
     "lists the %s command in the help",
     (name) => {
       expect(runCli(["--help"]).output).toContain(name);

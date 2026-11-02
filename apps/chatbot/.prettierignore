@@ -3,6 +3,7 @@ src/generated
 prisma/migrations
 pnpm-lock.yaml
 evals/reports
+evals/baselines
 CLAUDE.md
 docs
 .impeccable

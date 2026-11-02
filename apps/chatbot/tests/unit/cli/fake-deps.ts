@@ -7,6 +7,8 @@ export interface FakeCli {
   readonly deps: CliDeps;
   readonly stdout: string[];
   readonly stderr: string[];
+  /** Files written by the command, by path. */
+  readonly written: Record<string, string>;
   /** True once a command closed the keyboard input it opened. */
   inputClosed: () => boolean;
 }
@@ -28,11 +30,14 @@ export function fakeCli(
   const queue = [...inputs];
   let closed = false;
   let minute = 0;
+  const written: Record<string, string> = {};
+  // What a command writes, a later read in the same run sees.
+  const store: Record<string, string> = { ...files };
   const deps: CliDeps = {
     out: (line) => stdout.push(line),
     err: (line) => stderr.push(line),
     readFile: (path) => {
-      const content = files[path];
+      const content = store[path];
       return content === undefined
         ? Promise.reject(new Error(`ENOENT: ${path}`))
         : Promise.resolve(content);
@@ -46,10 +51,15 @@ export function fakeCli(
       },
     }),
     now: () => new Date(Date.UTC(2026, 9, 24, 10, minute++)).toISOString(),
+    writeFile: (path, content) => {
+      written[path] = content;
+      store[path] = content;
+      return Promise.resolve();
+    },
     nlu: () => {
       if (!llm) throw new Error("unit tests never reach the real LLM");
       return { provider: llm, config: parseNluConfig({}) };
     },
   };
-  return { deps, stdout, stderr, inputClosed: () => closed };
+  return { deps, stdout, stderr, written, inputClosed: () => closed };
 }

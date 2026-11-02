@@ -31,6 +31,7 @@ export async function runCli(
     // No keyboard in integration tests: simulate reads end-of-input at once.
     openInput: () => ({ next: () => Promise.resolve(null), close: () => undefined }),
     now: () => new Date().toISOString(),
+    writeFile: () => Promise.reject(new Error("integration tests do not write files")),
     nlu: () => {
       throw new Error("integration tests never reach the real LLM");
     },

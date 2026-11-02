@@ -12,7 +12,6 @@ import { REAL_TIMING } from "../../nlu/call-policy";
 import { parseNluConfig } from "../../nlu/config";
 import { createLlmInterpreter } from "../../nlu/interpret";
 import type { Interpreter } from "../../nlu/interpreter";
-import type { NluServices } from "../../nlu/services";
 import type { NluTraceSink } from "../../nlu/trace";
 import { createLlmTranslator } from "../../nlu/translate";
 import { createLogger } from "../../observability/logger";
@@ -21,6 +20,7 @@ import { startWorker, workerQueueSettings } from "../../runtime/worker";
 import { createQueueRuntime } from "../../store/queue";
 import { createDatabaseTraceSink, createDatabaseTranslationCache } from "../../store/traces";
 import { CliError, type CliDeps } from "../deps";
+import { connectLlm } from "../llm";
 import { untilStopped } from "../until-stopped";
 import { naiveInterpreter } from "../simulate/naive-interpreter";
 import {
@@ -81,14 +81,6 @@ function readConfig(options: WorkerOptions) {
     const queueSettings = workerQueueSettings(config, logger);
     const kubri = kubriConfig(env.NODE_ENV);
     return { config, consentHashSecret, logger, queueSettings, graphVersion, kubri };
-  } catch (error: unknown) {
-    throw new CliError(error instanceof Error ? error.message : String(error));
-  }
-}
-
-function connectLlm(deps: CliDeps): NluServices {
-  try {
-    return deps.nlu();
   } catch (error: unknown) {
     throw new CliError(error instanceof Error ? error.message : String(error));
   }

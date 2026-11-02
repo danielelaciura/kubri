@@ -1,6 +1,7 @@
 import { Command } from "commander";
 import { VERSION } from "../version";
 import { registerCampaignCommands } from "./commands/campaigns";
+import { registerEvalsCommands } from "./commands/evals";
 import { registerInboundCommands } from "./commands/inbound";
 import { registerOrgCommands } from "./commands/orgs";
 import { registerSenderCommands } from "./commands/senders";
@@ -17,6 +18,7 @@ export function createProgram(deps: CliDeps): Command {
   registerOrgCommands(program, deps);
   registerSenderCommands(program, deps);
   registerCampaignCommands(program, deps);
+  registerEvalsCommands(program, deps);
   registerWorkerCommands(program, deps);
   registerWebCommands(program, deps);
   registerInboundCommands(program, deps);

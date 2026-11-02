@@ -34,10 +34,22 @@ export const MessageStepSchema = z.strictObject({
   on: OnSchema,
 });
 
+/** A list row holds 24 characters (WhatsApp); buttons hold 20 and are cut by the channel. */
+export const MAX_CHOICE_LABEL_LENGTH = 24;
+
 export const ChoiceOptionSchema = z.strictObject({
   id: IdSchema,
   /** Read by the LLM to classify the candidate's answer. */
   description: z.string().trim().min(1),
+  /**
+   * What the candidate taps on a button or a list row (plan 09, D113). Without it only
+   * `yes`, `no` and `idk` have a label (the catalog's), and a step with any other unlabeled
+   * option is asked in plain text.
+   */
+  label: LocalizedTextSchema.refine(
+    (text) => Array.from(text["it"] ?? "").length <= MAX_CHOICE_LABEL_LENGTH,
+    { error: `the Italian label holds at most ${MAX_CHOICE_LABEL_LENGTH} characters` },
+  ).optional(),
 });
 
 export const ChoiceStepSchema = z.strictObject({

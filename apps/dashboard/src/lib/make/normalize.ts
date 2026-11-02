@@ -62,6 +62,7 @@ export function normalizeForUpsert(
 ): Prisma.CandidateUncheckedCreateInput {
   const d = payload.data;
   const jp = (d["job_preferences"] ?? {}) as Record<string, unknown>;
+  const lp = (d["learning_preferences"] ?? {}) as Record<string, unknown>;
 
   // Prefer lat/lng explicitly sent by Make. If Make didn't include them but
   // we have a parseable address, geocode the comune locally via ISTAT data.
@@ -108,6 +109,8 @@ export function normalizeForUpsert(
     preferredLocation: nullableString(jp["preferred_location"]),
     jobConstraints: nullableString(jp["constraints"]),
     hasDesiredJobExperience: nullableString(jp["has_desired_job_experience"]),
+
+    learningPreference: nullableString(lp["learning_preference"]),
 
     interviewLanguage: nullableString(d["interview_language"]),
     sourceOrganization: nullableString(d["source_organization"]),

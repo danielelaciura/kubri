@@ -43,6 +43,7 @@ The historical "Make.com Data Store as source of truth" design has been supersed
 - **Candidate ingestion:** webhook from Make → upsert in `Candidate` table
 - **Embeddings:** Supabase Edge Functions with `gte-small` (384-dim, multilingual, EU-hosted, free tier)
 - **Auth:** Supabase Auth
+- **CV import:** Mistral (OCR + JSON chat, EU-hosted); CV files in the private Supabase Storage bucket `candidate-documents` (service role only, signed URLs)
 - **PDF generation:** @react-pdf/renderer
 - **Hosting:** Vercel
 - **Package manager:** pnpm
@@ -119,7 +120,7 @@ This is the ingestion path. The Make scenario POSTs a candidate payload here whe
 5. Generates the embedding via the Supabase Edge Function and writes `embedding` / `embeddingText` / `embeddingUpdatedAt`
 6. Returns 200
 
-The webhook is the **only** sanctioned write path for candidate data. The dashboard's UI is read-only on candidate profile fields (notes and tags are separate models).
+Every write to `Candidate` goes through `src/lib/candidates/ingest.ts` (`upsertCandidate` / `ingestCandidate`). Sanctioned callers: the Make webhook, the assessment webhook, dashboard candidate creation (manual form and CV import, `src/lib/candidates/dashboard-create.ts` and `src/lib/candidate-imports/`), the public candidate landing (`src/lib/landing/`), and backfill scripts. Editing existing candidates from the UI is not supported.
 
 ### Legacy `src/lib/make/` module
 
@@ -137,6 +138,8 @@ Models (see `prisma/schema.prisma` for full field lists):
 - **JobDescription** — JD per organization, with `description`, `skills[]`, location fields and (after the semantic matching feature) an `embedding` vector
 - **Candidate** — full candidate profile, scoped by `poolId`, identified externally by `externalId`. Holds the raw Make payload (`rawPayload`) and the embedding columns
 - **CandidateNote**, **CandidateTag** — dashboard-side metadata linked to `Candidate` via FK
+- **CandidateImport** — a CV upload being turned into a candidate (status, extracted text, LLM draft); text and draft are cleared when discarded or confirmed
+- **CandidateDocument** — the CV file attached to a candidate; stays with the uploading organization
 - **AuditLog** — append-only log of user actions
 
 Conventions:
@@ -170,9 +173,10 @@ Conventions:
 - Use Prisma transactions for multi-step operations
 
 ### Candidate ingestion
-- The Make webhook is the canonical write path for `Candidate` rows. Do not write to `Candidate` from anywhere else (except backfill scripts under `scripts/`)
+- All `Candidate` writes go through `ingestCandidate` / `upsertCandidate`. Never call `prisma.candidate.create/update/upsert` directly elsewhere (backfill scripts under `scripts/` excepted)
 - The webhook handler is responsible for upserting **and** for regenerating the embedding (sync). If embedding fails, log and leave `embedding = null`; a nightly cron will retry
-- Never expose write endpoints for candidate profile fields to the dashboard UI
+- The dashboard may create candidates (form or CV import) but never edit existing profile fields
+- The public candidate landing (`/candidati/[slug]`, `src/lib/landing/`) is a sanctioned write path: it creates `Candidate` rows with `channel = "landing_cv"` (or attaches the CV to an existing same-phone candidate of the same pool) through `confirmImport`. Every public upload goes through Turnstile, Upstash rate limits (fail-closed in production), `inspectPublicDocument` and the pre-LLM quality gate — never bypass them. The candidate's address comes from the required place field: the place id is resolved server-side (`src/lib/landing/place.ts`, Google or ISTAT fallback); never accept client-sent coordinates.
 
 ### Semantic search (embeddings)
 - Embeddings are generated via a Supabase Edge Function running `gte-small` (multilingual, 384-dim, free, EU-hosted). Never send candidate text to an external embedding provider
@@ -251,11 +255,13 @@ See `.env.example` for the current authoritative list. The categories in use tod
 - **Supabase**: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
 - **Supabase Edge Functions** (semantic matching): `SUPABASE_EDGE_FUNCTION_URL`, `EMBEDDING_TIMEOUT_MS`
 - **Make webhook**: shared secret for the candidate ingestion endpoint
+- **Mistral**: `MISTRAL_API_KEY` (CV OCR + draft extraction)
 - **Cron**: `CRON_SECRET` for protected scheduled jobs
+- **Candidate landing**: `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, `LANDING_COOKIE_SECRET` (≥32 chars), `LANDING_IP_SALT` (≥16 chars), `GOOGLE_MAPS_API_KEY` (server only; address autocomplete/geocoding, ISTAT fallback when unset); Upstash Redis is required in production for its rate limits
 
 ## Things NOT To Do
 
-- Do NOT bypass the Make webhook to write `Candidate` rows from the UI or from server actions — backfill scripts are the only exception
+- Do NOT write `Candidate` rows outside `ingestCandidate` / `upsertCandidate`
 - Do NOT build the chatbot — it is out of scope, it stays on Make
 - Do NOT integrate WhatsApp Business API — that is Phase 2
 - Do NOT build an interview question editor — that is Phase 2
@@ -277,6 +283,7 @@ Done or in progress:
 7. Organization management (invites, roles, pools)
 8. JD creation and basic matching (location filter live, semantic matching in design)
 9. Terms acceptance modal
+10. Candidate creation from the dashboard (manual form + CV import with Mistral OCR/LLM)
 
 Next:
 
@@ -291,3 +298,4 @@ Next:
 4. Candidate data is personal sensitive data (GDPR) — audit log access, no data leaks between orgs
 5. Embedding text and vectors never leave the Supabase infrastructure (Edge Function with `gte-small`)
 6. The Supabase service role key is server-side only, never shipped to the client
+7. Public endpoints (`/candidati`) never trust a request-supplied import id: the import is bound to the browser by the signed `kubri_landing_import` cookie

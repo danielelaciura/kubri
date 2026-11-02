@@ -208,6 +208,8 @@ export type PoolWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"Pool"> | Date | string
   candidates?: Prisma.CandidateListRelationFilter
   organizations?: Prisma.OrganizationPoolListRelationFilter
+  candidateImports?: Prisma.CandidateImportListRelationFilter
+  landingPages?: Prisma.CandidateLandingPageListRelationFilter
 }
 
 export type PoolOrderByWithRelationInput = {
@@ -221,6 +223,8 @@ export type PoolOrderByWithRelationInput = {
   updatedAt?: Prisma.SortOrder
   candidates?: Prisma.CandidateOrderByRelationAggregateInput
   organizations?: Prisma.OrganizationPoolOrderByRelationAggregateInput
+  candidateImports?: Prisma.CandidateImportOrderByRelationAggregateInput
+  landingPages?: Prisma.CandidateLandingPageOrderByRelationAggregateInput
 }
 
 export type PoolWhereUniqueInput = Prisma.AtLeast<{
@@ -237,6 +241,8 @@ export type PoolWhereUniqueInput = Prisma.AtLeast<{
   updatedAt?: Prisma.DateTimeFilter<"Pool"> | Date | string
   candidates?: Prisma.CandidateListRelationFilter
   organizations?: Prisma.OrganizationPoolListRelationFilter
+  candidateImports?: Prisma.CandidateImportListRelationFilter
+  landingPages?: Prisma.CandidateLandingPageListRelationFilter
 }, "id" | "slug" | "externalKey">
 
 export type PoolOrderByWithAggregationInput = {
@@ -278,6 +284,8 @@ export type PoolCreateInput = {
   updatedAt?: Date | string
   candidates?: Prisma.CandidateCreateNestedManyWithoutPoolInput
   organizations?: Prisma.OrganizationPoolCreateNestedManyWithoutPoolInput
+  candidateImports?: Prisma.CandidateImportCreateNestedManyWithoutPoolInput
+  landingPages?: Prisma.CandidateLandingPageCreateNestedManyWithoutPoolInput
 }
 
 export type PoolUncheckedCreateInput = {
@@ -291,6 +299,8 @@ export type PoolUncheckedCreateInput = {
   updatedAt?: Date | string
   candidates?: Prisma.CandidateUncheckedCreateNestedManyWithoutPoolInput
   organizations?: Prisma.OrganizationPoolUncheckedCreateNestedManyWithoutPoolInput
+  candidateImports?: Prisma.CandidateImportUncheckedCreateNestedManyWithoutPoolInput
+  landingPages?: Prisma.CandidateLandingPageUncheckedCreateNestedManyWithoutPoolInput
 }
 
 export type PoolUpdateInput = {
@@ -304,6 +314,8 @@ export type PoolUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   candidates?: Prisma.CandidateUpdateManyWithoutPoolNestedInput
   organizations?: Prisma.OrganizationPoolUpdateManyWithoutPoolNestedInput
+  candidateImports?: Prisma.CandidateImportUpdateManyWithoutPoolNestedInput
+  landingPages?: Prisma.CandidateLandingPageUpdateManyWithoutPoolNestedInput
 }
 
 export type PoolUncheckedUpdateInput = {
@@ -317,6 +329,8 @@ export type PoolUncheckedUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   candidates?: Prisma.CandidateUncheckedUpdateManyWithoutPoolNestedInput
   organizations?: Prisma.OrganizationPoolUncheckedUpdateManyWithoutPoolNestedInput
+  candidateImports?: Prisma.CandidateImportUncheckedUpdateManyWithoutPoolNestedInput
+  landingPages?: Prisma.CandidateLandingPageUncheckedUpdateManyWithoutPoolNestedInput
 }
 
 export type PoolCreateManyInput = {
@@ -430,6 +444,34 @@ export type PoolUpdateOneRequiredWithoutCandidatesNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.PoolUpdateToOneWithWhereWithoutCandidatesInput, Prisma.PoolUpdateWithoutCandidatesInput>, Prisma.PoolUncheckedUpdateWithoutCandidatesInput>
 }
 
+export type PoolCreateNestedOneWithoutCandidateImportsInput = {
+  create?: Prisma.XOR<Prisma.PoolCreateWithoutCandidateImportsInput, Prisma.PoolUncheckedCreateWithoutCandidateImportsInput>
+  connectOrCreate?: Prisma.PoolCreateOrConnectWithoutCandidateImportsInput
+  connect?: Prisma.PoolWhereUniqueInput
+}
+
+export type PoolUpdateOneRequiredWithoutCandidateImportsNestedInput = {
+  create?: Prisma.XOR<Prisma.PoolCreateWithoutCandidateImportsInput, Prisma.PoolUncheckedCreateWithoutCandidateImportsInput>
+  connectOrCreate?: Prisma.PoolCreateOrConnectWithoutCandidateImportsInput
+  upsert?: Prisma.PoolUpsertWithoutCandidateImportsInput
+  connect?: Prisma.PoolWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.PoolUpdateToOneWithWhereWithoutCandidateImportsInput, Prisma.PoolUpdateWithoutCandidateImportsInput>, Prisma.PoolUncheckedUpdateWithoutCandidateImportsInput>
+}
+
+export type PoolCreateNestedOneWithoutLandingPagesInput = {
+  create?: Prisma.XOR<Prisma.PoolCreateWithoutLandingPagesInput, Prisma.PoolUncheckedCreateWithoutLandingPagesInput>
+  connectOrCreate?: Prisma.PoolCreateOrConnectWithoutLandingPagesInput
+  connect?: Prisma.PoolWhereUniqueInput
+}
+
+export type PoolUpdateOneRequiredWithoutLandingPagesNestedInput = {
+  create?: Prisma.XOR<Prisma.PoolCreateWithoutLandingPagesInput, Prisma.PoolUncheckedCreateWithoutLandingPagesInput>
+  connectOrCreate?: Prisma.PoolCreateOrConnectWithoutLandingPagesInput
+  upsert?: Prisma.PoolUpsertWithoutLandingPagesInput
+  connect?: Prisma.PoolWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.PoolUpdateToOneWithWhereWithoutLandingPagesInput, Prisma.PoolUpdateWithoutLandingPagesInput>, Prisma.PoolUncheckedUpdateWithoutLandingPagesInput>
+}
+
 export type PoolCreateWithoutOrganizationsInput = {
   id?: string
   name: string
@@ -440,6 +482,8 @@ export type PoolCreateWithoutOrganizationsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   candidates?: Prisma.CandidateCreateNestedManyWithoutPoolInput
+  candidateImports?: Prisma.CandidateImportCreateNestedManyWithoutPoolInput
+  landingPages?: Prisma.CandidateLandingPageCreateNestedManyWithoutPoolInput
 }
 
 export type PoolUncheckedCreateWithoutOrganizationsInput = {
@@ -452,6 +496,8 @@ export type PoolUncheckedCreateWithoutOrganizationsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   candidates?: Prisma.CandidateUncheckedCreateNestedManyWithoutPoolInput
+  candidateImports?: Prisma.CandidateImportUncheckedCreateNestedManyWithoutPoolInput
+  landingPages?: Prisma.CandidateLandingPageUncheckedCreateNestedManyWithoutPoolInput
 }
 
 export type PoolCreateOrConnectWithoutOrganizationsInput = {
@@ -480,6 +526,8 @@ export type PoolUpdateWithoutOrganizationsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   candidates?: Prisma.CandidateUpdateManyWithoutPoolNestedInput
+  candidateImports?: Prisma.CandidateImportUpdateManyWithoutPoolNestedInput
+  landingPages?: Prisma.CandidateLandingPageUpdateManyWithoutPoolNestedInput
 }
 
 export type PoolUncheckedUpdateWithoutOrganizationsInput = {
@@ -492,6 +540,8 @@ export type PoolUncheckedUpdateWithoutOrganizationsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   candidates?: Prisma.CandidateUncheckedUpdateManyWithoutPoolNestedInput
+  candidateImports?: Prisma.CandidateImportUncheckedUpdateManyWithoutPoolNestedInput
+  landingPages?: Prisma.CandidateLandingPageUncheckedUpdateManyWithoutPoolNestedInput
 }
 
 export type PoolCreateWithoutCandidatesInput = {
@@ -504,6 +554,8 @@ export type PoolCreateWithoutCandidatesInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   organizations?: Prisma.OrganizationPoolCreateNestedManyWithoutPoolInput
+  candidateImports?: Prisma.CandidateImportCreateNestedManyWithoutPoolInput
+  landingPages?: Prisma.CandidateLandingPageCreateNestedManyWithoutPoolInput
 }
 
 export type PoolUncheckedCreateWithoutCandidatesInput = {
@@ -516,6 +568,8 @@ export type PoolUncheckedCreateWithoutCandidatesInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   organizations?: Prisma.OrganizationPoolUncheckedCreateNestedManyWithoutPoolInput
+  candidateImports?: Prisma.CandidateImportUncheckedCreateNestedManyWithoutPoolInput
+  landingPages?: Prisma.CandidateLandingPageUncheckedCreateNestedManyWithoutPoolInput
 }
 
 export type PoolCreateOrConnectWithoutCandidatesInput = {
@@ -544,6 +598,8 @@ export type PoolUpdateWithoutCandidatesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   organizations?: Prisma.OrganizationPoolUpdateManyWithoutPoolNestedInput
+  candidateImports?: Prisma.CandidateImportUpdateManyWithoutPoolNestedInput
+  landingPages?: Prisma.CandidateLandingPageUpdateManyWithoutPoolNestedInput
 }
 
 export type PoolUncheckedUpdateWithoutCandidatesInput = {
@@ -556,6 +612,152 @@ export type PoolUncheckedUpdateWithoutCandidatesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   organizations?: Prisma.OrganizationPoolUncheckedUpdateManyWithoutPoolNestedInput
+  candidateImports?: Prisma.CandidateImportUncheckedUpdateManyWithoutPoolNestedInput
+  landingPages?: Prisma.CandidateLandingPageUncheckedUpdateManyWithoutPoolNestedInput
+}
+
+export type PoolCreateWithoutCandidateImportsInput = {
+  id?: string
+  name: string
+  slug: string
+  externalKey?: string | null
+  isGlobal?: boolean
+  globalSharing?: $Enums.GlobalSharingMode
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  candidates?: Prisma.CandidateCreateNestedManyWithoutPoolInput
+  organizations?: Prisma.OrganizationPoolCreateNestedManyWithoutPoolInput
+  landingPages?: Prisma.CandidateLandingPageCreateNestedManyWithoutPoolInput
+}
+
+export type PoolUncheckedCreateWithoutCandidateImportsInput = {
+  id?: string
+  name: string
+  slug: string
+  externalKey?: string | null
+  isGlobal?: boolean
+  globalSharing?: $Enums.GlobalSharingMode
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  candidates?: Prisma.CandidateUncheckedCreateNestedManyWithoutPoolInput
+  organizations?: Prisma.OrganizationPoolUncheckedCreateNestedManyWithoutPoolInput
+  landingPages?: Prisma.CandidateLandingPageUncheckedCreateNestedManyWithoutPoolInput
+}
+
+export type PoolCreateOrConnectWithoutCandidateImportsInput = {
+  where: Prisma.PoolWhereUniqueInput
+  create: Prisma.XOR<Prisma.PoolCreateWithoutCandidateImportsInput, Prisma.PoolUncheckedCreateWithoutCandidateImportsInput>
+}
+
+export type PoolUpsertWithoutCandidateImportsInput = {
+  update: Prisma.XOR<Prisma.PoolUpdateWithoutCandidateImportsInput, Prisma.PoolUncheckedUpdateWithoutCandidateImportsInput>
+  create: Prisma.XOR<Prisma.PoolCreateWithoutCandidateImportsInput, Prisma.PoolUncheckedCreateWithoutCandidateImportsInput>
+  where?: Prisma.PoolWhereInput
+}
+
+export type PoolUpdateToOneWithWhereWithoutCandidateImportsInput = {
+  where?: Prisma.PoolWhereInput
+  data: Prisma.XOR<Prisma.PoolUpdateWithoutCandidateImportsInput, Prisma.PoolUncheckedUpdateWithoutCandidateImportsInput>
+}
+
+export type PoolUpdateWithoutCandidateImportsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  externalKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isGlobal?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  globalSharing?: Prisma.EnumGlobalSharingModeFieldUpdateOperationsInput | $Enums.GlobalSharingMode
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  candidates?: Prisma.CandidateUpdateManyWithoutPoolNestedInput
+  organizations?: Prisma.OrganizationPoolUpdateManyWithoutPoolNestedInput
+  landingPages?: Prisma.CandidateLandingPageUpdateManyWithoutPoolNestedInput
+}
+
+export type PoolUncheckedUpdateWithoutCandidateImportsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  externalKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isGlobal?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  globalSharing?: Prisma.EnumGlobalSharingModeFieldUpdateOperationsInput | $Enums.GlobalSharingMode
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  candidates?: Prisma.CandidateUncheckedUpdateManyWithoutPoolNestedInput
+  organizations?: Prisma.OrganizationPoolUncheckedUpdateManyWithoutPoolNestedInput
+  landingPages?: Prisma.CandidateLandingPageUncheckedUpdateManyWithoutPoolNestedInput
+}
+
+export type PoolCreateWithoutLandingPagesInput = {
+  id?: string
+  name: string
+  slug: string
+  externalKey?: string | null
+  isGlobal?: boolean
+  globalSharing?: $Enums.GlobalSharingMode
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  candidates?: Prisma.CandidateCreateNestedManyWithoutPoolInput
+  organizations?: Prisma.OrganizationPoolCreateNestedManyWithoutPoolInput
+  candidateImports?: Prisma.CandidateImportCreateNestedManyWithoutPoolInput
+}
+
+export type PoolUncheckedCreateWithoutLandingPagesInput = {
+  id?: string
+  name: string
+  slug: string
+  externalKey?: string | null
+  isGlobal?: boolean
+  globalSharing?: $Enums.GlobalSharingMode
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  candidates?: Prisma.CandidateUncheckedCreateNestedManyWithoutPoolInput
+  organizations?: Prisma.OrganizationPoolUncheckedCreateNestedManyWithoutPoolInput
+  candidateImports?: Prisma.CandidateImportUncheckedCreateNestedManyWithoutPoolInput
+}
+
+export type PoolCreateOrConnectWithoutLandingPagesInput = {
+  where: Prisma.PoolWhereUniqueInput
+  create: Prisma.XOR<Prisma.PoolCreateWithoutLandingPagesInput, Prisma.PoolUncheckedCreateWithoutLandingPagesInput>
+}
+
+export type PoolUpsertWithoutLandingPagesInput = {
+  update: Prisma.XOR<Prisma.PoolUpdateWithoutLandingPagesInput, Prisma.PoolUncheckedUpdateWithoutLandingPagesInput>
+  create: Prisma.XOR<Prisma.PoolCreateWithoutLandingPagesInput, Prisma.PoolUncheckedCreateWithoutLandingPagesInput>
+  where?: Prisma.PoolWhereInput
+}
+
+export type PoolUpdateToOneWithWhereWithoutLandingPagesInput = {
+  where?: Prisma.PoolWhereInput
+  data: Prisma.XOR<Prisma.PoolUpdateWithoutLandingPagesInput, Prisma.PoolUncheckedUpdateWithoutLandingPagesInput>
+}
+
+export type PoolUpdateWithoutLandingPagesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  externalKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isGlobal?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  globalSharing?: Prisma.EnumGlobalSharingModeFieldUpdateOperationsInput | $Enums.GlobalSharingMode
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  candidates?: Prisma.CandidateUpdateManyWithoutPoolNestedInput
+  organizations?: Prisma.OrganizationPoolUpdateManyWithoutPoolNestedInput
+  candidateImports?: Prisma.CandidateImportUpdateManyWithoutPoolNestedInput
+}
+
+export type PoolUncheckedUpdateWithoutLandingPagesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  externalKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isGlobal?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  globalSharing?: Prisma.EnumGlobalSharingModeFieldUpdateOperationsInput | $Enums.GlobalSharingMode
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  candidates?: Prisma.CandidateUncheckedUpdateManyWithoutPoolNestedInput
+  organizations?: Prisma.OrganizationPoolUncheckedUpdateManyWithoutPoolNestedInput
+  candidateImports?: Prisma.CandidateImportUncheckedUpdateManyWithoutPoolNestedInput
 }
 
 
@@ -566,11 +768,15 @@ export type PoolUncheckedUpdateWithoutCandidatesInput = {
 export type PoolCountOutputType = {
   candidates: number
   organizations: number
+  candidateImports: number
+  landingPages: number
 }
 
 export type PoolCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   candidates?: boolean | PoolCountOutputTypeCountCandidatesArgs
   organizations?: boolean | PoolCountOutputTypeCountOrganizationsArgs
+  candidateImports?: boolean | PoolCountOutputTypeCountCandidateImportsArgs
+  landingPages?: boolean | PoolCountOutputTypeCountLandingPagesArgs
 }
 
 /**
@@ -597,6 +803,20 @@ export type PoolCountOutputTypeCountOrganizationsArgs<ExtArgs extends runtime.Ty
   where?: Prisma.OrganizationPoolWhereInput
 }
 
+/**
+ * PoolCountOutputType without action
+ */
+export type PoolCountOutputTypeCountCandidateImportsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.CandidateImportWhereInput
+}
+
+/**
+ * PoolCountOutputType without action
+ */
+export type PoolCountOutputTypeCountLandingPagesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.CandidateLandingPageWhereInput
+}
+
 
 export type PoolSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -609,6 +829,8 @@ export type PoolSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   updatedAt?: boolean
   candidates?: boolean | Prisma.Pool$candidatesArgs<ExtArgs>
   organizations?: boolean | Prisma.Pool$organizationsArgs<ExtArgs>
+  candidateImports?: boolean | Prisma.Pool$candidateImportsArgs<ExtArgs>
+  landingPages?: boolean | Prisma.Pool$landingPagesArgs<ExtArgs>
   _count?: boolean | Prisma.PoolCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["pool"]>
 
@@ -649,6 +871,8 @@ export type PoolOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = run
 export type PoolInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   candidates?: boolean | Prisma.Pool$candidatesArgs<ExtArgs>
   organizations?: boolean | Prisma.Pool$organizationsArgs<ExtArgs>
+  candidateImports?: boolean | Prisma.Pool$candidateImportsArgs<ExtArgs>
+  landingPages?: boolean | Prisma.Pool$landingPagesArgs<ExtArgs>
   _count?: boolean | Prisma.PoolCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type PoolIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -659,6 +883,8 @@ export type $PoolPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   objects: {
     candidates: Prisma.$CandidatePayload<ExtArgs>[]
     organizations: Prisma.$OrganizationPoolPayload<ExtArgs>[]
+    candidateImports: Prisma.$CandidateImportPayload<ExtArgs>[]
+    landingPages: Prisma.$CandidateLandingPagePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1065,6 +1291,8 @@ export interface Prisma__PoolClient<T, Null = never, ExtArgs extends runtime.Typ
   readonly [Symbol.toStringTag]: "PrismaPromise"
   candidates<T extends Prisma.Pool$candidatesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Pool$candidatesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CandidatePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   organizations<T extends Prisma.Pool$organizationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Pool$organizationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$OrganizationPoolPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  candidateImports<T extends Prisma.Pool$candidateImportsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Pool$candidateImportsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CandidateImportPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  landingPages<T extends Prisma.Pool$landingPagesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Pool$landingPagesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CandidateLandingPagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1540,6 +1768,54 @@ export type Pool$organizationsArgs<ExtArgs extends runtime.Types.Extensions.Inte
   take?: number
   skip?: number
   distinct?: Prisma.OrganizationPoolScalarFieldEnum | Prisma.OrganizationPoolScalarFieldEnum[]
+}
+
+/**
+ * Pool.candidateImports
+ */
+export type Pool$candidateImportsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the CandidateImport
+   */
+  select?: Prisma.CandidateImportSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the CandidateImport
+   */
+  omit?: Prisma.CandidateImportOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CandidateImportInclude<ExtArgs> | null
+  where?: Prisma.CandidateImportWhereInput
+  orderBy?: Prisma.CandidateImportOrderByWithRelationInput | Prisma.CandidateImportOrderByWithRelationInput[]
+  cursor?: Prisma.CandidateImportWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.CandidateImportScalarFieldEnum | Prisma.CandidateImportScalarFieldEnum[]
+}
+
+/**
+ * Pool.landingPages
+ */
+export type Pool$landingPagesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the CandidateLandingPage
+   */
+  select?: Prisma.CandidateLandingPageSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the CandidateLandingPage
+   */
+  omit?: Prisma.CandidateLandingPageOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CandidateLandingPageInclude<ExtArgs> | null
+  where?: Prisma.CandidateLandingPageWhereInput
+  orderBy?: Prisma.CandidateLandingPageOrderByWithRelationInput | Prisma.CandidateLandingPageOrderByWithRelationInput[]
+  cursor?: Prisma.CandidateLandingPageWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.CandidateLandingPageScalarFieldEnum | Prisma.CandidateLandingPageScalarFieldEnum[]
 }
 
 /**

@@ -30,3 +30,4 @@ export const assessmentSubmissionSchema = z.object({
   assessment: assessmentAnswersSchema,
 });
 export type AssessmentSubmission = z.infer<typeof assessmentSubmissionSchema>;
+export * from "./candidate/fields";

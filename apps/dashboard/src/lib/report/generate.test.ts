@@ -1,9 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("@/lib/llm/mistral", () => ({ callMistralJson: vi.fn(), MistralError: class extends Error {} }));
+vi.mock("@/lib/llm/client", () => ({ chatCompletion: vi.fn() }));
 
-import { callMistralJson } from "@/lib/llm/mistral";
+import { chatCompletion } from "@/lib/llm/client";
 import { generateReport } from "./generate";
+
+const chat = chatCompletion as unknown as ReturnType<typeof vi.fn>;
 
 const VALID = {
   intro: "Profilo pratico.",
@@ -14,24 +16,24 @@ describe("generateReport", () => {
   beforeEach(() => vi.resetAllMocks());
 
   it("returns the validated report on first success", async () => {
-    (callMistralJson as ReturnType<typeof vi.fn>).mockResolvedValueOnce(VALID);
+    chat.mockResolvedValueOnce(JSON.stringify(VALID));
     const r = await generateReport({ q1: "analitico" });
     expect(r.domains[0]!.id).toBe("technical");
-    expect(callMistralJson).toHaveBeenCalledTimes(1);
+    expect(chat).toHaveBeenCalledTimes(1);
   });
 
   it("retries once when the first result is schema-invalid", async () => {
-    (callMistralJson as ReturnType<typeof vi.fn>)
-      .mockResolvedValueOnce({ intro: "x", domains: [{ id: "BAD", competences: [] }] })
-      .mockResolvedValueOnce(VALID);
+    chat
+      .mockResolvedValueOnce(JSON.stringify({ intro: "x", domains: [{ id: "BAD", competences: [] }] }))
+      .mockResolvedValueOnce(JSON.stringify(VALID));
     const r = await generateReport({ q1: "analitico" });
     expect(r.intro).toBe("Profilo pratico.");
-    expect(callMistralJson).toHaveBeenCalledTimes(2);
+    expect(chat).toHaveBeenCalledTimes(2);
   });
 
   it("throws after a persistent failure (two bad results)", async () => {
-    (callMistralJson as ReturnType<typeof vi.fn>).mockResolvedValue({ nope: true });
+    chat.mockResolvedValue(JSON.stringify({ nope: true }));
     await expect(generateReport({ q1: "analitico" })).rejects.toThrow();
-    expect(callMistralJson).toHaveBeenCalledTimes(2);
+    expect(chat).toHaveBeenCalledTimes(2);
   });
 });

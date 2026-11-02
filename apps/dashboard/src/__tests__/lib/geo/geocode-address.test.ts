@@ -31,4 +31,17 @@ describe("geocodeFromAddress", () => {
     expect(r).not.toBeNull();
     expect(r!.latitude).toBeCloseTo(41.9, 1);
   });
+
+  it.each([
+    "Milano",
+    "Via Roma 1, Milano",
+    "Milano (MI)",
+    "Sesto San Giovanni (MI)",
+    "Via Roma 1, 20100 Milano (MI)",
+  ])("resolves %s", (input) => {
+    const r = geocodeFromAddress(input);
+    expect(r).not.toBeNull();
+    expect(Number.isFinite(r!.latitude)).toBe(true);
+    expect(Number.isFinite(r!.longitude)).toBe(true);
+  });
 });

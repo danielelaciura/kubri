@@ -2,7 +2,8 @@ import { prisma } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
 
 interface AuditLogParams {
-  userId: string;
+  /** Null for public (unauthenticated) actions. */
+  userId: string | null;
   organizationId: string | null;
   action: string;
   resourceType: string;

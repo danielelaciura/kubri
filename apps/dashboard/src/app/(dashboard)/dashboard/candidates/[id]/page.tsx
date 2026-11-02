@@ -1,3 +1,4 @@
+import { getLandingStoragePaths, mapDocumentRows } from "@/lib/candidates/documents";
 import { requireOrganization } from "@/lib/auth-utils";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
@@ -5,6 +6,7 @@ import {
   getCandidateForOrg,
   getCandidateByIdUnscoped,
 } from "@/lib/candidates/service";
+import { getOrgWritablePools } from "@/lib/pools/access";
 import { getListOptionsForOrg, getListIdsByCandidateForOrg } from "@/lib/lists/service";
 import { CandidateProfile } from "@/components/candidates/candidate-profile";
 import { CandidateNotes } from "@/components/candidates/candidate-notes";
@@ -12,6 +14,8 @@ import { AddToListMenu } from "@/components/lists/add-to-list-menu";
 import { CandidateStatusSelect } from "@/components/candidates/candidate-status-select";
 import { getCandidateStatusForOrg } from "@/lib/candidates/status-service";
 import { Button } from "@/components/ui/button";
+import { CandidateDocuments } from "@/components/candidates/candidate-documents";
+import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, AlertCircle, FileDown } from "lucide-react";
 import Link from "next/link";
 import { getServerLocale } from "@/lib/i18n/locale";
@@ -36,7 +40,8 @@ export default async function CandidateDetailPage({
     redirect("/login");
   }
 
-  const t = getDictionary(await getServerLocale());
+  const locale = await getServerLocale();
+  const t = getDictionary(locale);
 
   const { id } = await params;
   const rawSearchParams = await searchParams;
@@ -52,7 +57,11 @@ export default async function CandidateDetailPage({
     ? { candidateId: id }
     : { candidateId: id, organizationId };
 
-  const [candidate, notes, lists, membershipByCandidate, status] = await Promise.all([
+  const ownPoolIds = isKubriAdmin
+    ? []
+    : (await getOrgWritablePools(organizationId)).map((p) => p.id);
+
+  const [candidate, notes, lists, membershipByCandidate, status, documents, landingPaths] = await Promise.all([
     (isKubriAdmin
       ? getCandidateByIdUnscoped(id)
       : getCandidateForOrg(organizationId, id)
@@ -65,6 +74,15 @@ export default async function CandidateDetailPage({
     getListOptionsForOrg(organizationId),
     getListIdsByCandidateForOrg(organizationId),
     getCandidateStatusForOrg(organizationId, id),
+    prisma.candidateDocument.findMany({
+      // Raw CV files are visible only to orgs owning the candidate's pool.
+      where: isKubriAdmin
+        ? { candidateId: id }
+        : { candidateId: id, candidate: { poolId: { in: ownPoolIds } } },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, fileName: true, createdAt: true, storagePath: true, uploadedBy: { select: { name: true } } },
+    }),
+    getLandingStoragePaths(id),
   ]);
 
   const memberOf = membershipByCandidate[id] ?? [];
@@ -125,6 +143,12 @@ export default async function CandidateDetailPage({
         {/* Main content: profile + transcript */}
         <div className="space-y-6 lg:col-span-2">
           <CandidateProfile candidate={candidate} />
+          <CandidateDocuments
+            candidateId={id}
+            t={t}
+            locale={locale}
+            documents={mapDocumentRows(documents, landingPaths)}
+          />
         </div>
 
         {/* Sidebar: status + lists + notes */}
@@ -132,7 +156,18 @@ export default async function CandidateDetailPage({
           <div className="rounded-lg border border-border/60 bg-card p-4 shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">{t.candidateStatus.label}</span>
-              <CandidateStatusSelect candidateId={id} status={status} />
+              <div className="flex items-center gap-2">
+                {candidate.createdVia && (
+                  <Badge variant="outline">
+                    {candidate.createdVia === "landing_cv"
+                      ? t.candidateCreate.originLanding
+                      : candidate.createdVia === "dashboard_cv"
+                        ? t.candidateCreate.originCv
+                        : t.candidateCreate.originForm}
+                  </Badge>
+                )}
+                <CandidateStatusSelect candidateId={id} status={status} />
+              </div>
             </div>
           </div>
           <div className="rounded-lg border border-border/60 bg-card p-4 shadow-sm">

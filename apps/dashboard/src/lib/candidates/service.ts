@@ -34,11 +34,18 @@ function dbCandidateToApp(c: DbCandidate): Candidate {
       preferredLocation: c.preferredLocation ?? "",
       constraints: c.jobConstraints ?? "",
       hasDesiredJobExperience: c.hasDesiredJobExperience ?? "",
+      learningPreference: c.learningPreference ?? "",
     },
     centroPerImpiego: "",
     interviewLanguage: c.interviewLanguage ?? c.language ?? "",
     sourceOrganization: c.sourceOrganization ?? "",
     channel,
+    createdVia:
+      c.channel === "dashboard_form" ||
+      c.channel === "dashboard_cv" ||
+      c.channel === "landing_cv"
+        ? c.channel
+        : null,
     consent: false,
     cvPdfLink: "",
     cvDocLink: "",

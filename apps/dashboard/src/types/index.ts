@@ -15,6 +15,8 @@ export interface JobPreferences {
   preferredLocation: string;
   constraints: string;
   hasDesiredJobExperience: string;
+  /** Training the candidate is interested in; "" when not collected (optional chatbot question). */
+  learningPreference: string;
 }
 
 export interface Candidate {
@@ -43,6 +45,8 @@ export interface Candidate {
   interviewLanguage: string;
   sourceOrganization: string;
   channel: Channel;
+  /** Set for candidates created from the dashboard; null for chatbot/assessment. */
+  createdVia: "dashboard_form" | "dashboard_cv" | "landing_cv" | null;
   consent: boolean;
   cvPdfLink: string;
   cvDocLink: string;

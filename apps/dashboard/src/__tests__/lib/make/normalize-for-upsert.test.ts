@@ -43,6 +43,10 @@ describe("normalizeForUpsert", () => {
             constraints: "no notturni",
             has_desired_job_experience: "sì",
           },
+          learning_preferences: {
+            is_interested: true,
+            learning_preference: " excel ",
+          },
           source_organization: "APL Milano",
           last_updated: "2026-04-24T15:32:11Z",
           is_kubri_privacy_accepted: true,
@@ -72,6 +76,7 @@ describe("normalizeForUpsert", () => {
     expect(result.preferredLocation).toBe("Milano");
     expect(result.jobConstraints).toBe("no notturni");
     expect(result.hasDesiredJobExperience).toBe("sì");
+    expect(result.learningPreference).toBe("excel");
     expect(result.sourceOrganization).toBe("APL Milano");
     expect(result.channel).toBe("telegram");
     expect(result.sharedWithGlobal).toBe(true);

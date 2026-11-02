@@ -1,0 +1,109 @@
+import { describe, it, expect, vi } from "vitest";
+import "@testing-library/jest-dom/vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
+import { I18nProvider } from "@/lib/i18n/provider";
+import { ContactForm } from "@/components/landing/contact-form";
+import type { LandingPrefill } from "@/lib/landing/contact";
+
+vi.mock("@/app/(public)/candidati/[slug]/actions", () => ({ searchLandingPlacesAction: vi.fn() }));
+
+const PLACE = { placeId: "istat:MI:milano", label: "Milano (MI)" };
+const PREFILL: LandingPrefill = { firstName: "Ahmed", lastName: "", phone: "333 1234567", email: "", place: PLACE };
+
+function setup(showShare = true, busy = false, prefill = PREFILL) {
+  const onSubmit = vi.fn();
+  render(
+    <I18nProvider locale="it">
+      <ContactForm
+        slug="coop-sole" orgName="Coop Sole" prefill={prefill} privacyPolicyUrl="https://x.it/p"
+        showShare={showShare} busy={busy} placeResetKey={0} onSubmit={onSubmit}
+      />
+    </I18nProvider>,
+  );
+  return onSubmit;
+}
+
+describe("ContactForm", () => {
+  it("prefills from the CV", () => {
+    setup();
+    expect(screen.getByLabelText("Nome")).toHaveValue("Ahmed");
+    expect(screen.getByLabelText("Telefono")).toHaveValue("333 1234567");
+  });
+
+  it("blocks submit without last name and consent", () => {
+    const onSubmit = setup();
+    fireEvent.click(screen.getByRole("button", { name: "Invia candidatura" }));
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.getAllByText("Campo obbligatorio").length).toBeGreaterThan(0);
+    expect(screen.getByText("Serve il consenso per inviare la candidatura")).toBeInTheDocument();
+  });
+
+  it("submits the confirmed contact", () => {
+    const onSubmit = setup();
+    fireEvent.change(screen.getByLabelText("Cognome"), { target: { value: "Benali" } });
+    fireEvent.click(screen.getByLabelText(/Ho letto le informative/));
+    fireEvent.click(screen.getByRole("button", { name: "Invia candidatura" }));
+    expect(onSubmit).toHaveBeenCalledWith({
+      firstName: "Ahmed", lastName: "Benali", phone: "333 1234567", email: "",
+      privacyAccepted: true, shareWithGlobal: true, placeId: "istat:MI:milano", placeSessionToken: undefined,
+    });
+  });
+
+  it("uses one consent for Kubri's and the organization's notices", () => {
+    setup();
+    expect(screen.getAllByRole("checkbox")).toHaveLength(1);
+    expect(screen.getByRole("link", { name: "Kubri" })).toHaveAttribute("href", "https://www.kubri.it/privacy");
+    expect(screen.getByRole("link", { name: "Coop Sole" })).toHaveAttribute("href", "https://x.it/p");
+    expect(screen.getByLabelText(/altre organizzazioni/)).toBeInTheDocument();
+  });
+
+  it("leaves out the sharing sentence when not applicable", () => {
+    setup(false);
+    expect(screen.queryByLabelText(/altre organizzazioni/)).toBeNull();
+  });
+
+  it("flags only the last name as required", () => {
+    setup();
+    fireEvent.click(screen.getByRole("button", { name: "Invia candidatura" }));
+    const last = screen.getByLabelText("Cognome");
+    const errorId = last.getAttribute("aria-describedby");
+    expect(errorId).toBeTruthy();
+    expect(document.getElementById(errorId as string)).toHaveTextContent("Campo obbligatorio");
+    expect(screen.getByLabelText("Nome")).not.toHaveAttribute("aria-describedby");
+    expect(screen.getAllByText("Campo obbligatorio")).toHaveLength(1);
+    expect(last).toHaveFocus();
+  });
+
+  it("rejects an invalid phone", () => {
+    setup();
+    fireEvent.change(screen.getByLabelText("Telefono"), { target: { value: "12" } });
+    fireEvent.click(screen.getByRole("button", { name: "Invia candidatura" }));
+    expect(screen.getByText("Numero di telefono non valido")).toBeInTheDocument();
+  });
+
+  it("rejects an invalid email", () => {
+    setup();
+    fireEvent.change(screen.getByLabelText(/^Email/), { target: { value: "nope" } });
+    fireEvent.click(screen.getByRole("button", { name: "Invia candidatura" }));
+    expect(screen.getByText("Email non valida")).toBeInTheDocument();
+  });
+
+  it("disables submit while busy", () => {
+    setup(true, true);
+    expect(screen.getByRole("button", { name: "Invio…" })).toBeDisabled();
+  });
+
+  it("shows the place prefill", () => {
+    setup();
+    expect(screen.getByRole("combobox", { name: "Dove abiti?" })).toHaveValue("Milano (MI)");
+  });
+
+  it("blocks submit without a place", () => {
+    const onSubmit = setup(true, false, { ...PREFILL, lastName: "Benali", place: null });
+    fireEvent.click(screen.getByLabelText(/Ho letto le informative/));
+    fireEvent.click(screen.getByRole("button", { name: "Invia candidatura" }));
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.getByText("Scegli un indirizzo dalla lista")).toBeInTheDocument();
+    expect(screen.getByRole("combobox")).toHaveFocus();
+  });
+});

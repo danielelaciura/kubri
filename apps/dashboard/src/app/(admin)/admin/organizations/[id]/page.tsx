@@ -15,6 +15,10 @@ import {
 import { getServerLocale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n";
 import { attachOrgToPool, detachOrgFromPool } from "@/lib/pools/actions";
+import { getLandingForOrg } from "@/lib/landing/service";
+import { landingPublicUrl } from "@/lib/landing/url";
+import { LandingAdminForm } from "@/components/landing/landing-admin-form";
+import { LandingQrDialog } from "@/components/landing/landing-qr-dialog";
 import { InviteOrgMemberDialog } from "@/components/admin/invite-org-member-dialog";
 import { DeleteMemberButton } from "@/components/settings/delete-member-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -77,6 +81,10 @@ export default async function OrgDetailPage({ params }: OrgDetailPageProps) {
   });
   const attachedPoolIds = new Set(org.pools.map((op) => op.pool.id));
   const attachablePools = allPools.filter((p) => !attachedPoolIds.has(p.id));
+
+  const landing = await getLandingForOrg(id);
+  const eligiblePools = org.pools.map((op) => op.pool).filter((p) => !p.isGlobal);
+  const landingUrl = landing ? await landingPublicUrl(landing.slug) : null;
 
   type MemberRow = {
     id: string;
@@ -373,6 +381,42 @@ async function resendInvite(formData: FormData) {
               </a>
               .
             </p>
+          </CardContent>
+        </Card>
+
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle>{t.landingAdmin.cardTitle}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">{t.landingAdmin.cardDescription}</p>
+
+            {landing && landingUrl && (
+              <div className="flex flex-wrap items-center gap-2 rounded border p-2 text-sm">
+                <span className="text-muted-foreground">{t.landingAdmin.publicLink}:</span>
+                <a href={landingUrl} target="_blank" rel="noreferrer" className="font-mono hover:underline">
+                  {landingUrl}
+                </a>
+                {!landing.enabled && <Badge variant="secondary">{t.landingAdmin.disabled}</Badge>}
+                <LandingQrDialog name={org.name} url={landingUrl} />
+              </div>
+            )}
+
+            {eligiblePools.length === 0 ? (
+              <p className="text-sm text-muted-foreground">{t.landingAdmin.noEligiblePools}</p>
+            ) : (
+              <LandingAdminForm
+                organizationId={id}
+                pools={eligiblePools.map((p) => ({ id: p.id, name: p.name }))}
+                initial={{
+                  slug: landing?.slug ?? org.slug,
+                  poolId: landing?.poolId ?? eligiblePools[0]!.id,
+                  privacyPolicyUrl: landing?.privacyPolicyUrl ?? "",
+                  enabled: landing?.enabled ?? true,
+                  exists: landing !== null,
+                }}
+              />
+            )}
           </CardContent>
         </Card>
       </div>

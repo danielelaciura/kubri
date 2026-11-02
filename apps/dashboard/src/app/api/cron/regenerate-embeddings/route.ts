@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { discardStaleImports, removeOrphanUploads } from "@/lib/candidate-imports/service";
 import { generateEmbedding, vectorToPgLiteral } from "@/lib/embeddings/client";
 import {
   buildCandidateEmbeddingText,
@@ -7,6 +8,10 @@ import {
 } from "@/lib/embeddings/text";
 
 const MAX_PER_RUN = 500;
+
+/** Error name + message only: raw errors can carry storage paths or row data. */
+const errorSummary = (e: unknown) =>
+  e instanceof Error ? { error: e.name, message: e.message } : { error: String(e) };
 
 interface CandidateRow {
   id: string;
@@ -29,6 +34,13 @@ export async function GET(req: Request): Promise<Response> {
   const auth = req.headers.get("authorization");
   if (!expected || auth !== `Bearer ${expected}`) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  let discardedImports = 0;
+  try {
+    discardedImports = await discardStaleImports();
+  } catch (e) {
+    console.error("[cron] stale candidate import cleanup failed", errorSummary(e));
   }
 
   let candidates = 0;
@@ -82,5 +94,13 @@ export async function GET(req: Request): Promise<Response> {
     }
   }
 
-  return NextResponse.json({ candidates, jobs });
+  // Last: the storage walk is bounded (~30 s) and must not starve the embeddings.
+  let removedOrphanUploads = 0;
+  try {
+    removedOrphanUploads = await removeOrphanUploads();
+  } catch (e) {
+    console.error("[cron] orphan upload cleanup failed", errorSummary(e));
+  }
+
+  return NextResponse.json({ candidates, jobs, discardedImports, removedOrphanUploads });
 }

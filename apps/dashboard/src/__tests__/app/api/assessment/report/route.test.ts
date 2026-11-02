@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-vi.mock("@/lib/llm/mistral", () => ({ callMistralJson: vi.fn(), MistralError: class extends Error {} }));
+vi.mock("@/lib/llm/client", () => ({ chatCompletion: vi.fn() }));
 
-import { callMistralJson } from "@/lib/llm/mistral";
+import { chatCompletion } from "@/lib/llm/client";
 import { POST } from "@/app/api/assessment/report/route";
 
 const SECRET = "test-secret";
@@ -29,7 +29,7 @@ describe("POST /api/assessment/report", () => {
   });
 
   it("200 application/pdf on valid input", async () => {
-    (callMistralJson as ReturnType<typeof vi.fn>).mockResolvedValue(VALID_REPORT);
+    (chatCompletion as ReturnType<typeof vi.fn>).mockResolvedValue(JSON.stringify(VALID_REPORT));
     const res = await POST(req({ assessment: { q1: "analitico" }, name: "Mario Rossi" }, `Bearer ${SECRET}`));
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("application/pdf");
@@ -38,14 +38,16 @@ describe("POST /api/assessment/report", () => {
   });
 
   it("never forwards PII (name) to the LLM", async () => {
-    (callMistralJson as ReturnType<typeof vi.fn>).mockResolvedValue(VALID_REPORT);
+    (chatCompletion as ReturnType<typeof vi.fn>).mockResolvedValue(JSON.stringify(VALID_REPORT));
     await POST(req({ assessment: { q1: "analitico" }, name: "Mario Rossi" }, `Bearer ${SECRET}`));
-    const [system, user] = (callMistralJson as ReturnType<typeof vi.fn>).mock.calls[0]!;
-    expect(system + user).not.toContain("Mario");
+    const { messages } = (chatCompletion as ReturnType<typeof vi.fn>).mock.calls[0]![0] as {
+      messages: { content: string }[];
+    };
+    expect(messages.map((m) => m.content).join("\n")).not.toContain("Mario");
   });
 
   it("502 after persistent LLM failure", async () => {
-    (callMistralJson as ReturnType<typeof vi.fn>).mockResolvedValue({ nope: true });
+    (chatCompletion as ReturnType<typeof vi.fn>).mockResolvedValue(JSON.stringify({ nope: true }));
     const res = await POST(req({ assessment: { q1: "analitico" } }, `Bearer ${SECRET}`));
     expect(res.status).toBe(502);
   });

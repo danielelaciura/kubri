@@ -17,6 +17,9 @@ const PUBLIC_PREFIXES = [
   "/api/assessment",
   // Cron jobs authenticate via CRON_SECRET (Bearer token), not Supabase session.
   "/api/cron",
+  // Public candidate landing (WhatsApp or CV upload). Its server actions POST to
+  // the same path; abuse is handled by Turnstile + rate limits, not a session.
+  "/candidati",
 ];
 
 export async function middleware(request: NextRequest) {

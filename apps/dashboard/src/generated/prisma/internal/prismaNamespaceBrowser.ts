@@ -62,7 +62,10 @@ export const ModelName = {
   CandidateList: 'CandidateList',
   CandidateListMembership: 'CandidateListMembership',
   CandidateStatus: 'CandidateStatus',
-  JobMatch: 'JobMatch'
+  JobMatch: 'JobMatch',
+  CandidateImport: 'CandidateImport',
+  CandidateDocument: 'CandidateDocument',
+  CandidateLandingPage: 'CandidateLandingPage'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -206,6 +209,7 @@ export const CandidateScalarFieldEnum = {
   preferredLocation: 'preferredLocation',
   jobConstraints: 'jobConstraints',
   hasDesiredJobExperience: 'hasDesiredJobExperience',
+  learningPreference: 'learningPreference',
   interviewLanguage: 'interviewLanguage',
   sourceOrganization: 'sourceOrganization',
   channel: 'channel',
@@ -266,6 +270,59 @@ export const JobMatchScalarFieldEnum = {
 } as const
 
 export type JobMatchScalarFieldEnum = (typeof JobMatchScalarFieldEnum)[keyof typeof JobMatchScalarFieldEnum]
+
+
+export const CandidateImportScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  poolId: 'poolId',
+  origin: 'origin',
+  status: 'status',
+  createdById: 'createdById',
+  storagePath: 'storagePath',
+  fileName: 'fileName',
+  mimeType: 'mimeType',
+  fileSize: 'fileSize',
+  contentSha256: 'contentSha256',
+  extractedText: 'extractedText',
+  extractionMethod: 'extractionMethod',
+  draft: 'draft',
+  errorCode: 'errorCode',
+  candidateId: 'candidateId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CandidateImportScalarFieldEnum = (typeof CandidateImportScalarFieldEnum)[keyof typeof CandidateImportScalarFieldEnum]
+
+
+export const CandidateDocumentScalarFieldEnum = {
+  id: 'id',
+  candidateId: 'candidateId',
+  kind: 'kind',
+  storagePath: 'storagePath',
+  fileName: 'fileName',
+  mimeType: 'mimeType',
+  size: 'size',
+  uploadedById: 'uploadedById',
+  createdAt: 'createdAt'
+} as const
+
+export type CandidateDocumentScalarFieldEnum = (typeof CandidateDocumentScalarFieldEnum)[keyof typeof CandidateDocumentScalarFieldEnum]
+
+
+export const CandidateLandingPageScalarFieldEnum = {
+  id: 'id',
+  slug: 'slug',
+  organizationId: 'organizationId',
+  poolId: 'poolId',
+  enabled: 'enabled',
+  privacyPolicyUrl: 'privacyPolicyUrl',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CandidateLandingPageScalarFieldEnum = (typeof CandidateLandingPageScalarFieldEnum)[keyof typeof CandidateLandingPageScalarFieldEnum]
 
 
 export const SortOrder = {

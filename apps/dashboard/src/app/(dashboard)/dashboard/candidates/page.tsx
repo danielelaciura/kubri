@@ -17,7 +17,8 @@ import { Button } from "@/components/ui/button";
 import { SubmitButton } from "@/components/shared/loading-button";
 import { getServerLocale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n";
-import { RefreshCw, Users, AlertCircle, Download } from "lucide-react";
+import { RefreshCw, Users, AlertCircle, Download, UserPlus } from "lucide-react";
+import Link from "next/link";
 import { revalidatePath } from "next/cache";
 
 interface CandidatesPageProps {
@@ -136,6 +137,12 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
               {t.common.refresh}
             </SubmitButton>
           </form>
+          <Link href="/dashboard/candidates/new">
+            <Button size="sm" className="gap-2">
+              <UserPlus className="h-4 w-4" />
+              {t.candidateCreate.newCandidate}
+            </Button>
+          </Link>
         </div>
       </div>
 

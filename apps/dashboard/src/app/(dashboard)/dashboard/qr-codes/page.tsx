@@ -9,6 +9,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { getLandingForOrg } from "@/lib/landing/service";
+import { landingPublicUrl } from "@/lib/landing/url";
+import { getServerLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n";
+import { LandingQrDialog } from "@/components/landing/landing-qr-dialog";
 import { PoolQrDialog } from "@/components/pools/pool-qr-dialog";
 import { buildWaLink, buildWaMessage } from "@/lib/whatsapp/build-link";
 
@@ -24,6 +29,10 @@ export default async function QrCodesPage() {
     ? await listOrgPoolsWithCandidateCount(me.organizationId)
     : [];
 
+  const t = getDictionary(await getServerLocale());
+  const landing = me.organizationId ? await getLandingForOrg(me.organizationId) : null;
+  const landingUrl = landing?.enabled ? await landingPublicUrl(landing.slug) : null;
+
   const waNumber = process.env.KUBRI_WHATSAPP_NUMBER ?? "";
   const waTemplate = process.env.KUBRI_WHATSAPP_MESSAGE_TEMPLATE ?? "";
   const waConfigured = waNumber.length > 0 && waTemplate.length > 0;
@@ -36,6 +45,19 @@ export default async function QrCodesPage() {
           QR code WhatsApp dei pool agganciati alla tua organizzazione.
         </p>
       </div>
+
+      {landingUrl && (
+        <div className="space-y-2 rounded-md border p-4">
+          <h2 className="text-lg">{t.landingAdmin.qrPageTitle}</h2>
+          <p className="text-sm text-muted-foreground">{t.landingAdmin.qrPageDescription}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <a href={landingUrl} target="_blank" rel="noreferrer" className="font-mono text-sm hover:underline">
+              {landingUrl}
+            </a>
+            <LandingQrDialog name={t.landingAdmin.qrPageTitle} url={landingUrl} />
+          </div>
+        </div>
+      )}
 
       <Table>
         <TableHeader>

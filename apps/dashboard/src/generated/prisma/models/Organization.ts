@@ -186,6 +186,8 @@ export type OrganizationWhereInput = {
   candidateLists?: Prisma.CandidateListListRelationFilter
   candidateStatuses?: Prisma.CandidateStatusListRelationFilter
   jobMatches?: Prisma.JobMatchListRelationFilter
+  candidateImports?: Prisma.CandidateImportListRelationFilter
+  landingPage?: Prisma.XOR<Prisma.CandidateLandingPageNullableScalarRelationFilter, Prisma.CandidateLandingPageWhereInput> | null
 }
 
 export type OrganizationOrderByWithRelationInput = {
@@ -202,6 +204,8 @@ export type OrganizationOrderByWithRelationInput = {
   candidateLists?: Prisma.CandidateListOrderByRelationAggregateInput
   candidateStatuses?: Prisma.CandidateStatusOrderByRelationAggregateInput
   jobMatches?: Prisma.JobMatchOrderByRelationAggregateInput
+  candidateImports?: Prisma.CandidateImportOrderByRelationAggregateInput
+  landingPage?: Prisma.CandidateLandingPageOrderByWithRelationInput
 }
 
 export type OrganizationWhereUniqueInput = Prisma.AtLeast<{
@@ -221,6 +225,8 @@ export type OrganizationWhereUniqueInput = Prisma.AtLeast<{
   candidateLists?: Prisma.CandidateListListRelationFilter
   candidateStatuses?: Prisma.CandidateStatusListRelationFilter
   jobMatches?: Prisma.JobMatchListRelationFilter
+  candidateImports?: Prisma.CandidateImportListRelationFilter
+  landingPage?: Prisma.XOR<Prisma.CandidateLandingPageNullableScalarRelationFilter, Prisma.CandidateLandingPageWhereInput> | null
 }, "id" | "slug">
 
 export type OrganizationOrderByWithAggregationInput = {
@@ -259,6 +265,8 @@ export type OrganizationCreateInput = {
   candidateLists?: Prisma.CandidateListCreateNestedManyWithoutOrganizationInput
   candidateStatuses?: Prisma.CandidateStatusCreateNestedManyWithoutOrganizationInput
   jobMatches?: Prisma.JobMatchCreateNestedManyWithoutOrganizationInput
+  candidateImports?: Prisma.CandidateImportCreateNestedManyWithoutOrganizationInput
+  landingPage?: Prisma.CandidateLandingPageCreateNestedOneWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateInput = {
@@ -275,6 +283,8 @@ export type OrganizationUncheckedCreateInput = {
   candidateLists?: Prisma.CandidateListUncheckedCreateNestedManyWithoutOrganizationInput
   candidateStatuses?: Prisma.CandidateStatusUncheckedCreateNestedManyWithoutOrganizationInput
   jobMatches?: Prisma.JobMatchUncheckedCreateNestedManyWithoutOrganizationInput
+  candidateImports?: Prisma.CandidateImportUncheckedCreateNestedManyWithoutOrganizationInput
+  landingPage?: Prisma.CandidateLandingPageUncheckedCreateNestedOneWithoutOrganizationInput
 }
 
 export type OrganizationUpdateInput = {
@@ -291,6 +301,8 @@ export type OrganizationUpdateInput = {
   candidateLists?: Prisma.CandidateListUpdateManyWithoutOrganizationNestedInput
   candidateStatuses?: Prisma.CandidateStatusUpdateManyWithoutOrganizationNestedInput
   jobMatches?: Prisma.JobMatchUpdateManyWithoutOrganizationNestedInput
+  candidateImports?: Prisma.CandidateImportUpdateManyWithoutOrganizationNestedInput
+  landingPage?: Prisma.CandidateLandingPageUpdateOneWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateInput = {
@@ -307,6 +319,8 @@ export type OrganizationUncheckedUpdateInput = {
   candidateLists?: Prisma.CandidateListUncheckedUpdateManyWithoutOrganizationNestedInput
   candidateStatuses?: Prisma.CandidateStatusUncheckedUpdateManyWithoutOrganizationNestedInput
   jobMatches?: Prisma.JobMatchUncheckedUpdateManyWithoutOrganizationNestedInput
+  candidateImports?: Prisma.CandidateImportUncheckedUpdateManyWithoutOrganizationNestedInput
+  landingPage?: Prisma.CandidateLandingPageUncheckedUpdateOneWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateManyInput = {
@@ -489,6 +503,34 @@ export type OrganizationUpdateOneRequiredWithoutJobMatchesNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.OrganizationUpdateToOneWithWhereWithoutJobMatchesInput, Prisma.OrganizationUpdateWithoutJobMatchesInput>, Prisma.OrganizationUncheckedUpdateWithoutJobMatchesInput>
 }
 
+export type OrganizationCreateNestedOneWithoutCandidateImportsInput = {
+  create?: Prisma.XOR<Prisma.OrganizationCreateWithoutCandidateImportsInput, Prisma.OrganizationUncheckedCreateWithoutCandidateImportsInput>
+  connectOrCreate?: Prisma.OrganizationCreateOrConnectWithoutCandidateImportsInput
+  connect?: Prisma.OrganizationWhereUniqueInput
+}
+
+export type OrganizationUpdateOneRequiredWithoutCandidateImportsNestedInput = {
+  create?: Prisma.XOR<Prisma.OrganizationCreateWithoutCandidateImportsInput, Prisma.OrganizationUncheckedCreateWithoutCandidateImportsInput>
+  connectOrCreate?: Prisma.OrganizationCreateOrConnectWithoutCandidateImportsInput
+  upsert?: Prisma.OrganizationUpsertWithoutCandidateImportsInput
+  connect?: Prisma.OrganizationWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.OrganizationUpdateToOneWithWhereWithoutCandidateImportsInput, Prisma.OrganizationUpdateWithoutCandidateImportsInput>, Prisma.OrganizationUncheckedUpdateWithoutCandidateImportsInput>
+}
+
+export type OrganizationCreateNestedOneWithoutLandingPageInput = {
+  create?: Prisma.XOR<Prisma.OrganizationCreateWithoutLandingPageInput, Prisma.OrganizationUncheckedCreateWithoutLandingPageInput>
+  connectOrCreate?: Prisma.OrganizationCreateOrConnectWithoutLandingPageInput
+  connect?: Prisma.OrganizationWhereUniqueInput
+}
+
+export type OrganizationUpdateOneRequiredWithoutLandingPageNestedInput = {
+  create?: Prisma.XOR<Prisma.OrganizationCreateWithoutLandingPageInput, Prisma.OrganizationUncheckedCreateWithoutLandingPageInput>
+  connectOrCreate?: Prisma.OrganizationCreateOrConnectWithoutLandingPageInput
+  upsert?: Prisma.OrganizationUpsertWithoutLandingPageInput
+  connect?: Prisma.OrganizationWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.OrganizationUpdateToOneWithWhereWithoutLandingPageInput, Prisma.OrganizationUpdateWithoutLandingPageInput>, Prisma.OrganizationUncheckedUpdateWithoutLandingPageInput>
+}
+
 export type OrganizationCreateWithoutPoolsInput = {
   id?: string
   name: string
@@ -502,6 +544,8 @@ export type OrganizationCreateWithoutPoolsInput = {
   candidateLists?: Prisma.CandidateListCreateNestedManyWithoutOrganizationInput
   candidateStatuses?: Prisma.CandidateStatusCreateNestedManyWithoutOrganizationInput
   jobMatches?: Prisma.JobMatchCreateNestedManyWithoutOrganizationInput
+  candidateImports?: Prisma.CandidateImportCreateNestedManyWithoutOrganizationInput
+  landingPage?: Prisma.CandidateLandingPageCreateNestedOneWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutPoolsInput = {
@@ -517,6 +561,8 @@ export type OrganizationUncheckedCreateWithoutPoolsInput = {
   candidateLists?: Prisma.CandidateListUncheckedCreateNestedManyWithoutOrganizationInput
   candidateStatuses?: Prisma.CandidateStatusUncheckedCreateNestedManyWithoutOrganizationInput
   jobMatches?: Prisma.JobMatchUncheckedCreateNestedManyWithoutOrganizationInput
+  candidateImports?: Prisma.CandidateImportUncheckedCreateNestedManyWithoutOrganizationInput
+  landingPage?: Prisma.CandidateLandingPageUncheckedCreateNestedOneWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutPoolsInput = {
@@ -548,6 +594,8 @@ export type OrganizationUpdateWithoutPoolsInput = {
   candidateLists?: Prisma.CandidateListUpdateManyWithoutOrganizationNestedInput
   candidateStatuses?: Prisma.CandidateStatusUpdateManyWithoutOrganizationNestedInput
   jobMatches?: Prisma.JobMatchUpdateManyWithoutOrganizationNestedInput
+  candidateImports?: Prisma.CandidateImportUpdateManyWithoutOrganizationNestedInput
+  landingPage?: Prisma.CandidateLandingPageUpdateOneWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutPoolsInput = {
@@ -563,6 +611,8 @@ export type OrganizationUncheckedUpdateWithoutPoolsInput = {
   candidateLists?: Prisma.CandidateListUncheckedUpdateManyWithoutOrganizationNestedInput
   candidateStatuses?: Prisma.CandidateStatusUncheckedUpdateManyWithoutOrganizationNestedInput
   jobMatches?: Prisma.JobMatchUncheckedUpdateManyWithoutOrganizationNestedInput
+  candidateImports?: Prisma.CandidateImportUncheckedUpdateManyWithoutOrganizationNestedInput
+  landingPage?: Prisma.CandidateLandingPageUncheckedUpdateOneWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutUsersInput = {
@@ -578,6 +628,8 @@ export type OrganizationCreateWithoutUsersInput = {
   candidateLists?: Prisma.CandidateListCreateNestedManyWithoutOrganizationInput
   candidateStatuses?: Prisma.CandidateStatusCreateNestedManyWithoutOrganizationInput
   jobMatches?: Prisma.JobMatchCreateNestedManyWithoutOrganizationInput
+  candidateImports?: Prisma.CandidateImportCreateNestedManyWithoutOrganizationInput
+  landingPage?: Prisma.CandidateLandingPageCreateNestedOneWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutUsersInput = {
@@ -593,6 +645,8 @@ export type OrganizationUncheckedCreateWithoutUsersInput = {
   candidateLists?: Prisma.CandidateListUncheckedCreateNestedManyWithoutOrganizationInput
   candidateStatuses?: Prisma.CandidateStatusUncheckedCreateNestedManyWithoutOrganizationInput
   jobMatches?: Prisma.JobMatchUncheckedCreateNestedManyWithoutOrganizationInput
+  candidateImports?: Prisma.CandidateImportUncheckedCreateNestedManyWithoutOrganizationInput
+  landingPage?: Prisma.CandidateLandingPageUncheckedCreateNestedOneWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutUsersInput = {
@@ -624,6 +678,8 @@ export type OrganizationUpdateWithoutUsersInput = {
   candidateLists?: Prisma.CandidateListUpdateManyWithoutOrganizationNestedInput
   candidateStatuses?: Prisma.CandidateStatusUpdateManyWithoutOrganizationNestedInput
   jobMatches?: Prisma.JobMatchUpdateManyWithoutOrganizationNestedInput
+  candidateImports?: Prisma.CandidateImportUpdateManyWithoutOrganizationNestedInput
+  landingPage?: Prisma.CandidateLandingPageUpdateOneWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutUsersInput = {
@@ -639,6 +695,8 @@ export type OrganizationUncheckedUpdateWithoutUsersInput = {
   candidateLists?: Prisma.CandidateListUncheckedUpdateManyWithoutOrganizationNestedInput
   candidateStatuses?: Prisma.CandidateStatusUncheckedUpdateManyWithoutOrganizationNestedInput
   jobMatches?: Prisma.JobMatchUncheckedUpdateManyWithoutOrganizationNestedInput
+  candidateImports?: Prisma.CandidateImportUncheckedUpdateManyWithoutOrganizationNestedInput
+  landingPage?: Prisma.CandidateLandingPageUncheckedUpdateOneWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutCandidateNotesInput = {
@@ -654,6 +712,8 @@ export type OrganizationCreateWithoutCandidateNotesInput = {
   candidateLists?: Prisma.CandidateListCreateNestedManyWithoutOrganizationInput
   candidateStatuses?: Prisma.CandidateStatusCreateNestedManyWithoutOrganizationInput
   jobMatches?: Prisma.JobMatchCreateNestedManyWithoutOrganizationInput
+  candidateImports?: Prisma.CandidateImportCreateNestedManyWithoutOrganizationInput
+  landingPage?: Prisma.CandidateLandingPageCreateNestedOneWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutCandidateNotesInput = {
@@ -669,6 +729,8 @@ export type OrganizationUncheckedCreateWithoutCandidateNotesInput = {
   candidateLists?: Prisma.CandidateListUncheckedCreateNestedManyWithoutOrganizationInput
   candidateStatuses?: Prisma.CandidateStatusUncheckedCreateNestedManyWithoutOrganizationInput
   jobMatches?: Prisma.JobMatchUncheckedCreateNestedManyWithoutOrganizationInput
+  candidateImports?: Prisma.CandidateImportUncheckedCreateNestedManyWithoutOrganizationInput
+  landingPage?: Prisma.CandidateLandingPageUncheckedCreateNestedOneWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutCandidateNotesInput = {
@@ -700,6 +762,8 @@ export type OrganizationUpdateWithoutCandidateNotesInput = {
   candidateLists?: Prisma.CandidateListUpdateManyWithoutOrganizationNestedInput
   candidateStatuses?: Prisma.CandidateStatusUpdateManyWithoutOrganizationNestedInput
   jobMatches?: Prisma.JobMatchUpdateManyWithoutOrganizationNestedInput
+  candidateImports?: Prisma.CandidateImportUpdateManyWithoutOrganizationNestedInput
+  landingPage?: Prisma.CandidateLandingPageUpdateOneWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutCandidateNotesInput = {
@@ -715,6 +779,8 @@ export type OrganizationUncheckedUpdateWithoutCandidateNotesInput = {
   candidateLists?: Prisma.CandidateListUncheckedUpdateManyWithoutOrganizationNestedInput
   candidateStatuses?: Prisma.CandidateStatusUncheckedUpdateManyWithoutOrganizationNestedInput
   jobMatches?: Prisma.JobMatchUncheckedUpdateManyWithoutOrganizationNestedInput
+  candidateImports?: Prisma.CandidateImportUncheckedUpdateManyWithoutOrganizationNestedInput
+  landingPage?: Prisma.CandidateLandingPageUncheckedUpdateOneWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutAuditLogsInput = {
@@ -730,6 +796,8 @@ export type OrganizationCreateWithoutAuditLogsInput = {
   candidateLists?: Prisma.CandidateListCreateNestedManyWithoutOrganizationInput
   candidateStatuses?: Prisma.CandidateStatusCreateNestedManyWithoutOrganizationInput
   jobMatches?: Prisma.JobMatchCreateNestedManyWithoutOrganizationInput
+  candidateImports?: Prisma.CandidateImportCreateNestedManyWithoutOrganizationInput
+  landingPage?: Prisma.CandidateLandingPageCreateNestedOneWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutAuditLogsInput = {
@@ -745,6 +813,8 @@ export type OrganizationUncheckedCreateWithoutAuditLogsInput = {
   candidateLists?: Prisma.CandidateListUncheckedCreateNestedManyWithoutOrganizationInput
   candidateStatuses?: Prisma.CandidateStatusUncheckedCreateNestedManyWithoutOrganizationInput
   jobMatches?: Prisma.JobMatchUncheckedCreateNestedManyWithoutOrganizationInput
+  candidateImports?: Prisma.CandidateImportUncheckedCreateNestedManyWithoutOrganizationInput
+  landingPage?: Prisma.CandidateLandingPageUncheckedCreateNestedOneWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutAuditLogsInput = {
@@ -776,6 +846,8 @@ export type OrganizationUpdateWithoutAuditLogsInput = {
   candidateLists?: Prisma.CandidateListUpdateManyWithoutOrganizationNestedInput
   candidateStatuses?: Prisma.CandidateStatusUpdateManyWithoutOrganizationNestedInput
   jobMatches?: Prisma.JobMatchUpdateManyWithoutOrganizationNestedInput
+  candidateImports?: Prisma.CandidateImportUpdateManyWithoutOrganizationNestedInput
+  landingPage?: Prisma.CandidateLandingPageUpdateOneWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutAuditLogsInput = {
@@ -791,6 +863,8 @@ export type OrganizationUncheckedUpdateWithoutAuditLogsInput = {
   candidateLists?: Prisma.CandidateListUncheckedUpdateManyWithoutOrganizationNestedInput
   candidateStatuses?: Prisma.CandidateStatusUncheckedUpdateManyWithoutOrganizationNestedInput
   jobMatches?: Prisma.JobMatchUncheckedUpdateManyWithoutOrganizationNestedInput
+  candidateImports?: Prisma.CandidateImportUncheckedUpdateManyWithoutOrganizationNestedInput
+  landingPage?: Prisma.CandidateLandingPageUncheckedUpdateOneWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutJobDescriptionsInput = {
@@ -806,6 +880,8 @@ export type OrganizationCreateWithoutJobDescriptionsInput = {
   candidateLists?: Prisma.CandidateListCreateNestedManyWithoutOrganizationInput
   candidateStatuses?: Prisma.CandidateStatusCreateNestedManyWithoutOrganizationInput
   jobMatches?: Prisma.JobMatchCreateNestedManyWithoutOrganizationInput
+  candidateImports?: Prisma.CandidateImportCreateNestedManyWithoutOrganizationInput
+  landingPage?: Prisma.CandidateLandingPageCreateNestedOneWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutJobDescriptionsInput = {
@@ -821,6 +897,8 @@ export type OrganizationUncheckedCreateWithoutJobDescriptionsInput = {
   candidateLists?: Prisma.CandidateListUncheckedCreateNestedManyWithoutOrganizationInput
   candidateStatuses?: Prisma.CandidateStatusUncheckedCreateNestedManyWithoutOrganizationInput
   jobMatches?: Prisma.JobMatchUncheckedCreateNestedManyWithoutOrganizationInput
+  candidateImports?: Prisma.CandidateImportUncheckedCreateNestedManyWithoutOrganizationInput
+  landingPage?: Prisma.CandidateLandingPageUncheckedCreateNestedOneWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutJobDescriptionsInput = {
@@ -852,6 +930,8 @@ export type OrganizationUpdateWithoutJobDescriptionsInput = {
   candidateLists?: Prisma.CandidateListUpdateManyWithoutOrganizationNestedInput
   candidateStatuses?: Prisma.CandidateStatusUpdateManyWithoutOrganizationNestedInput
   jobMatches?: Prisma.JobMatchUpdateManyWithoutOrganizationNestedInput
+  candidateImports?: Prisma.CandidateImportUpdateManyWithoutOrganizationNestedInput
+  landingPage?: Prisma.CandidateLandingPageUpdateOneWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutJobDescriptionsInput = {
@@ -867,6 +947,8 @@ export type OrganizationUncheckedUpdateWithoutJobDescriptionsInput = {
   candidateLists?: Prisma.CandidateListUncheckedUpdateManyWithoutOrganizationNestedInput
   candidateStatuses?: Prisma.CandidateStatusUncheckedUpdateManyWithoutOrganizationNestedInput
   jobMatches?: Prisma.JobMatchUncheckedUpdateManyWithoutOrganizationNestedInput
+  candidateImports?: Prisma.CandidateImportUncheckedUpdateManyWithoutOrganizationNestedInput
+  landingPage?: Prisma.CandidateLandingPageUncheckedUpdateOneWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutCandidateListsInput = {
@@ -882,6 +964,8 @@ export type OrganizationCreateWithoutCandidateListsInput = {
   pools?: Prisma.OrganizationPoolCreateNestedManyWithoutOrganizationInput
   candidateStatuses?: Prisma.CandidateStatusCreateNestedManyWithoutOrganizationInput
   jobMatches?: Prisma.JobMatchCreateNestedManyWithoutOrganizationInput
+  candidateImports?: Prisma.CandidateImportCreateNestedManyWithoutOrganizationInput
+  landingPage?: Prisma.CandidateLandingPageCreateNestedOneWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutCandidateListsInput = {
@@ -897,6 +981,8 @@ export type OrganizationUncheckedCreateWithoutCandidateListsInput = {
   pools?: Prisma.OrganizationPoolUncheckedCreateNestedManyWithoutOrganizationInput
   candidateStatuses?: Prisma.CandidateStatusUncheckedCreateNestedManyWithoutOrganizationInput
   jobMatches?: Prisma.JobMatchUncheckedCreateNestedManyWithoutOrganizationInput
+  candidateImports?: Prisma.CandidateImportUncheckedCreateNestedManyWithoutOrganizationInput
+  landingPage?: Prisma.CandidateLandingPageUncheckedCreateNestedOneWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutCandidateListsInput = {
@@ -928,6 +1014,8 @@ export type OrganizationUpdateWithoutCandidateListsInput = {
   pools?: Prisma.OrganizationPoolUpdateManyWithoutOrganizationNestedInput
   candidateStatuses?: Prisma.CandidateStatusUpdateManyWithoutOrganizationNestedInput
   jobMatches?: Prisma.JobMatchUpdateManyWithoutOrganizationNestedInput
+  candidateImports?: Prisma.CandidateImportUpdateManyWithoutOrganizationNestedInput
+  landingPage?: Prisma.CandidateLandingPageUpdateOneWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutCandidateListsInput = {
@@ -943,6 +1031,8 @@ export type OrganizationUncheckedUpdateWithoutCandidateListsInput = {
   pools?: Prisma.OrganizationPoolUncheckedUpdateManyWithoutOrganizationNestedInput
   candidateStatuses?: Prisma.CandidateStatusUncheckedUpdateManyWithoutOrganizationNestedInput
   jobMatches?: Prisma.JobMatchUncheckedUpdateManyWithoutOrganizationNestedInput
+  candidateImports?: Prisma.CandidateImportUncheckedUpdateManyWithoutOrganizationNestedInput
+  landingPage?: Prisma.CandidateLandingPageUncheckedUpdateOneWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutCandidateStatusesInput = {
@@ -958,6 +1048,8 @@ export type OrganizationCreateWithoutCandidateStatusesInput = {
   pools?: Prisma.OrganizationPoolCreateNestedManyWithoutOrganizationInput
   candidateLists?: Prisma.CandidateListCreateNestedManyWithoutOrganizationInput
   jobMatches?: Prisma.JobMatchCreateNestedManyWithoutOrganizationInput
+  candidateImports?: Prisma.CandidateImportCreateNestedManyWithoutOrganizationInput
+  landingPage?: Prisma.CandidateLandingPageCreateNestedOneWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutCandidateStatusesInput = {
@@ -973,6 +1065,8 @@ export type OrganizationUncheckedCreateWithoutCandidateStatusesInput = {
   pools?: Prisma.OrganizationPoolUncheckedCreateNestedManyWithoutOrganizationInput
   candidateLists?: Prisma.CandidateListUncheckedCreateNestedManyWithoutOrganizationInput
   jobMatches?: Prisma.JobMatchUncheckedCreateNestedManyWithoutOrganizationInput
+  candidateImports?: Prisma.CandidateImportUncheckedCreateNestedManyWithoutOrganizationInput
+  landingPage?: Prisma.CandidateLandingPageUncheckedCreateNestedOneWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutCandidateStatusesInput = {
@@ -1004,6 +1098,8 @@ export type OrganizationUpdateWithoutCandidateStatusesInput = {
   pools?: Prisma.OrganizationPoolUpdateManyWithoutOrganizationNestedInput
   candidateLists?: Prisma.CandidateListUpdateManyWithoutOrganizationNestedInput
   jobMatches?: Prisma.JobMatchUpdateManyWithoutOrganizationNestedInput
+  candidateImports?: Prisma.CandidateImportUpdateManyWithoutOrganizationNestedInput
+  landingPage?: Prisma.CandidateLandingPageUpdateOneWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutCandidateStatusesInput = {
@@ -1019,6 +1115,8 @@ export type OrganizationUncheckedUpdateWithoutCandidateStatusesInput = {
   pools?: Prisma.OrganizationPoolUncheckedUpdateManyWithoutOrganizationNestedInput
   candidateLists?: Prisma.CandidateListUncheckedUpdateManyWithoutOrganizationNestedInput
   jobMatches?: Prisma.JobMatchUncheckedUpdateManyWithoutOrganizationNestedInput
+  candidateImports?: Prisma.CandidateImportUncheckedUpdateManyWithoutOrganizationNestedInput
+  landingPage?: Prisma.CandidateLandingPageUncheckedUpdateOneWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutJobMatchesInput = {
@@ -1034,6 +1132,8 @@ export type OrganizationCreateWithoutJobMatchesInput = {
   pools?: Prisma.OrganizationPoolCreateNestedManyWithoutOrganizationInput
   candidateLists?: Prisma.CandidateListCreateNestedManyWithoutOrganizationInput
   candidateStatuses?: Prisma.CandidateStatusCreateNestedManyWithoutOrganizationInput
+  candidateImports?: Prisma.CandidateImportCreateNestedManyWithoutOrganizationInput
+  landingPage?: Prisma.CandidateLandingPageCreateNestedOneWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutJobMatchesInput = {
@@ -1049,6 +1149,8 @@ export type OrganizationUncheckedCreateWithoutJobMatchesInput = {
   pools?: Prisma.OrganizationPoolUncheckedCreateNestedManyWithoutOrganizationInput
   candidateLists?: Prisma.CandidateListUncheckedCreateNestedManyWithoutOrganizationInput
   candidateStatuses?: Prisma.CandidateStatusUncheckedCreateNestedManyWithoutOrganizationInput
+  candidateImports?: Prisma.CandidateImportUncheckedCreateNestedManyWithoutOrganizationInput
+  landingPage?: Prisma.CandidateLandingPageUncheckedCreateNestedOneWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutJobMatchesInput = {
@@ -1080,6 +1182,8 @@ export type OrganizationUpdateWithoutJobMatchesInput = {
   pools?: Prisma.OrganizationPoolUpdateManyWithoutOrganizationNestedInput
   candidateLists?: Prisma.CandidateListUpdateManyWithoutOrganizationNestedInput
   candidateStatuses?: Prisma.CandidateStatusUpdateManyWithoutOrganizationNestedInput
+  candidateImports?: Prisma.CandidateImportUpdateManyWithoutOrganizationNestedInput
+  landingPage?: Prisma.CandidateLandingPageUpdateOneWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutJobMatchesInput = {
@@ -1095,6 +1199,176 @@ export type OrganizationUncheckedUpdateWithoutJobMatchesInput = {
   pools?: Prisma.OrganizationPoolUncheckedUpdateManyWithoutOrganizationNestedInput
   candidateLists?: Prisma.CandidateListUncheckedUpdateManyWithoutOrganizationNestedInput
   candidateStatuses?: Prisma.CandidateStatusUncheckedUpdateManyWithoutOrganizationNestedInput
+  candidateImports?: Prisma.CandidateImportUncheckedUpdateManyWithoutOrganizationNestedInput
+  landingPage?: Prisma.CandidateLandingPageUncheckedUpdateOneWithoutOrganizationNestedInput
+}
+
+export type OrganizationCreateWithoutCandidateImportsInput = {
+  id?: string
+  name: string
+  slug: string
+  createdAt?: Date | string
+  settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  users?: Prisma.UserCreateNestedManyWithoutOrganizationInput
+  candidateNotes?: Prisma.CandidateNoteCreateNestedManyWithoutOrganizationInput
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutOrganizationInput
+  jobDescriptions?: Prisma.JobDescriptionCreateNestedManyWithoutOrganizationInput
+  pools?: Prisma.OrganizationPoolCreateNestedManyWithoutOrganizationInput
+  candidateLists?: Prisma.CandidateListCreateNestedManyWithoutOrganizationInput
+  candidateStatuses?: Prisma.CandidateStatusCreateNestedManyWithoutOrganizationInput
+  jobMatches?: Prisma.JobMatchCreateNestedManyWithoutOrganizationInput
+  landingPage?: Prisma.CandidateLandingPageCreateNestedOneWithoutOrganizationInput
+}
+
+export type OrganizationUncheckedCreateWithoutCandidateImportsInput = {
+  id?: string
+  name: string
+  slug: string
+  createdAt?: Date | string
+  settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  users?: Prisma.UserUncheckedCreateNestedManyWithoutOrganizationInput
+  candidateNotes?: Prisma.CandidateNoteUncheckedCreateNestedManyWithoutOrganizationInput
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutOrganizationInput
+  jobDescriptions?: Prisma.JobDescriptionUncheckedCreateNestedManyWithoutOrganizationInput
+  pools?: Prisma.OrganizationPoolUncheckedCreateNestedManyWithoutOrganizationInput
+  candidateLists?: Prisma.CandidateListUncheckedCreateNestedManyWithoutOrganizationInput
+  candidateStatuses?: Prisma.CandidateStatusUncheckedCreateNestedManyWithoutOrganizationInput
+  jobMatches?: Prisma.JobMatchUncheckedCreateNestedManyWithoutOrganizationInput
+  landingPage?: Prisma.CandidateLandingPageUncheckedCreateNestedOneWithoutOrganizationInput
+}
+
+export type OrganizationCreateOrConnectWithoutCandidateImportsInput = {
+  where: Prisma.OrganizationWhereUniqueInput
+  create: Prisma.XOR<Prisma.OrganizationCreateWithoutCandidateImportsInput, Prisma.OrganizationUncheckedCreateWithoutCandidateImportsInput>
+}
+
+export type OrganizationUpsertWithoutCandidateImportsInput = {
+  update: Prisma.XOR<Prisma.OrganizationUpdateWithoutCandidateImportsInput, Prisma.OrganizationUncheckedUpdateWithoutCandidateImportsInput>
+  create: Prisma.XOR<Prisma.OrganizationCreateWithoutCandidateImportsInput, Prisma.OrganizationUncheckedCreateWithoutCandidateImportsInput>
+  where?: Prisma.OrganizationWhereInput
+}
+
+export type OrganizationUpdateToOneWithWhereWithoutCandidateImportsInput = {
+  where?: Prisma.OrganizationWhereInput
+  data: Prisma.XOR<Prisma.OrganizationUpdateWithoutCandidateImportsInput, Prisma.OrganizationUncheckedUpdateWithoutCandidateImportsInput>
+}
+
+export type OrganizationUpdateWithoutCandidateImportsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  users?: Prisma.UserUpdateManyWithoutOrganizationNestedInput
+  candidateNotes?: Prisma.CandidateNoteUpdateManyWithoutOrganizationNestedInput
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutOrganizationNestedInput
+  jobDescriptions?: Prisma.JobDescriptionUpdateManyWithoutOrganizationNestedInput
+  pools?: Prisma.OrganizationPoolUpdateManyWithoutOrganizationNestedInput
+  candidateLists?: Prisma.CandidateListUpdateManyWithoutOrganizationNestedInput
+  candidateStatuses?: Prisma.CandidateStatusUpdateManyWithoutOrganizationNestedInput
+  jobMatches?: Prisma.JobMatchUpdateManyWithoutOrganizationNestedInput
+  landingPage?: Prisma.CandidateLandingPageUpdateOneWithoutOrganizationNestedInput
+}
+
+export type OrganizationUncheckedUpdateWithoutCandidateImportsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  users?: Prisma.UserUncheckedUpdateManyWithoutOrganizationNestedInput
+  candidateNotes?: Prisma.CandidateNoteUncheckedUpdateManyWithoutOrganizationNestedInput
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutOrganizationNestedInput
+  jobDescriptions?: Prisma.JobDescriptionUncheckedUpdateManyWithoutOrganizationNestedInput
+  pools?: Prisma.OrganizationPoolUncheckedUpdateManyWithoutOrganizationNestedInput
+  candidateLists?: Prisma.CandidateListUncheckedUpdateManyWithoutOrganizationNestedInput
+  candidateStatuses?: Prisma.CandidateStatusUncheckedUpdateManyWithoutOrganizationNestedInput
+  jobMatches?: Prisma.JobMatchUncheckedUpdateManyWithoutOrganizationNestedInput
+  landingPage?: Prisma.CandidateLandingPageUncheckedUpdateOneWithoutOrganizationNestedInput
+}
+
+export type OrganizationCreateWithoutLandingPageInput = {
+  id?: string
+  name: string
+  slug: string
+  createdAt?: Date | string
+  settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  users?: Prisma.UserCreateNestedManyWithoutOrganizationInput
+  candidateNotes?: Prisma.CandidateNoteCreateNestedManyWithoutOrganizationInput
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutOrganizationInput
+  jobDescriptions?: Prisma.JobDescriptionCreateNestedManyWithoutOrganizationInput
+  pools?: Prisma.OrganizationPoolCreateNestedManyWithoutOrganizationInput
+  candidateLists?: Prisma.CandidateListCreateNestedManyWithoutOrganizationInput
+  candidateStatuses?: Prisma.CandidateStatusCreateNestedManyWithoutOrganizationInput
+  jobMatches?: Prisma.JobMatchCreateNestedManyWithoutOrganizationInput
+  candidateImports?: Prisma.CandidateImportCreateNestedManyWithoutOrganizationInput
+}
+
+export type OrganizationUncheckedCreateWithoutLandingPageInput = {
+  id?: string
+  name: string
+  slug: string
+  createdAt?: Date | string
+  settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  users?: Prisma.UserUncheckedCreateNestedManyWithoutOrganizationInput
+  candidateNotes?: Prisma.CandidateNoteUncheckedCreateNestedManyWithoutOrganizationInput
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutOrganizationInput
+  jobDescriptions?: Prisma.JobDescriptionUncheckedCreateNestedManyWithoutOrganizationInput
+  pools?: Prisma.OrganizationPoolUncheckedCreateNestedManyWithoutOrganizationInput
+  candidateLists?: Prisma.CandidateListUncheckedCreateNestedManyWithoutOrganizationInput
+  candidateStatuses?: Prisma.CandidateStatusUncheckedCreateNestedManyWithoutOrganizationInput
+  jobMatches?: Prisma.JobMatchUncheckedCreateNestedManyWithoutOrganizationInput
+  candidateImports?: Prisma.CandidateImportUncheckedCreateNestedManyWithoutOrganizationInput
+}
+
+export type OrganizationCreateOrConnectWithoutLandingPageInput = {
+  where: Prisma.OrganizationWhereUniqueInput
+  create: Prisma.XOR<Prisma.OrganizationCreateWithoutLandingPageInput, Prisma.OrganizationUncheckedCreateWithoutLandingPageInput>
+}
+
+export type OrganizationUpsertWithoutLandingPageInput = {
+  update: Prisma.XOR<Prisma.OrganizationUpdateWithoutLandingPageInput, Prisma.OrganizationUncheckedUpdateWithoutLandingPageInput>
+  create: Prisma.XOR<Prisma.OrganizationCreateWithoutLandingPageInput, Prisma.OrganizationUncheckedCreateWithoutLandingPageInput>
+  where?: Prisma.OrganizationWhereInput
+}
+
+export type OrganizationUpdateToOneWithWhereWithoutLandingPageInput = {
+  where?: Prisma.OrganizationWhereInput
+  data: Prisma.XOR<Prisma.OrganizationUpdateWithoutLandingPageInput, Prisma.OrganizationUncheckedUpdateWithoutLandingPageInput>
+}
+
+export type OrganizationUpdateWithoutLandingPageInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  users?: Prisma.UserUpdateManyWithoutOrganizationNestedInput
+  candidateNotes?: Prisma.CandidateNoteUpdateManyWithoutOrganizationNestedInput
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutOrganizationNestedInput
+  jobDescriptions?: Prisma.JobDescriptionUpdateManyWithoutOrganizationNestedInput
+  pools?: Prisma.OrganizationPoolUpdateManyWithoutOrganizationNestedInput
+  candidateLists?: Prisma.CandidateListUpdateManyWithoutOrganizationNestedInput
+  candidateStatuses?: Prisma.CandidateStatusUpdateManyWithoutOrganizationNestedInput
+  jobMatches?: Prisma.JobMatchUpdateManyWithoutOrganizationNestedInput
+  candidateImports?: Prisma.CandidateImportUpdateManyWithoutOrganizationNestedInput
+}
+
+export type OrganizationUncheckedUpdateWithoutLandingPageInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  settings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  users?: Prisma.UserUncheckedUpdateManyWithoutOrganizationNestedInput
+  candidateNotes?: Prisma.CandidateNoteUncheckedUpdateManyWithoutOrganizationNestedInput
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutOrganizationNestedInput
+  jobDescriptions?: Prisma.JobDescriptionUncheckedUpdateManyWithoutOrganizationNestedInput
+  pools?: Prisma.OrganizationPoolUncheckedUpdateManyWithoutOrganizationNestedInput
+  candidateLists?: Prisma.CandidateListUncheckedUpdateManyWithoutOrganizationNestedInput
+  candidateStatuses?: Prisma.CandidateStatusUncheckedUpdateManyWithoutOrganizationNestedInput
+  jobMatches?: Prisma.JobMatchUncheckedUpdateManyWithoutOrganizationNestedInput
+  candidateImports?: Prisma.CandidateImportUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 
@@ -1111,6 +1385,7 @@ export type OrganizationCountOutputType = {
   candidateLists: number
   candidateStatuses: number
   jobMatches: number
+  candidateImports: number
 }
 
 export type OrganizationCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1122,6 +1397,7 @@ export type OrganizationCountOutputTypeSelect<ExtArgs extends runtime.Types.Exte
   candidateLists?: boolean | OrganizationCountOutputTypeCountCandidateListsArgs
   candidateStatuses?: boolean | OrganizationCountOutputTypeCountCandidateStatusesArgs
   jobMatches?: boolean | OrganizationCountOutputTypeCountJobMatchesArgs
+  candidateImports?: boolean | OrganizationCountOutputTypeCountCandidateImportsArgs
 }
 
 /**
@@ -1190,6 +1466,13 @@ export type OrganizationCountOutputTypeCountJobMatchesArgs<ExtArgs extends runti
   where?: Prisma.JobMatchWhereInput
 }
 
+/**
+ * OrganizationCountOutputType without action
+ */
+export type OrganizationCountOutputTypeCountCandidateImportsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.CandidateImportWhereInput
+}
+
 
 export type OrganizationSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1205,6 +1488,8 @@ export type OrganizationSelect<ExtArgs extends runtime.Types.Extensions.Internal
   candidateLists?: boolean | Prisma.Organization$candidateListsArgs<ExtArgs>
   candidateStatuses?: boolean | Prisma.Organization$candidateStatusesArgs<ExtArgs>
   jobMatches?: boolean | Prisma.Organization$jobMatchesArgs<ExtArgs>
+  candidateImports?: boolean | Prisma.Organization$candidateImportsArgs<ExtArgs>
+  landingPage?: boolean | Prisma.Organization$landingPageArgs<ExtArgs>
   _count?: boolean | Prisma.OrganizationCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["organization"]>
 
@@ -1242,6 +1527,8 @@ export type OrganizationInclude<ExtArgs extends runtime.Types.Extensions.Interna
   candidateLists?: boolean | Prisma.Organization$candidateListsArgs<ExtArgs>
   candidateStatuses?: boolean | Prisma.Organization$candidateStatusesArgs<ExtArgs>
   jobMatches?: boolean | Prisma.Organization$jobMatchesArgs<ExtArgs>
+  candidateImports?: boolean | Prisma.Organization$candidateImportsArgs<ExtArgs>
+  landingPage?: boolean | Prisma.Organization$landingPageArgs<ExtArgs>
   _count?: boolean | Prisma.OrganizationCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type OrganizationIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -1258,6 +1545,8 @@ export type $OrganizationPayload<ExtArgs extends runtime.Types.Extensions.Intern
     candidateLists: Prisma.$CandidateListPayload<ExtArgs>[]
     candidateStatuses: Prisma.$CandidateStatusPayload<ExtArgs>[]
     jobMatches: Prisma.$JobMatchPayload<ExtArgs>[]
+    candidateImports: Prisma.$CandidateImportPayload<ExtArgs>[]
+    landingPage: Prisma.$CandidateLandingPagePayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1667,6 +1956,8 @@ export interface Prisma__OrganizationClient<T, Null = never, ExtArgs extends run
   candidateLists<T extends Prisma.Organization$candidateListsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$candidateListsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CandidateListPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   candidateStatuses<T extends Prisma.Organization$candidateStatusesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$candidateStatusesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CandidateStatusPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   jobMatches<T extends Prisma.Organization$jobMatchesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$jobMatchesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$JobMatchPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  candidateImports<T extends Prisma.Organization$candidateImportsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$candidateImportsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CandidateImportPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  landingPage<T extends Prisma.Organization$landingPageArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$landingPageArgs<ExtArgs>>): Prisma.Prisma__CandidateLandingPageClient<runtime.Types.Result.GetResult<Prisma.$CandidateLandingPagePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2283,6 +2574,49 @@ export type Organization$jobMatchesArgs<ExtArgs extends runtime.Types.Extensions
   take?: number
   skip?: number
   distinct?: Prisma.JobMatchScalarFieldEnum | Prisma.JobMatchScalarFieldEnum[]
+}
+
+/**
+ * Organization.candidateImports
+ */
+export type Organization$candidateImportsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the CandidateImport
+   */
+  select?: Prisma.CandidateImportSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the CandidateImport
+   */
+  omit?: Prisma.CandidateImportOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CandidateImportInclude<ExtArgs> | null
+  where?: Prisma.CandidateImportWhereInput
+  orderBy?: Prisma.CandidateImportOrderByWithRelationInput | Prisma.CandidateImportOrderByWithRelationInput[]
+  cursor?: Prisma.CandidateImportWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.CandidateImportScalarFieldEnum | Prisma.CandidateImportScalarFieldEnum[]
+}
+
+/**
+ * Organization.landingPage
+ */
+export type Organization$landingPageArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the CandidateLandingPage
+   */
+  select?: Prisma.CandidateLandingPageSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the CandidateLandingPage
+   */
+  omit?: Prisma.CandidateLandingPageOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CandidateLandingPageInclude<ExtArgs> | null
+  where?: Prisma.CandidateLandingPageWhereInput
 }
 
 /**

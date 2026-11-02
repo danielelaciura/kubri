@@ -122,6 +122,19 @@ export interface OutboundMessageInput {
   readonly questionId: string | null;
   /** The widget sent with the text (D116); absent or null for plain text. */
   readonly interactive?: StoredChoices | null;
+  /** A file already uploaded to the provider, sent with the body as caption (R5, R8). */
+  readonly document?: OutboundDocument | null;
+}
+
+/** An outbound file: the provider's media id and the name the candidate sees (R5). */
+export interface OutboundDocument {
+  readonly mediaRef: string;
+  readonly filename: string;
+}
+
+function outboundType(m: OutboundMessageInput): MessageKind {
+  if (m.document) return "document";
+  return m.interactive ? "interactive" : "text";
 }
 
 /** One insert at a time: the sequence number must follow the engine's order. */
@@ -129,17 +142,34 @@ export async function queueOutbound(
   tx: Tx,
   messages: readonly OutboundMessageInput[],
 ): Promise<void> {
-  for (const { interactive, ...m } of messages) {
+  for (const message of messages) {
+    const { interactive, document, ...m } = message;
     await tx.message.create({
       data: {
         ...m,
         direction: "outbound",
-        type: interactive ? "interactive" : "text",
+        type: outboundType(message),
         status: "queued",
         ...(interactive ? { interactive: asJson(interactive) } : {}),
+        ...(document ? { mediaRef: document.mediaRef, mediaFilename: document.filename } : {}),
       },
     });
   }
+}
+
+/**
+ * R8: the CV asked for in this turn is already queued (or sent). The `cv` job checks it so a
+ * retry after its commit does not send a second CV.
+ */
+export async function hasCvMessageForTurn(
+  tx: Tx,
+  sessionId: string,
+  turnId: string,
+): Promise<boolean> {
+  const count = await tx.message.count({
+    where: { sessionId, turnId, direction: "outbound", type: "document" },
+  });
+  return count > 0;
 }
 
 export interface SendKey {
@@ -156,7 +186,18 @@ export interface ClaimedMessage {
   readonly body: string;
   /** The widget to send with the body, if any (D116). */
   readonly interactive: StoredChoices | null;
+  /** The file to send, with the body as its caption (R5). */
+  readonly document: OutboundDocument | null;
   readonly attempts: number;
+}
+
+function parseDocument(row: {
+  type: MessageKind;
+  mediaRef: string | null;
+  mediaFilename: string | null;
+}): OutboundDocument | null {
+  if (row.type !== "document" || row.mediaRef === null || row.mediaFilename === null) return null;
+  return { mediaRef: row.mediaRef, filename: row.mediaFilename };
 }
 
 function parseChoices(json: unknown): StoredChoices | null {
@@ -211,6 +252,7 @@ export async function claimNextOutbound(
       turnId: claimed.turnId,
       body: next.body,
       interactive: parseChoices(claimed.interactive),
+      document: parseDocument(claimed),
       attempts: claimed.attempts,
     };
   });

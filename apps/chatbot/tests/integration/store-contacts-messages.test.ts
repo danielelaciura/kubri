@@ -9,6 +9,7 @@ import {
 import {
   claimNextOutbound,
   finishSend,
+  hasCvMessageForTurn,
   insertInboundMessage,
   queueOutbound,
   receivedBurst,
@@ -337,6 +338,78 @@ describe("outbound messages (D108)", () => {
       ["due", "failed", "skipped_after_failure"],
       ["altro turno", "queued", null],
     ]);
+  });
+});
+
+describe("outbound documents (R5)", () => {
+  const NOW = new Date("2026-10-24T10:00:00Z");
+  const base = (sessionId: string, turnId: string | null, body: string) => ({
+    contactId,
+    senderNumberId: senderId,
+    sessionId,
+    turnId,
+    body,
+    language: "it",
+    stepId: null,
+    questionId: null,
+  });
+  const newTurn = (sessionId: string) =>
+    db.turn.create({
+      data: {
+        sessionId,
+        inboundMessageIds: [],
+        startedAt: NOW,
+        completedAt: NOW,
+        outcome: "replied",
+      },
+    });
+
+  it("stores a document with its media reference and hands it out with the claim", async () => {
+    const session = await seedSession();
+    await queueOutbound(db, [
+      {
+        ...base(session, null, "Ecco il tuo CV"),
+        document: { mediaRef: "media-1", filename: "CV.pdf" },
+      },
+      base(session, null, "dopo"),
+    ]);
+
+    const rows = await db.message.findMany({ orderBy: { ordinal: "asc" } });
+    expect(rows.map((m) => [m.type, m.mediaRef, m.mediaFilename])).toEqual([
+      ["document", "media-1", "CV.pdf"],
+      ["text", null, null],
+    ]);
+
+    const key = { contactId, senderNumberId: senderId };
+    const first = await claimNextOutbound(db, key, NOW, 60_000);
+    if (first === null || first === "busy") throw new Error("expected a claim");
+    expect(first).toMatchObject({
+      body: "Ecco il tuo CV",
+      document: { mediaRef: "media-1", filename: "CV.pdf" },
+      interactive: null,
+    });
+    await finishSend(db, first, { kind: "sent", providerMessageId: "out.1", at: NOW });
+
+    expect(await claimNextOutbound(db, key, NOW, 60_000)).toMatchObject({
+      body: "dopo",
+      document: null,
+    });
+  });
+
+  it("knows whether a turn already queued its CV", async () => {
+    const session = await seedSession();
+    const asked = await newTurn(session);
+    const other = await newTurn(session);
+    await queueOutbound(db, [
+      base(session, other.id, "solo testo"),
+      { ...base(session, asked.id, "CV"), document: { mediaRef: "m", filename: "CV.pdf" } },
+    ]);
+
+    expect(await hasCvMessageForTurn(db, session, asked.id)).toBe(true);
+    expect(await hasCvMessageForTurn(db, session, other.id)).toBe(false);
+    expect(await hasCvMessageForTurn(db, session, "6f1c5f0e-3b8a-4a43-9d6e-5d0b6f7d2a11")).toBe(
+      false,
+    );
   });
 });
 

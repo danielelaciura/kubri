@@ -303,6 +303,11 @@ model Message {
   interactive       Json?
   /// Inbound: the id of the button or list row the candidate tapped.
   replyId           String?
+  /// Outbound `document`: the file's id at the provider (a Meta media id), uploaded before
+  /// the message is queued (R8). The file itself is never stored by the bot.
+  mediaRef          String?
+  /// Outbound `document`: the file name the candidate sees.
+  mediaFilename     String?
   stepId            String?
   questionId        String?
   /// Unique: deduplication of inbound messages (spec §11.1); set on outbound ones once sent.

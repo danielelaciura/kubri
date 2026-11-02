@@ -110,8 +110,9 @@ export interface JobAttempt {
   /** 0 on the first run. */
   readonly retryCount: number;
   /**
-   * No retry is left after this run (the queue's retry limit): a handler that wants to do
-   * something before the job goes to its dead letter queue does it now (the cv job, D131).
+   * No retry is left after this run (the job's own retry limit, set when it was created): a
+   * handler that wants to do something before the job goes to its dead letter queue does it
+   * now (the cv job D131, kubri-webhook D126).
    */
   readonly lastAttempt: boolean;
 }
@@ -197,6 +198,9 @@ export function createQueueRuntime(settings: QueueSettings): QueueRuntime {
           // Each job is settled on its own: a failure retries that job alone, so it never uses up
           // the retries of the others in its batch (send-messages counts on them, D108).
           perJobResults: true,
+          // Each job's own retry limit: the one it was created with, which a restart with a
+          // changed setting does not touch (updateQueue only affects new jobs).
+          includeMetadata: true,
           ...(options.pollingIntervalSeconds === undefined
             ? {}
             : { pollingIntervalSeconds: options.pollingIntervalSeconds }),
@@ -206,7 +210,7 @@ export function createQueueRuntime(settings: QueueSettings): QueueRuntime {
             jobs.map((job) =>
               handler(parsePayload(name, job.data), {
                 retryCount: job.retryCount,
-                lastAttempt: job.retryCount >= retryLimitOf(name),
+                lastAttempt: job.retryCount >= job.retryLimit,
               }),
             ),
           );

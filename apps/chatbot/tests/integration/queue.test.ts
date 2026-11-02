@@ -229,6 +229,38 @@ describe("attempts", () => {
       await counting.stop();
     }
   });
+
+  it("reads the last attempt from the job's own retry limit, not from the worker's setting", async () => {
+    // The worker runs with a higher limit than the job it gets: the job was created by a
+    // process configured with 1 (as one created before a deploy that raised the limit).
+    const working = await startTestQueue({ retryLimit: 3 });
+    const enqueuing = await startTestQueue({ retryLimit: 1 });
+    await enqueuing.queue.enqueue("report-failure", {
+      contactId: "c1",
+      sessionId: "s1",
+      turnId: null,
+    });
+    await enqueuing.stop();
+    const seen: { retryCount: number; lastAttempt: boolean }[] = [];
+    try {
+      await working.work(
+        "report-failure",
+        (_payload, attempt) => {
+          seen.push(attempt);
+          return Promise.reject(new Error("again"));
+        },
+        { batchSize: 1, pollingIntervalSeconds: 0.5 },
+      );
+
+      await expect.poll(() => seen.length, { timeout: 20_000, interval: 200 }).toBe(2);
+      expect(seen).toEqual([
+        { retryCount: 0, lastAttempt: false },
+        { retryCount: 1, lastAttempt: true },
+      ]);
+    } finally {
+      await working.stop();
+    }
+  });
 });
 
 describe("failed jobs", () => {

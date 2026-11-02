@@ -65,7 +65,7 @@ Oggi il chatbot di Kubri vive su Make.com. L'analisi dello scenario ha evidenzia
 | D11 | Evals | Sistema di evals **fatto in casa** fin dall'inizio, con valore anche didattico. |
 | D12 | Vocali | Non nella v1, ma **architettura predisposta** (modulo `media`). |
 | D13 | Lingue | Italiano di default; **traduzione via LLM** con cache; **traduzioni curate facoltative** per testo e lingua; consensi con regole più restrittive. |
-| D14 | Integrazione Kubri | Si mantiene **il webhook esistente** `POST /api/webhooks/make/candidate`, chiamato solo su eventi significativi e con dati aggiornati. |
+| D14 | Integrazione Kubri | Si mantiene **il webhook esistente** `POST /api/webhooks/make/candidate`, chiamato solo su eventi significativi e con dati aggiornati. *Superata da D130: endpoint dedicato `/api/webhooks/chatbot/candidate`.* |
 | D15 | CV | Nella v1, attivabile per campagna; HTML convertito in PDF; storage privato e link firmati. |
 | D16 | Consensi | Passaggio bloccante; testo versionato; titolare del trattamento per campagna; copia del testo mostrato. |
 | D17 | Migrazione | Le sessioni già in corso finiscono su Make. Passaggio per numero: prima un numero di test, poi il numero Kubri. |
@@ -167,6 +167,16 @@ Oggi il chatbot di Kubri vive su Make.com. L'analisi dello scenario ha evidenzia
 | D119 | Invio Meta (piano 09) | Versione della Graph API configurabile (`META_GRAPH_VERSION`, default `v23.0`); token = valore della variabile il cui nome sta nella configurazione del numero. Temporanei: rete, timeout, 5xx, limiti; definitivi: finestra (131047), non raggiungibile (131026), non autorizzato (131030), parametri (100), token (190). I codici sono nominati da una sola tabella (`errorName`), uguali all'invio e in consegna. Finestra delle 24 ore controllata prima della chiamata (`outside_window`, senza chiamare Meta). In produzione il worker rifiuta canale `console`, NLU `naive` e traduttore `fake`. |
 | D120 | Stati di consegna (piano 09) | `delivered` e `read` solo in avanti; `failed` → messaggio `failed` e, se ha una sessione, job `report-failure` nella stessa transazione: il worker fa scattare `outbound_failed` sotto il lock del contatto. Un `failed` per un messaggio sconosciuto va negli scarti (`status_unknown_message`); gli altri stati sconosciuti si ignorano. Il pool del worker diventa `4 × WORKER_BATCH_SIZE + 4`. |
 | D121 | Lettura, "sta scrivendo" e media (piano 09) | Conferma di lettura con indicatore all'inizio di `process-contact`, fuori dalla transazione, best effort (un errore si registra con gli id e non ferma il turno). Audio, immagini e documenti con una sessione aperta ricevono "per ora scrivimi in testo" (turno `ignored_media`, il motore non parte); come primo messaggio aprono la sessione. |
+| D122 | Contratto condiviso (piano 10) | `@kubri/contracts` contiene la busta e lo schema stretto dei `data` del chatbot (`chatbotCandidateWebhookSchema`), con un esempio usato dai test di entrambe le app. Il chatbot valida in uscita, la dashboard in entrata: una deriva è un errore di test o di tipi. |
+| D123 | Mappatura (piano 10) | Come la tabella del §12.1 (chiavi snake_case), con `learning_preferences.learning_preference` e `driving_license_types`, senza `lat`/`lng` né `cv_link_pdf`; i campi assenti (o vuoti) si omettono; `birthday` esce come `gg/mm/aaaa`; `last_updated` è `CandidateProfile.updatedAt` in ISO 8601 con fuso. |
+| D124 | Geocoding nella dashboard (piano 10) | Il chatbot non geocodifica e non manda coordinate. L'endpoint del chatbot geocodifica indirizzo e comune con la catena della landing (Google Geocoding, ripiego ISTAT), riusando le coordinate salvate se l'indirizzo non è cambiato. Il job `geocoding` resta (il motore lo accoda) e si chiude con un log. |
+| D125 | Quando e cosa si invia (piano 10) | Eventi `consents.accepted` (crea il candidato, D24), `block.completed`, `interview.completed`, `profile.updated`; il profilo si legge al momento dell'invio (`loadSnapshot`); la dashboard scarta un invio più vecchio di quello salvato (`sourceUpdatedAt`, risposta `skipped: "stale"`). Una sessione fermata con i dati cancellati non si invia. |
+| D126 | Ritentativi e scarti (piano 10) | 2xx fatto (anche `skipped`); 5xx, 429, 408, timeout, rete → ritentativo di pg-boss; altri 4xx ed errori di contratto → scarto immediato (`JobQueue.deadLetter`) con il motivo (`unauthorized`, `validation_failed`, `unknown_pool`, `contract`, …) e flag `kubri_webhook_failed` sulla sessione, senza `needs_attention`. Worker senza configurazione Kubri (solo fuori produzione): scarto con motivo `not_configured`. |
+| D127 | CV (piano 10) | Solo su richiesta esplicita (`cv_offer` "sì" o riproposta dopo la fine). PDF con `pdfkit`, un modello unico in italiano, font standard (caratteri non latini → `?`, limite noto). |
+| D128 | Consegna del CV (piano 10) | Documento WhatsApp: upload del PDF a Meta fuori da ogni transazione, poi un messaggio `document` (`Message.mediaRef`, `mediaFilename` = `CV.pdf`, didascalia `cv.ready`) accodato con il suo invio sotto il lock del contatto. Il turno che ha chiesto il CV è la chiave di idempotenza (`turnId` nel job). Il CV non va in dashboard e non si salva. |
+| D129 | Nessuno storage (piano 10) | Niente bucket, niente chiave di servizio di Supabase nel chatbot; se il candidato vuole di nuovo il CV, si rigenera dal profilo. |
+| D130 | Endpoint dedicato (piano 10) | `POST /api/webhooks/chatbot/candidate` con `CHATBOT_WEBHOOK_SECRET` (timeout 15 s: la dashboard può chiamare Google); il webhook di Make resta invariato; il chatbot non usa `/api/webhooks/make/candidate`. |
+| D131 | Fallimento del CV (piano 10) | Errore definitivo o ultimo tentativo di pg-boss: `cv.failed` al candidato una volta (per turno) e flag `cv_failed`, senza `needs_attention`. Una sessione sparita o fermata dopo un opt-out o una cancellazione non riceve né CV né scuse. |
 
 ---
 
@@ -618,7 +628,7 @@ Schema Postgres **`bot`**, nello stesso progetto Supabase della dashboard. Tutte
   - `id`, `contactId`, `senderNumberId`, `sessionId?`, `direction` (`inbound` | `outbound`, D111a);
   - `type` (`text` | `audio` | `image` | `document` | `interactive` | `location` | `unsupported`; `template` quando servirà, D111a);
   - `interactive?` (uscita: le scelte inviate, titoli risolti) e `replyId?` (entrata: l'id toccato), D116;
-  - `body`, `mediaRef?`, `templateName?`, `payloadRaw` (jsonb, per i messaggi in entrata);
+  - `body`, `mediaRef?`, `mediaFilename?`, `templateName?`, `payloadRaw` (jsonb, per i messaggi in entrata); in uscita un `document` porta in `mediaRef` l'id del media presso il provider e in `mediaFilename` il nome mostrato, con `body` come didascalia (piano 10, D128);
   - `stepId?`, `questionId?` (contesto al momento del messaggio);
   - `providerMessageId` (**univoco**, per la deduplica);
   - `status` (`received` | `processed` | `queued` | `sending` | `sent` | `delivered` | `read` | `failed`), `sentAt`, `deliveredAt`, `readAt`, `failedAt`, `errorCode?`;
@@ -628,12 +638,12 @@ Schema Postgres **`bot`**, nello stesso progetto Supabase della dashboard. Tutte
 
 ### 10.3 Profilo, consensi e tracciabilità
 
-- **CandidateProfile**: `id`, `sessionId` (1:1), `standard` (jsonb, schema §6), `custom` (jsonb), `fieldMeta` (jsonb: confidenza, stato e fonte per campo), `sharedWithGlobal` (consenso al pool globale), `completedAt`, `updatedAt`. `cvDocumentId` arriva con il piano 10 (D111).
+- **CandidateProfile**: `id`, `sessionId` (1:1), `standard` (jsonb, schema §6), `custom` (jsonb), `fieldMeta` (jsonb: confidenza, stato e fonte per campo), `sharedWithGlobal` (consenso al pool globale), `completedAt`, `updatedAt` (diventa `last_updated` nel webhook, D123).
 - **ProfileChange**: `id`, `profileId`, `field`, `oldValue`, `newValue`, `source` (`extraction` | `edit` | `system` | `document_import`, estendibile), `turnId?`, `confidence?`, `createdAt`.
 - **Consent**: `id`, `contactId?`, `sessionId?` (`NULL` dopo la cancellazione del contatto, D109), `consentKey`, `textVersion`, `language`, `textShown`, `textShownIsCurated`, `linkShown?` (D111d), `dataController`, `contactHash` (HMAC, D111e), `outcome`, `messageId`, `decidedAt`, `createdAt`.
 - **SessionFlag**: `id`, `sessionId`, `reason`, `field?`, `needsAttention`, `turnId?`, `createdAt`. Dove `FlagSession` lascia traccia (D111); l'avviso vero è del piano 11.
 - **NluTrace**: `id`, `turnId`, `task`, `promptVersion`, `provider`, `model`, `input` (jsonb), `output` (jsonb), `valid`, `latencyMs`, `inputTokens`, `outputTokens`, `costEstimate`, `error?`, `createdAt`. Più `attempt` (`primary` / `retry` / `fallback`) e `repair` (D87). Una riga per chiamata; `input` senza il prompt di sistema. Tabella creata nel piano 08.
-- **CvDocument** (piano 10, D111): `id`, `profileId`, `kind` (`generated` | `uploaded`), `template`, `storageKey`, `createdAt`.
+- **CvDocument**: non esiste (piano 10, D129). Il CV si genera in memoria e si consegna come documento WhatsApp; ne resta solo il messaggio in uscita (`Message.mediaRef`, `mediaFilename`).
 - **TranslationCache**: `sourceHash`, `language`, `text`, `provider`, `model`, `reviewed`, `createdAt`. Chiave primaria su (`sourceHash`, `language`).
 - **InboundDeadLetter** (piano 09, D111, D117): payload non interpretabili (`raw`, `reason`, `createdAt`). Scadenza e comando per rileggerli: piano 11.
 
@@ -641,7 +651,7 @@ Schema Postgres **`bot`**, nello stesso progetto Supabase della dashboard. Tutte
 
 - **pg-boss** nello stesso database, nel suo schema (`bot_queue`).
 - I job vengono inseriti **nella stessa transazione** che aggiorna lo stato e il profilo (outbox transazionale).
-- Code: `process-contact`, `send-messages`, `kubri-webhook`, `cv`, `geocoding`, `sweep-inactive` (programmato), `delete-contact`.
+- Code: `process-contact`, `send-messages`, `report-failure`, `kubri-webhook`, `cv`, `geocoding`, `sweep-inactive` (programmato), `delete-contact`. Ognuna ha la sua coda degli scarti `<nome>-dead`; `JobQueue.deadLetter` ci manda un job subito, con il motivo (D126).
 
 ### 10.5 Ruoli database
 
@@ -653,7 +663,7 @@ Schema Postgres **`bot`**, nello stesso progetto Supabase della dashboard. Tutte
 
 ### 10.6 Conservazione e cancellazione
 
-- **Diritto all'oblio:** `delete-contact` cancella a cascata sessioni, messaggi, profili, tracce, file multimediali e CV. Dei consensi resta una prova minima (chiave, versione, esito, data, hash del contatto con chiave, D111e).
+- **Diritto all'oblio:** `delete-contact` cancella a cascata sessioni, messaggi, profili, tracce e file multimediali (i CV non si salvano: nessun file da cancellare, D129). Dei consensi resta una prova minima (chiave, versione, esito, data, hash del contatto con chiave, D111e).
 - Durate di conservazione configurabili per: file multimediali, `NluTrace`, `payloadRaw`, sessioni abbandonate.
 - **Soglia dei consensi (D24).** Il comportamento di una sessione che non arriva al completamento dipende da dove si è fermata:
 
@@ -733,56 +743,64 @@ Conferma di lettura e "sta scrivendo" immediati; risposta in circa `DEBOUNCE_MS`
 
 ### 12.1 Webhook verso la piattaforma Kubri
 
-Si mantiene l'endpoint esistente. Il modulo `integrations` vi si adegua.
+Un endpoint della dashboard dedicato al chatbot (D130); il webhook di Make resta com'è. Il client
+sta in `src/integrations/kubri/` (`client.ts`, `payload.ts`), il job in
+`src/runtime/jobs/kubri-webhook.ts`.
 
-- `POST {KUBRI_BASE_URL}/api/webhooks/make/candidate`
-- `Authorization: Bearer {KUBRI_WEBHOOK_SECRET}`
-- Corpo: `{ "key": string, "externalKey": string, "data": object }`
+- `POST {KUBRI_BASE_URL}/api/webhooks/chatbot/candidate`
+- `Authorization: Bearer {CHATBOT_WEBHOOK_SECRET}` (stesso valore nelle due app; timeout 15 s)
+- Corpo: `{ "key": string, "externalKey": string, "data": object }`, validato con lo schema
+  condiviso di `@kubri/contracts` prima di partire (D122) e dalla dashboard all'arrivo.
   - `key`: identificativo stabile del candidato per quella campagna. La piattaforma fa l'upsert su (pool, `key`). **Deciso (D20): `key` = `<Contact.id>:<Campaign.id>`** (due UUID, nessun dato personale). La stessa persona che rifà la stessa campagna aggiorna la stessa riga in dashboard; ogni invio porta il profilo della sessione più recente.
   - `externalKey`: `Campaign.externalKey` (il pool lato Kubri).
-  - `data`: il profilo **completo e aggiornato**, letto dal database dopo il commit e mappato con le chiavi che la piattaforma si aspetta oggi:
+  - `data`: il profilo **completo e aggiornato**, letto dal database al momento dell'invio e mappato con le chiavi snake_case dei payload di Make (così `rawPayload` resta leggibile). Lo schema è stretto: una chiave sconosciuta è un errore di contratto. I campi assenti si omettono (D123):
 
 | Profilo | Chiave in `data` |
 |---|---|
 | `firstName` / `lastName` | `first_name` / `last_name` |
 | `birthday` | `birthday` (`dd/mm/yyyy`) |
-| `country` | `country` |
-| `address`, `location` | `address`, `location` |
-| `lat`, `lng` | `lat`, `lng` |
-| `phone`, `email` | `phone`, `email` |
+| `country` | `country` (ISO 3166-1 alpha-2) |
+| `address`, `location` | `address`, `location` (la dashboard geocodifica, D124: niente `lat`/`lng`) |
+| telefono del contatto, `email` | `phone` (E.164), `email` |
 | `workingPermit` | `working_permit` (boolean) |
 | `transport` | `transport` |
-| `drivingLicense` | `driving_license` (boolean) |
+| `drivingLicense`, `drivingLicenseTypes` | `driving_license` (boolean), `driving_license_types` |
 | `educationAndTraining` | `education_and_training` |
 | `workExperience` | `work_experience` |
 | `skillsAndCompetences` | `skills_and_competences` |
 | `language`, `additionalLanguages`, `italianLevel` | `language`, `additional_languages`, `italian_level` |
 | `jobPreferences.*` | `job_preferences.{preferred_job, part_time_preference, preferred_location, constraints, has_desired_job_experience}` |
+| `learningPreferences.*` | `learning_preferences.{is_interested, learning_preference}` |
 | `Session.language` | `interview_language` |
-| canale | `channel` (**esplicito**, es. `whatsapp`; D22) |
+| canale | `channel` = `whatsapp` (**esplicito**, D22) |
 | sorgente | `source_organization` = `kubri-chatbot` |
 | consenso `kubri_global` | `is_kubri_privacy_accepted` (**boolean**) |
-| `updatedAt` | `last_updated` (ISO) |
+| `CandidateProfile.updatedAt` | `last_updated` (ISO 8601 con fuso) |
 | `custom.*` | `custom` (oggetto; la piattaforma lo conserva nel `rawPayload`) |
-| meta | `interview_status`, `cv_link_pdf` (link firmato), `campaign_version` |
+| meta | `interview_status` (`in_progress` / `completed` / `stopped`), `campaign_version` |
 
-- **Adeguamento lato dashboard (prerequisito del go-live, piano 10).** Oggi la dashboard ricava il canale da `source_organization` (`apps/dashboard/src/lib/make/normalize.ts`, `deriveChannelOrNull`: tutto ciò che non contiene `whatsapp` diventa `telegram`). Va fatta leggere prima `channel`, con ripiego su `source_organization` per i payload di Make ancora in arrivo. Lo schema Zod del payload si sposta in `@kubri/contracts`, condiviso da chatbot e dashboard (D19).
-- **Quando:** `consents.accepted` (superamento della soglia D24: è qui che il candidato nasce in dashboard, non prima), `block.completed`, `interview.completed`, `profile.updated` (modifica dopo il completamento), `cv.generated`. Mai a ogni messaggio.
-- **Ritentativi:** 5xx o timeout si ritentano con attesa crescente. 4xx (`validation_failed`, `unknown_pool`, `unauthorized`) è definitivo e finisce negli scarti con un avviso.
+- **Lato dashboard** (Parte A del piano 10, in produzione prima del chatbot): l'endpoint fissa
+  `channel` e `sourceOrganization` lato server, geocodifica (§12.3) e scrive con
+  `ingestCandidate`.
+- **Quando:** `consents.accepted` (superamento della soglia D24: è qui che il candidato nasce in dashboard, non prima), `block.completed`, `interview.completed`, `profile.updated` (modifica dopo il completamento). Mai a ogni messaggio. Il CV non genera invii (D128).
+- **Ordine (D125):** il job porta solo `{ sessionId, event }` e invia lo stato di adesso; la dashboard scarta un invio con `last_updated` più vecchio di quello salvato (`{ ok: true, skipped: "stale" }`). Una sessione fermata con i dati cancellati non si invia.
+- **Ritentativi (D126):** 5xx, 429, timeout o rete si ritentano con attesa crescente. Gli altri 4xx (`unauthorized`, `validation_failed`, `unknown_pool`) e gli errori di contratto lato chatbot sono definitivi: scarto immediato in `kubri-webhook-dead` con il motivo e flag `kubri_webhook_failed` sulla sessione.
 - **Idempotenza:** garantita dall'upsert lato piattaforma.
-- **Test di contratto** (§14) per allineare la mappatura alla validazione della dashboard.
+- **Test di contratto** (§14): la mappatura deve produrre esattamente `CHATBOT_CANDIDATE_PAYLOAD_EXAMPLE`; la dashboard legge lo stesso esempio.
 
 ### 12.2 CV
 
-- Attivato da `cv_offer` con esito `yes`.
-- Template **HTML** per campagna (con un template di default) → PDF. Libreria da scegliere: una basata su Chromium headless o una tipo `@react-pdf`.
-- Il file va in uno storage **privato** (bucket Supabase Storage dedicato al bot). Al candidato si invia un **link firmato a scadenza**, oppure il PDF come documento WhatsApp.
-- Si salva in `CvDocument(kind: generated)`, poi si invia l'evento `cv.generated` a Kubri.
+- Solo su richiesta esplicita: `cv_offer` con esito `yes`, o la riproposta dopo il completamento (D44, D127). Il job `cv` porta `{ sessionId, turnId }`: il turno che l'ha chiesto è la chiave di idempotenza.
+- Layout puro (`src/integrations/cv/layout.ts`) e PDF con `pdfkit` (`render.ts`), in memoria; un modello unico in italiano.
+- Consegna come **documento WhatsApp** (D128): upload a Meta (`ChannelAdapter.uploadDocument`) fuori da ogni transazione, poi, sotto il lock del contatto, un messaggio `document` (didascalia `cv.ready` nella lingua della sessione) e il suo `send-messages` nella stessa transazione. Il media di Meta vale 30 giorni; i ritentativi durano minuti.
+- **Niente storage** (D129): il CV non si salva e non va in dashboard; se il candidato lo vuole di nuovo, si rigenera dal profilo.
+- Salta senza fare nulla se la sessione non c'è più, è `stopped` (opt-out o cancellazione) o il turno ha già il suo CV (o la sua scusa).
+- Errore temporaneo → pg-boss ritenta; definitivo o ultimo tentativo → `cv.failed` una volta e flag `cv_failed` (D131).
 
 ### 12.3 Geocoding
 
-- Al completamento, o quando `address` cambia, dall'indirizzo **aggiornato** si ricavano `lat`/`lng`.
-- Provider da scegliere. Come riserva c'è la piattaforma Kubri, che ha già un geocoding sui comuni ISTAT.
+- Lo fa la dashboard a ogni invio (D124), con la catena della landing (`geocodeFreeText`: Google Geocoding, ripiego sui comuni ISTAT) su `"<address>, <location>"`; se indirizzo e comune non sono cambiati riusa le coordinate salvate.
+- Il chatbot non geocodifica e non manda coordinate; il job `geocoding`, che il motore accoda quando l'indirizzo cambia, si chiude con un log.
 
 ---
 
@@ -928,10 +946,10 @@ Il motore di evals è scritto in proprio in TypeScript: dataset in JSON, misurat
 ### 16.3 Sicurezza e privacy
 
 - Verifica della firma su ogni webhook in entrata.
-- Segreti (token Meta, app secret, chiavi LLM, segreto del webhook Kubri) solo in variabili d'ambiente o nel gestore dei segreti della piattaforma; nel database solo riferimenti.
+- Segreti (token Meta, app secret, chiavi LLM, `CHATBOT_WEBHOOK_SECRET`) solo in variabili d'ambiente o nel gestore dei segreti della piattaforma; nel database solo riferimenti.
 - Minimizzazione dei dati verso l'LLM (§8.2); provider con hosting UE e senza addestramento sui dati.
 - Log senza dati personali.
-- Storage privato e link firmati a scadenza.
+- Nessuno storage di file nel chatbot: il CV si genera in memoria e si consegna come documento WhatsApp (D129); nessuna chiave di servizio di Supabase nel worker.
 - Ruoli database separati (§10.5).
 - Registro dei consensi con il testo mostrato.
 - Diritto all'oblio e durate di conservazione (§10.6).

@@ -55,7 +55,7 @@ Each external dependency is touched by exactly one module:
 | `channels` | Meta Cloud API (future: Twilio, Telegram) |
 | `nlu` | the LLM provider |
 | `store` | the database (Prisma) |
-| `integrations` | Kubri webhook, storage, geocoding, PDF rendering |
+| `integrations` | Kubri webhook, PDF rendering |
 | `engine` | **nothing** — it is a pure function |
 
 Other modules: `ingress` (HTTP routes), `campaigns` (schema, validation, import, versions),
@@ -147,18 +147,31 @@ step(state, event, campaignVersion) → { state, effects }
 
 ## Integration with the Kubri platform
 
-- Keep the existing contract: `POST {KUBRI_BASE_URL}/api/webhooks/make/candidate`,
-  `Authorization: Bearer <secret>`, body `{ key, externalKey, data }`. The payload schema lives
-  in `@kubri/contracts`, shared with the dashboard — change it there, never fork it.
+- The chatbot's own dashboard endpoint (spec §12.1, D130): `POST {KUBRI_BASE_URL}/api/webhooks/chatbot/candidate`,
+  `Authorization: Bearer <CHATBOT_WEBHOOK_SECRET>` (same value in both apps), body
+  `{ key, externalKey, data }`. Make's webhook (`/api/webhooks/make/candidate`) is not used. The
+  payload schema and its example live in `@kubri/contracts` (`chatbotCandidateWebhookSchema`,
+  `CHATBOT_CANDIDATE_PAYLOAD_EXAMPLE`), shared with the dashboard: change them there, together
+  with the dashboard, never fork them. The example is the contract test.
 - `key` = `<Contact.id>:<Campaign.id>`; `externalKey` = the dashboard pool key; `data.channel`
   is always explicit (spec D20–D22). The first send happens when mandatory consents are
   accepted (D24) — before that there is no candidate.
-- `data` is the **full, current profile read from the DB after commit**, mapped to the snake_case
-  keys the dashboard reads today (mapping table in spec §12.1). Booleans are real booleans
-  (`is_kubri_privacy_accepted`, `driving_license`, `working_permit`).
+- `data` is the **full, current profile read from the DB when the job runs** (`loadSnapshot`),
+  mapped to snake_case keys (`src/integrations/kubri/payload.ts`, spec §12.1) and validated with
+  the shared schema before it leaves (a failure is a `KubriContractError`). No coordinates (the
+  dashboard geocodes, D124), no CV link. Booleans are real booleans.
 - Sent **only on significant events** (`consents.accepted`, `block.completed`,
-  `interview.completed`, `profile.updated`, `cv.generated`) — never per message.
-- 5xx/timeout → retry; 4xx → dead letter + alert. A contract test guards the mapping.
+  `interview.completed`, `profile.updated`) — never per message. The dashboard drops a send
+  older than the stored one (`last_updated`).
+- 5xx/429/timeout/network → pg-boss retry; other 4xx or a contract error → dead letter at once
+  (`JobQueue.deadLetter`, with the reason) + flag `kubri_webhook_failed` (D126).
+- `src/integrations/` is the only code that calls Kubri or renders PDFs; `runtime` uses it
+  through interfaces (`KubriClient`, `renderCv`), so tests use `FakeKubriClient`.
+- CV (D127–D131): only when the candidate asks (`cv_offer` "yes" or asking again after the end).
+  The `cv` job renders the PDF in memory, uploads it to Meta outside any transaction and queues
+  a `document` message under the contact's lock; the requesting `turnId` makes it idempotent. It
+  never goes to the dashboard and is never stored. A definitive failure or the last attempt sends
+  `cv.failed` once and flags `cv_failed`.
 
 ## WhatsApp specifics
 
@@ -190,9 +203,10 @@ step(state, event, campaignVersion) → { state, effects }
 3. **No personal data in logs.** Log IDs (`sessionId`, `contactId`, `turnId`), never names,
    phones, addresses or message bodies.
 4. Secrets only in env / platform secret manager; the DB stores references, never credentials.
-5. CVs and media live in **private storage**; share only expiring signed links.
-6. Right to be forgotten: `delete-contact` cascades over sessions, messages, profiles, traces,
-   media and CVs; keep only minimal consent proof.
+5. CVs are never stored: they are generated in memory and delivered as a WhatsApp document
+   (D129). Media, when stored, live in **private storage** behind expiring signed links.
+6. Right to be forgotten: `delete-contact` cascades over sessions, messages, profiles, traces
+   and media (there are no CV files); keep only minimal consent proof.
 
 ## Testing
 
@@ -203,7 +217,7 @@ step(state, event, campaignVersion) → { state, effects }
   edit, CV yes/no. They run in CI on every campaign change.
 - **Integration:** worker + real Postgres + fake channel + fake LLM (dedup, ordering, debounce,
   locking, rollback, retries, dead letters, 24h window).
-- **Contract:** Kubri webhook payload.
+- **Contract:** Kubri webhook payload (`buildKubriPayload` must produce the shared example).
 - Tests never call the real LLM or Meta. Real-LLM checks belong in evals or the `simulate` CLI.
 
 ## Code conventions
@@ -253,6 +267,13 @@ pnpm cli web start                    # WhatsApp webhooks on PORT (needs META_AP
 pnpm cli worker start --channel meta --nlu llm --translator llm   # replies go to WhatsApp (default: the terminal)
 ```
 
+- **Kubri (plan 10).** The worker needs `KUBRI_BASE_URL` and `CHATBOT_WEBHOOK_SECRET` (both or
+  neither; required with `NODE_ENV=production`). Without them, outside production, it starts with
+  a warning and `kubri-webhook` jobs go to `kubri-webhook-dead` with reason `not_configured`.
+  Setup and the dev check (shared secret, a real interview, the CV in chat):
+  `docs/kubri-integration-setup.md`. Dead letters:
+  `select name, data->>'reason', count(*) from bot_queue.job where name like '%-dead' group by 1, 2;`
+
 - `campaigns import` creates a new immutable `CampaignVersion` only when the parsed file's
   checksum is new; without `--activate` the active version does not change. Placeholder
   consents (`placeholder-…` versions, `[TESTO SEGNAPOSTO]` texts) are only warnings when
@@ -288,8 +309,9 @@ pnpm cli worker start --channel meta --nlu llm --translator llm   # replies go t
   unqualified SQL); `tests/unit/store/migrations.test.ts` fails otherwise. Also check the SQL
   only touches `"bot".` objects before committing.
 - Code runs with `tsx` in every environment; there is no JS build step.
-- **Worker (plan 08).** `worker start` runs the conversation turns (`process-contact`) and the
-  sending (`send-messages`, `report-failure`) on pg-boss; by default replies are printed on the
+- **Worker (plan 08).** `worker start` runs the conversation turns (`process-contact`), the
+  sending (`send-messages`, `report-failure`) and plan 10's jobs (`kubri-webhook`, `cv`,
+  `geocoding`) on pg-boss; by default replies are printed on the
   terminal (`ConsoleChannel`), with `--channel meta` they go out through Meta's Cloud API
   (plan 09; the web process `web start` receives the webhooks). `inbound send` stores a text message as if it came from
   WhatsApp and enqueues its turn; it needs a running worker to get an answer.

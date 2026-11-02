@@ -121,6 +121,25 @@ describe("handleKubriWebhook (D125, D126, R7)", () => {
     expect(kubri.sent[0]?.data).toMatchObject({ interview_status: "stopped" });
   });
 
+  it("sends a status change with a newer last_updated even when the profile did not change (M4)", async () => {
+    await applyProfileFields(db, sessionId, "extraction", null, [
+      { field: "firstName", value: "Karim", confidence: 0.95, status: "inferred" },
+    ]);
+    const { updatedAt } = await db.candidateProfile.findUniqueOrThrow({ where: { sessionId } });
+    const stoppedAt = new Date(updatedAt.getTime() + 60_000);
+    await db.session.update({
+      where: { id: sessionId },
+      data: { status: "stopped", openKey: null, stoppedAt, lastActivityAt: stoppedAt },
+    });
+
+    await handleKubriWebhook(deps(), job("profile.updated"), NOT_LAST);
+
+    expect(kubri.sent[0]?.data).toMatchObject({
+      interview_status: "stopped",
+      last_updated: stoppedAt.toISOString(),
+    });
+  });
+
   it("counts a send the dashboard skipped as stale as done", async () => {
     kubri = new FakeKubriClient([{ ok: true, skipped: "stale" }]);
 

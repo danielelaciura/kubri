@@ -51,6 +51,7 @@ describe("loadSnapshot (R5)", () => {
     expect(snapshot?.campaign.id).toBe(s.campaign?.campaignId);
     expect(snapshot?.campaign.versionId).toBe(s.campaign?.versionId);
     expect(snapshot?.profile.updatedAt).toBeInstanceOf(Date);
+    expect(snapshot?.session.lastActivityAt).toBeInstanceOf(Date);
     expect(snapshot?.profile.fieldMeta["firstName"]).toMatchObject({ status: "inferred" });
   });
 });

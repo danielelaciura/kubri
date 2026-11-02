@@ -16,7 +16,12 @@ export interface KubriSnapshot {
     readonly externalKey: string;
     readonly version: number;
   };
-  readonly session: { readonly status: SessionStatusName; readonly language: string | null };
+  readonly session: {
+    readonly status: SessionStatusName;
+    readonly language: string | null;
+    /** Moves with every turn that saves the session, status changes included. */
+    readonly lastActivityAt: Date;
+  };
   readonly profile: StoredProfile & {
     readonly sharedWithGlobal: boolean;
     readonly updatedAt: Date;
@@ -102,6 +107,15 @@ function toItalianDate(value: unknown): unknown {
   return match ? `${match[3] ?? ""}/${match[2] ?? ""}/${match[1] ?? ""}` : value;
 }
 
+/**
+ * The dashboard keeps the newest send by `last_updated` (D125): it must move when the profile
+ * changes and when only the session does (a stop, a completion), or such a send looks stale.
+ */
+const lastUpdated = (snapshot: KubriSnapshot): Date =>
+  snapshot.session.lastActivityAt > snapshot.profile.updatedAt
+    ? snapshot.session.lastActivityAt
+    : snapshot.profile.updatedAt;
+
 const nonEmpty = (value: Data): Data | undefined =>
   Object.keys(value).length > 0 ? value : undefined;
 
@@ -119,7 +133,7 @@ export function buildKubriPayload(snapshot: KubriSnapshot): ChatbotCandidateWebh
     channel: CHATBOT_CHANNEL,
     interview_status: STATUS[session.status],
     campaign_version: campaign.version,
-    last_updated: profile.updatedAt.toISOString(),
+    last_updated: lastUpdated(snapshot).toISOString(),
     is_kubri_privacy_accepted: profile.sharedWithGlobal,
     phone: contact.phoneE164,
     ...(session.language ? { interview_language: session.language } : {}),

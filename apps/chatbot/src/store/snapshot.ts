@@ -25,6 +25,8 @@ export interface Snapshot {
     readonly status: SessionStatusName;
     readonly language: string | null;
     readonly senderNumberId: string;
+    /** Set by every turn that saves the session (status changes included): last_updated, M4. */
+    readonly lastActivityAt: Date;
   };
   readonly profile: StoredProfile & {
     readonly id: string;
@@ -45,6 +47,7 @@ export async function loadSnapshot(tx: Tx, sessionId: string): Promise<Snapshot 
       status: true,
       language: true,
       senderNumberId: true,
+      lastActivityAt: true,
       contact: { select: { id: true, channel: true, externalId: true, phoneE164: true } },
       profile: {
         select: {
@@ -83,6 +86,7 @@ export async function loadSnapshot(tx: Tx, sessionId: string): Promise<Snapshot 
       status: session.status,
       language: session.language,
       senderNumberId: session.senderNumberId,
+      lastActivityAt: session.lastActivityAt,
     },
     profile: {
       ...parseStoredProfile({

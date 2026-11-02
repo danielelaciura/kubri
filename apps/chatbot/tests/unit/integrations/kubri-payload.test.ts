@@ -8,12 +8,14 @@ import {
 
 const META = { confidence: 0.95, status: "inferred", source: "extraction" } as const;
 const UPDATED_AT = new Date("2026-10-24T10:30:00.000Z");
+/** Before the profile's last change: the example's last_updated is the profile's. */
+const LAST_ACTIVITY_AT = new Date("2026-10-24T10:29:00.000Z");
 
 /** The profile behind the shared example: invented data, as in the contract (CLAUDE.md). */
 const SNAPSHOT: KubriSnapshot = {
   contact: { id: "7b0f6c2e-1d0a-4a8e-9d57-3f1c2a9b4e10", phoneE164: "+393334445566" },
   campaign: { id: "2c9f5d8a-6b1e-4c37-8a52-9e0d7f3b1a64", externalKey: "global", version: 3 },
-  session: { status: "completed", language: "ar" },
+  session: { status: "completed", language: "ar", lastActivityAt: LAST_ACTIVITY_AT },
   profile: {
     standard: {
       firstName: "Karim",
@@ -69,7 +71,7 @@ describe("buildKubriPayload (spec §12.1, D123, R4)", () => {
   it("omits what is missing instead of sending nulls or blanks", () => {
     const sparse: KubriSnapshot = {
       ...withStandard({ firstName: "Karim", lastName: " ", email: null }),
-      session: { status: "active", language: null },
+      session: { status: "active", language: null, lastActivityAt: LAST_ACTIVITY_AT },
     };
 
     expect(
@@ -108,6 +110,19 @@ describe("buildKubriPayload (spec §12.1, D123, R4)", () => {
     const snapshot = { ...SNAPSHOT, profile: { ...SNAPSHOT.profile, updatedAt: later } };
 
     expect(buildKubriPayload(snapshot).data.last_updated).toBe("2026-11-02T08:15:30.123Z");
+  });
+
+  it("moves last_updated with the session too: a status change without a profile change (M4)", () => {
+    const stoppedAt = new Date("2026-11-02T09:00:00.000Z");
+    const snapshot: KubriSnapshot = {
+      ...SNAPSHOT,
+      session: { status: "stopped", language: "ar", lastActivityAt: stoppedAt },
+    };
+
+    expect(buildKubriPayload(snapshot).data).toMatchObject({
+      interview_status: "stopped",
+      last_updated: "2026-11-02T09:00:00.000Z",
+    });
   });
 
   it("never sends coordinates nor a CV link: the dashboard geocodes, the CV stays here (D124, D128)", () => {

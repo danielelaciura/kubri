@@ -322,8 +322,11 @@ export async function confirmLandingImport(
     if (!place) return fail("PLACE_INVALID");
     const placeRecord = { placeId: place.placeId, source: place.source, resolvedAt: now.toISOString() };
 
-    // Sharing (set by the single consent) only means something for consent-driven pools.
-    const shareWithGlobal = landing.pool.globalSharing === "WEBHOOK" && contact.shareWithGlobal;
+    // Sharing (set by the single consent) only means something for consent-driven
+    // pools; a Global-pool candidate is visible to every Global-attached org anyway.
+    const shareWithGlobal = landing.pool.isGlobal
+      ? true
+      : landing.pool.globalSharing === "WEBHOOK" && contact.shareWithGlobal;
     const consent = {
       privacyPolicyUrl: landing.privacyPolicyUrl,
       kubriPrivacyPolicyUrl: KUBRI_PRIVACY_URL,

@@ -47,13 +47,16 @@ describe("getActiveLandingBySlug", () => {
     });
   });
 
-  it.each([
-    ["disabled", { ...ROW, enabled: false }],
-    ["global pool", { ...ROW, pool: { ...ROW.pool, isGlobal: true } }],
-  ])("returns null when %s", async (_, row) => {
-    m(prisma.candidateLandingPage.findUnique).mockResolvedValueOnce(row);
+  it("returns null when disabled", async () => {
+    m(prisma.candidateLandingPage.findUnique).mockResolvedValueOnce({ ...ROW, enabled: false });
     await expect(getActiveLandingBySlug("coop-sole")).resolves.toBeNull();
     expect(m(prisma.organizationPool.findUnique)).not.toHaveBeenCalled();
+  });
+
+  it("returns a landing on the Global pool (internal Kubri organization)", async () => {
+    m(prisma.candidateLandingPage.findUnique).mockResolvedValueOnce({ ...ROW, pool: { ...ROW.pool, isGlobal: true } });
+    m(prisma.organizationPool.findUnique).mockResolvedValueOnce({ poolId: POOL_ID });
+    await expect(getActiveLandingBySlug("coop-sole")).resolves.toMatchObject({ pool: { isGlobal: true } });
   });
 
   it("returns null when the pool was detached from the organization", async () => {
@@ -91,13 +94,14 @@ describe("saveLandingPage", () => {
     expect(m(prisma.candidateLandingPage.upsert)).not.toHaveBeenCalled();
   });
 
-  it("rejects a global pool", async () => {
-    m(prisma.organizationPool.findUnique).mockResolvedValueOnce({ pool: { isGlobal: true } });
-    await expect(saveLandingPage("o-1", input)).resolves.toEqual({ ok: false, error: "INVALID_POOL" });
+  it("accepts the Global pool when it is linked to the organization", async () => {
+    m(prisma.organizationPool.findUnique).mockResolvedValueOnce({ poolId: POOL_ID });
+    m(prisma.candidateLandingPage.upsert).mockResolvedValueOnce({ id: "l-1" });
+    await expect(saveLandingPage("o-1", input)).resolves.toMatchObject({ ok: true });
   });
 
   it("upserts by organization", async () => {
-    m(prisma.organizationPool.findUnique).mockResolvedValueOnce({ pool: { isGlobal: false } });
+    m(prisma.organizationPool.findUnique).mockResolvedValueOnce({ poolId: POOL_ID });
     m(prisma.candidateLandingPage.upsert).mockResolvedValueOnce({ id: "l-1" });
     await expect(saveLandingPage("o-1", input)).resolves.toEqual({ ok: true, id: "l-1" });
     const args = m(prisma.candidateLandingPage.upsert).mock.calls[0]![0];
@@ -107,7 +111,7 @@ describe("saveLandingPage", () => {
   });
 
   it("maps a slug unique violation to SLUG_TAKEN", async () => {
-    m(prisma.organizationPool.findUnique).mockResolvedValueOnce({ pool: { isGlobal: false } });
+    m(prisma.organizationPool.findUnique).mockResolvedValueOnce({ poolId: POOL_ID });
     m(prisma.candidateLandingPage.upsert).mockRejectedValueOnce(
       new Prisma.PrismaClientKnownRequestError("dup", { code: "P2002", clientVersion: "x", meta: { target: ["slug"] } }),
     );
@@ -118,7 +122,7 @@ describe("saveLandingPage", () => {
 describe("saveLandingPage errors", () => {
   it("rethrows non-P2002 errors", async () => {
     vi.resetAllMocks();
-    m(prisma.organizationPool.findUnique).mockResolvedValueOnce({ pool: { isGlobal: false } });
+    m(prisma.organizationPool.findUnique).mockResolvedValueOnce({ poolId: POOL_ID });
     m(prisma.candidateLandingPage.upsert).mockRejectedValueOnce(new Error("boom"));
     await expect(
       saveLandingPage("o-1", { slug: "coop-sole", poolId: POOL_ID, privacyPolicyUrl: "https://x.it/p", enabled: true }),

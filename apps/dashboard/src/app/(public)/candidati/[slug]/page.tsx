@@ -83,7 +83,8 @@ export default async function CandidateLandingPage(props: Props) {
             orgName={landing.organization.name}
             waLink={waLink}
             privacyPolicyUrl={landing.privacyPolicyUrl}
-            showShare={landing.pool.globalSharing === "WEBHOOK"}
+            isGlobal={landing.pool.isGlobal}
+            showShare={!landing.pool.isGlobal && landing.pool.globalSharing === "WEBHOOK"}
             turnstileSiteKey={process.env.TURNSTILE_SITE_KEY ?? ""}
           />
         </main>

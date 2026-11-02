@@ -83,7 +83,8 @@ export default async function OrgDetailPage({ params }: OrgDetailPageProps) {
   const attachablePools = allPools.filter((p) => !attachedPoolIds.has(p.id));
 
   const landing = await getLandingForOrg(id);
-  const eligiblePools = org.pools.map((op) => op.pool).filter((p) => !p.isGlobal);
+  // Global included: an internal Kubri organization may run the Global landing.
+  const eligiblePools = org.pools.map((op) => op.pool);
   const landingUrl = landing ? await landingPublicUrl(landing.slug) : null;
 
   type MemberRow = {

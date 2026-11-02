@@ -3,9 +3,13 @@ import type { LlmMessage } from "./llm-provider";
 import { INTERPRET_SYSTEM_PROMPT } from "./prompts/interpret-v1";
 
 /** The `interpret` call: the rules, then the context and the message as one JSON object. */
-export function interpretMessages(context: InterpretContext, message: string): LlmMessage[] {
+export function interpretMessages(
+  context: InterpretContext,
+  message: string,
+  system: string = INTERPRET_SYSTEM_PROMPT,
+): LlmMessage[] {
   return [
-    { role: "system", content: INTERPRET_SYSTEM_PROMPT },
+    { role: "system", content: system },
     { role: "user", content: JSON.stringify({ context, message }) },
   ];
 }

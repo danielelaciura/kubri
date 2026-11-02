@@ -20,6 +20,19 @@ function request(state: SessionState = atQuestion("nome"), text = "Mario"): Inte
 }
 
 describe("createLlmInterpreter", () => {
+  it("uses the prompt it is given and traces its version (D99)", async () => {
+    const provider = new FakeLlmProvider([interpretationJson()]);
+    const traces = new MemoryTraceSink();
+
+    await createLlmInterpreter(taskOptions(provider, traces), {
+      version: "interpret-test",
+      system: "custom rules",
+    }).interpret(request());
+
+    expect(provider.requests[0]?.messages[0]).toEqual({ role: "system", content: "custom rules" });
+    expect(traces.records[0]?.promptVersion).toBe("interpret-test");
+  });
+
   it("returns the validated interpretation and writes one trace", async () => {
     const provider = new FakeLlmProvider([interpretationJson(MARIO)]);
     const traces = new MemoryTraceSink();
@@ -232,6 +245,19 @@ describe("interpretContext (for evals)", () => {
       valid: false,
       repaired: true,
     });
+  });
+
+  it("uses the prompt it is given (D99)", async () => {
+    const provider = new FakeLlmProvider([interpretationJson(MARIO)]);
+
+    const result = await interpretContext(
+      { context: context(), message: "Mario", turnId: null, defaultLanguage: "it" },
+      taskOptions(provider),
+      { version: "interpret-test", system: "custom rules" },
+    );
+
+    expect(provider.requests[0]?.messages[0]?.content).toBe("custom rules");
+    expect(result.traces[0]?.promptVersion).toBe("interpret-test");
   });
 
   it("returns null with no raw reply when the LLM is unavailable", async () => {

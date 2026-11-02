@@ -9,6 +9,7 @@ describe("parseNluConfig", () => {
         interpret: "mistral-small-latest",
         translate: "mistral-small-latest",
         fallback: "mistral-medium-latest",
+        judge: "mistral-large-latest",
       },
       timeoutMs: 15_000,
       historyMessages: 3,
@@ -22,6 +23,7 @@ describe("parseNluConfig", () => {
       NLU_INTERPRET_MODEL: "m-interpret",
       NLU_TRANSLATE_MODEL: "m-translate",
       NLU_FALLBACK_MODEL: "m-fallback",
+      NLU_JUDGE_MODEL: "m-judge",
       NLU_TIMEOUT_MS: "8000",
       NLU_HISTORY_MESSAGES: "0",
       NLU_PRICES: '{"m-interpret":{"inputPerMTok":0.1,"outputPerMTok":0.3}}',
@@ -29,7 +31,12 @@ describe("parseNluConfig", () => {
 
     expect(config).toEqual({
       mistralApiKey: "k-123",
-      models: { interpret: "m-interpret", translate: "m-translate", fallback: "m-fallback" },
+      models: {
+        interpret: "m-interpret",
+        translate: "m-translate",
+        fallback: "m-fallback",
+        judge: "m-judge",
+      },
       timeoutMs: 8000,
       historyMessages: 0,
       prices: { "m-interpret": { inputPerMTok: 0.1, outputPerMTok: 0.3 } },

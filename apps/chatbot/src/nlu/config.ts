@@ -29,6 +29,8 @@ const NluEnvSchema = z.object({
   NLU_INTERPRET_MODEL: ModelSchema.default("mistral-small-latest"),
   NLU_TRANSLATE_MODEL: ModelSchema.default("mistral-small-latest"),
   NLU_FALLBACK_MODEL: ModelSchema.default("mistral-medium-latest"),
+  /** The evals judge: must differ from NLU_TRANSLATE_MODEL (plan 07, D100). */
+  NLU_JUDGE_MODEL: ModelSchema.default("mistral-large-latest"),
   NLU_TIMEOUT_MS: z.coerce.number().int().positive().default(15_000),
   NLU_HISTORY_MESSAGES: z.coerce.number().int().min(0).max(MAX_HISTORY_MESSAGES).default(3),
   /** JSON: { "<model>": { "inputPerMTok": 0.1, "outputPerMTok": 0.3 } }, for NluTrace costs. */
@@ -39,8 +41,8 @@ export type LlmTask = "interpret" | "translate";
 
 export interface NluConfig {
   readonly mistralApiKey: string | undefined;
-  /** Per task (spec §8.5), plus the fallback model. */
-  readonly models: Readonly<Record<LlmTask | "fallback", string>>;
+  /** Per task (spec §8.5), plus the fallback model and the evals judge (D100). */
+  readonly models: Readonly<Record<LlmTask | "fallback" | "judge", string>>;
   readonly timeoutMs: number;
   /** Earlier user messages sent with each turn (spec §8.2). */
   readonly historyMessages: number;
@@ -67,6 +69,7 @@ export function parseNluConfig(source: Readonly<Record<string, string | undefine
       interpret: env.NLU_INTERPRET_MODEL,
       translate: env.NLU_TRANSLATE_MODEL,
       fallback: env.NLU_FALLBACK_MODEL,
+      judge: env.NLU_JUDGE_MODEL,
     },
     timeoutMs: env.NLU_TIMEOUT_MS,
     historyMessages: env.NLU_HISTORY_MESSAGES,

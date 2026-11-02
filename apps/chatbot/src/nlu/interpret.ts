@@ -7,7 +7,7 @@ import { parseInterpretationOutput, type OutputCheck } from "./interpretation-ou
 import type { InterpretRequest, Interpreter } from "./interpreter";
 import type { LlmMessage } from "./llm-provider";
 import type { LlmTaskOptions } from "./llm-task";
-import { INTERPRET_PROMPT_VERSION } from "./prompts/interpret-v1";
+import { DEFAULT_INTERPRET_PROMPT, type InterpretPrompt } from "./prompts";
 import { attemptTraces, traceInput, writeTracesSafely, type NluTraceRecord } from "./trace";
 
 const INTERPRET_TEMPERATURE = 0;
@@ -73,6 +73,7 @@ async function call(
   options: LlmTaskOptions,
   messages: readonly LlmMessage[],
   repair: boolean,
+  promptVersion: string,
 ): Promise<CallOutcome> {
   const result = await complete(messages, options);
   const check = result.response
@@ -82,7 +83,7 @@ async function call(
     {
       turnId: request.turnId,
       task: "interpret",
-      promptVersion: INTERPRET_PROMPT_VERSION,
+      promptVersion,
       provider: options.provider.name,
       repair,
       input: traceInput(messages),
@@ -108,9 +109,10 @@ async function call(
 export async function interpretContext(
   request: ContextInterpretRequest,
   options: LlmTaskOptions,
+  prompt: InterpretPrompt = DEFAULT_INTERPRET_PROMPT,
 ): Promise<ContextInterpretResult> {
-  const messages = interpretMessages(request.context, request.message);
-  const first = await call(request, options, messages, false);
+  const messages = interpretMessages(request.context, request.message, prompt.system);
+  const first = await call(request, options, messages, false, prompt.version);
   // D82: unavailable → null, the engine still applies the deterministic keywords.
   if (!first.reply) {
     return { interpretation: null, raw: null, valid: false, repaired: false, traces: first.traces };
@@ -125,7 +127,7 @@ export async function interpretContext(
     };
   }
   const retry = repairMessages(messages, first.reply.content, first.reply.check.problems);
-  const second = await call(request, options, retry, true);
+  const second = await call(request, options, retry, true, prompt.version);
   const traces = [...first.traces, ...second.traces];
   const raw = second.reply?.content ?? first.reply.content;
   if (second.reply?.check.ok) {
@@ -147,8 +149,14 @@ export async function interpretContext(
   };
 }
 
-/** The Interpreter contract of plan 05: builds the context (§8.2), then interprets it. */
-export function createLlmInterpreter(options: LlmTaskOptions): Interpreter {
+/**
+ * The Interpreter contract of plan 05: builds the context (§8.2), then interprets it. `prompt`
+ * lets evals compare versions (D99); runtime and the simulator use the default.
+ */
+export function createLlmInterpreter(
+  options: LlmTaskOptions,
+  prompt: InterpretPrompt = DEFAULT_INTERPRET_PROMPT,
+): Interpreter {
   return {
     interpret: async (request: InterpretRequest) =>
       (
@@ -160,6 +168,7 @@ export function createLlmInterpreter(options: LlmTaskOptions): Interpreter {
             defaultLanguage: request.campaign.defaultLanguage,
           },
           options,
+          prompt,
         )
       ).interpretation,
   };

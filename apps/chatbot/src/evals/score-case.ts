@@ -35,7 +35,11 @@ export interface PatchScore {
   wrong: string[];
   invented: string[];
   missing: string[];
-  /** Fields the engine would save. */
+  /**
+   * Every field in the patch (the last entry of each), unless the intent makes the engine ignore
+   * the whole patch (D93). Stricter than the engine, which would still ask to confirm a
+   * low-confidence value and drop one invalid for its field type: here both count.
+   */
   extracted: number;
 }
 

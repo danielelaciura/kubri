@@ -46,7 +46,7 @@ export interface Metrics {
   readonly cases: number;
   readonly passed: number;
   readonly passRate: number;
-  /** D93: fields the engine would save that the candidate never said. */
+  /** D93: extracted fields (see PatchScore.extracted) that the candidate never said. */
   readonly hallucination: {
     readonly invented: number;
     readonly extracted: number;

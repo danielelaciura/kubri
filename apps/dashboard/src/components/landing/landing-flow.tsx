@@ -24,8 +24,8 @@ import { CvIcon, WhatsAppIcon } from "./landing-icons";
 import { TurnstileWidget } from "./turnstile-widget";
 
 const ACCEPT =
-  ".pdf,.docx,.jpg,.jpeg,.png,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png";
-const ALLOWED_EXTENSIONS = [".pdf", ".docx", ".jpg", ".jpeg", ".png"];
+  ".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+const ALLOWED_EXTENSIONS = [".pdf", ".docx"];
 const MAX_BYTES = 5 * 1024 * 1024;
 const BUCKET = "candidate-documents";
 /** IN_PROGRESS (another request is extracting): poll every 4 s, ~60 s in all. */

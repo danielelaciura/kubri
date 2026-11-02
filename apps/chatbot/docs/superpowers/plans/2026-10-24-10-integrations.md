@@ -22,8 +22,9 @@ test di contratto della spec (§14).
 **Spec:** §10.3 (`CvDocument`), §10.6, §12.1 (webhook), §12.2 (CV), §12.3 (geocoding), §13
 (errori), §14 (test di contratto), §16.3 (segreti), D19–D24, D57, D102, D103.
 
-**Prerequisito:** piani 01–06 e 08 implementati (il 09 non serve: i job funzionano anche senza
-WhatsApp, con il canale a console del piano 08). Il piano 07 non serve. Si lavora **direttamente
+**Prerequisito:** piani 01–06, 08 **e 09** implementati. Il 09 serve: il Task 3 modifica
+`resolveKey` e `tests/unit/i18n/resolve-key.test.ts`, che nascono nel 09, e i due piani toccano
+gli stessi file. (Revisione 2026-11-02: in origine diceva "il 09 non serve".) Il piano 07 non serve. Si lavora **direttamente
 sul branch ombrello `docs/chatbot-spec-into-monorepo`**: nessun branch nuovo, nessuna PR, niente
 merge su `main`. I comandi del chatbot si eseguono da `apps/chatbot/`, quelli della dashboard da
 `apps/dashboard/`, quelli del contratto dalla radice del monorepo.

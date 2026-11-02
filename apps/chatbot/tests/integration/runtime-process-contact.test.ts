@@ -145,6 +145,34 @@ describe("a new conversation", () => {
     expect((await db.session.findFirstOrThrow()).campaignVersionId).toBe(acme.versionId);
   });
 
+  it("routes on the slug in square brackets of a prefilled message, like Make (D143)", async () => {
+    const h = await harness();
+    const acme = await importCampaign(db, minimalCampaign(), {
+      activate: true,
+      nodeEnv: "development",
+    });
+    if (!acme.ok) throw new Error("import failed");
+    await say(h, "[ACME] Ciao! Vorrei candidarmi");
+
+    await run(h);
+
+    expect((await db.session.findFirstOrThrow()).campaignVersionId).toBe(acme.versionId);
+  });
+
+  it("falls back to the default campaign for a slug no campaign knows", async () => {
+    const h = await harness();
+    const acme = await importCampaign(db, minimalCampaign(), {
+      activate: true,
+      nodeEnv: "development",
+    });
+    if (!acme.ok) throw new Error("import failed");
+    await say(h, "[sconosciuto] Ciao! Vorrei candidarmi");
+
+    await run(h);
+
+    expect((await db.session.findFirstOrThrow()).campaignVersionId).not.toBe(acme.versionId);
+  });
+
   it("finds a keyword in any message of the burst, not only in the joined text", async () => {
     const h = await harness();
     const acme = await importCampaign(db, minimalCampaign(), {

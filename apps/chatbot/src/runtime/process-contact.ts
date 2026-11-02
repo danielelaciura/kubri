@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { Logger } from "pino";
 import type { LoadedCampaign } from "../campaigns/loaded-campaign";
+import { routeKeywords, stripRouteToken } from "../campaigns/route-keyword";
 import type { ChannelAdapter, OutboundSender } from "../channels/channel";
 import { interpretReply } from "../engine/choices";
 import type { EngineEvent } from "../engine/events";
@@ -146,7 +147,8 @@ async function runTurn(deps: RuntimeDeps, tx: Tx, job: ContactJob): Promise<Proc
   if (texts.length === 0 && open) {
     return replyToMedia(deps, tx, { turnId, session: open, contact, job, burst, startedAt });
   }
-  const text = texts.join("\n");
+  // The routing slug is not something the candidate said: the NLU never sees it.
+  const text = texts.map(stripRouteToken).join("\n");
   const route = await chooseCampaign(deps, job.senderNumberId, texts, open);
   if (route.kind === "none") {
     return finishQuietly(deps, tx, { turnId, contactId: contact.id, burst, startedAt });
@@ -267,9 +269,12 @@ async function chooseCampaign(
 ): Promise<Route> {
   if (open && open.status !== "completed") return { kind: "stay", session: open };
   // Each message on its own: "ciao" then "ACME" is a keyword, "ciao\nACME" never would be.
+  // A prefilled "[slug] text" routes on the slug first (D143).
   for (const text of texts) {
-    const byKeyword = await findActiveCampaignByKeyword(deps.db, senderNumberId, text);
-    if (byKeyword) return { kind: "new", campaign: byKeyword };
+    for (const keyword of routeKeywords(text)) {
+      const byKeyword = await findActiveCampaignByKeyword(deps.db, senderNumberId, keyword);
+      if (byKeyword) return { kind: "new", campaign: byKeyword };
+    }
   }
   // A completed session keeps the conversation unless a keyword opens another campaign.
   if (open) return { kind: "stay", session: open };

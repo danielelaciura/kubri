@@ -382,6 +382,12 @@ describe("confirmLandingImport", () => {
     expect(m(confirmImport).mock.calls[0]![0].consentToShare).toBe(false);
   });
 
+  it("always shares a candidate of the Global pool", async () => {
+    const global = { ...LANDING, pool: { ...LANDING.pool, isGlobal: true, globalSharing: "NEVER" as const } };
+    await confirmLandingImport(global, IMPORT_ID, { ...CONTACT, shareWithGlobal: false }, CTX);
+    expect(m(confirmImport).mock.calls[0]![0].consentToShare).toBe(true);
+  });
+
   it("rejects an invalid contact", async () => {
     await expect(confirmLandingImport(LANDING, IMPORT_ID, { ...CONTACT, privacyAccepted: false }, CTX))
       .resolves.toEqual({ ok: false, error: "VALIDATION" });

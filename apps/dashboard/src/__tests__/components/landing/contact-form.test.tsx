@@ -10,13 +10,13 @@ vi.mock("@/app/(public)/candidati/[slug]/actions", () => ({ searchLandingPlacesA
 const PLACE = { placeId: "istat:MI:milano", label: "Milano (MI)" };
 const PREFILL: LandingPrefill = { firstName: "Ahmed", lastName: "", phone: "333 1234567", email: "", place: PLACE };
 
-function setup(showShare = true, busy = false, prefill = PREFILL) {
+function setup(showShare = true, busy = false, prefill = PREFILL, isGlobal = false) {
   const onSubmit = vi.fn();
   render(
     <I18nProvider locale="it">
       <ContactForm
         slug="coop-sole" orgName="Coop Sole" prefill={prefill} privacyPolicyUrl="https://x.it/p"
-        showShare={showShare} busy={busy} placeResetKey={0} onSubmit={onSubmit}
+        isGlobal={isGlobal} showShare={showShare} busy={busy} placeResetKey={0} onSubmit={onSubmit}
       />
     </I18nProvider>,
   );
@@ -55,6 +55,13 @@ describe("ContactForm", () => {
     expect(screen.getByRole("link", { name: "Kubri" })).toHaveAttribute("href", "https://www.kubri.it/privacy");
     expect(screen.getByRole("link", { name: "Coop Sole" })).toHaveAttribute("href", "https://x.it/p");
     expect(screen.getByLabelText(/altre organizzazioni/)).toBeInTheDocument();
+  });
+
+  it("uses the landing's notice as Kubri's on the Global landing", () => {
+    setup(false, false, PREFILL, true);
+    expect(screen.getByRole("link", { name: "Kubri" })).toHaveAttribute("href", "https://x.it/p");
+    expect(screen.queryByRole("link", { name: "Coop Sole" })).toBeNull();
+    expect(screen.getByLabelText(/visibile alle organizzazioni che collaborano con Kubri/)).toBeInTheDocument();
   });
 
   it("leaves out the sharing sentence when not applicable", () => {

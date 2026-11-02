@@ -18,8 +18,9 @@ export interface ActiveLanding {
 
 /**
  * The landing behind /candidati/<slug>, or null (→ 404) when unknown,
- * disabled, pointing at a global pool, or its pool is no longer linked to the
- * organization. Checked on every public request, not only on save.
+ * disabled, or its pool is no longer linked to the organization. Checked on
+ * every public request, not only on save. The Global pool is allowed: an
+ * internal Kubri organization linked to it runs the Global landing.
  */
 export async function getActiveLandingBySlug(slug: string): Promise<ActiveLanding | null> {
   slug = slug.toLowerCase();
@@ -37,7 +38,7 @@ export async function getActiveLandingBySlug(slug: string): Promise<ActiveLandin
       pool: { select: { id: true, isGlobal: true, globalSharing: true, externalKey: true, slug: true } },
     },
   });
-  if (!row || !row.enabled || row.pool.isGlobal) return null;
+  if (!row || !row.enabled) return null;
 
   const link = await prisma.organizationPool.findUnique({
     where: { organizationId_poolId: { organizationId: row.organizationId, poolId: row.poolId } },
@@ -69,7 +70,7 @@ export type SaveLandingResult =
 /**
  * Create or update the organization's landing. Callers enforce ADMIN_KUBRI
  * and validate with landingPageInputSchema. The pool must be linked to the
- * organization and not global.
+ * organization (the Global pool included).
  */
 export async function saveLandingPage(
   organizationId: string,
@@ -77,9 +78,9 @@ export async function saveLandingPage(
 ): Promise<SaveLandingResult> {
   const link = await prisma.organizationPool.findUnique({
     where: { organizationId_poolId: { organizationId, poolId: input.poolId } },
-    select: { pool: { select: { isGlobal: true } } },
+    select: { poolId: true },
   });
-  if (!link || link.pool.isGlobal) return { ok: false, error: "INVALID_POOL" };
+  if (!link) return { ok: false, error: "INVALID_POOL" };
 
   try {
     const row = await prisma.candidateLandingPage.upsert({

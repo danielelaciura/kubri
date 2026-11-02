@@ -117,6 +117,8 @@ export interface LandingFlowProps {
   orgName: string;
   waLink: string | null;
   privacyPolicyUrl: string;
+  /** The landing feeds the Global pool (internal Kubri organization). */
+  isGlobal: boolean;
   showShare: boolean;
   turnstileSiteKey: string;
 }
@@ -541,7 +543,7 @@ export function LandingFlow(props: LandingFlowProps) {
             <p className="text-sm text-muted-foreground">{org(t.contactBody)}</p>
             <ContactForm
               slug={props.slug} orgName={props.orgName} prefill={step.prefill} privacyPolicyUrl={props.privacyPolicyUrl}
-              showShare={props.showShare} busy={busy} placeResetKey={placeResetKey}
+              isGlobal={props.isGlobal} showShare={props.showShare} busy={busy} placeResetKey={placeResetKey}
               onSubmit={(values) => void confirm(values)}
             />
           </CardContent>
@@ -553,7 +555,7 @@ export function LandingFlow(props: LandingFlowProps) {
           <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
             <SuccessCheck />
             <p ref={headingRef} tabIndex={-1} className={`text-xl font-medium ${headingClass}`}>{t.doneTitle}</p>
-            <p className="text-muted-foreground">{org(t.doneBody)}</p>
+            <p className="text-muted-foreground">{props.isGlobal ? t.doneBodyGlobal : org(t.doneBody)}</p>
           </CardContent>
         </Card>
       )}

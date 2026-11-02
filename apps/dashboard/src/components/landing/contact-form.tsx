@@ -30,6 +30,7 @@ export function ContactForm({
   orgName,
   prefill,
   privacyPolicyUrl,
+  isGlobal = false,
   showShare,
   busy,
   placeResetKey,
@@ -39,6 +40,8 @@ export function ContactForm({
   orgName: string;
   prefill: LandingPrefill;
   privacyPolicyUrl: string;
+  /** Global pool: one notice (the landing's own), and sharing is implied. */
+  isGlobal?: boolean;
   showShare: boolean;
   busy: boolean;
   /** Bumped by the parent when the server rejects the chosen place. */
@@ -145,9 +148,10 @@ export function ContactForm({
             onChange={(ev) => setPrivacyAccepted(ev.target.checked)}
           />
           <span>
-            {t.privacyLabel.split(/(\{kubri\}|\{org\})/).map((part, i) =>
+            {(isGlobal ? t.privacyLabelGlobal : t.privacyLabel).split(/(\{kubri\}|\{org\})/).map((part, i) =>
               part === "{kubri}" ? (
-                <a key={i} href={KUBRI_PRIVACY_URL} target="_blank" rel="noreferrer" className="underline">Kubri</a>
+                // On the Global landing Kubri is the only controller: its notice is the landing's own.
+                <a key={i} href={isGlobal ? privacyPolicyUrl : KUBRI_PRIVACY_URL} target="_blank" rel="noreferrer" className="underline">Kubri</a>
               ) : part === "{org}" ? (
                 <a key={i} href={privacyPolicyUrl} target="_blank" rel="noreferrer" className="underline">{orgName}</a>
               ) : (

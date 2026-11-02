@@ -55,7 +55,7 @@ function setup(siteKey = "") {
     <I18nProvider locale="it">
       <LandingFlow
         slug="coop-sole" locale="it" orgName="Coop Sole" waLink={null}
-        privacyPolicyUrl="https://x.it/p" showShare={false} turnstileSiteKey={siteKey}
+        privacyPolicyUrl="https://x.it/p" isGlobal={false} showShare={false} turnstileSiteKey={siteKey}
       />
     </I18nProvider>,
   );
@@ -89,7 +89,7 @@ describe("LandingFlow", () => {
       <I18nProvider locale="it">
         <LandingFlow
           slug="coop-sole" locale="it" orgName="Coop Sole" waLink={wa}
-          privacyPolicyUrl="https://x.it/p" showShare={false} turnstileSiteKey=""
+          privacyPolicyUrl="https://x.it/p" isGlobal={false} showShare={false} turnstileSiteKey=""
         />
       </I18nProvider>,
     );
@@ -180,7 +180,7 @@ describe("LandingFlow", () => {
       <I18nProvider locale="it">
         <LandingFlow
           slug="coop-sole" locale="it" orgName="Coop Sole" waLink={null}
-          privacyPolicyUrl="https://x.it/p" showShare={false} turnstileSiteKey="site-key"
+          privacyPolicyUrl="https://x.it/p" isGlobal={false} showShare={false} turnstileSiteKey="site-key"
         />
       </I18nProvider>,
     );
@@ -196,7 +196,7 @@ describe("LandingFlow", () => {
       <I18nProvider locale="it">
         <LandingFlow
           slug="coop-sole" locale="it" orgName="Coop Sole" waLink={null}
-          privacyPolicyUrl="https://x.it/p" showShare={false} turnstileSiteKey="site-key"
+          privacyPolicyUrl="https://x.it/p" isGlobal={false} showShare={false} turnstileSiteKey="site-key"
         />
       </I18nProvider>,
     );
@@ -240,7 +240,7 @@ describe("LandingFlow", () => {
       <I18nProvider locale="it">
         <LandingFlow
           slug="coop-sole" locale="it" orgName="Coop Sole" waLink={null}
-          privacyPolicyUrl="https://x.it/p" showShare={false} turnstileSiteKey=""
+          privacyPolicyUrl="https://x.it/p" isGlobal={false} showShare={false} turnstileSiteKey=""
         />
       </I18nProvider>,
     );

@@ -141,6 +141,16 @@ Oggi il chatbot di Kubri vive su Make.com. L'analisi dello scenario ha evidenzia
 | D89 | §5.6 punto 3 | Rinviato al piano 08: è instradamento del primo messaggio più un nuovo tipo di conferma nel motore, non NLU. |
 | D90 | Campi sensibili | Flag facoltativo `sensitive` sulla definizione di un campo (standard o `custom.*`; assente = falso, i checksum delle campagne non cambiano). Il campo si chiede e si salva come gli altri, ma il suo valore non arriva mai all'LLM (D85). Sensibili nello schema standard: `workingPermit` (rivela lo status migratorio) e `jobPreferences.constraints` (spesso salute o famiglia). |
 | D91 | Regole del prompt `interpret-v1` | Precedenza degli intenti (opt_out, delete_data, choice, edit_request, answer, refusal, help, off_topic, unclear); consenso accettato solo con un sì chiaro, l'ambiguo è `unclear`; storia e segnaposto `[campo]` sono dati, mai valori; ogni valore viene dal messaggio, mai dedotto (salvo `savedValue`); regole per tipo e fasce di confidenza; `edit_request` solo su campi raccolti; `offTopicReply` e `missing` al massimo 25 parole, senza link, telefoni, email, promesse o dati personali; lingua dei messaggi brevi = lingua della sessione con confidenza ≤ 0,5. `interpret-v1` si modifica sul posto finché non ha una baseline degli evals. |
+| D92 | Il caso degli evals (piano 07) | Riga JSONL con `id`, `tags`, `language` (del messaggio), `state` (schizzo dello stato: fase, passaggio, domanda, profilo, conferma in sospeso), `history`, `message`, `expected`. I casi girano sulla campagna standard e l'NLU riceve il contesto vero (`buildInterpretContext`). `expected.patch` è esaustivo: ciò che l'LLM estrae in più è un'invenzione. Dati solo sintetici. |
+| D93 | Invenzione, errore, mancanza | Campo estratto: corretto, sbagliato o inventato (non atteso). La patch degli intenti che il motore ignora (`opt_out`, `delete_data`, `edit_request`, `help`, `off_topic`, D52) non conta come invenzione. Tasso di invenzione = inventati / estratti. Caso superato = risposta valida dell'NLU, tutti i controlli presenti giusti e nessun campo sbagliato, inventato o mancante. |
+| D94 | Confronto dei valori | Booleani, enum, date e numeri esatti; testi normalizzati; formati ISO esatti; liste come insiemi; esperienze e titoli per parti (anni, luogo, ruolo; paese solo se presente da entrambe). |
+| D95 | Metriche | Esito per intento, scelta, lingua, completezza ed `editTarget`; precisione e richiamo per campo; matrice di confusione; casi superati per lingua e per etichetta; latenza e costo medi; tasso di output non validi e di riparazione, esecuzioni oltre la scadenza, casi instabili. |
+| D96 | Esecuzione | Un caso alla volta, sul contesto vero (`buildInterpretContext` + `interpretContext`, non l'`Interpreter`, che nasconde l'output rotto dietro `unclear`). Un output ancora non valido dopo la riparazione fa fallire il caso (`invalid_output`); nessuna risposta o un errore = `unavailable`. `turnId` = id del caso, il costo si somma dalle tracce del risultato. La durata di ogni caso si confronta con `TURN_NLU_DEADLINE_MS` del runtime: oltre la scadenza si conta, non si fallisce. `--repeat N` ripete ogni caso: passa solo se passa sempre. |
+| D97 | Report e riferimento | `evals/reports/<suite>-<data>.{json,md}` committati; riferimento in `evals/baselines/<suite>.json` (fuori da Prettier), scritto con `--save-baseline` **solo se le soglie passano**, o con `--force-baseline` per accettare un peggioramento voluto; confronto per `id` del caso, dataset cambiato segnalato dall'hash. |
+| D98 | Soglie | Bloccanti (exit 1): invenzioni ≤ 1%, accuratezza dell'intento ≥ 95%, nessuna lingua con più di 2 punti di casi superati persi rispetto al riferimento. Quest'ultima vale solo per le lingue con almeno 10 casi in entrambe le esecuzioni (`MIN_CASES_PER_LANGUAGE`): per le altre il confronto è informativo. Soglia non misurabile = saltata. |
+| D99 | Candidati | `--prompt <versione>` e `--model <nome>`; registro delle versioni in `src/nlu/prompts/index.ts`, il prompt passa da `createLlmInterpreter` / `interpretContext` (default: quello di oggi); `NLU_JUDGE_MODEL` in configurazione. |
+| D100 | Giudice LLM | Solo per `translation`, in `nlu` (`src/nlu/judge.ts`, prompt `judge-v1`): segnaposto deterministici prima, poi `fidelity` e `naturalness` 1–5 con un modello diverso dal traduttore, **senza modello di riserva**; il report registra i modelli che hanno risposto. Passa con almeno 4 (fedeltà 5 per i testi critici). Tarato su voti umani (accordo entro ±1 almeno 90%): `evals calibrate` salva l'esito in `evals/calibration/<modello>.json`, e `evals translation` rifiuta un giudice senza una taratura superata con lo stesso prompt, salvo `--uncalibrated` (scritto nel report). |
+| D101 | Evals e test | I test verificano che i dataset siano validi e coerenti con i misuratori (interprete oracolo) e non chiamano mai l'LLM; gli evals con l'LLM reale si lanciano a mano a ogni modifica di prompt o modello. |
 | D102 | Un turno, una transazione (piano 08) | `process-contact` apre una transazione interattiva con lock advisory sul contatto; dentro: raffica, NLU con scadenza, `step()`, testi, scritture e job. Timeout = `2 × TURN_NLU_DEADLINE_MS + 30 s`. Cache delle traduzioni e tracce di traduzione scrivono su un'altra connessione. Le traduzioni del turno hanno un'unica scadenza, lunga quanto quella dell'NLU (`TextResolver.withDeadline`): oltre, il testo esce in italiano (D72), così il turno resta nel timeout anche se il traduttore non risponde mai. Il pool Prisma del worker si dimensiona da `WORKER_BATCH_SIZE`: `2 code × WORKER_BATCH_SIZE × 2 connessioni + 2` (`workerPoolSize`; il piano 09 aggiunge 2 connessioni per il job `report-failure`, eseguito uno alla volta: `4 × WORKER_BATCH_SIZE + 4`; il piano 10 altre 2 per ciascuno di `kubri-webhook`, `cv` e `geocoding`, anch'essi uno alla volta: `4 × WORKER_BATCH_SIZE + 8`), perché un turno tiene la sua transazione mentre legge la campagna e scrive cache e tracce su un'altra connessione, e `reportFailure` (D108) tiene la sua mentre aspetta il lock e legge la campagna: con meno connessioni ogni transazione può restare ad aspettarne un'altra. |
 | D103 | Accodamento transazionale (piano 08) | I job pg-boss si inseriscono con l'opzione `db` di `send()` (l'adattatore Prisma di pg-boss sulla transazione): se il turno si annulla il job non esiste. Ripiego, se non funzionasse: tabella `Outbox` con relay. pg-boss si collega con `QUEUE_DATABASE_URL` (connessione diretta / di sessione, porta 5432, mai il pooler di transazione); il ripiego su `DATABASE_URL` vale solo con `NODE_ENV` `development` o `test`, altrove il worker non parte. Ogni processo che avvia pg-boss usa le stesse impostazioni delle code (`workerQueueSettings`): l'avvio le riapplica. |
 | D104 | Stato persistito (piano 08) | `Session.engineState` senza `profile`; profilo in `CandidateProfile` (`standard`, `custom`, `fieldMeta`), idratato prima di `step()` (D31). Un solo `session_started`, alla creazione della sessione. Stato illeggibile → errore generico e `needs_attention`. Una parte dello stato o del profilo scartata in lettura (D111b) lascia un `SessionFlag` `state_part_dropped` (campo = percorso, senza `needsAttention`) e un log con gli id: la conversazione continua e il campo si richiede. |
@@ -875,18 +885,19 @@ Gli evals **misurano la qualità di `nlu`** e producono un punteggio, a differen
 1. **Dataset:** casi JSONL in `evals/datasets/<suite>.jsonl`.
    ```json
    {
-     "id": "patente-scaduta-01",
-     "tags": ["partial", "it", "bool", "unasked-info"],
-     "context": { "phase": "flow", "question": { "id": "patente", "field": "drivingLicense" },
-                  "openFields": ["drivingLicense", "transport"], "language": "it" },
+     "id": "patente-scaduta-e-bici",
+     "tags": ["bool", "unasked-info"],
+     "language": "it",
+     "state": { "step": "mobilita", "question": "patente" },
      "message": "ce l'ho ma è scaduta da un anno, comunque vado in bici",
      "expected": {
        "intent": "answer",
-       "patch": { "drivingLicense": false, "transport": "bicicletta" },
-       "currentQuestion": { "completeness": "complete" }
+       "completeness": "complete",
+       "patch": { "drivingLicense": false, "transport": "bicicletta" }
      }
    }
    ```
+   `expected.patch` elenca tutto ciò che il messaggio dice (D92); ciò che l'LLM aggiunge è un'invenzione (D93).
 2. **Compito:** `nlu.interpret` con un **prompt** (versione) e un **modello** specifici. Ogni combinazione è un "candidato" da confrontare.
 3. **Misuratori:**
    - **deterministici**: intento, scelta, booleani, enum, date normalizzate, completezza;
@@ -921,6 +932,9 @@ Gli evals **misurano la qualità di `nlu`** e producono un punteggio, a differen
 - Soglie bloccanti per i cambi di prompt o modello (iniziali, da tarare): **invenzioni ≤ 1%**, **accuratezza dell'intento ≥ 95%**, nessun peggioramento oltre 2 punti in nessuna lingua.
 - Non si eseguono a ogni commit, ma a ogni modifica di prompt o modello e su richiesta.
 - Risultati in `evals/reports/` (JSON + Markdown), così si vede l'andamento nel tempo.
+- `kubri-bot evals run --suite <nome> [--prompt <versione>] [--model <nome>] [--repeat N] [--save-baseline]`
+  confronta con `evals/baselines/<suite>.json` e termina con codice 1 se una soglia non è
+  rispettata (D97, D98). `evals translation` e `evals calibrate` coprono il giudice (D100).
 
 ### 15.5 Strumenti
 

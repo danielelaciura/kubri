@@ -115,8 +115,13 @@ step(state, event, campaignVersion) → { state, effects }
   Never commit real candidate data.
 - Scorers: deterministic first, structured second, LLM-as-judge only where unavoidable (and
   calibrated against human labels).
-- Key metric: **hallucination rate** (fields extracted that the candidate never said). Initial
-  gates: hallucinations ≤ 1%, intent accuracy ≥ 95%, no language regressing > 2 points.
+- Key metric: **hallucination rate** (fields extracted that the candidate never said). Gates
+  (blocking, `evals run` exits 1): hallucinations ≤ 1%, intent accuracy ≥ 95%, no language
+  losing more than 2 points against the baseline, for languages with ≥ 10 cases (D98).
+- A reply still invalid after the repair fails its case (`invalid_output`): evals call
+  `interpretContext` directly, never the `Interpreter` that hides it behind `unclear` (D96).
+- The translation judge lives in `nlu` (`src/nlu/judge.ts`), never falls back to another model,
+  and is trusted only after a passing `evals calibrate` for that model and judge prompt (D100).
 - Reports go in `evals/reports/` (JSON + Markdown).
 - **The project owner is learning evals through this project.** When working on evals, explain
   the concept behind each piece (what it measures, why, trade-offs) in plain terms, not just the
@@ -262,6 +267,10 @@ pnpm cli campaigns validate <file>   # no database; exits 1 on issues
 pnpm cli campaigns import <file> [--activate] [--imported-by <name>]
 pnpm cli campaigns list
 pnpm cli campaigns simulate <file> [--nlu naive|llm] [--translator fake|llm] [--history 3] [--traces]
+pnpm cli evals run --suite <extraction|intent|choice|language> [--prompt <v>] [--model <m>] [--repeat N] [--save-baseline]
+pnpm cli evals compare <baseline.json> <candidate.json>
+pnpm cli evals calibrate            # check the translation judge against human grades
+pnpm cli evals translation          # translate the dataset and grade it with the judge
 pnpm cli worker start [--channel console|meta] [--nlu naive|llm] [--translator fake|llm]   # console: replies printed here
 pnpm cli inbound send --sender <slug> --from <e164> <text...>    # a candidate writes (stored + queued)
 pnpm cli web start                    # WhatsApp webhooks on PORT (needs META_APP_SECRET, META_VERIFY_TOKEN)
@@ -301,6 +310,16 @@ pnpm cli worker start --channel meta --nlu llm --translator llm   # replies go t
   `pnpm cli campaigns simulate campaigns/kubri-standard.json --nlu llm --translator llm --traces`
   (steps and expected output: plan 06, Task 13 step 9). Note the cases the LLM gets wrong: they
   seed the evals (plan 07).
+
+- `evals` call the real LLM (`MISTRAL_API_KEY`) and cost money: run them on a prompt, model or
+  interpretation-schema change, not on every commit. Reports go in `evals/reports/`, baselines
+  in `evals/baselines/`, judge calibrations in `evals/calibration/` (all committed, all outside
+  Prettier). `--save-baseline` writes the baseline only when the gates pass (`--force-baseline`
+  accepts a worse run on purpose). `evals translation` refuses an uncalibrated judge unless
+  `--uncalibrated` (recorded in the report). Datasets are **synthetic**: never real candidate
+  data. The judge model (`NLU_JUDGE_MODEL`) must differ from `NLU_TRANSLATE_MODEL`.
+  First baseline (owner, once the key exists): `pnpm cli evals calibrate`, then
+  `pnpm cli evals run --suite <suite> --save-baseline` for each of the four suites.
 
 - Local DB: Docker Postgres on port 54329, databases `kubri_bot_dev` and `kubri_bot_test`.
   Both contain simulated dashboard tables in `public`, which the bot must never touch.

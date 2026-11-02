@@ -32,7 +32,58 @@ describe("worker start", () => {
     vi.stubEnv("CONSENT_HASH_SECRET", SECRET);
     vi.stubEnv("QUEUE_DATABASE_URL", "");
 
-    await expect(run(["worker", "start"])).rejects.toThrow(/QUEUE_DATABASE_URL is not set/);
+    await expect(
+      run(["worker", "start", "--channel", "meta", "--nlu", "llm", "--translator", "llm"]),
+    ).rejects.toThrow(/QUEUE_DATABASE_URL is not set/);
+  });
+});
+
+describe("worker start in production (C9)", () => {
+  function production(): void {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("DATABASE_URL", APP_URL);
+    vi.stubEnv("CONSENT_HASH_SECRET", SECRET);
+    vi.stubEnv("QUEUE_DATABASE_URL", "postgresql://u:p@db.example.com:5432/postgres");
+    vi.stubEnv("MISTRAL_API_KEY", "");
+  }
+  const REAL = ["--channel", "meta", "--nlu", "llm", "--translator", "llm"];
+
+  it.each([
+    [["--channel", "console", "--nlu", "llm", "--translator", "llm"], /--channel console/],
+    [["--channel", "meta", "--nlu", "naive", "--translator", "llm"], /--nlu naive/],
+    [["--channel", "meta", "--nlu", "llm", "--translator", "fake"], /--translator fake/],
+    [[], /--channel console/],
+  ])("refuses the fakes %j, in one line, before connecting", async (args, pattern) => {
+    production();
+
+    const started = run(["worker", "start", ...args]);
+
+    await expect(started).rejects.toBeInstanceOf(CliError);
+    await expect(started).rejects.toThrow(pattern);
+  });
+
+  it("explains a bad META_GRAPH_VERSION as a CLI error", async () => {
+    production();
+    vi.stubEnv("META_GRAPH_VERSION", "latest");
+
+    const started = run(["worker", "start", ...REAL]);
+
+    await expect(started).rejects.toBeInstanceOf(CliError);
+    await expect(started).rejects.toThrow(/META_GRAPH_VERSION/);
+  });
+});
+
+describe("web start", () => {
+  it("refuses to start without the Meta secrets, before touching the database", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("DATABASE_URL", APP_URL);
+    vi.stubEnv("META_APP_SECRET", "");
+    vi.stubEnv("META_VERIFY_TOKEN", "");
+
+    const started = run(["web", "start"]);
+
+    await expect(started).rejects.toBeInstanceOf(CliError);
+    await expect(started).rejects.toThrow(/META_APP_SECRET/);
   });
 });
 

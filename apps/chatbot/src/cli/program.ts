@@ -4,6 +4,7 @@ import { registerCampaignCommands } from "./commands/campaigns";
 import { registerInboundCommands } from "./commands/inbound";
 import { registerOrgCommands } from "./commands/orgs";
 import { registerSenderCommands } from "./commands/senders";
+import { registerWebCommands } from "./commands/web";
 import { registerWorkerCommands } from "./commands/worker";
 import type { CliDeps } from "./deps";
 
@@ -17,6 +18,7 @@ export function createProgram(deps: CliDeps): Command {
   registerSenderCommands(program, deps);
   registerCampaignCommands(program, deps);
   registerWorkerCommands(program, deps);
+  registerWebCommands(program, deps);
   registerInboundCommands(program, deps);
   return program;
 }

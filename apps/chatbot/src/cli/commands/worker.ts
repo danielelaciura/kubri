@@ -1,7 +1,9 @@
 import { Option, type Command } from "commander";
 import { ConsoleChannel } from "../../channels/channel";
+import { createMetaCloudChannel } from "../../channels/meta-cloud/client";
 import { parseEnv } from "../../config/env";
 import { FakeTranslator } from "../../i18n/fake-translator";
+import { parseGraphVersion } from "../../ingress/config";
 import { createTextResolver } from "../../i18n/resolve";
 import type { Translator } from "../../i18n/translator";
 import { REAL_TIMING } from "../../nlu/call-policy";
@@ -17,6 +19,7 @@ import { startWorker, workerQueueSettings } from "../../runtime/worker";
 import { createQueueRuntime } from "../../store/queue";
 import { createDatabaseTraceSink, createDatabaseTranslationCache } from "../../store/traces";
 import { CliError, type CliDeps } from "../deps";
+import { untilStopped } from "../until-stopped";
 import { naiveInterpreter } from "../simulate/naive-interpreter";
 import {
   INTERPRETER_KINDS,
@@ -25,28 +28,42 @@ import {
   type TranslatorKind,
 } from "../simulate/services";
 
+const CHANNEL_KINDS = ["console", "meta"] as const;
+type ChannelKind = (typeof CHANNEL_KINDS)[number];
+
 interface WorkerOptions {
   readonly nlu: InterpreterKind;
   readonly translator: TranslatorKind;
+  readonly channel: ChannelKind;
 }
 
-/** Waits for Ctrl-C or a termination signal. */
-function untilStopped(): Promise<void> {
-  return new Promise((resolve) => {
-    process.once("SIGINT", resolve);
-    process.once("SIGTERM", resolve);
-  });
+/** C9: in production the worker never prints replies, nor fakes the NLU or the translations. */
+function fakesInProduction(options: WorkerOptions): string[] {
+  return [
+    ...(options.channel === "console" ? ["--channel console"] : []),
+    ...(options.nlu === "naive" ? ["--nlu naive"] : []),
+    ...(options.translator === "fake" ? ["--translator fake"] : []),
+  ];
 }
 
 /** Configuration problems are explained in one line, before any connection is opened. */
-function readConfig() {
+function readConfig(options: WorkerOptions) {
   try {
     const env = parseEnv(process.env);
+    if (env.NODE_ENV === "production") {
+      const fakes = fakesInProduction(options);
+      if (fakes.length > 0) {
+        throw new Error(
+          `${fakes.join(", ")} cannot run in production: use --channel meta --nlu llm --translator llm.`,
+        );
+      }
+    }
     const config = parseRuntimeConfig(process.env);
     const consentHashSecret = requireConsentHashSecret(config);
+    const graphVersion = options.channel === "meta" ? parseGraphVersion(process.env) : null;
     const logger = createLogger({ level: env.LOG_LEVEL });
     const queueSettings = workerQueueSettings(config, logger);
-    return { config, consentHashSecret, logger, queueSettings };
+    return { config, consentHashSecret, logger, queueSettings, graphVersion };
   } catch (error: unknown) {
     throw new CliError(error instanceof Error ? error.message : String(error));
   }
@@ -68,7 +85,7 @@ export function registerWorkerCommands(program: Command, deps: CliDeps): void {
   worker
     .command("start")
     .description(
-      "Process inbound messages. Replies are printed here: no real channel yet (plan 09)",
+      "Process inbound messages and send the replies (printed here with --channel console)",
     )
     .addOption(
       new Option("--nlu <kind>", "how answers are interpreted")
@@ -80,8 +97,14 @@ export function registerWorkerCommands(program: Command, deps: CliDeps): void {
         .choices(TRANSLATOR_KINDS)
         .default("fake"),
     )
+    .addOption(
+      new Option("--channel <kind>", "where replies go: the terminal, or WhatsApp")
+        .choices(CHANNEL_KINDS)
+        .default("console"),
+    )
     .action(async (options: WorkerOptions) => {
-      const { config, consentHashSecret, logger, queueSettings } = readConfig();
+      const { config, consentHashSecret, logger, queueSettings, graphVersion } =
+        readConfig(options);
       // A missing MISTRAL_API_KEY stops here, before any connection.
       const llm = options.nlu === "llm" || options.translator === "llm" ? connectLlm(deps) : null;
       const nluConfig = llm?.config ?? parseNluConfig(process.env);
@@ -102,7 +125,14 @@ export function registerWorkerCommands(program: Command, deps: CliDeps): void {
                 })
               : new FakeTranslator();
           const queue = createQueueRuntime(queueSettings);
-          const channel = new ConsoleChannel(deps.out);
+          const channel =
+            graphVersion !== null
+              ? createMetaCloudChannel({
+                  graphVersion,
+                  // The token is the value of the variable NAMED in the number's configuration.
+                  secret: (name) => process.env[name],
+                })
+              : new ConsoleChannel(deps.out);
           const now = () => new Date();
           try {
             await startWorker({

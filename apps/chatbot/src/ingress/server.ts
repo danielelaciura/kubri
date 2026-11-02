@@ -83,7 +83,12 @@ async function route(deps: WebhookDeps, req: IncomingMessage, res: ServerRespons
 }
 
 export function createWebhookServer(deps: WebhookDeps): Server {
-  return createServer((req, res) => {
+  const server = createServer((req, res) => {
     void route(deps, req, res);
   });
+  // Meta sends a few KB at once: a client that trickles a body (before any signature check)
+  // must not hold a connection for Node's default 5 minutes.
+  server.headersTimeout = 10_000;
+  server.requestTimeout = 30_000;
+  return server;
 }

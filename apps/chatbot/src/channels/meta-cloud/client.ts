@@ -90,7 +90,9 @@ export function createMetaCloudChannel(options: MetaChannelOptions): ChannelAdap
       const endpoint = prepare(sender);
       if (!endpoint.ok) return;
       try {
-        await post(endpoint, acknowledgeBody(providerMessageId), ACK_TIMEOUT_MS);
+        const response = await post(endpoint, acknowledgeBody(providerMessageId), ACK_TIMEOUT_MS);
+        // Nothing to read: release the connection instead of leaving the body unconsumed.
+        await response.body?.cancel();
       } catch {
         // Best effort (D121): a missing read receipt must never stop a conversation.
       }

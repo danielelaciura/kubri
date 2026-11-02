@@ -1,4 +1,5 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { findLastInboundAt, registerInbound } from "../../src/store/contacts";
 import { insertDeadLetter } from "../../src/store/dead-letters";
 import { pingDatabase } from "../../src/store/health";
 import {
@@ -209,5 +210,17 @@ describe("delivery statuses (D120)", () => {
       status: "failed",
       errorCode: "outside_window",
     });
+  });
+});
+
+describe("24 hour window", () => {
+  it("only moves forward when messages arrive out of order", async () => {
+    const later = new Date("2026-10-24T10:00:00Z");
+    const earlier = new Date("2026-10-24T09:59:00Z");
+
+    await registerInbound(db, { ...key(), at: later });
+    await registerInbound(db, { ...key(), at: earlier });
+
+    expect(await findLastInboundAt(db, s.contactId, s.senderId)).toEqual(later);
   });
 });

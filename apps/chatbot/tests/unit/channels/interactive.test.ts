@@ -33,6 +33,17 @@ describe("truncate", () => {
 });
 
 describe("shapeChoices", () => {
+  it("never sends two options that look the same once cut", () => {
+    const alike = (n: number, length: number) =>
+      choices(n, (i) => `${"Magazziniere esperto".padEnd(length - 1, ".")}${String(i)}`);
+
+    // Equal at 20 characters, different at 24: a list instead of buttons.
+    expect(shapeChoices(alike(2, 22)).kind).toBe("list");
+    // Equal even at 24: plain text.
+    expect(shapeChoices(alike(2, 30)).kind).toBe("none");
+    expect(shapeChoices(alike(5, 30)).kind).toBe("none");
+  });
+
   it("makes buttons for two or three options", () => {
     expect(shapeChoices(choices(2))).toEqual({
       kind: "buttons",
@@ -58,12 +69,13 @@ describe("shapeChoices", () => {
   });
 
   it("cuts titles to the limit of their kind", () => {
-    const long = "x".repeat(30);
+    // Distinct at the start, so the cut titles stay distinct.
+    const long = (i: number) => `${String(i)}${"x".repeat(30)}`;
 
-    const buttons = shapeChoices(choices(2, () => long));
+    const buttons = shapeChoices(choices(2, long));
     const list = shapeChoices({
       listButton: "y".repeat(30),
-      options: choices(4, () => long).options,
+      options: choices(4, long).options,
     });
 
     expect(buttons.kind === "buttons" && Array.from(buttons.buttons[0]?.title ?? "")).toHaveLength(

@@ -67,7 +67,12 @@ export async function registerInbound(tx: Tx, input: InboundSeen): Promise<void>
       optInSource: "inbound",
       optInAt: input.at,
     },
-    update: { lastInboundAt: input.at },
+    update: {},
+  });
+  // Meta can deliver two messages out of order: the window only ever moves forward.
+  await tx.contactChannelState.updateMany({
+    where: { ...where.contactId_senderNumberId, lastInboundAt: { lt: input.at } },
+    data: { lastInboundAt: input.at },
   });
   await tx.contactChannelState.updateMany({
     where: {

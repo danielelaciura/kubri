@@ -27,16 +27,22 @@ export type WidgetShape =
 const cut = (picks: readonly WidgetOption[], max: number): WidgetOption[] =>
   picks.map(({ id, title }) => ({ id, title: truncate(title, max) }));
 
-/** D115: buttons for 2–3 options, a list for 4–10, plain text otherwise. */
+/** WhatsApp rejects a widget whose titles repeat: two options cut alike would look the same too. */
+const distinct = (options: readonly WidgetOption[]): boolean =>
+  new Set(options.map((o) => o.title)).size === options.length;
+
+/**
+ * D115: buttons for 2–3 options, a list for 4–10, plain text otherwise. Options whose titles
+ * become equal once cut to 20 characters go in a list (24); if they still collide, plain text.
+ */
 export function shapeChoices(choices: OutboundChoices): WidgetShape {
   const count = choices.options.length;
   if (count < 2 || count > ROW_COUNT_LIMIT) return { kind: "none" };
   if (count <= BUTTON_COUNT_LIMIT) {
-    return { kind: "buttons", buttons: cut(choices.options, BUTTON_TITLE_LIMIT) };
+    const buttons = cut(choices.options, BUTTON_TITLE_LIMIT);
+    if (distinct(buttons)) return { kind: "buttons", buttons };
   }
-  return {
-    kind: "list",
-    button: truncate(choices.listButton, LIST_BUTTON_LIMIT),
-    rows: cut(choices.options, ROW_TITLE_LIMIT),
-  };
+  const rows = cut(choices.options, ROW_TITLE_LIMIT);
+  if (!distinct(rows)) return { kind: "none" };
+  return { kind: "list", button: truncate(choices.listButton, LIST_BUTTON_LIMIT), rows };
 }

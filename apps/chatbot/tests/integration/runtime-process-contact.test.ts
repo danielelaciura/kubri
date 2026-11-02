@@ -928,6 +928,20 @@ describe("taps on buttons and lists (D114)", () => {
 
     expect(nlu.calls()).toBe(1);
   });
+
+  it("still reads a tap followed by a voice note in the same burst", async () => {
+    const nlu = counting();
+    const h = await harness({ interpreter: nlu.interpreter });
+    await say(h, "ciao");
+    await run(h);
+    await tap(h, "lang:ar", "العربية");
+    await say(h, null, { type: "audio" });
+
+    await run(h);
+
+    expect(nlu.calls()).toBe(0);
+    expect((await db.session.findFirstOrThrow()).language).toBe("ar");
+  });
 });
 
 describe("read receipt and typing (D121)", () => {

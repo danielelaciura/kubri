@@ -384,7 +384,8 @@ async function continueSession(
 function onlyTap(
   burst: readonly BurstMessage[],
 ): { readonly id: string; readonly title: string } | null {
-  const last = burst.at(-1);
+  // Audio or images next to the tap carry no answer: the tap is the last message with a body.
+  const last = burst.filter((m) => m.body !== null).at(-1);
   if (!last || last.replyId === null || last.body === null) return null;
   const typed = burst.some((m) => m.replyId === null && m.body !== null);
   return typed ? null : { id: last.replyId, title: last.body };

@@ -3,6 +3,7 @@ import type { ChannelAdapter, OutboundText, SendOutcome } from "../../src/channe
 import { processContact } from "../../src/runtime/process-contact";
 import { sendMessages, TransientSendError } from "../../src/runtime/send-messages";
 import { inTransaction, lockKey } from "../../src/store/db";
+import { registerInbound } from "../../src/store/contacts";
 import { claimNextOutbound, queueOutbound } from "../../src/store/messages";
 import { createTestDatabase, resetBotSchema } from "./helpers/database";
 import { startTestQueue } from "./helpers/queue";
@@ -309,5 +310,87 @@ describe("through the real queue (retries, spec §14)", () => {
     } finally {
       await runtime.stop();
     }
+  });
+});
+
+describe("widgets and the 24 hour window", () => {
+  const DAY_MS = 24 * 3600 * 1000;
+  const choices = {
+    listButton: "Scegli",
+    options: [
+      { id: "q:patente:yes", title: "Sì" },
+      { id: "q:patente:no", title: "No" },
+    ],
+  };
+  const queueWidget = () =>
+    queueOutbound(db, [
+      {
+        ...h.key,
+        sessionId,
+        turnId: null,
+        body: "Hai la patente?",
+        language: "it",
+        stepId: null,
+        questionId: null,
+        interactive: choices,
+      },
+    ]);
+  const seen = (at: Date) =>
+    registerInbound(db, {
+      contactId: h.key.contactId,
+      senderNumberId: h.key.senderNumberId,
+      at,
+    });
+
+  it("hands the choices to a channel that supports them", async () => {
+    await queueWidget();
+
+    await sendMessages(h.sendDeps, h.key);
+
+    expect(h.channel.sent[0]?.choices).toEqual(choices);
+  });
+
+  it("sends only the text to a channel that does not", async () => {
+    h.channel.supportsInteractive = false;
+    await queueWidget();
+
+    await sendMessages(h.sendDeps, h.key);
+
+    expect(h.channel.sent[0]?.choices).toBeUndefined();
+    expect(h.channel.sent[0]?.text).toBe("Hai la patente?");
+  });
+
+  it("sends inside the window", async () => {
+    h.channel.freeFormWindowMs = DAY_MS;
+    await seen(new Date());
+    await queue("uno");
+
+    await sendMessages(h.sendDeps, h.key);
+
+    expect(h.channel.sent).toHaveLength(1);
+  });
+
+  it("fails for good, without calling the channel, outside the window (D119)", async () => {
+    h.channel.freeFormWindowMs = DAY_MS;
+    await seen(new Date(Date.now() - 25 * 3600 * 1000));
+    await queue("uno", "due");
+
+    await sendMessages(h.sendDeps, h.key);
+
+    expect(h.channel.sent).toEqual([]);
+    expect(await statuses()).toEqual([
+      ["uno", "failed", "outside_window"],
+      ["due", "failed", "skipped_after_failure"],
+    ]);
+    expect(await db.sessionFlag.count({ where: { reason: "outbound_failed" } })).toBe(1);
+  });
+
+  it("treats a contact the channel never heard from as outside the window", async () => {
+    h.channel.freeFormWindowMs = DAY_MS;
+    await queue("uno");
+
+    await sendMessages(h.sendDeps, h.key);
+
+    expect((await statuses())[0]).toEqual(["uno", "failed", "outside_window"]);
   });
 });

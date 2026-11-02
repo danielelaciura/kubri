@@ -79,6 +79,22 @@ export async function registerInbound(tx: Tx, input: InboundSeen): Promise<void>
   });
 }
 
+/**
+ * When the contact last wrote to this number: the start of the free-form window (spec §11.3,
+ * D119). null when they never did.
+ */
+export async function findLastInboundAt(
+  db: Tx,
+  contactId: string,
+  senderNumberId: string,
+): Promise<Date | null> {
+  const row = await db.contactChannelState.findUnique({
+    where: { contactId_senderNumberId: { contactId, senderNumberId } },
+    select: { lastInboundAt: true },
+  });
+  return row?.lastInboundAt ?? null;
+}
+
 export async function recordOptOut(
   tx: Tx,
   contactId: string,

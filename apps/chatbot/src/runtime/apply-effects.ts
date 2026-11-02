@@ -1,16 +1,23 @@
 import type { Logger } from "pino";
 import { KUBRI_GLOBAL_CONSENT } from "../campaigns/checks/consents";
 import type { CampaignDefinition } from "../campaigns/schema/campaign";
+import { INTERACTIVE_BODY_LIMIT } from "../channels/interactive";
+import { awaitedChoices, type ChoiceLabel } from "../engine/choices";
 import { describeEffect } from "../engine/describe";
 import type { Effect, Job } from "../engine/effects";
 import type { SessionState } from "../engine/state";
 import { describeTextRef } from "../engine/text-ref";
 import { consentStepOf } from "../i18n/critical";
-import { outputLanguage, type TextResolver } from "../i18n/resolve";
+import { outputLanguage, type TextResolver, type TextTarget } from "../i18n/resolve";
 import { insertConsent } from "../store/consents";
 import { recordOptOut, setPreferredLanguage } from "../store/contacts";
 import type { Tx } from "../store/db";
-import { markInboundProcessed, queueOutbound, type OutboundMessageInput } from "../store/messages";
+import {
+  markInboundProcessed,
+  queueOutbound,
+  type OutboundMessageInput,
+  type StoredChoices,
+} from "../store/messages";
 import {
   applyProfileFields,
   markFieldUnresolved,
@@ -21,6 +28,54 @@ import {
 import type { JobQueue } from "../store/queue";
 import { findConsentShown, markNeedsAttention, recordConsentShown } from "../store/sessions";
 import { insertFlag } from "../store/turns";
+
+async function labelText(
+  resolver: TextResolver,
+  label: ChoiceLabel,
+  target: TextTarget,
+): Promise<string> {
+  switch (label.kind) {
+    case "catalog":
+      return (await resolver.resolveKey(label.key, target)).text;
+    case "text":
+      return (await resolver.resolveLabel(label.text, target)).text;
+    case "literal":
+      return label.text;
+  }
+}
+
+/** D112: the closed answers awaited after this turn, titles in the candidate's language. */
+async function widgetFor(ctx: ApplyContext, target: TextTarget): Promise<StoredChoices | null> {
+  const offer = ctx.interactive === true ? awaitedChoices(ctx.finalState, ctx.campaign) : null;
+  if (!offer) return null;
+  const options: { id: string; title: string }[] = [];
+  for (const option of offer.options) {
+    options.push({ id: option.id, title: await labelText(ctx.resolver, option.label, target) });
+  }
+  const listButton = (await ctx.resolver.resolveKey(offer.listButton, target)).text;
+  return { listButton, options };
+}
+
+/**
+ * D112, D115: the turn's last reply is the awaited question, so the widget goes on it. A
+ * question too long for a widget's body goes as text, and the widget follows on its own.
+ */
+async function attachWidget(
+  ctx: ApplyContext,
+  target: TextTarget,
+  replies: OutboundMessageInput[],
+): Promise<void> {
+  const question = replies.at(-1);
+  if (!question) return;
+  const widget = await widgetFor(ctx, target);
+  if (!widget) return;
+  if (Array.from(question.body).length <= INTERACTIVE_BODY_LIMIT) {
+    replies[replies.length - 1] = { ...question, interactive: widget };
+    return;
+  }
+  const prompt = await ctx.resolver.resolveKey("choice.prompt", target);
+  replies.push({ ...question, body: prompt.text, language: prompt.language, interactive: widget });
+}
 
 /** An inbound message answered by this turn, with the copy kept for the NLU history (D107). */
 export interface InboundOfTurn {
@@ -275,6 +330,7 @@ export async function applyEffects(
     }
   }
 
+  await attachWidget(ctx, target, replies);
   await queueOutbound(tx, replies);
   await markInboundProcessed(
     tx,

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import type { Effect } from "../../src/engine/effects";
 import { initialSessionState, type SessionState } from "../../src/engine/state";
@@ -47,16 +48,21 @@ interface RunOptions {
   readonly finalState?: SessionState;
   readonly inbound?: readonly InboundOfTurn[];
   readonly answeringMessageId?: string | null;
+  /** Attach the awaited choices as a widget (D112). */
+  readonly interactive?: boolean;
+  /** For tests that run more than one turn. */
+  readonly turnId?: string;
 }
 
 async function run(effects: Effect[], options: RunOptions = {}) {
   const campaign = scenario.campaign;
   if (!campaign) throw new Error("no campaign");
+  const turnId = options.turnId ?? TURN_ID;
   return inTransaction(
     db,
     async (tx) => {
       await insertTurn(tx, {
-        id: TURN_ID,
+        id: turnId,
         sessionId,
         contactId: scenario.contactId,
         inboundMessageIds: (options.inbound ?? []).map((m) => m.id),
@@ -70,7 +76,7 @@ async function run(effects: Effect[], options: RunOptions = {}) {
         resolver: testResolver(),
         logger: silentLogger,
         consentHashSecret: TEST_CONSENT_SECRET,
-        turnId: TURN_ID,
+        turnId,
         at: new Date(AT),
         contact: { id: scenario.contactId, channel: "whatsapp", externalId: scenario.externalId },
         session: { id: sessionId, senderNumberId: scenario.senderId },
@@ -78,6 +84,7 @@ async function run(effects: Effect[], options: RunOptions = {}) {
         finalState: options.finalState ?? IT_STATE,
         answeringMessageId: options.answeringMessageId ?? null,
         inbound: options.inbound ?? [],
+        interactive: options.interactive ?? false,
       };
       return applyEffects(ctx, effects);
     },
@@ -364,5 +371,125 @@ describe("applyEffects", () => {
     ]);
 
     expect(await db.profileChange.count()).toBe(0);
+  });
+});
+
+describe("interactive widgets (D112–D116)", () => {
+  const inFlow = (
+    stepId: string,
+    questionId: string | null = null,
+    language: "it" | "en" = "it",
+  ): SessionState => ({
+    ...initialSessionState(),
+    phase: "flow",
+    stepId,
+    questionId,
+    language,
+    consentsAccepted: true,
+  });
+  const ask = (text: string): Effect[] => [{ type: "SendText", text: { kind: "generated", text } }];
+  const last = async () =>
+    (await db.message.findMany({ orderBy: { ordinal: "desc" }, take: 1 }))[0];
+
+  it("attaches the consent choices to the question, in Italian", async () => {
+    await run(ask("Accetti di proseguire?"), {
+      finalState: inFlow("privacy"),
+      interactive: true,
+    });
+
+    expect(await last()).toMatchObject({
+      type: "interactive",
+      body: "Accetti di proseguire?",
+      interactive: {
+        listButton: "Scegli",
+        options: [
+          { id: "consent:privacy:accepted", title: "Accetto" },
+          { id: "consent:privacy:declined", title: "Non accetto" },
+        ],
+      },
+    });
+  });
+
+  it("translates the titles into the candidate's language", async () => {
+    await run(ask("Do you accept?"), {
+      finalState: inFlow("privacy", null, "en"),
+      interactive: true,
+    });
+
+    expect((await last())?.interactive).toMatchObject({
+      options: [
+        { id: "consent:privacy:accepted", title: "[en] Accetto" },
+        { id: "consent:privacy:declined", title: "[en] Non accetto" },
+      ],
+    });
+  });
+
+  it("offers yes/no for a boolean question and the languages at the start", async () => {
+    await run(ask("Hai la patente?"), {
+      finalState: inFlow("mobilita", "patente"),
+      interactive: true,
+    });
+    expect((await last())?.interactive).toMatchObject({
+      options: [
+        { id: "q:patente:yes", title: "Sì" },
+        { id: "q:patente:no", title: "No" },
+      ],
+    });
+
+    await run(ask("Ciao!"), {
+      finalState: initialSessionState(),
+      interactive: true,
+      turnId: randomUUID(),
+    });
+    const welcome = await last();
+    expect(welcome?.interactive).toMatchObject({ listButton: "Lingua / Language" });
+    expect((welcome?.interactive as { options: unknown[] }).options).toHaveLength(10);
+  });
+
+  it("attaches nothing when a free-text answer is awaited, when off, or after the end", async () => {
+    await run(ask("Come ti chiami?"), {
+      finalState: inFlow("anagrafica", "nome"),
+      interactive: true,
+    });
+    await run(ask("Accetti?"), {
+      finalState: inFlow("privacy"),
+      interactive: false,
+      turnId: randomUUID(),
+    });
+    await run(ask("Grazie!"), {
+      finalState: { ...initialSessionState(), phase: "post_completion", language: "it" },
+      interactive: true,
+      turnId: randomUUID(),
+    });
+
+    const rows = await db.message.findMany({ where: { direction: "outbound" } });
+    expect(rows.map((m) => [m.type, m.interactive])).toEqual([
+      ["text", null],
+      ["text", null],
+      ["text", null],
+    ]);
+  });
+
+  it("only the last reply of the turn carries the widget", async () => {
+    await run([...ask("Testo uno."), ...ask("Accetti?")], {
+      finalState: inFlow("privacy"),
+      interactive: true,
+    });
+
+    const rows = await db.message.findMany({ orderBy: { ordinal: "asc" } });
+    expect(rows.map((m) => m.type)).toEqual(["text", "interactive"]);
+  });
+
+  it("sends a question too long for a widget as text, then the widget on its own (D115)", async () => {
+    await run(ask("x".repeat(1100)), { finalState: inFlow("privacy"), interactive: true });
+
+    const rows = await db.message.findMany({ orderBy: { ordinal: "asc" } });
+    expect(rows.map((m) => [m.type, m.body === "x".repeat(1100) || m.body])).toEqual([
+      ["text", true],
+      ["interactive", "Scegli una risposta:"],
+    ]);
+    expect(rows[1]?.interactive).toMatchObject({
+      options: [{ id: "consent:privacy:accepted" }, { id: "consent:privacy:declined" }],
+    });
   });
 });

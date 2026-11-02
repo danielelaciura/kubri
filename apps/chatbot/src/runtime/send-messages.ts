@@ -3,7 +3,7 @@ import type { ChannelAdapter, OutboundSender, SendOutcome } from "../channels/ch
 import type { Effect } from "../engine/effects";
 import { initialSessionState, type SessionState } from "../engine/state";
 import { findCampaignVersion } from "../store/campaigns";
-import { findContactAddress } from "../store/contacts";
+import { findContactAddress, findLastInboundAt } from "../store/contacts";
 import type { Database } from "../store/db";
 import { inTransaction, lockKey } from "../store/db";
 import {
@@ -38,18 +38,37 @@ export class TransientSendError extends Error {
   }
 }
 
+/** D119: the window is checked before the call, so a call bound to fail is not made. */
+async function windowClosed(
+  deps: SendDeps,
+  channel: ChannelAdapter,
+  message: ClaimedMessage,
+): Promise<boolean> {
+  if (channel.freeFormWindowMs === null) return false;
+  const last = await findLastInboundAt(deps.db, message.contactId, message.senderNumberId);
+  return last === null || deps.now().getTime() - last.getTime() > channel.freeFormWindowMs;
+}
+
 async function sendOnce(deps: SendDeps, message: ClaimedMessage): Promise<SendOutcome> {
   const [to, sender] = await Promise.all([
     findContactAddress(deps.db, message.contactId),
     findOutboundSender(deps.db, message.senderNumberId),
   ]);
+  const channel = deps.channelFor(sender.provider);
+  if (await windowClosed(deps, channel, message)) {
+    return { ok: false, kind: "permanent", code: "outside_window" };
+  }
   try {
     const call = Promise.resolve().then(() =>
-      deps.channelFor(sender.provider).send({
+      channel.send({
         clientMessageId: message.id,
         sender,
         to: { externalId: to.externalId, phoneE164: to.phoneE164 },
         text: message.body,
+        // D115: a channel without widgets gets the text alone.
+        ...(message.interactive && channel.supportsInteractive
+          ? { choices: message.interactive }
+          : {}),
       }),
     );
     // Shorter than the lease: the outcome is written while this sender still holds the claim.

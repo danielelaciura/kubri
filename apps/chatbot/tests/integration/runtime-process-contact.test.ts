@@ -95,6 +95,10 @@ describe("a new conversation", () => {
     });
     expect(session.engineState).toMatchObject({ phase: "language" });
     expect((await replies(db)).map((body) => body.includes("In che lingua"))).toEqual([true]);
+    // The welcome carries the list of languages (D113).
+    expect((await db.message.findFirstOrThrow({ where: { direction: "outbound" } })).type).toBe(
+      "interactive",
+    );
     expect(await db.turn.findFirstOrThrow()).toMatchObject({
       outcome: "replied",
       sessionId: session.id,
@@ -652,6 +656,14 @@ describe("when something goes wrong: never silent (D107)", () => {
     expect(session.openKey).not.toBeNull();
     expect(session.engineState).toEqual({ phase: "dancing" });
     expect((await replies(db)).at(-1)).toContain("problema da parte mia");
+    // A turn that ended in an error never carries a widget (D112).
+    expect(
+      (
+        await db.message.findFirstOrThrow({
+          where: { body: { contains: "problema da parte mia" } },
+        })
+      ).type,
+    ).toBe("text");
     expect(await db.sessionFlag.findFirstOrThrow()).toMatchObject({
       reason: "incoherent_state",
       needsAttention: true,

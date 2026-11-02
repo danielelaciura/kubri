@@ -1,0 +1,10 @@
+{"id":"consenso-si","tags":["consent"],"language":"it","state":{"step":"privacy","consentsAccepted":false},"message":"sì accetto","expected":{"intent":"choice","choice":"accepted"}}
+{"id":"consenso-no","tags":["consent"],"language":"it","state":{"step":"privacy","consentsAccepted":false},"message":"no, non voglio","expected":{"intent":"choice","choice":"declined"}}
+{"id":"consenso-in-francese","tags":["consent"],"language":"fr","state":{"step":"privacy","consentsAccepted":false,"sessionLanguage":"fr"},"message":"oui d'accord","expected":{"intent":"choice","choice":"accepted"}}
+{"id":"cv-si","tags":["cv"],"language":"it","state":{"step":"cv"},"message":"sì grazie","expected":{"intent":"choice","choice":"yes"}}
+{"id":"cv-no","tags":["cv"],"language":"it","state":{"step":"cv"},"message":"no grazie","expected":{"intent":"choice","choice":"no"}}
+{"id":"conferma-valore-si","tags":["pending"],"language":"it","state":{"step":"anagrafica","question":"nome","pending":{"kind":"value","field":"firstName"}},"message":"sì è giusto","expected":{"intent":"choice","choice":"yes"}}
+{"id":"conferma-valore-corretta","tags":["pending"],"language":"it","state":{"step":"anagrafica","question":"nome","pending":{"kind":"value","field":"firstName"}},"message":"no, è Marco","expected":{"intent":"answer","patch":{"firstName":"Marco"}}}
+{"id":"conferma-valore-no-inglese","tags":["pending"],"language":"en","state":{"step":"anagrafica","question":"nome","sessionLanguage":"en","pending":{"kind":"value","field":"firstName"}},"message":"no that's wrong","expected":{"intent":"choice","choice":"no"}}
+{"id":"cancellazione-si","tags":["pending"],"language":"it","state":{"step":"anagrafica","question":"nome","pending":{"kind":"delete_data"}},"message":"sì cancella tutto","expected":{"intent":"choice","choice":"yes"}}
+{"id":"rigenera-cv","tags":["post-completion"],"language":"it","state":{"phase":"post_completion"},"message":"rifammi il CV","expected":{"intent":"choice","choice":"regenerate_cv"}}

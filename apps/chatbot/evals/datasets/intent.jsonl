@@ -1,0 +1,9 @@
+{"id":"fuori-tema","tags":["off-topic"],"language":"it","state":{"step":"anagrafica","question":"nome"},"message":"che tempo fa domani a Roma?","expected":{"intent":"off_topic"}}
+{"id":"aiuto","tags":["help"],"language":"it","state":{"step":"anagrafica","question":"nome"},"message":"non capisco cosa devo scrivere","expected":{"intent":"help"}}
+{"id":"rifiuto","tags":["refusal"],"language":"it","state":{"step":"anagrafica","question":"indirizzo"},"message":"preferisco non dirlo","expected":{"intent":"refusal"}}
+{"id":"modifica-comune","tags":["edit"],"language":"it","state":{"phase":"post_completion","profile":{"location":"Bologna"}},"message":"ho sbagliato, il mio comune è Modena","expected":{"intent":"edit_request","editTarget":{"field":"location","newValue":"Modena"}}}
+{"id":"stop-esplicito","tags":["global"],"language":"it","state":{"step":"anagrafica","question":"nome"},"message":"non scrivetemi più","expected":{"intent":"opt_out"}}
+{"id":"cancella-dati","tags":["global"],"language":"it","state":{"step":"anagrafica","question":"nome"},"message":"voglio che cancelliate tutti i miei dati","expected":{"intent":"delete_data"}}
+{"id":"risposta-normale","tags":["text"],"language":"it","state":{"step":"anagrafica","question":"nome"},"message":"Giuseppe","expected":{"intent":"answer","completeness":"complete","patch":{"firstName":"Giuseppe"}}}
+{"id":"incomprensibile","tags":["unclear"],"language":"it","state":{"step":"anagrafica","question":"nome"},"message":"asdfgh qwerty","expected":{"intent":"unclear"}}
+{"id":"modifica-in-inglese","tags":["edit"],"language":"en","state":{"phase":"post_completion","sessionLanguage":"en","profile":{"lastName":"Bianchi"}},"message":"sorry, my last name is Rossi, not Bianchi","expected":{"intent":"edit_request","editTarget":{"field":"lastName","newValue":"Rossi"}}}

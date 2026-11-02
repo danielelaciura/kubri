@@ -105,12 +105,18 @@ async function runTranslation(deps: CliDeps, options: TranslationOptions): Promi
   );
   await deps.writeFile(`${base}.md`, translationReportToMarkdown(header, summary, results));
   deps.out(
-    `${summary.passed}/${summary.cases} translations passed · placeholders lost: ${summary.placeholderFailures}`,
+    `${summary.passed}/${summary.cases} translations passed · placeholders lost: ${summary.placeholderFailures} · translations failed: ${summary.translatorFailures}`,
   );
   deps.out(`report: ${base}.md`);
-  if (summary.placeholderFailures > 0) {
-    throw new CliError("Gates failed: a translation lost its placeholders");
-  }
+  const failures = [
+    ...(summary.placeholderFailures > 0 ? ["a translation lost its placeholders"] : []),
+    ...(summary.translatorFailures > 0
+      ? [
+          `${summary.translatorFailures} translation${summary.translatorFailures === 1 ? "" : "s"} failed`,
+        ]
+      : []),
+  ];
+  if (failures.length > 0) throw new CliError(`Gates failed: ${failures.join("; ")}`);
 }
 
 export function registerTranslationEvalCommands(evals: Command, deps: CliDeps): void {

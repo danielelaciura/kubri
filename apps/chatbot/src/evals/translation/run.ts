@@ -108,6 +108,8 @@ export interface TranslationSummary {
   readonly passed: number;
   readonly passRate: number;
   readonly placeholderFailures: number;
+  /** Cases with no translation at all (`translator_failed`): `evals translation` exits 1. */
+  readonly translatorFailures: number;
   /** The models that actually answered, sorted (E8). */
   readonly answeredBy: { readonly translate: readonly string[]; readonly judge: readonly string[] };
   readonly byLanguage: Readonly<Record<string, TranslationGroup>>;
@@ -150,6 +152,7 @@ export function summarizeTranslation(results: readonly TranslationResult[]): Tra
     placeholderFailures: results.filter(
       (r) => r.status !== "translator_failed" && !r.placeholdersOk,
     ).length,
+    translatorFailures: results.filter((r) => r.status === "translator_failed").length,
     answeredBy: {
       translate: distinct(results.map((r) => r.translatedBy)),
       judge: distinct(results.map((r) => r.judgedBy)),
@@ -202,7 +205,7 @@ export function translationReportToMarkdown(
       ? ["> **Giudice NON TARATO** (`--uncalibrated`): i voti non sono affidabili.", ""]
       : []),
     `- Traduttore: ${header.translateModel} (risposte da ${models(summary.answeredBy.translate)}) · giudice: ${header.judgeModel} (${header.judgePromptVersion}, risposte da ${models(summary.answeredBy.judge)})`,
-    `- Superati: ${summary.passed}/${summary.cases} · segnaposto persi: ${summary.placeholderFailures}`,
+    `- Superati: ${summary.passed}/${summary.cases} · segnaposto persi: ${summary.placeholderFailures} · traduzioni non riuscite: ${summary.translatorFailures}`,
     "",
     ...table("Per lingua", summary.byLanguage),
     ...table("Per tipo", summary.byKind),

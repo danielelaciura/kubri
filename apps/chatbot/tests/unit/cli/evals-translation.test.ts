@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { CliError } from "../../../src/cli/deps";
 import { createProgram } from "../../../src/cli/program";
-import { FakeLlmProvider } from "../../../src/nlu/fake-provider";
+import { FakeLlmProvider, type FakeReply } from "../../../src/nlu/fake-provider";
+import { LlmError } from "../../../src/nlu/llm-provider";
 import { datasetHash } from "../../../src/evals/report";
 import { fakeCli } from "./fake-deps";
 
@@ -36,8 +37,12 @@ const REPLIES = [
   '{"fidelity":5,"naturalness":5,"issues":[]}',
 ];
 
-async function run(files: Record<string, string>, args: string[] = []) {
-  const llm = new FakeLlmProvider(REPLIES);
+async function run(
+  files: Record<string, string>,
+  args: string[] = [],
+  replies: readonly FakeReply[] = REPLIES,
+) {
+  const llm = new FakeLlmProvider(replies);
   const cli = fakeCli(
     {
       "evals/datasets/translation.jsonl": DATASET,
@@ -120,6 +125,19 @@ describe("evals translation", () => {
     );
     expect(llm.requests).toHaveLength(2);
     expect(written).toEqual({});
+  });
+
+  it("fails (exit 1) when a translation could not be made, after writing the report", async () => {
+    const { error, written, stdout } = await run(
+      { [CALIBRATION]: record(true) },
+      [],
+      [new LlmError("client", "refused")],
+    );
+
+    expect(error).toBeInstanceOf(CliError);
+    expect((error as CliError).message).toMatch(/1 translation failed/);
+    expect(reportJson(written)).toMatchObject({ summary: { translatorFailures: 1 } });
+    expect(stdout.join("\n")).toContain("translations failed: 1");
   });
 
   it("runs an uncalibrated judge on request, and records it in the report (E8)", async () => {

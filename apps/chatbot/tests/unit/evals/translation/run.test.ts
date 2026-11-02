@@ -88,6 +88,7 @@ describe("summarizeTranslation and the Markdown", () => {
       passed: 1,
       passRate: 0.5,
       placeholderFailures: 0,
+      translatorFailures: 0,
       answeredBy: { translate: ["fake"], judge: ["judge-2411"] },
     });
     expect(summary.byLanguage["en"]).toEqual({

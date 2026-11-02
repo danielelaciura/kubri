@@ -6,6 +6,7 @@ import {
   type OutboundText,
   type SendOutcome,
 } from "../../src/channels/channel";
+import type { TextResolver } from "../../src/i18n/resolve";
 import { TransientJobError } from "../../src/runtime/jobs/errors";
 import { CV_FAILED, CV_FILENAME, handleCv, type CvJobDeps } from "../../src/runtime/jobs/cv";
 import { MemoryJobQueue } from "../../src/runtime/memory-queue";
@@ -32,13 +33,23 @@ let channel: ChannelAdapter;
 let fake: FakeChannel;
 let queue: MemoryJobQueue;
 let logger = silentLogger;
+let resolver: TextResolver;
+
+/** A resolver whose every text fails: the catalog or the translation is broken. */
+function brokenResolver(): TextResolver {
+  const broken: TextResolver = {
+    resolveKey: () => Promise.reject(new Error("catalog unavailable")),
+    withDeadline: () => broken,
+  } as unknown as TextResolver;
+  return broken;
+}
 
 const deps = (): CvJobDeps => ({
   db,
   config: testConfig(),
   logger,
   queue,
-  resolver: testResolver(),
+  resolver,
   channelFor: () => channel,
   now: () => new Date(),
 });
@@ -72,6 +83,7 @@ beforeEach(async () => {
   channel = fake;
   queue = new MemoryJobQueue();
   logger = silentLogger;
+  resolver = testResolver();
 });
 
 afterAll(async () => {
@@ -167,6 +179,59 @@ describe("handleCv (spec §12.2, R8, D127–D131)", () => {
       "active",
     );
     expect(queue.named("send-messages")).toHaveLength(1);
+  });
+
+  it("lets pg-boss retry any other failure before the last attempt", async () => {
+    resolver = brokenResolver();
+
+    await expect(handleCv(deps(), job(), NOT_LAST)).rejects.toThrow("catalog unavailable");
+
+    expect(await outbound()).toEqual([]);
+    expect(await flags()).toEqual([]);
+  });
+
+  it("on the last attempt gives up on any failure: the resolver throwing still leaves the flag (M1)", async () => {
+    resolver = brokenResolver();
+
+    expect(await handleCv(deps(), job(), LAST)).toBe("failed");
+
+    // No text can be resolved, so the candidate gets nothing; the operator sees the flag.
+    expect(await outbound()).toEqual([]);
+    expect(await flags()).toMatchObject([
+      { reason: CV_FAILED, needsAttention: false, turnId: TURN_ID },
+    ]);
+  });
+
+  it("on the last attempt gives up when the stored data is unreadable, with the flag alone", async () => {
+    await db.campaignVersion.update({
+      where: { id: s.campaign?.versionId ?? "" },
+      data: { definition: {} },
+    });
+
+    expect(await handleCv(deps(), job(), LAST)).toBe("failed");
+
+    expect(await flags()).toMatchObject([{ reason: CV_FAILED, turnId: TURN_ID }]);
+  });
+
+  it("queues no document when an opt-out lands between the upload and the locked re-check (R8)", async () => {
+    const stopping: ChannelAdapter = {
+      supportsInteractive: false,
+      freeFormWindowMs: null,
+      send: (message: OutboundText) => fake.send(message),
+      uploadDocument: async (file, sender) => {
+        const outcome = await fake.uploadDocument(file, sender);
+        await stop();
+        return outcome;
+      },
+    };
+    channel = stopping;
+
+    expect(await handleCv(deps(), job(), NOT_LAST)).toBe("skipped");
+
+    expect(fake.uploaded).toHaveLength(1);
+    expect(await outbound()).toEqual([]);
+    expect(queue.jobs).toEqual([]);
+    expect(await flags()).toEqual([]);
   });
 
   it("gives up at once on a definitive upload error, and only once", async () => {

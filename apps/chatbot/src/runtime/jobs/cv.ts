@@ -6,7 +6,7 @@ import { renderCv } from "../../integrations/cv/render";
 import { findCampaignVersion } from "../../store/campaigns";
 import { inTransaction, lockKey, type Database, type Tx } from "../../store/db";
 import { hasCvMessageForTurn, queueOutbound, type OutboundDocument } from "../../store/messages";
-import type { JobAttempt, JobPayloads, JobQueue } from "../../store/queue";
+import { failureOutput, type JobAttempt, type JobPayloads, type JobQueue } from "../../store/queue";
 import { findOutboundSender } from "../../store/senders";
 import { loadSnapshot, type Snapshot } from "../../store/snapshot";
 import { hasFlagForTurn, insertFlag } from "../../store/turns";
@@ -58,18 +58,23 @@ async function catalogText(
   });
 }
 
+/** A message for the candidate: its text and, for the CV itself, the uploaded document. */
+interface CandidateMessage {
+  readonly text: ResolvedText;
+  readonly document: OutboundDocument | null;
+}
+
 /**
- * One message for the candidate, with its send, under the contact's lock (the lock a turn
- * holds): the checks of skipReason are repeated there, so a turn that stopped the session or
- * a concurrent run of this job wins.
+ * One message for the candidate (or none), with its send, under the contact's lock (the lock a
+ * turn holds): the checks of skipReason are repeated there, so a turn that stopped the session
+ * or a concurrent run of this job wins.
  */
 async function queueForCandidate(
   deps: CvJobDeps,
   job: Job,
   contactId: string,
-  text: ResolvedText,
+  message: CandidateMessage | null,
   extra: (tx: Tx) => Promise<void>,
-  document: OutboundDocument | null,
 ): Promise<boolean> {
   return inTransaction(
     deps.db,
@@ -81,21 +86,26 @@ async function queueForCandidate(
         deps.logger.info({ ...job, reason: skip }, "cv skipped under the lock");
         return false;
       }
-      const key = { contactId: current.contact.id, senderNumberId: current.session.senderNumberId };
-      await queueOutbound(tx, [
-        {
-          ...key,
-          sessionId: job.sessionId,
-          turnId: job.turnId,
-          body: text.text,
-          language: text.language,
-          stepId: null,
-          questionId: null,
-          document,
-        },
-      ]);
+      if (message) {
+        const key = {
+          contactId: current.contact.id,
+          senderNumberId: current.session.senderNumberId,
+        };
+        await queueOutbound(tx, [
+          {
+            ...key,
+            sessionId: job.sessionId,
+            turnId: job.turnId,
+            body: message.text.text,
+            language: message.text.language,
+            stepId: null,
+            questionId: null,
+            document: message.document,
+          },
+        ]);
+        await deps.queue.enqueue("send-messages", key, {}, tx);
+      }
       await extra(tx);
-      await deps.queue.enqueue("send-messages", key, {}, tx);
       return true;
     },
     // It may wait for a whole turn to release the contact's lock.
@@ -103,7 +113,24 @@ async function queueForCandidate(
   );
 }
 
-/** D131: the candidate hears it once, the session gets the flag; nothing is retried. */
+/** The error's name or code, for a log line: never its message (it can carry values). */
+function errorCode(error: unknown): string {
+  const output = failureOutput(error);
+  return output.code ?? output.name;
+}
+
+const cvFailedFlag = (job: Job) => ({
+  sessionId: job.sessionId,
+  turnId: job.turnId,
+  reason: CV_FAILED,
+  field: null,
+  needsAttention: false,
+});
+
+/**
+ * D131: the candidate hears it once, the session gets the flag; nothing is retried. When the
+ * `cv.failed` text cannot be resolved, the flag goes on alone: the operator still sees it.
+ */
 async function giveUp(
   deps: CvJobDeps,
   job: Job,
@@ -111,23 +138,48 @@ async function giveUp(
   code: string,
 ): Promise<CvJobResult> {
   deps.logger.warn({ ...job, code }, "cv failed for good");
-  const text = await catalogText(deps, snapshot, "cv.failed");
+  let text: ResolvedText | null = null;
+  try {
+    text = await catalogText(deps, snapshot, "cv.failed");
+  } catch (error: unknown) {
+    deps.logger.error({ ...job, code: errorCode(error) }, "cv.failed text unavailable: flag only");
+  }
   const queued = await queueForCandidate(
     deps,
     job,
     snapshot.contact.id,
-    text,
-    (tx) =>
-      insertFlag(tx, {
-        sessionId: job.sessionId,
-        turnId: job.turnId,
-        reason: CV_FAILED,
-        field: null,
-        needsAttention: false,
-      }),
-    null,
+    text ? { text, document: null } : null,
+    (tx) => insertFlag(tx, cvFailedFlag(job)),
   );
   return queued ? "failed" : "skipped";
+}
+
+/**
+ * The last attempt failed in an unexpected way (catalog, stored data, lock timeout, …): give up
+ * as far as possible, best effort. Without a readable snapshot (or if the locked give-up fails
+ * too) only the flag is written, once, without the lock: flags never conflict with a turn. If
+ * even that fails, the original error goes on to pg-boss (dead letter). Ids and codes only.
+ */
+async function giveUpAfterError(deps: CvJobDeps, job: Job, error: unknown): Promise<CvJobResult> {
+  const code = errorCode(error);
+  try {
+    const snapshot = await loadSnapshot(deps.db, job.sessionId);
+    if (!snapshot) return "skipped";
+    return await giveUp(deps, job, snapshot, code);
+  } catch (giveUpError: unknown) {
+    deps.logger.error(
+      { ...job, code, giveUpCode: errorCode(giveUpError) },
+      "cv give-up failed: flag only",
+    );
+  }
+  try {
+    if (await hasFlagForTurn(deps.db, job.sessionId, job.turnId, CV_FAILED)) return "skipped";
+    await insertFlag(deps.db, cvFailedFlag(job));
+    return "failed";
+  } catch (flagError: unknown) {
+    deps.logger.error({ ...job, code, flagCode: errorCode(flagError) }, "cv_failed flag not saved");
+    throw error;
+  }
 }
 
 async function upload(
@@ -156,15 +208,24 @@ async function upload(
  * R8: the CV the candidate asked for in `turnId`, made in memory and sent as a WhatsApp
  * document. Nothing is stored but the message (mediaRef = the provider's id). The upload runs
  * outside any transaction; the message and its send are queued together under the contact's
- * lock. A transient failure throws for pg-boss to retry; a definitive one, or the last
- * attempt, ends with `cv.failed` and the `cv_failed` flag (D131). Ids and codes only in the
- * logs: never the CV.
+ * lock. A transient failure throws for pg-boss to retry; a definitive one, or any failure on
+ * the last attempt, ends with `cv.failed` and the `cv_failed` flag (D131). Ids and codes only
+ * in the logs: never the CV.
  */
 export async function handleCv(
   deps: CvJobDeps,
   job: Job,
   attempt: JobAttempt,
 ): Promise<CvJobResult> {
+  try {
+    return await makeAndQueue(deps, job, attempt);
+  } catch (error: unknown) {
+    if (!attempt.lastAttempt) throw error;
+    return giveUpAfterError(deps, job, error);
+  }
+}
+
+async function makeAndQueue(deps: CvJobDeps, job: Job, attempt: JobAttempt): Promise<CvJobResult> {
   const snapshot = await loadSnapshot(deps.db, job.sessionId);
   const skip = await skipReason(deps.db, job, snapshot);
   if (skip !== null || !snapshot) {
@@ -195,12 +256,8 @@ export async function handleCv(
     deps,
     job,
     snapshot.contact.id,
-    caption,
+    { text: caption, document: { mediaRef: outcome.mediaId, filename: CV_FILENAME } },
     () => Promise.resolve(),
-    {
-      mediaRef: outcome.mediaId,
-      filename: CV_FILENAME,
-    },
   );
   if (!queued) return "skipped";
   deps.logger.info(job, "cv queued");

@@ -15,6 +15,22 @@ Cosa succede, in breve:
   `cv` genera il PDF in memoria, lo carica su Meta e lo manda come **documento WhatsApp**. Il CV
   non va in dashboard e non si salva da nessuna parte: niente bucket da creare.
 
+## 0. Prima del deploy (dev e prod)
+
+- **Ordine:** prima la dashboard con la route `/api/webhooks/chatbot/candidate` e il segreto
+  `CHATBOT_WEBHOOK_SECRET` nelle variabili di Vercel, poi il worker del chatbot. Al contrario i job
+  `kubri-webhook` vengono ritentati per tutta la finestra (`KUBRI_WEBHOOK_RETRY_LIMIT` = 10
+  ritentativi, almeno ~2 h 50 min) e poi finiscono negli scarti con il flag
+  `kubri_webhook_failed`.
+- **Vecchi job `cv`:** quelli creati prima del piano 10 hanno solo `{sessionId}` (manca `turnId`)
+  e non passano più la validazione: vanno eliminati dalle code di dev e prod prima di avviare il
+  nuovo worker, altrimenti falliscono a ogni ritentativo e finiscono in `cv-dead`:
+
+  ```sql
+  delete from bot_queue.job
+  where name = 'cv' and state in ('created', 'retry') and not (data ? 'turnId');
+  ```
+
 ## 1. Prerequisiti
 
 - La dashboard con l'endpoint del chatbot (Parte A del piano 10) in esecuzione: in locale
@@ -89,8 +105,10 @@ rispondendo **"sì"** alla domanda sul CV.
 - **Segreto sbagliato** nel chatbot: il job finisce in `kubri-webhook-dead` con motivo
   `unauthorized`, la sessione ha un flag `kubri_webhook_failed` (senza `needs_attention`), il
   worker continua. Rimettere il segreto giusto: gli eventi successivi arrivano di nuovo.
-- **Dashboard spenta:** il job viene ritentato con attesa crescente; riaccendendola entro
-  qualche minuto il candidato arriva.
+- **Dashboard spenta:** il job viene ritentato con attesa crescente (10 ritentativi, almeno
+  ~2 h 50 min in tutto); riaccendendola in quella finestra il candidato arriva. All'ultimo
+  tentativo fallito il job va negli scarti con il codice (es. `http_503`) e la sessione ha il
+  flag `kubri_webhook_failed`.
 - **Pool sconosciuto** (campagna con un `externalKey` che la dashboard non ha): scarto con motivo
   `unknown_pool`.
 - **CV non generabile** (per esempio token Meta revocato tra l'intervista e il job): dopo i

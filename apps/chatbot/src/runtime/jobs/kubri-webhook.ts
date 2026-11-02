@@ -11,7 +11,8 @@ export interface KubriJobDeps {
   readonly db: Database;
   readonly logger: Logger;
   readonly queue: JobQueue;
-  readonly kubri: KubriClient;
+  /** null: this worker has no Kubri configuration (development only, R9). */
+  readonly kubri: KubriClient | null;
 }
 
 export type KubriJobResult = "sent" | "skipped" | "dead";
@@ -63,6 +64,13 @@ async function giveUp(deps: KubriJobDeps, job: Job, reason: string): Promise<Kub
  */
 export async function handleKubriWebhook(deps: KubriJobDeps, job: Job): Promise<KubriJobResult> {
   const ids = { sessionId: job.sessionId, event: job.event };
+  const kubri = deps.kubri;
+  if (!kubri) {
+    // Kept where it can be replayed once Kubri is configured; the session is not at fault.
+    deps.logger.warn(ids, "kubri webhook not configured: job dead-lettered");
+    await deps.queue.deadLetter("kubri-webhook", job, "not_configured");
+    return "dead";
+  }
   const snapshot = await loadSnapshot(deps.db, job.sessionId);
   if (!snapshot) {
     deps.logger.info(ids, "kubri webhook skipped: session gone");
@@ -81,7 +89,7 @@ export async function handleKubriWebhook(deps: KubriJobDeps, job: Job): Promise<
     deps.logger.warn({ ...ids, paths: error.paths }, "kubri payload breaks the contract");
     return giveUp(deps, job, "contract");
   }
-  const result = await deps.kubri.send(body);
+  const result = await kubri.send(body);
   if (result.ok) {
     deps.logger.info(
       { ...ids, ...(result.skipped ? { skipped: result.skipped } : {}) },

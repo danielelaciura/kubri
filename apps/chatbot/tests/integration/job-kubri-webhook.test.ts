@@ -149,6 +149,16 @@ describe("handleKubriWebhook (D125, D126, R7)", () => {
     },
   );
 
+  it("sends every job to the dead letter queue when Kubri is not configured (R9, development)", async () => {
+    expect(await handleKubriWebhook({ ...deps(), kubri: null }, job())).toBe("dead");
+
+    expect(queue.deadLetters).toEqual([
+      { name: "kubri-webhook", payload: job(), reason: "not_configured" },
+    ]);
+    // A worker without Kubri is a setup choice, not a problem of the session.
+    expect(await flags()).toEqual([]);
+  });
+
   it("treats a payload that breaks the contract as definitive, without calling Kubri", async () => {
     await applyProfileFields(db, sessionId, "extraction", null, [
       { field: "country", value: "Marocco", confidence: 0.95, status: "inferred" },

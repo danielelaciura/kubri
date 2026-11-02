@@ -45,7 +45,7 @@ function depsFor(env: Record<string, string>, queue: QueueRuntime) {
 }
 
 describe("startWorker", () => {
-  it("registers process-contact and send-messages with the batch size, report-failure one by one", async () => {
+  it("registers process-contact and send-messages with the batch size, the others one by one", async () => {
     const queue = fakeQueue(5);
 
     await startWorker(depsFor({ WORKER_BATCH_SIZE: "3" }, queue));
@@ -55,6 +55,10 @@ describe("startWorker", () => {
       { name: "process-contact", options: { batchSize: 3 } },
       { name: "send-messages", options: { batchSize: 3 } },
       { name: "report-failure", options: { batchSize: 1 } },
+      // Plan 10 (R9): registered with or without Kubri, which only changes kubri-webhook's outcome.
+      { name: "kubri-webhook", options: { batchSize: 1 } },
+      { name: "cv", options: { batchSize: 1 } },
+      { name: "geocoding", options: { batchSize: 1 } },
     ]);
   });
 

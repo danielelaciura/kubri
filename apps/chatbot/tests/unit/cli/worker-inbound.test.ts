@@ -26,6 +26,19 @@ describe("worker start", () => {
     await expect(started).rejects.toThrow(/CONSENT_HASH_SECRET is not set/);
   });
 
+  it("refuses a half-filled Kubri configuration, naming the missing variable only", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("DATABASE_URL", APP_URL);
+    vi.stubEnv("CONSENT_HASH_SECRET", SECRET);
+    vi.stubEnv("KUBRI_BASE_URL", "https://app.kubri.it");
+    vi.stubEnv("CHATBOT_WEBHOOK_SECRET", "");
+
+    const started = run(["worker", "start"]);
+
+    await expect(started).rejects.toBeInstanceOf(CliError);
+    await expect(started).rejects.toThrow(/CHATBOT_WEBHOOK_SECRET/);
+  });
+
   it("refuses to start in production without QUEUE_DATABASE_URL", async () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("DATABASE_URL", APP_URL);
@@ -60,6 +73,18 @@ describe("worker start in production (C9)", () => {
 
     await expect(started).rejects.toBeInstanceOf(CliError);
     await expect(started).rejects.toThrow(pattern);
+  });
+
+  it("refuses to start without the Kubri dashboard's address and secret (R9)", async () => {
+    production();
+    vi.stubEnv("KUBRI_BASE_URL", "");
+    vi.stubEnv("CHATBOT_WEBHOOK_SECRET", "");
+
+    const started = run(["worker", "start", ...REAL]);
+
+    await expect(started).rejects.toBeInstanceOf(CliError);
+    await expect(started).rejects.toThrow(/KUBRI_BASE_URL/);
+    await expect(started).rejects.toThrow(/CHATBOT_WEBHOOK_SECRET/);
   });
 
   it("explains a bad META_GRAPH_VERSION as a CLI error", async () => {

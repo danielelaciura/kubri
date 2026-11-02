@@ -4,6 +4,8 @@ import { createMetaCloudChannel } from "../../channels/meta-cloud/client";
 import { parseEnv } from "../../config/env";
 import { FakeTranslator } from "../../i18n/fake-translator";
 import { parseGraphVersion } from "../../ingress/config";
+import { readKubriConfig, type KubriConfig } from "../../integrations/config";
+import { createKubriClient } from "../../integrations/kubri/client";
 import { createTextResolver } from "../../i18n/resolve";
 import type { Translator } from "../../i18n/translator";
 import { REAL_TIMING } from "../../nlu/call-policy";
@@ -46,6 +48,20 @@ function fakesInProduction(options: WorkerOptions): string[] {
   ];
 }
 
+/**
+ * R9: the Kubri dashboard is optional only outside production. Without it, development
+ * workers dead-letter kubri-webhook jobs (`not_configured`); half a configuration is an error.
+ */
+function kubriConfig(nodeEnv: string | undefined): KubriConfig | null {
+  const kubri = readKubriConfig(process.env);
+  if (kubri === null && nodeEnv === "production") {
+    throw new Error(
+      "KUBRI_BASE_URL and CHATBOT_WEBHOOK_SECRET are not set: the worker sends candidates to the Kubri dashboard.",
+    );
+  }
+  return kubri;
+}
+
 /** Configuration problems are explained in one line, before any connection is opened. */
 function readConfig(options: WorkerOptions) {
   try {
@@ -63,7 +79,8 @@ function readConfig(options: WorkerOptions) {
     const graphVersion = options.channel === "meta" ? parseGraphVersion(process.env) : null;
     const logger = createLogger({ level: env.LOG_LEVEL });
     const queueSettings = workerQueueSettings(config, logger);
-    return { config, consentHashSecret, logger, queueSettings, graphVersion };
+    const kubri = kubriConfig(env.NODE_ENV);
+    return { config, consentHashSecret, logger, queueSettings, graphVersion, kubri };
   } catch (error: unknown) {
     throw new CliError(error instanceof Error ? error.message : String(error));
   }
@@ -103,8 +120,11 @@ export function registerWorkerCommands(program: Command, deps: CliDeps): void {
         .default("console"),
     )
     .action(async (options: WorkerOptions) => {
-      const { config, consentHashSecret, logger, queueSettings, graphVersion } =
+      const { config, consentHashSecret, logger, queueSettings, graphVersion, kubri } =
         readConfig(options);
+      if (kubri === null) {
+        logger.warn("Kubri is not configured: kubri-webhook jobs go to the dead letter queue");
+      }
       // A missing MISTRAL_API_KEY stops here, before any connection.
       const llm = options.nlu === "llm" || options.translator === "llm" ? connectLlm(deps) : null;
       const nluConfig = llm?.config ?? parseNluConfig(process.env);
@@ -137,6 +157,7 @@ export function registerWorkerCommands(program: Command, deps: CliDeps): void {
           try {
             await startWorker({
               queue,
+              kubri: kubri ? createKubriClient(kubri) : null,
               runtime: {
                 db,
                 config,

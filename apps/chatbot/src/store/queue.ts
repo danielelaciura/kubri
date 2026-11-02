@@ -33,7 +33,8 @@ const PAYLOAD_SCHEMAS = {
     turnId: z.string().nullable(),
   }),
   "kubri-webhook": z.strictObject({ sessionId: z.string(), event: z.enum(KUBRI_EVENTS) }),
-  cv: z.strictObject({ sessionId: z.string() }),
+  /** The turn that asked for the CV: its idempotency key (R8). */
+  cv: z.strictObject({ sessionId: z.string(), turnId: z.string() }),
   geocoding: z.strictObject({ sessionId: z.string() }),
   "delete-contact": z.strictObject({ contactId: z.string() }),
 } as const satisfies Record<QueueName, z.ZodType>;
@@ -58,6 +59,11 @@ export interface JobQueue {
     options?: EnqueueOptions,
     tx?: Tx,
   ): Promise<void>;
+  /**
+   * A job that can never succeed (a definitive error): straight to the queue's dead letter
+   * queue with the reason, where an operator finds it (D126). It is never retried.
+   */
+  deadLetter<Q extends QueueName>(name: Q, payload: JobPayloads[Q], reason: string): Promise<void>;
 }
 
 export interface QueueSettings {
@@ -143,6 +149,9 @@ export function createQueueRuntime(settings: QueueSettings): QueueRuntime {
         // $queryRawUnsafe with positional values, so a rollback discards the job (D103).
         ...(tx ? { db: fromPrisma(tx) } : {}),
       });
+    },
+    async deadLetter(name, payload, reason) {
+      await boss.send(dead(name), { ...parsePayload(name, payload), reason });
     },
   };
 

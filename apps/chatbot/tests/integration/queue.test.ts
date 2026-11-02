@@ -185,6 +185,21 @@ describe("workers", () => {
   });
 });
 
+describe("dead letters (D126)", () => {
+  it("sends a job straight to its dead letter queue, with the reason", async () => {
+    await runtime.queue.deadLetter(
+      "kubri-webhook",
+      { sessionId: "s", event: "profile.updated" },
+      "unauthorized",
+    );
+
+    expect(await countJobs(db, "kubri-webhook")).toBe(0);
+    expect((await peekQueue(db, "kubri-webhook-dead")).map((j) => j.data)).toEqual([
+      { sessionId: "s", event: "profile.updated", reason: "unauthorized" },
+    ]);
+  });
+});
+
 describe("failed jobs", () => {
   it("reports each failure with ids only and stores no error message", async () => {
     const failures: unknown[] = [];
@@ -198,7 +213,7 @@ describe("failed jobs", () => {
         () => Promise.reject(Object.assign(new Error("value Mariam Benali"), { code: "P2002" })),
         { batchSize: 1, pollingIntervalSeconds: 0.5 },
       );
-      await reporting.queue.enqueue("cv", { sessionId: "s1" });
+      await reporting.queue.enqueue("cv", { sessionId: "s1", turnId: "t1" });
 
       await expect.poll(() => failures.length, { timeout: 15_000, interval: 200 }).toBe(1);
       expect(failures[0]).toEqual({
@@ -254,7 +269,7 @@ describe("retry limits", () => {
 
     const second = await startTestQueue({ retryLimits: { "send-messages": 4 } });
     await second.queue.enqueue("send-messages", PAYLOAD);
-    await second.queue.enqueue("cv", { sessionId: "s" });
+    await second.queue.enqueue("cv", { sessionId: "s", turnId: "t" });
     await second.stop();
 
     expect(await retryLimits(db, "send-messages")).toEqual({ queue: 4, job: 4 });

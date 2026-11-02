@@ -164,7 +164,8 @@ async function enqueueJob(ctx: ApplyContext, job: Job): Promise<void> {
     case "kubri-webhook":
       return ctx.queue.enqueue("kubri-webhook", { sessionId, event: job.event }, {}, ctx.tx);
     case "cv":
-      return ctx.queue.enqueue("cv", { sessionId }, {}, ctx.tx);
+      // The turn that asked is the CV's idempotency key: one CV message per turn (R8).
+      return ctx.queue.enqueue("cv", { sessionId, turnId: ctx.turnId }, {}, ctx.tx);
     case "geocoding":
       return ctx.queue.enqueue("geocoding", { sessionId }, {}, ctx.tx);
     case "delete-contact":

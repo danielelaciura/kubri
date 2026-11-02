@@ -8,9 +8,16 @@ export interface EnqueuedJob {
   readonly inTransaction: boolean;
 }
 
+export interface DeadLetter {
+  readonly name: QueueName;
+  readonly payload: unknown;
+  readonly reason: string;
+}
+
 /** For unit and integration tests that only need to see what would be enqueued. */
 export class MemoryJobQueue implements JobQueue {
   readonly jobs: EnqueuedJob[] = [];
+  readonly deadLetters: DeadLetter[] = [];
 
   enqueue<Q extends QueueName>(
     name: Q,
@@ -19,6 +26,11 @@ export class MemoryJobQueue implements JobQueue {
     tx?: Tx,
   ): Promise<void> {
     this.jobs.push({ name, payload, options, inTransaction: tx !== undefined });
+    return Promise.resolve();
+  }
+
+  deadLetter<Q extends QueueName>(name: Q, payload: JobPayloads[Q], reason: string): Promise<void> {
+    this.deadLetters.push({ name, payload, reason });
     return Promise.resolve();
   }
 

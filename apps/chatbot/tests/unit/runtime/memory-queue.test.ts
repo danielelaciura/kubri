@@ -29,4 +29,23 @@ describe("MemoryJobQueue", () => {
     ]);
     expect(queue.named("send-messages")).toHaveLength(1);
   });
+
+  it("records dead letters apart from jobs (D126)", async () => {
+    const queue = new MemoryJobQueue();
+
+    await queue.deadLetter(
+      "kubri-webhook",
+      { sessionId: "s", event: "consents.accepted" },
+      "unauthorized",
+    );
+
+    expect(queue.jobs).toEqual([]);
+    expect(queue.deadLetters).toEqual([
+      {
+        name: "kubri-webhook",
+        payload: { sessionId: "s", event: "consents.accepted" },
+        reason: "unauthorized",
+      },
+    ]);
+  });
 });

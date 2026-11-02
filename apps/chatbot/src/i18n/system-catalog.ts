@@ -27,6 +27,8 @@ export const I18N_TEXT_KEYS = [
   "choice.language_button",
   "choice.prompt",
   "media.text_only",
+  "cv.ready",
+  "cv.failed",
 ] as const;
 export type I18nTextKey = (typeof I18N_TEXT_KEYS)[number];
 export type CatalogKey = SystemTextKey | I18nTextKey;
@@ -176,6 +178,18 @@ export const SYSTEM_CATALOG: Readonly<Record<CatalogKey, CatalogEntry>> = {
   "media.text_only": {
     params: {},
     text: { it: "Per ora riesco a leggere solo messaggi di testo. Puoi scrivermi la risposta?" },
+  },
+  // The caption of the CV, sent as a WhatsApp document (R8): nothing is stored, so keep it.
+  "cv.ready": {
+    params: {},
+    text: {
+      it: "Ecco il tuo CV in PDF. Salvalo sul telefono: potrai inviarlo quando cerchi lavoro.",
+    },
+  },
+  // D131: the CV could not be made; sent once, the session gets the `cv_failed` flag.
+  "cv.failed": {
+    params: {},
+    text: { it: "Mi dispiace, non sono riuscito a preparare il tuo CV." },
   },
 };
 

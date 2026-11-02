@@ -131,20 +131,24 @@ export function sendRetryLimit(config: RuntimeConfig): number {
   return Math.max(DEFAULT_RETRY_LIMIT, config.sendMaxAttempts - 1);
 }
 
+/** Queues whose handler runs one job at a time: report-failure (D120) and plan 10's (R3, R9). */
+export const ONE_AT_A_TIME_QUEUES = ["report-failure", "kubri-webhook", "cv", "geocoding"] as const;
+
 /**
  * Connections of the worker's Prisma pool. process-contact and send-messages run up to
- * WORKER_BATCH_SIZE jobs at once, report-failure one, and each job may need two connections
- * together:
+ * WORKER_BATCH_SIZE jobs at once, the one-at-a-time queues one each, and each job may need two
+ * connections together:
  * - process-contact holds its turn transaction (D102) while it reads the campaign and writes
  *   the translation cache and traces on another connection;
  * - send-messages and report-failure hold reportOutboundFailure's transaction (it may wait for
- *   a turn to release the contact's lock) while they read the campaign on another connection.
+ *   a turn to release the contact's lock) while they read the campaign on another connection;
+ * - cv holds its transaction under the contact's lock while it reads on another connection;
+ *   kubri-webhook and geocoding need less, but get the same two.
  * A pool smaller than that can deadlock: every connection is a transaction waiting for one more.
- * So `2 queues × WORKER_BATCH_SIZE × 2 + 2` for report-failure, plus 2 spare for the short
- * reads outside a job.
+ * So `2 queues × WORKER_BATCH_SIZE × 2 + 4 queues × 2`, i.e. `4 × WORKER_BATCH_SIZE + 8` (R3).
  */
 export function workerPoolSize(config: RuntimeConfig): number {
-  return 2 * config.workerBatchSize * 2 + 2 + 2;
+  return 2 * config.workerBatchSize * 2 + ONE_AT_A_TIME_QUEUES.length * 2;
 }
 
 /**

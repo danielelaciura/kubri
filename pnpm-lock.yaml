@@ -57,6 +57,9 @@ importers:
 
   apps/chatbot:
     dependencies:
+      '@kubri/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
       '@prisma/adapter-pg':
         specifier: ^7.6.0
         version: 7.6.0

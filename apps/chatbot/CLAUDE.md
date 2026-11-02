@@ -303,7 +303,8 @@ pnpm cli worker start --channel meta --nlu llm --translator llm   # replies go t
     `DATABASE_URL`. `inbound send` needs it too.
 - Runtime settings (all optional): `DEBOUNCE_MS`, `DEBOUNCE_MAX_WAIT_MS`, `TURN_NLU_DEADLINE_MS`,
   `SEND_LEASE_MS`, `SEND_MAX_ATTEMPTS`, `WORKER_BATCH_SIZE`, `QUEUE_SCHEMA`. The worker's Prisma
-  pool is `4 × WORKER_BATCH_SIZE + 4` connections (`workerPoolSize`); send-messages gets at least
+  pool is `4 × WORKER_BATCH_SIZE + 8` connections (`workerPoolSize`: two per job in flight;
+  report-failure, kubri-webhook, cv and geocoding run one at a time); send-messages gets at least
   `SEND_MAX_ATTEMPTS − 1` pg-boss retries (`sendRetryLimit`). Tests use `FakeChannel`, a fake
   LLM and either `MemoryJobQueue` or pg-boss on the test database.
 - **Manual run (no LLM, no Meta)**, after `pnpm db:up`, with the standard campaign imported and

@@ -147,8 +147,10 @@ describe("sendRetryLimit", () => {
 });
 
 describe("workerPoolSize", () => {
-  it("gives every job in flight two connections, report-failure's too, plus two spare", () => {
-    expect(workerPoolSize(parseRuntimeConfig({}))).toBe(20);
-    expect(workerPoolSize(parseRuntimeConfig({ WORKER_BATCH_SIZE: "1" }))).toBe(8);
+  it("gives every job in flight two connections, the one-at-a-time queues' too", () => {
+    // 2 batched queues × 4 × 2 + 4 one-at-a-time queues (report-failure, kubri-webhook, cv,
+    // geocoding) × 2 (R3).
+    expect(workerPoolSize(parseRuntimeConfig({}))).toBe(24);
+    expect(workerPoolSize(parseRuntimeConfig({ WORKER_BATCH_SIZE: "1" }))).toBe(12);
   });
 });

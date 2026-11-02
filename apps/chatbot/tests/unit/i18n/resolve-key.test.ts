@@ -35,6 +35,19 @@ describe("resolveKey", () => {
   });
 });
 
+describe("CV texts (R8, D131)", () => {
+  it("has a caption for the CV document and an apology when it could not be made", async () => {
+    expect((await resolver().resolveKey("cv.ready", target("it"))).text).toContain("CV");
+    expect((await resolver().resolveKey("cv.failed", target("it"))).text).toContain(
+      "non sono riuscito",
+    );
+  });
+
+  it("translates them like the other catalog texts", async () => {
+    expect((await resolver().resolveKey("cv.ready", target("en"))).text).toMatch(/^\[en\] /);
+  });
+});
+
 describe("resolveLabel", () => {
   it("resolves a short localized text with no parameters", async () => {
     expect((await resolver().resolveLabel({ it: "intermedio" }, target("it"))).text).toBe(

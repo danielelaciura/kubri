@@ -325,7 +325,8 @@ describe("applyEffects", () => {
 
     expect(queue.jobs.map((j) => [j.name, j.payload, j.inTransaction])).toEqual([
       ["kubri-webhook", { sessionId, event: "consents.accepted" }, true],
-      ["cv", { sessionId }, true],
+      // The requesting turn is the CV's idempotency key (R3, R8).
+      ["cv", { sessionId, turnId: TURN_ID }, true],
       ["geocoding", { sessionId }, true],
       ["delete-contact", { contactId: scenario.contactId }, true],
     ]);

@@ -187,6 +187,8 @@ export async function registerLandingUpload(
       fileName,
       maxBytes: PUBLIC_MAX_DOCUMENT_BYTES,
       inspect: true,
+      // Image CVs are not offered on the landing (dashboard import still takes them).
+      allowedKinds: ["pdf", "docx"],
     });
     return { ok: true, data: null };
   } catch (e) {

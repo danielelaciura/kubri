@@ -110,6 +110,8 @@ export interface RegisterUploadInput {
   maxBytes?: number;
   /** Public uploads: reject active content, re-encode images (inspectPublicDocument). */
   inspect?: boolean;
+  /** Narrows the accepted kinds (the public landing takes no images). */
+  allowedKinds?: readonly DocumentKind[];
 }
 
 const KIND_EXTENSION: Record<DocumentKind, string> = {
@@ -169,7 +171,8 @@ export async function registerUpload(input: RegisterUploadInput): Promise<{ impo
   }
 
   const tooLarge = bytes.byteLength > (input.maxBytes ?? MAX_DOCUMENT_BYTES);
-  const detected = tooLarge ? null : detectDocumentKind(bytes);
+  const sniffed = tooLarge ? null : detectDocumentKind(bytes);
+  const detected = sniffed && (!input.allowedKinds || input.allowedKinds.includes(sniffed)) ? sniffed : null;
   if (!detected) {
     await removeQuietly(storagePath, input.importId, "invalid upload");
     throw new ImportError(tooLarge ? "FILE_TOO_LARGE" : "UNSUPPORTED_TYPE");

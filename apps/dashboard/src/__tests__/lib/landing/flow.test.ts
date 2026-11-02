@@ -167,6 +167,7 @@ describe("registerLandingUpload", () => {
     expect(m(registerUpload)).toHaveBeenCalledWith({
       importId: IMPORT_ID, organizationId: "o-1", poolId: "p-1", origin: "PUBLIC_LINK",
       createdById: null, fileName: "cv.pdf", maxBytes: PUBLIC_MAX_DOCUMENT_BYTES, inspect: true,
+      allowedKinds: ["pdf", "docx"],
     });
   });
 

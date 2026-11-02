@@ -146,6 +146,16 @@ describe("registerUpload", () => {
     expect(m(prisma.candidateImport.create)).not.toHaveBeenCalled();
   });
 
+  it("deletes and rejects a kind outside allowedKinds", async () => {
+    const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1]);
+    m(downloadCandidateDocument).mockResolvedValueOnce(png);
+    m(removeCandidateDocuments).mockResolvedValueOnce(undefined);
+    await expect(registerUpload({ ...REGISTER, allowedKinds: ["pdf", "docx"] }))
+      .rejects.toMatchObject({ code: "UNSUPPORTED_TYPE" });
+    expect(m(removeCandidateDocuments)).toHaveBeenCalledWith([`p/${IMPORT_ID}/CV_Ahmed.pdf`]);
+    expect(m(prisma.candidateImport.create)).not.toHaveBeenCalled();
+  });
+
   it("deletes and rejects an oversize file", async () => {
     const big = new Uint8Array(10 * 1024 * 1024 + 1);
     big.set(PDF);

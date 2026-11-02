@@ -5,7 +5,7 @@ import {
   evaluateGates,
   MIN_CASES_PER_LANGUAGE,
 } from "../../../src/evals/gates";
-import { view } from "./helpers";
+import { languageCases, view } from "./helpers";
 
 const gate = (results: ReturnType<typeof evaluateGates>, name: string) =>
   results.find((r) => r.name === name);
@@ -80,8 +80,20 @@ describe("evaluateGates (D98)", () => {
   });
 
   it("fails a language that lost more than 2 points against the baseline", () => {
-    const base = view({ byLanguage: { it: 1, ar: 1, fr: 1 } });
-    const candidate = view({ byLanguage: { it: 0.99, ar: 0.97, fr: 1 } });
+    const base = view({
+      cases: {
+        ...languageCases("it", 100),
+        ...languageCases("ar", 100),
+        ...languageCases("fr", 100),
+      },
+    });
+    const candidate = view({
+      cases: {
+        ...languageCases("it", 100, 1),
+        ...languageCases("ar", 100, 3),
+        ...languageCases("fr", 100),
+      },
+    });
 
     const result = gate(
       evaluateGates(candidate, compareReports(base, candidate)),
@@ -94,8 +106,8 @@ describe("evaluateGates (D98)", () => {
   });
 
   it("accepts a loss of exactly 2 points", () => {
-    const base = view({ byLanguage: { ar: 1 } });
-    const candidate = view({ byLanguage: { ar: 0.98 } });
+    const base = view({ cases: languageCases("ar", 100) });
+    const candidate = view({ cases: languageCases("ar", 100, 2) });
 
     expect(
       gate(evaluateGates(candidate, compareReports(base, candidate)), "language regression")?.ok,
@@ -104,11 +116,9 @@ describe("evaluateGates (D98)", () => {
 
   it("gates only the languages with enough cases in both runs, the rest is informational (E6)", () => {
     expect(MIN_CASES_PER_LANGUAGE).toBe(10);
-    const base = view({
-      byLanguage: { it: { passRate: 1, cases: 10 }, ar: { passRate: 1, cases: 2 } },
-    });
+    const base = view({ cases: { ...languageCases("it", 10), ...languageCases("ar", 2) } });
     const candidate = view({
-      byLanguage: { it: { passRate: 0.9, cases: 10 }, ar: { passRate: 0.5, cases: 2 } },
+      cases: { ...languageCases("it", 10, 1), ...languageCases("ar", 2, 1) },
     });
 
     const result = gate(
@@ -122,8 +132,8 @@ describe("evaluateGates (D98)", () => {
   });
 
   it("skips the language gate when no language has enough cases", () => {
-    const base = view({ byLanguage: { ar: { passRate: 1, cases: 2 } } });
-    const candidate = view({ byLanguage: { ar: { passRate: 0, cases: 2 } } });
+    const base = view({ cases: languageCases("ar", 2) });
+    const candidate = view({ cases: languageCases("ar", 2, 2) });
 
     const result = gate(
       evaluateGates(candidate, compareReports(base, candidate)),

@@ -27,9 +27,8 @@ const ReportViewSchema = z.object({
       invalidOutputRate: z.number().nullable(),
       unavailableRate: z.number().nullable(),
     }),
-    byLanguage: z.record(z.string(), z.object({ passRate: z.number(), cases: z.number() })),
   }),
-  cases: z.array(z.object({ id: z.string(), pass: z.boolean() })),
+  cases: z.array(z.object({ id: z.string(), pass: z.boolean(), language: z.string() })),
 });
 export type ReportView = z.infer<typeof ReportViewSchema>;
 

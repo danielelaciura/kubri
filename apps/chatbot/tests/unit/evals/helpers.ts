@@ -23,19 +23,32 @@ export const STATS: RunStats = {
   overDeadline: false,
 };
 
-/** A language's pass rate, alone (enough cases to be gated) or with its number of cases. */
-type LanguageView = number | { readonly passRate: number; readonly cases: number };
+/** A case of a test ReportView: its outcome alone (language `it`), or with its language. */
+type CaseView = boolean | { readonly pass: boolean; readonly language: string };
+
+/** `total` cases of one language, ids `<language>-<n>`; the last `failed` of them fail. */
+export function languageCases(
+  language: string,
+  total: number,
+  failed = 0,
+): Record<string, { pass: boolean; language: string }> {
+  return Object.fromEntries(
+    Array.from({ length: total }, (_, i) => [
+      `${language}-${i}`,
+      { pass: i < total - failed, language },
+    ]),
+  );
+}
 
 /** A test ReportView: only what comparison and gates read. */
 export function view(overrides: {
-  cases?: Record<string, boolean>;
+  cases?: Record<string, CaseView>;
   passRate?: number;
   hallucination?: number | null;
   intent?: number | null;
   language?: number | null;
   invalidOutput?: number | null;
   unavailable?: number | null;
-  byLanguage?: Record<string, LanguageView>;
   datasetHash?: string;
 }): ReportView {
   return {
@@ -55,14 +68,10 @@ export function view(overrides: {
         invalidOutputRate: overrides.invalidOutput === undefined ? 0 : overrides.invalidOutput,
         unavailableRate: overrides.unavailable === undefined ? 0 : overrides.unavailable,
       },
-      byLanguage: Object.fromEntries(
-        Object.entries(overrides.byLanguage ?? {}).map(([lang, value]) => [
-          lang,
-          typeof value === "number" ? { passRate: value, cases: 50 } : value,
-        ]),
-      ),
     },
-    cases: Object.entries(overrides.cases ?? {}).map(([id, pass]) => ({ id, pass })),
+    cases: Object.entries(overrides.cases ?? {}).map(([id, value]) =>
+      typeof value === "boolean" ? { id, pass: value, language: "it" } : { id, ...value },
+    ),
   };
 }
 

@@ -47,6 +47,7 @@ const m = <T>(f: T) => f as unknown as ReturnType<typeof vi.fn>;
 const IMPORT_ID = "22222222-2222-4222-8222-222222222222";
 const LANDING: ActiveLanding = {
   id: "33333333-3333-4333-8333-333333333333", slug: "coop-sole", privacyPolicyUrl: "https://x.it/p",
+  texts: { it: { title: "Candidati con Coop Sole", subtitle: null }, en: { title: "Apply to Coop Sole", subtitle: null } },
   organization: { id: "o-1", name: "Coop Sole" },
   pool: { id: "p-1", isGlobal: false, globalSharing: "WEBHOOK", externalKey: "SOLE", slug: "sole" },
 };

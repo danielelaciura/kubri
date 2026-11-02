@@ -5,6 +5,8 @@ import { saveLandingPageAction } from "@/lib/landing/admin-actions";
 import type { SaveLandingState } from "@/lib/landing/admin-types";
 import { SubmitButton } from "@/components/shared/loading-button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { LANDING_SUBTITLE_MAX, LANDING_TITLE_MAX } from "@/lib/validations/landing-page";
 import { useT } from "@/lib/i18n/provider";
 
 interface Props {
@@ -16,6 +18,10 @@ interface Props {
     privacyPolicyUrl: string;
     enabled: boolean;
     exists: boolean;
+    titleIt: string;
+    titleEn: string;
+    subtitleIt: string;
+    subtitleEn: string;
   };
 }
 
@@ -67,6 +73,25 @@ export function LandingAdminForm({ organizationId, pools, initial }: Props) {
           defaultValue={initial.privacyPolicyUrl}
         />
       </label>
+      <fieldset className="grid gap-3 md:col-span-2 md:grid-cols-2">
+        <legend className="mb-1 text-sm font-medium">{t.textsLegend}</legend>
+        {(["It", "En"] as const).map((lang) => (
+          <div key={lang} className="space-y-3">
+            <label className="block space-y-1 text-sm">
+              <span>{lang === "It" ? t.titleIt : t.titleEn}</span>
+              <Input name={`title${lang}`} required maxLength={LANDING_TITLE_MAX} defaultValue={initial[`title${lang}`]} />
+            </label>
+            <label className="block space-y-1 text-sm">
+              <span>{lang === "It" ? t.subtitleIt : t.subtitleEn}</span>
+              <Textarea
+                name={`subtitle${lang}`} rows={2} maxLength={LANDING_SUBTITLE_MAX}
+                defaultValue={initial[`subtitle${lang}`]}
+              />
+            </label>
+          </div>
+        ))}
+        <p className="text-xs text-muted-foreground md:col-span-2">{t.textsHint}</p>
+      </fieldset>
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" name="enabled" defaultChecked={initial.enabled} className="h-4 w-4" />
         {t.enabled}

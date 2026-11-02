@@ -1801,6 +1801,10 @@ export const CandidateLandingPageScalarFieldEnum = {
   poolId: 'poolId',
   enabled: 'enabled',
   privacyPolicyUrl: 'privacyPolicyUrl',
+  titleIt: 'titleIt',
+  titleEn: 'titleEn',
+  subtitleIt: 'subtitleIt',
+  subtitleEn: 'subtitleEn',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

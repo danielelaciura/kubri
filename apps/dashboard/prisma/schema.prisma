@@ -392,6 +392,11 @@ model CandidateLandingPage {
   poolId           String   @db.Uuid
   enabled          Boolean  @default(true)
   privacyPolicyUrl String
+  /// Page headline and optional intro, written per landing, one per UI language.
+  titleIt          String
+  titleEn          String
+  subtitleIt       String?
+  subtitleEn       String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

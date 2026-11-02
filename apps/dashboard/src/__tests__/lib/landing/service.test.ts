@@ -16,15 +16,31 @@ const m = <T>(f: T) => f as unknown as ReturnType<typeof vi.fn>;
 const POOL_ID = "11111111-1111-4111-8111-111111111111";
 const ROW = {
   id: "l-1", slug: "coop-sole", enabled: true, privacyPolicyUrl: "https://x.it/privacy",
+  titleIt: "Lavora con noi", titleEn: "Work with us", subtitleIt: "Due minuti.", subtitleEn: null,
   organizationId: "o-1", poolId: POOL_ID,
   organization: { id: "o-1", name: "Coop Sole" },
   pool: { id: POOL_ID, isGlobal: false, globalSharing: "WEBHOOK", externalKey: "SOLE", slug: "sole" },
 };
 
 describe("landingPageInputSchema", () => {
-  const ok = { slug: "Coop-Sole", poolId: POOL_ID, privacyPolicyUrl: "https://x.it/p", enabled: true };
+  const ok = {
+    slug: "Coop-Sole", poolId: POOL_ID, privacyPolicyUrl: "https://x.it/p", enabled: true,
+    titleIt: " Lavora con noi ", titleEn: "Work with us", subtitleIt: "  ", subtitleEn: "Two minutes.",
+  };
   it("lowercases the slug", () => {
     expect(landingPageInputSchema.parse(ok).slug).toBe("coop-sole");
+  });
+  it("trims the texts and turns a blank subtitle into none", () => {
+    expect(landingPageInputSchema.parse(ok)).toMatchObject({
+      titleIt: "Lavora con noi", titleEn: "Work with us", subtitleIt: null, subtitleEn: "Two minutes.",
+    });
+  });
+  it.each(["titleIt", "titleEn"])("requires %s", (key) => {
+    expect(landingPageInputSchema.safeParse({ ...ok, [key]: "  " }).success).toBe(false);
+  });
+  it("caps title and subtitle length", () => {
+    expect(landingPageInputSchema.safeParse({ ...ok, titleIt: "x".repeat(121) }).success).toBe(false);
+    expect(landingPageInputSchema.safeParse({ ...ok, subtitleEn: "x".repeat(301) }).success).toBe(false);
   });
   it.each(["a", "-coop", "coop-", "coop sole", "coop_sole", "x".repeat(61)])("rejects slug %s", (slug) => {
     expect(landingPageInputSchema.safeParse({ ...ok, slug }).success).toBe(false);
@@ -41,7 +57,10 @@ describe("getActiveLandingBySlug", () => {
     m(prisma.candidateLandingPage.findUnique).mockResolvedValueOnce(ROW);
     m(prisma.organizationPool.findUnique).mockResolvedValueOnce({ poolId: POOL_ID });
     const l = await getActiveLandingBySlug("coop-sole");
-    expect(l).toMatchObject({ id: "l-1", organization: { name: "Coop Sole" }, pool: { id: POOL_ID } });
+    expect(l).toMatchObject({
+      id: "l-1", organization: { name: "Coop Sole" }, pool: { id: POOL_ID },
+      texts: { it: { title: "Lavora con noi", subtitle: "Due minuti." }, en: { title: "Work with us", subtitle: null } },
+    });
     expect(m(prisma.organizationPool.findUnique).mock.calls[0]![0].where).toEqual({
       organizationId_poolId: { organizationId: "o-1", poolId: POOL_ID },
     });
@@ -85,7 +104,10 @@ describe("getActiveLandingBySlug", () => {
 });
 
 describe("saveLandingPage", () => {
-  const input = { slug: "coop-sole", poolId: POOL_ID, privacyPolicyUrl: "https://x.it/p", enabled: true };
+  const input = {
+    slug: "coop-sole", poolId: POOL_ID, privacyPolicyUrl: "https://x.it/p", enabled: true,
+    titleIt: "Lavora con noi", titleEn: "Work with us", subtitleIt: null, subtitleEn: null,
+  };
   beforeEach(() => vi.resetAllMocks());
 
   it("rejects a pool not linked to the organization", async () => {
@@ -125,7 +147,10 @@ describe("saveLandingPage errors", () => {
     m(prisma.organizationPool.findUnique).mockResolvedValueOnce({ poolId: POOL_ID });
     m(prisma.candidateLandingPage.upsert).mockRejectedValueOnce(new Error("boom"));
     await expect(
-      saveLandingPage("o-1", { slug: "coop-sole", poolId: POOL_ID, privacyPolicyUrl: "https://x.it/p", enabled: true }),
+      saveLandingPage("o-1", {
+        slug: "coop-sole", poolId: POOL_ID, privacyPolicyUrl: "https://x.it/p", enabled: true,
+        titleIt: "Lavora con noi", titleEn: "Work with us", subtitleIt: null, subtitleEn: null,
+      }),
     ).rejects.toThrow("boom");
   });
 });

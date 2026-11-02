@@ -33,14 +33,15 @@ async function resolve({ params, searchParams }: Props) {
 
 export async function generateMetadata(props: Props): Promise<Metadata> {
   const { landing, locale } = await resolve(props);
-  const t = getDictionary(locale).landing;
   // Shared by link/QR only; keep it out of search engines (less bot traffic).
-  return { title: t.metaTitle.replace("{org}", landing.organization.name), robots: { index: false, follow: false } };
+  return { title: landing.texts[locale].title, robots: { index: false, follow: false } };
 }
 
 export default async function CandidateLandingPage(props: Props) {
   const { landing, locale } = await resolve(props);
   const t = getDictionary(locale).landing;
+  // Written per landing in the admin, one version per language.
+  const texts = landing.texts[locale];
 
   // Built server-side: the pool (externalKey, globalSharing) never reaches the client.
   const waNumber = process.env.KUBRI_WHATSAPP_NUMBER ?? "";
@@ -72,10 +73,8 @@ export default async function CandidateLandingPage(props: Props) {
       <div className="flex-1 bg-[#f8f8f8]">
         <main lang={locale} className="mx-auto w-full max-w-2xl space-y-6 px-4 py-10">
           <header className="space-y-2">
-            <h1 className="text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
-              {t.headline.replace("{org}", landing.organization.name)}
-            </h1>
-            <p className="max-w-prose text-pretty text-muted-foreground">{t.intro}</p>
+            <h1 className="text-2xl font-semibold tracking-tight text-balance sm:text-3xl">{texts.title}</h1>
+            {texts.subtitle && <p className="max-w-prose text-pretty text-muted-foreground">{texts.subtitle}</p>}
           </header>
           <LandingFlow
             slug={landing.slug}

@@ -246,8 +246,9 @@ Dal telefono autorizzato, scrivere al numero di prova:
 - [ ] "ciao" → benvenuto con il pulsante **Lingua / Language** che apre l'elenco di 10 lingue.
 - [ ] Il consenso ha i bottoni **Accetto / Non accetto**; dopo "Accetto" la conversazione
       prosegue e in `Consent` c'è la riga con il testo mostrato.
-- [ ] Le domande sì/no (patente, permesso di lavoro) hanno **Sì / No**; il livello di italiano un
-      elenco; le domande libere (nome, lavori) nessun bottone.
+- [ ] Le domande sì/no (patente, interesse per i corsi) hanno **Sì / No**; nessuna domanda della
+      campagna standard ha un elenco di opzioni; le domande libere (nome, lavori, lingue) nessun
+      bottone.
 - [ ] Rispondere a mano dove ci sono i bottoni funziona lo stesso.
 - [ ] Un bottone di un messaggio **vecchio** non risponde alla domanda attuale (viene letto come
       testo).

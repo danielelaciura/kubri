@@ -31,3 +31,4 @@ export const assessmentSubmissionSchema = z.object({
 });
 export type AssessmentSubmission = z.infer<typeof assessmentSubmissionSchema>;
 export * from "./candidate/fields";
+export * from "./chatbot-candidate";

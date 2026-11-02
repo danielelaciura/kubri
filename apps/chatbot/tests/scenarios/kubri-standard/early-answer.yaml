@@ -13,111 +13,74 @@ turns:
 
   - user: "sì"
     nlu: { intent: choice, choice: accepted }
-    expect: { question: nome }
+    expect: { step: professionale, question: lavori }
 
-  # cognome and paese are answered early: cognome is skipped now, paese later.
-  - user: "Mi chiamo Mario Rossi e sono nato in Marocco"
-    nlu: { patch: { firstName: Mario, lastName: Rossi, country: MA } }
-    expect:
-      question: nascita
-      sent: [anagrafica.nascita]
-      effects: ["ApplyPatch:extraction:firstName,lastName,country"]
-
-  - user: "12/03/1990"
-    nlu: { patch: { birthday: "1990-03-12" } }
-    expect:
-      question: comune
-      sent: [anagrafica.comune]
-      effects: ["ApplyPatch:extraction:birthday"]
-
-  - user: "Sesto San Giovanni, via Marelli 3"
-    nlu: { patch: { location: Sesto San Giovanni, address: Via Marelli 3 } }
-    expect:
-      question: email
-      sent: [anagrafica.email]
-      effects: ["ApplyPatch:extraction:location,address", "EnqueueJob:geocoding"]
-
-  # Fields of the next block, answered early: the block opens on its first open question.
-  - user: "mario@example.com. Parlo arabo, e l'italiano bene"
-    nlu: { patch: { email: mario@example.com, language: ar, italianLevel: avanzato } }
-    expect:
-      step: lingue
-      question: altre_lingue
-      sent: [system.progress, lingue.title, lingue.altre_lingue]
-      effects:
-        - "ApplyPatch:extraction:email,language,italianLevel"
-        - "EnqueueJob:kubri-webhook:block.completed"
-
-  - user: "il francese bene"
-    nlu: { patch: { additionalLanguages: ["francese (avanzato)"] } }
-    expect:
-      {
-        step: mobilita,
-        question: permesso,
-        sent: [system.progress, mobilita.title, mobilita.permesso],
-      }
-
-  # drivingLicense and its types in one answer: patente and tipi_patente are skipped.
-  - user: "sì, ho il permesso e anche la patente B e C"
-    nlu: { patch: { workingPermit: true, drivingLicense: true, drivingLicenseTypes: [B, C] } }
-    expect:
-      question: trasporto
-      sent: [mobilita.trasporto]
-      effects: ["ApplyPatch:extraction:workingPermit,drivingLicense,drivingLicenseTypes"]
-
-  # The desired job (preferenze) is answered early.
-  - user: "in macchina. Vorrei fare l'autista"
-    nlu: { patch: { transport: auto, jobPreferences.preferredJob: autista } }
-    expect:
-      step: esperienze
-      question: studi
-      effects:
-        - "ApplyPatch:extraction:transport,jobPreferences.preferredJob"
-        - "EnqueueJob:kubri-webhook:block.completed"
-
-  # A whole later block answered early (formazione: not interested) is skipped entirely.
-  - user: "scuola media in Marocco, autista 5 anni, so guidare i camion. Corsi no, non mi interessano"
+  # competenze is answered together with lavori: it is skipped.
+  - user: "autista di camion in Marocco per 5 anni, so guidare i mezzi pesanti"
     nlu:
       patch:
-        educationAndTraining: ["Scuola media (MA)"]
-        workExperience: ["Autista (MA) (5 anni)"]
-        skillsAndCompetences: [guida di camion]
+        workExperience: ["Marocco: Autista di camion (5 anni)"]
+        skillsAndCompetences: [guida di mezzi pesanti]
+    expect:
+      question: studi
+      sent: [professionale.studi]
+      effects: ["ApplyPatch:extraction:workExperience,skillsAndCompetences"]
+
+  # The desired job (trasversale) is answered early: it is skipped later.
+  - user: "la scuola media in Marocco. Vorrei fare l'autista"
+    nlu:
+      patch:
+        educationAndTraining: ["Marocco: Scuola media"]
+        jobPreferences.preferredJob: autista
+    expect:
+      step: personale
+      question: nome
+      sent: [system.progress, personale.title, personale.nome]
+      effects:
+        - "ApplyPatch:extraction:educationAndTraining,jobPreferences.preferredJob"
+        - "EnqueueJob:kubri-webhook:block.completed"
+
+  # The prompt asks name, surname and birth date together: cognome and nascita are skipped.
+  - user: "Mario Rossi, nato il 12/03/1990"
+    nlu: { patch: { firstName: Mario, lastName: Rossi, birthday: "1990-03-12" } }
+    expect:
+      question: indirizzo
+      sent: [personale.indirizzo]
+      effects: ["ApplyPatch:extraction:firstName,lastName,birthday"]
+
+  # The address with the city fills location too: comune is skipped.
+  - user: "via Marelli 3, Sesto San Giovanni"
+    nlu: { patch: { address: Via Marelli 3, location: Sesto San Giovanni } }
+    expect:
+      question: patente
+      sent: [personale.patente]
+      effects: ["ApplyPatch:extraction:address,location", "EnqueueJob:geocoding"]
+
+  # The whole trasversale block is answered early (formazione: not interested, so
+  # quale_corso does not apply): personale and trasversale complete at once.
+  - user: "sì, la patente ce l'ho. Parlo arabo, l'italiano bene. Corsi no, non mi interessano"
+    nlu:
+      patch:
+        drivingLicense: true
+        language: ar
+        italianLevel: avanzato
         learningPreferences.isInterested: false
     expect:
-      step: preferenze
-      question: esperienza_desiderato
-      sent: [system.progress, preferenze.title, preferenze.esperienza_desiderato]
-      effects:
-        - "ApplyPatch:extraction:educationAndTraining,workExperience,skillsAndCompetences,learningPreferences.isInterested"
-        - "EnqueueJob:kubri-webhook:block.completed"
-
-  - user: "sì, 5 anni in Marocco; zona Milano, tempo pieno, nessun vincolo"
-    nlu:
-      patch:
-        jobPreferences.hasDesiredJobExperience: "sì, 5 anni in Marocco"
-        jobPreferences.preferredLocation: Milano
-        jobPreferences.partTime: false
-      completeness: complete
-    expect:
-      question: vincoli
-      sent: [preferenze.vincoli]
-      effects:
-        - "ApplyPatch:extraction:jobPreferences.hasDesiredJobExperience,jobPreferences.preferredLocation,jobPreferences.partTime"
-
-  - user: "nessuno"
-    nlu: { intent: refusal }
-    expect:
       step: cv
+      question: null
       sent: [cv]
-      # preferenze completes, then formazione completes at once: no progress, no question.
       effects:
+        - "ApplyPatch:extraction:drivingLicense,language,italianLevel,learningPreferences.isInterested"
         - "EnqueueJob:kubri-webhook:block.completed"
         - "EnqueueJob:kubri-webhook:block.completed"
-      outcomes: { preferenze: completed, formazione: completed }
+      outcomes: { personale: completed, trasversale: completed }
       profile:
         firstName: Mario
         lastName: Rossi
-        country: MA
+        birthday: "1990-03-12"
+        location: Sesto San Giovanni
+        language: ar
+        italianLevel: avanzato
         jobPreferences.preferredJob: autista
         learningPreferences.isInterested: false
         learningPreferences.preference: null

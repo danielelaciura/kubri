@@ -205,10 +205,8 @@ export const CANDIDATE_ANSWERS: Readonly<Record<string, string>> = {
   firstName: "Mariam",
   lastName: "Benali",
   birthday: "12/05/1990",
-  country: "MA",
-  location: "Moncalieri",
   address: "Via Garibaldi 17",
-  email: "mariam.benali@example.com",
+  location: "Moncalieri",
 };
 
 const SAMPLES: Readonly<Record<string, string>> = {

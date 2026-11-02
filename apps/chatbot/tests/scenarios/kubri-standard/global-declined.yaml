@@ -31,22 +31,42 @@ turns:
       profile: { firstName: Amina, lastName: Benali }
 
   # kubri_global is optional: declined, the interview goes on and the candidate is kept.
-  # The block skips the questions already answered (nome, cognome).
   - user: "no, solo per questa"
     nlu: { intent: choice, choice: declined }
     expect:
       phase: flow
-      step: anagrafica
-      question: nascita
+      step: professionale
+      question: lavori
       consentsAccepted: true
-      sent: [system.progress, anagrafica.title, anagrafica.nascita]
+      sent: [system.progress, professionale.title, professionale.lavori]
       effects: ["RecordConsent:kubri_global:declined"]
       outcomes: { privacy: accepted, pool_globale: declined }
+
+  - user: "ho fatto le pulizie in un hotel a Napoli per 3 anni, so lavorare in squadra"
+    nlu:
+      patch:
+        workExperience: ["Hotel, Napoli (Italia): Addetta alle pulizie (3 anni)"]
+        skillsAndCompetences: ["lavoro in squadra"]
+    expect:
+      question: studi
+      sent: [professionale.studi]
+      effects: ["ApplyPatch:extraction:workExperience,skillsAndCompetences"]
+
+  # The personale block skips the questions answered with the consent (nome, cognome).
+  - user: "il diploma in Tunisia"
+    nlu: { patch: { educationAndTraining: ["Tunisi (Tunisia): Diploma"] } }
+    expect:
+      step: personale
+      question: nascita
+      sent: [system.progress, personale.title, personale.nascita]
+      effects:
+        - "ApplyPatch:extraction:educationAndTraining"
+        - "EnqueueJob:kubri-webhook:block.completed"
 
   - user: "5 maggio 1995"
     nlu: { patch: { birthday: "1995-05-05" } }
     expect:
-      question: paese
-      sent: [anagrafica.paese]
+      question: indirizzo
+      sent: [personale.indirizzo]
       effects: ["ApplyPatch:extraction:birthday"]
       profile: { firstName: Amina, lastName: Benali, birthday: "1995-05-05" }

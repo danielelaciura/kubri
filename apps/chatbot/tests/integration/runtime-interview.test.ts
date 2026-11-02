@@ -86,9 +86,9 @@ describe("a whole interview through ingress, turn and sending", () => {
         firstName: CANDIDATE_ANSWERS["firstName"],
         lastName: CANDIDATE_ANSWERS["lastName"],
         birthday: "1990-05-12",
-        email: CANDIDATE_ANSWERS["email"],
-        country: "MA",
         address: CANDIDATE_ANSWERS["address"],
+        location: CANDIDATE_ANSWERS["location"],
+        language: "ar",
       });
       expect(profile.completedAt).not.toBeNull();
       expect(profile.sharedWithGlobal).toBe(true);

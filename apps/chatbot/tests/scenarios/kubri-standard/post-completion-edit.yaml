@@ -13,52 +13,34 @@ turns:
 
   - user: "no"
     nlu: { intent: choice, choice: declined }
-    expect: { question: nome }
+    expect: { step: professionale, question: lavori }
 
-  - user: "Mario Rossi, 12/03/1990, Marocco, Milano, via Roma 10, mario@example.com"
+  - user: "magazziniere 3 anni, uso il muletto, diploma in Marocco"
+    nlu:
+      patch:
+        workExperience: ["Italia: Magazziniere (3 anni)"]
+        skillsAndCompetences: [uso del muletto]
+        educationAndTraining: ["Marocco: Diploma"]
+    expect: { step: personale, question: nome }
+
+  - user: "Mario Rossi, 12/03/1990, via Roma 10 a Milano, patente no"
     nlu:
       patch:
         firstName: Mario
         lastName: Rossi
         birthday: "1990-03-12"
-        country: MA
-        location: Milano
         address: Via Roma 10
-        email: mario@example.com
-    expect: { step: lingue }
+        location: Milano
+        drivingLicense: false
+    expect: { step: trasversale, question: lingue }
 
-  - user: "arabo, italiano bene, niente altro"
-    nlu: { patch: { language: ar, italianLevel: avanzato } }
-    expect: { question: altre_lingue }
-
-  - user: "nessuna"
-    nlu: { intent: refusal }
-    expect: { step: mobilita }
-
-  - user: "permesso sì, patente no, vado in bici"
-    nlu: { patch: { workingPermit: true, drivingLicense: false, transport: bicicletta } }
-    expect: { step: esperienze }
-
-  - user: "diploma in Marocco, magazziniere 3 anni, uso il muletto"
+  - user: "arabo, italiano bene; vorrei fare il magazziniere; corsi no"
     nlu:
       patch:
-        educationAndTraining: ["Liceo (MA): Diploma"]
-        workExperience: ["Magazzino (IT): Magazziniere (3 anni)"]
-        skillsAndCompetences: [uso del muletto]
-    expect: { step: preferenze }
-
-  - user: "magazziniere, sì 3 anni, Milano, tempo pieno, niente notte"
-    nlu:
-      patch:
+        language: ar
+        italianLevel: avanzato
         jobPreferences.preferredJob: magazziniere
-        jobPreferences.hasDesiredJobExperience: "sì, 3 anni"
-        jobPreferences.preferredLocation: Milano
-        jobPreferences.partTime: false
-        jobPreferences.constraints: no turni notturni
-    expect: { step: formazione }
-
-  - user: "no"
-    nlu: { patch: { learningPreferences.isInterested: false } }
+        learningPreferences.isInterested: false
     expect: { step: cv, sent: [cv] }
 
   - user: "no, non mi serve"

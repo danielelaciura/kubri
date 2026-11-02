@@ -139,10 +139,10 @@ describe("applyEffects", () => {
   it("queues SendText in order, in the language of the final state", async () => {
     const outcome = await run(
       [
-        { type: "SendText", text: systemText("system.progress", { current: 1, total: 5 }) },
+        { type: "SendText", text: systemText("system.progress", { current: 2, total: 3 }) },
         { type: "SendText", text: { kind: "generated", text: "Ciao a te" } },
       ],
-      { finalState: { ...IT_STATE, stepId: "anagrafica", questionId: "nome" } },
+      { finalState: { ...IT_STATE, stepId: "personale", questionId: "nome" } },
     );
 
     expect(outcome.outbound).toBe(2);
@@ -150,8 +150,8 @@ describe("applyEffects", () => {
     expect(
       messages.map((m) => [m.direction, m.status, m.body, m.language, m.stepId, m.questionId]),
     ).toEqual([
-      ["outbound", "queued", "Sezione 1 di 5", "it", "anagrafica", "nome"],
-      ["outbound", "queued", "Ciao a te", "it", "anagrafica", "nome"],
+      ["outbound", "queued", "Sezione 2 di 3", "it", "personale", "nome"],
+      ["outbound", "queued", "Ciao a te", "it", "personale", "nome"],
     ]);
     expect(messages.every((m) => m.turnId === TURN_ID && m.sessionId === sessionId)).toBe(true);
   });
@@ -427,7 +427,7 @@ describe("interactive widgets (D112–D116)", () => {
 
   it("offers yes/no for a boolean question and the languages at the start", async () => {
     await run(ask("Hai la patente?"), {
-      finalState: inFlow("mobilita", "patente"),
+      finalState: inFlow("personale", "patente"),
       interactive: true,
     });
     expect((await last())?.interactive).toMatchObject({
@@ -449,7 +449,7 @@ describe("interactive widgets (D112–D116)", () => {
 
   it("attaches nothing when a free-text answer is awaited, when off, or after the end", async () => {
     await run(ask("Come ti chiami?"), {
-      finalState: inFlow("anagrafica", "nome"),
+      finalState: inFlow("personale", "nome"),
       interactive: true,
     });
     await run(ask("Accetti?"), {

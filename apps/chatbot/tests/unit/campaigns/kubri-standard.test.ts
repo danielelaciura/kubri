@@ -38,14 +38,33 @@ describe("kubri-standard campaign", () => {
     expect(placeholderConsentIssues(campaign)).toHaveLength(4);
   });
 
-  it("asks every standard field that is not system-only", () => {
+  it("asks the three blocks of the Make questionnaire, in Make's order", () => {
+    const blocks = campaign.flow.flatMap((step) =>
+      step.type === "questions" ? [[step.id, step.questions.map((q) => q.field)] as const] : [],
+    );
+    expect(blocks).toEqual([
+      ["professionale", ["workExperience", "skillsAndCompetences", "educationAndTraining"]],
+      ["personale", ["firstName", "lastName", "birthday", "address", "location", "drivingLicense"]],
+      [
+        "trasversale",
+        [
+          "language",
+          "jobPreferences.preferredJob",
+          "learningPreferences.isInterested",
+          "learningPreferences.preference",
+        ],
+      ],
+    ]);
+  });
+
+  it("only asks standard fields that are not system-only", () => {
     const asked = campaign.flow.flatMap((step) =>
       step.type === "questions" ? step.questions.map((q) => q.field) : [],
     );
-    const askable = STANDARD_FIELD_DEFINITIONS.filter((f) => f.systemOnly !== true).map(
-      (f) => f.key,
+    const askable = new Set(
+      STANDARD_FIELD_DEFINITIONS.filter((f) => f.systemOnly !== true).map((f) => f.key),
     );
-    expect([...asked].sort()).toEqual([...askable].sort());
+    expect(asked.filter((field) => !askable.has(field))).toEqual([]);
   });
 
   it("gives every question an extraction hint", () => {
@@ -63,25 +82,29 @@ describe("kubri-standard campaign", () => {
     return found;
   };
 
-  it("offers Italian levels that map one by one to the enum", () => {
-    const question = questionFor("italianLevel");
-    const phrases = ["per niente", "un po'", "abbastanza bene", "bene", "è la mia lingua madre"];
-
-    if ("ref" in question.prompt) throw new Error("expected an inline prompt");
-    const prompt = question.prompt["it"]?.toLowerCase();
-    for (const phrase of phrases) expect(prompt).toContain(phrase);
-    ITALIAN_LEVELS.forEach((level, i) => {
-      expect(question.hint).toContain(`${phrases[i] ?? ""} → ${level}`);
-    });
+  it("asks name, surname and birth date together, with fallbacks for what is missing", () => {
+    const prompt = questionFor("firstName").prompt;
+    if ("ref" in prompt) throw new Error("expected an inline prompt");
+    expect(prompt["it"]).toMatch(/nome e cognome/);
+    expect(prompt["it"]).toMatch(/data di nascita/);
+    expect(questionFor("firstName").hint).toMatch(/lastName/);
+    expect(questionFor("firstName").hint).toMatch(/birthday/);
+    expect(questionFor("address").hint).toMatch(/location/);
   });
 
-  it("asks part-time as a yes/no question, optional, empty when indifferent", () => {
-    const question = questionFor("jobPreferences.partTime");
+  it("extracts the Italian level, with the enum's values, from the languages question", () => {
+    const hint = questionFor("language").hint ?? "";
 
-    expect(question.prompt).toEqual({ it: "Cerchi un lavoro part-time?" });
+    expect(hint).toMatch(/italianLevel/);
+    expect(hint).toMatch(/additionalLanguages/);
+    for (const level of ITALIAN_LEVELS) expect(hint).toContain(level);
+  });
+
+  it("asks which course only to who is interested, as an optional question", () => {
+    const question = questionFor("learningPreferences.preference");
+
     expect(question.required).toBe(false);
-    expect(question.hint).toMatch(/indifferente/);
-    expect(question.hint).toMatch(/vuoto/);
+    expect(question.when).toEqual({ field: "learningPreferences.isInterested", eq: true });
   });
 
   it("offers the CV and ends", () => {

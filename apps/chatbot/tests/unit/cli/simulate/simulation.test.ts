@@ -204,7 +204,7 @@ describe("simulation", () => {
 
     expect(sim.state.phase).toBe("post_completion");
     expect(lines.some((line) => line.includes("FlagSession"))).toBe(false);
-    expect(sim.state.profile["country"]?.value).toBe("MA");
+    expect(sim.state.profile["language"]?.value).toBe("ar");
   });
 });
 

@@ -908,7 +908,7 @@ describe("taps on buttons and lists (D114)", () => {
           ...encodeState({
             ...initialSessionState(),
             phase: "flow",
-            stepId: "mobilita",
+            stepId: "personale",
             questionId: "patente",
             outcomes: { privacy: "accepted" },
             language: "it",

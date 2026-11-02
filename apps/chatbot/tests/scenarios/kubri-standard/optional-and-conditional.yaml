@@ -13,96 +13,75 @@ turns:
 
   - user: "sì"
     nlu: { intent: choice, choice: accepted }
-    expect: { question: nome }
+    expect: { step: professionale, question: lavori }
 
-  - user: "Fatima Zahra El Idrissi, nata il 1 gennaio 2000 in Marocco, vivo a Torino"
+  # Optional question refused: skipped at once, nothing saved, no flag (D43).
+  - user: "sul lavoro preferisco non rispondere"
+    nlu: { intent: refusal }
+    expect:
+      question: competenze
+      sent: [professionale.competenze]
+      effects: []
+      profile: { workExperience: null }
+
+  - user: "so cucinare e badare ai bambini"
+    nlu: { patch: { skillsAndCompetences: [cucina, cura dei bambini] } }
+    expect: { question: studi, sent: [professionale.studi] }
+
+  - user: "ho fatto un corso di cucina a Torino nel 2023"
+    nlu:
+      patch:
+        { educationAndTraining: ["2023 Torino (Italia): Corso di cucina - Centro di formazione"] }
+    expect:
+      step: personale
+      question: nome
+      sent: [system.progress, personale.title, personale.nome]
+
+  - user: "Fatima Zahra El Idrissi, nata il 1 gennaio 2000"
     nlu:
       patch:
         firstName: Fatima Zahra
         lastName: El Idrissi
         birthday: "2000-01-01"
-        country: MA
-        location: Torino
-    expect: { question: indirizzo, sent: [anagrafica.indirizzo] }
+    expect: { question: indirizzo, sent: [personale.indirizzo] }
 
-  # Optional question refused: skipped at once, nothing saved, no flag (D43).
+  # The optional address is refused: comune is still asked, because location is empty.
   - user: "l'indirizzo preferisco non darlo"
     nlu: { intent: refusal }
     expect:
-      question: email
-      sent: [anagrafica.email]
+      question: comune
+      sent: [personale.comune]
       effects: []
       profile: { address: null }
 
-  - user: "l'email non la voglio dare"
-    nlu: { intent: refusal }
+  - user: "Torino"
+    nlu: { patch: { location: Torino } }
     expect:
-      step: lingue
-      question: lingua_madre
-      sent: [system.progress, lingue.title, lingue.lingua_madre]
-      effects: ["EnqueueJob:kubri-webhook:block.completed"]
-      profile: { email: null }
+      question: patente
+      sent: [personale.patente]
+      effects: ["ApplyPatch:extraction:location"]
 
-  - user: "arabo, l'italiano poco, e basta"
-    nlu: { patch: { language: ar, italianLevel: base }, completeness: complete }
-    expect: { question: altre_lingue, sent: [lingue.altre_lingue] }
-
-  - user: "preferisco non rispondere"
-    nlu: { intent: refusal }
-    expect: { step: mobilita, question: permesso, profile: { additionalLanguages: null } }
-
-  - user: "sì, ho il permesso"
-    nlu: { patch: { workingPermit: true } }
-    expect: { question: patente, sent: [mobilita.patente] }
-
-  # drivingLicense false: tipi_patente (when drivingLicense = true) is not asked.
   - user: "no, la patente non ce l'ho"
     nlu: { patch: { drivingLicense: false } }
     expect:
-      question: trasporto
-      sent: [mobilita.trasporto]
-      effects: ["ApplyPatch:extraction:drivingLicense"]
-      profile: { drivingLicense: false, drivingLicenseTypes: null }
+      step: trasversale
+      question: lingue
+      sent: [system.progress, trasversale.title, trasversale.lingue]
+      effects:
+        - "ApplyPatch:extraction:drivingLicense"
+        - "EnqueueJob:kubri-webhook:block.completed"
+      profile: { drivingLicense: false }
 
-  - user: "autobus"
-    nlu: { patch: { transport: mezzi pubblici } }
+  - user: "arabo, l'italiano poco"
+    nlu: { patch: { language: ar, italianLevel: base } }
+    expect: { question: lavoro_desiderato, sent: [trasversale.lavoro_desiderato] }
+
+  - user: "babysitter o aiuto cuoca"
+    nlu: { patch: { jobPreferences.preferredJob: "babysitter, aiuto cuoco" } }
     expect:
-      {
-        step: esperienze,
-        question: studi,
-        sent: [system.progress, esperienze.title, esperienze.studi],
-      }
-
-  - user: "ho fatto un corso di cucina a Torino nel 2023"
-    nlu: { patch: { educationAndTraining: ["2023 Centro di formazione (IT): Corso di cucina"] } }
-    expect: { question: lavori, sent: [esperienze.lavori] }
-
-  - user: "ho fatto la babysitter senza contratto per 2 anni"
-    nlu: { patch: { workExperience: ["Famiglia privata (IT): Babysitter (2 anni)"] } }
-    expect: { question: competenze, sent: [esperienze.competenze] }
-
-  - user: "so cucinare e badare ai bambini"
-    nlu: { patch: { skillsAndCompetences: [cucina, cura dei bambini] } }
-    expect: { step: preferenze, question: lavoro_desiderato }
-
-  - user: "babysitter o aiuto cuoca, a Torino, part-time"
-    nlu:
-      patch:
-        jobPreferences.preferredJob: babysitter, aiuto cuoco
-        jobPreferences.preferredLocation: Torino
-        jobPreferences.partTime: true
-    expect: { question: esperienza_desiderato, sent: [preferenze.esperienza_desiderato] }
-
-  - user: "no, mai"
-    nlu: { patch: { jobPreferences.hasDesiredJobExperience: "no" } }
-    expect: { question: vincoli, sent: [preferenze.vincoli] }
-
-  - user: "solo la mattina, ho i bambini"
-    nlu: { patch: { jobPreferences.constraints: solo mattina } }
-    expect:
-      step: formazione
-      question: interesse_corsi
-      sent: [system.progress, formazione.title, formazione.interesse_corsi]
+      question: formazione
+      sent: [trasversale.formazione]
+      effects: ["ApplyPatch:extraction:jobPreferences.preferredJob"]
 
   # isInterested false: quale_corso (when isInterested = true) is not asked.
   - user: "no, adesso no"

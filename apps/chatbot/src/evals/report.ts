@@ -22,6 +22,11 @@ const ReportViewSchema = z.object({
     passRate: z.number(),
     hallucination: z.object({ rate: z.number().nullable() }),
     intent: z.object({ accuracy: z.number().nullable() }),
+    language: z.object({ accuracy: z.number().nullable() }),
+    nlu: z.object({
+      invalidOutputRate: z.number().nullable(),
+      unavailableRate: z.number().nullable(),
+    }),
     byLanguage: z.record(z.string(), z.object({ passRate: z.number(), cases: z.number() })),
   }),
   cases: z.array(z.object({ id: z.string(), pass: z.boolean() })),

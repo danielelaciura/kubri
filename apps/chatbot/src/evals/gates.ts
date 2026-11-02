@@ -1,11 +1,22 @@
 import type { Comparison } from "./compare";
 import type { ReportView } from "./report";
 
-/** Spec §15.4 (initial values, to be tuned). */
+/** Spec §15.4 and D98 (initial values, to be tuned). */
 export const DEFAULT_THRESHOLDS = {
+  /** Fields saved that the candidate never said, over the fields saved. */
   maxHallucinationRate: 0.01,
   minIntentAccuracy: 0.95,
+  /** Over the cases that expect a language (the `language` suite). */
+  minLanguageAccuracy: 0.95,
+  /** Points of passed cases a language may lose against the baseline. */
   maxLanguageRegression: 0.02,
+  /**
+   * Calls with no reply at all (D82). Such a run measured the provider, not the model: above
+   * this, its accuracies say nothing about a prompt or a model.
+   */
+  maxUnavailableRate: 0.02,
+  /** Replies still invalid after the repair (D83): the model does not follow the schema. */
+  maxInvalidOutputRate: 0.02,
 } as const;
 
 export type Thresholds = typeof DEFAULT_THRESHOLDS;
@@ -67,33 +78,63 @@ function languageGate(comparison: Comparison, thresholds: Thresholds): GateResul
   );
 }
 
+function atMost(name: string, value: number | null, max: number, why: string): GateResult {
+  return value === null
+    ? skipped(name, why)
+    : gate(name, value <= max + EPSILON, `${pct(value)} (max ${pct(max)})`);
+}
+
+function atLeast(name: string, value: number | null, min: number, why: string): GateResult {
+  return value === null
+    ? skipped(name, why)
+    : gate(name, value >= min - EPSILON, `${pct(value)} (min ${pct(min)})`);
+}
+
+/**
+ * D98. Call gates first (was the model there to be measured?), then quality gates (how well
+ * it understood). A run where every quality gate was skipped measured nothing: it fails, so an
+ * empty or unanswered run can never pass, nor become a baseline.
+ */
 export function evaluateGates(
   candidate: ReportView,
   comparison: Comparison | null,
   thresholds: Thresholds = DEFAULT_THRESHOLDS,
 ): GateResult[] {
-  const hallucination = candidate.metrics.hallucination.rate;
-  const intent = candidate.metrics.intent.accuracy;
-  const results: GateResult[] = [
-    hallucination === null
-      ? skipped("hallucination", "no field was extracted")
-      : gate(
-          "hallucination",
-          hallucination <= thresholds.maxHallucinationRate + EPSILON,
-          `${pct(hallucination)} (max ${pct(thresholds.maxHallucinationRate)})`,
-        ),
-    intent === null
-      ? skipped("intent accuracy", "no case expects an intent")
-      : gate(
-          "intent accuracy",
-          intent >= thresholds.minIntentAccuracy - EPSILON,
-          `${pct(intent)} (min ${pct(thresholds.minIntentAccuracy)})`,
-        ),
+  const { metrics } = candidate;
+  const calls: GateResult[] = [
+    atMost("unavailable", metrics.nlu.unavailableRate, thresholds.maxUnavailableRate, "no call"),
+    atMost(
+      "invalid output",
+      metrics.nlu.invalidOutputRate,
+      thresholds.maxInvalidOutputRate,
+      "no call",
+    ),
   ];
-  if (comparison === null) {
-    results.push(skipped("language regression", "no baseline"));
-    return results;
-  }
-  results.push(languageGate(comparison, thresholds));
-  return results;
+  const quality: GateResult[] = [
+    atMost(
+      "hallucination",
+      metrics.hallucination.rate,
+      thresholds.maxHallucinationRate,
+      "no field was extracted",
+    ),
+    atLeast(
+      "intent accuracy",
+      metrics.intent.accuracy,
+      thresholds.minIntentAccuracy,
+      "no case expects an intent",
+    ),
+    atLeast(
+      "language accuracy",
+      metrics.language.accuracy,
+      thresholds.minLanguageAccuracy,
+      "no case expects a language",
+    ),
+    comparison === null
+      ? skipped("language regression", "no baseline")
+      : languageGate(comparison, thresholds),
+  ];
+  const none = quality.every((g) => g.skipped)
+    ? [gate("quality gates", false, "no gate applied: this run measured nothing")]
+    : [];
+  return [...calls, ...quality, ...none];
 }

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { CliError } from "../../../src/cli/deps";
 import { createProgram } from "../../../src/cli/program";
 import { FakeLlmProvider } from "../../../src/nlu/fake-provider";
+import { LlmError } from "../../../src/nlu/llm-provider";
 import { minimalCampaign } from "../campaigns/fixtures";
 import { interpretationJson } from "../nlu/helpers";
 import { fakeCli } from "./fake-deps";
@@ -18,7 +19,7 @@ const FILES = {
   "evals/datasets/intent.jsonl": `${JSON.stringify(CASE)}\n`,
 };
 
-async function run(files: Record<string, string>, replies: string[], args: string[]) {
+async function run(files: Record<string, string>, replies: (string | LlmError)[], args: string[]) {
   const llm = new FakeLlmProvider(replies);
   const cli = fakeCli(files, "test", [], llm);
   let error: unknown;
@@ -145,6 +146,25 @@ describe("evals run", () => {
 
     expect(second.error).toBeUndefined();
     expect(second.stdout.join("\n")).toContain("baseline: evals/baselines/intent.json");
+  });
+
+  it("fails, and saves no baseline, when the LLM never answered (D98)", async () => {
+    const language = {
+      id: "lingua-ar",
+      language: "ar",
+      state: { step: "anagrafica", question: "nome" },
+      message: "مرحبا",
+      expected: { language: "ar" },
+    };
+    const { error, written, stdout } = await run(
+      { ...FILES, "evals/datasets/language.jsonl": `${JSON.stringify(language)}\n` },
+      [new LlmError("client", "refused")],
+      ["run", "--suite", "language", "--campaign", "c.json", "--save-baseline"],
+    );
+
+    expect((error as CliError).message).toMatch(/gates failed/i);
+    expect(written["evals/baselines/language.json"]).toBeUndefined();
+    expect(stdout.join("\n")).toContain("✗ unavailable");
   });
 
   it("explains a dataset problem with the line", async () => {

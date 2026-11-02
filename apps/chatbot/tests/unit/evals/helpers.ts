@@ -32,6 +32,9 @@ export function view(overrides: {
   passRate?: number;
   hallucination?: number | null;
   intent?: number | null;
+  language?: number | null;
+  invalidOutput?: number | null;
+  unavailable?: number | null;
   byLanguage?: Record<string, LanguageView>;
   datasetHash?: string;
 }): ReportView {
@@ -47,6 +50,11 @@ export function view(overrides: {
       passRate: overrides.passRate ?? 0.9,
       hallucination: { rate: overrides.hallucination ?? null },
       intent: { accuracy: overrides.intent ?? null },
+      language: { accuracy: overrides.language ?? null },
+      nlu: {
+        invalidOutputRate: overrides.invalidOutput === undefined ? 0 : overrides.invalidOutput,
+        unavailableRate: overrides.unavailable === undefined ? 0 : overrides.unavailable,
+      },
       byLanguage: Object.fromEntries(
         Object.entries(overrides.byLanguage ?? {}).map(([lang, value]) => [
           lang,

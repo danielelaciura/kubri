@@ -36,6 +36,7 @@ describe("computeMetrics", () => {
       invalidOutput: 0,
       invalidOutputRate: null,
       unavailable: 0,
+      unavailableRate: null,
       overDeadline: 0,
       unstable: 0,
     });
@@ -69,6 +70,7 @@ describe("computeMetrics", () => {
       invalidOutput: 1,
       invalidOutputRate: 1 / 5,
       unavailable: 1,
+      unavailableRate: 1 / 5,
       overDeadline: 1,
       unstable: 1,
     });

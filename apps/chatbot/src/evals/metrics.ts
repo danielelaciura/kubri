@@ -35,6 +35,7 @@ export interface NluMetrics {
   readonly invalidOutputRate: number | null;
   /** Runs with no reply at all (D82). */
   readonly unavailable: number;
+  readonly unavailableRate: number | null;
   /** Runs slower than the production deadline: the turn would have gone on without NLU. */
   readonly overDeadline: number;
   /** Cases that passed some runs and failed others (`--repeat`). */
@@ -164,13 +165,15 @@ function nluMetrics(results: readonly CaseResult[]): NluMetrics {
   const runs = sum((n) => n.runs);
   const repaired = sum((n) => n.repaired);
   const invalidOutput = sum((n) => n.invalidOutput);
+  const unavailable = sum((n) => n.unavailable);
   return {
     runs,
     repaired,
     repairRate: divide(repaired, runs),
     invalidOutput,
     invalidOutputRate: divide(invalidOutput, runs),
-    unavailable: sum((n) => n.unavailable),
+    unavailable,
+    unavailableRate: divide(unavailable, runs),
     overDeadline: sum((n) => n.overDeadline),
     unstable: results.filter((r) => r.nlu.passed > 0 && r.nlu.passed < r.nlu.runs).length,
   };

@@ -77,8 +77,8 @@ function summary(report: EvalReport, gates: readonly GateResult[]): string[] {
   const { metrics: m } = report;
   return [
     `${report.meta.suite}: ${m.passed}/${m.cases} cases passed (${pct(m.passRate)})`,
-    `intent ${pct(m.intent.accuracy)} · hallucination ${pct(m.hallucination.rate)} · ${Math.round(m.avgLatencyMs)} ms/case`,
-    `calls: ${m.nlu.runs} · invalid output ${pct(m.nlu.invalidOutputRate)} · repaired ${pct(m.nlu.repairRate)} · over the ${report.meta.deadlineMs} ms deadline ${m.nlu.overDeadline} · unstable cases ${m.nlu.unstable}`,
+    `intent ${pct(m.intent.accuracy)} · language ${pct(m.language.accuracy)} · hallucination ${pct(m.hallucination.rate)} · ${Math.round(m.avgLatencyMs)} ms/case`,
+    `calls: ${m.nlu.runs} · unavailable ${pct(m.nlu.unavailableRate)} · invalid output ${pct(m.nlu.invalidOutputRate)} · repaired ${pct(m.nlu.repairRate)} · over the ${report.meta.deadlineMs} ms deadline ${m.nlu.overDeadline} · unstable cases ${m.nlu.unstable}`,
     ...gates.map(gateLine),
   ];
 }

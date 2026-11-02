@@ -15,12 +15,24 @@ describe("evaluateGates (D98)", () => {
     expect(DEFAULT_THRESHOLDS).toEqual({
       maxHallucinationRate: 0.01,
       minIntentAccuracy: 0.95,
+      minLanguageAccuracy: 0.95,
       maxLanguageRegression: 0.02,
+      maxUnavailableRate: 0.02,
+      maxInvalidOutputRate: 0.02,
     });
   });
 
   it("passes at the limits", () => {
-    const results = evaluateGates(view({ hallucination: 0.01, intent: 0.95 }), null);
+    const results = evaluateGates(
+      view({
+        hallucination: 0.01,
+        intent: 0.95,
+        language: 0.95,
+        unavailable: 0.02,
+        invalidOutput: 0.02,
+      }),
+      null,
+    );
 
     expect(results.every((r) => r.ok)).toBe(true);
   });
@@ -28,6 +40,9 @@ describe("evaluateGates (D98)", () => {
   it.each([
     ["hallucination", { hallucination: 0.02 }],
     ["intent accuracy", { intent: 0.9 }],
+    ["language accuracy", { language: 0.9 }],
+    ["unavailable", { intent: 1, unavailable: 0.03 }],
+    ["invalid output", { intent: 1, invalidOutput: 0.03 }],
   ])("fails %s over the limit", (name, report) => {
     const results = evaluateGates(view(report), null);
 
@@ -35,13 +50,33 @@ describe("evaluateGates (D98)", () => {
   });
 
   it("skips a gate that cannot be measured instead of passing it", () => {
-    const results = evaluateGates(view({}), null);
+    const results = evaluateGates(view({ intent: 1 }), null);
 
     expect(results.map((r) => [r.name, r.skipped, r.ok])).toEqual([
+      ["unavailable", false, true],
+      ["invalid output", false, true],
       ["hallucination", true, true],
-      ["intent accuracy", true, true],
+      ["intent accuracy", false, true],
+      ["language accuracy", true, true],
       ["language regression", true, true],
     ]);
+  });
+
+  it("fails a run where every quality gate was skipped: nothing was measured (D98)", () => {
+    const results = evaluateGates(view({}), null);
+
+    expect(gate(results, "quality gates")).toMatchObject({ ok: false, skipped: false });
+    expect(gate(results, "quality gates")?.detail).toMatch(/no gate applied/);
+  });
+
+  it("skips the call gates when there was no call", () => {
+    const results = evaluateGates(
+      view({ intent: 1, unavailable: null, invalidOutput: null }),
+      null,
+    );
+
+    expect(gate(results, "unavailable")).toMatchObject({ ok: true, skipped: true });
+    expect(gate(results, "invalid output")).toMatchObject({ ok: true, skipped: true });
   });
 
   it("fails a language that lost more than 2 points against the baseline", () => {

@@ -269,6 +269,8 @@ step(state, event, campaignVersion) → { state, effects }
 
 ## Commands
 
+**State of the work and next steps (2026-11-02):** `docs/handoff-2026-11-02.md`.
+
 **Trying the whole flow locally** (terminal → LLM → dashboard → WhatsApp, and how the local
 Docker database maps to Supabase): `docs/local-test-setup.md`, the single setup guide.
 

@@ -14,6 +14,7 @@ export const CalibrationRecordSchema = z.object({
   cases: z.number(),
   judged: z.number(),
   withinOne: z.object({ fidelity: z.number(), naturalness: z.number() }),
+  answeredBy: z.array(z.string()).default([]),
   ok: z.boolean(),
 });
 export type CalibrationRecord = z.infer<typeof CalibrationRecordSchema>;

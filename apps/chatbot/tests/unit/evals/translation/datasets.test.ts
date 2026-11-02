@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseJsonl } from "../../../../src/evals/jsonl";
+import { CalibrationCaseSchema } from "../../../../src/evals/translation/calibration";
 import { TranslationCaseSchema } from "../../../../src/evals/translation/case";
 
 const ROOT = join(__dirname, "../../../..");
@@ -19,5 +20,17 @@ describe("dataset translation", () => {
 
     expect(cases.some((c) => c.kind === "critical")).toBe(true);
     expect(cases.some((c) => /\{[A-Za-z]/.test(c.text))).toBe(true);
+  });
+});
+
+describe("dataset translation-calibration", () => {
+  const path = "evals/datasets/translation-calibration.jsonl";
+
+  it("is valid, with good and bad translations graded by a person", () => {
+    const cases = parseJsonl(read(path), path, CalibrationCaseSchema);
+
+    expect(cases.length).toBeGreaterThanOrEqual(5);
+    expect(cases.some((c) => c.human.fidelity === 5)).toBe(true);
+    expect(cases.some((c) => c.human.fidelity <= 3)).toBe(true);
   });
 });

@@ -9,26 +9,14 @@ import {
   type TranslationRunHeader,
 } from "../../evals/translation/run";
 import { REAL_TIMING } from "../../nlu/call-policy";
-import { assertIndependentJudge, createLlmJudge } from "../../nlu/judge";
+import { createLlmJudge } from "../../nlu/judge";
 import { JUDGE_PROMPT_VERSION } from "../../nlu/prompts/judge-v1";
-import type { NluServices } from "../../nlu/services";
 import { NOOP_TRACE_SINK } from "../../nlu/trace";
 import { createLlmTranslator } from "../../nlu/translate";
 import { CliError, type CliDeps } from "../deps";
-import { connectLlm } from "../llm";
+import { connectJudgeLlm } from "../llm";
 import { registerCalibrateCommand } from "./evals-calibrate";
 import { asCliError, readText, stamp, toJson } from "./evals-shared";
-
-/** The LLM, with a judge that is not the translator (D100). Shared with `evals calibrate`. */
-export function connectJudgeLlm(deps: CliDeps): NluServices {
-  const services = connectLlm(deps);
-  try {
-    assertIndependentJudge(services.config.models);
-  } catch (error: unknown) {
-    throw asCliError(error);
-  }
-  return services;
-}
 
 async function readOptional(deps: CliDeps, path: string): Promise<string | null> {
   try {

@@ -6,6 +6,8 @@ export interface ActiveLanding {
   id: string;
   slug: string;
   privacyPolicyUrl: string;
+  /** Headline and intro (intro null = none) per UI language. */
+  texts: Record<"it" | "en", { title: string; subtitle: string | null }>;
   organization: { id: string; name: string };
   pool: {
     id: string;
@@ -32,6 +34,10 @@ export async function getActiveLandingBySlug(slug: string): Promise<ActiveLandin
       slug: true,
       enabled: true,
       privacyPolicyUrl: true,
+      titleIt: true,
+      titleEn: true,
+      subtitleIt: true,
+      subtitleEn: true,
       organizationId: true,
       poolId: true,
       organization: { select: { id: true, name: true } },
@@ -50,6 +56,10 @@ export async function getActiveLandingBySlug(slug: string): Promise<ActiveLandin
     id: row.id,
     slug: row.slug,
     privacyPolicyUrl: row.privacyPolicyUrl,
+    texts: {
+      it: { title: row.titleIt, subtitle: row.subtitleIt },
+      en: { title: row.titleEn, subtitle: row.subtitleEn },
+    },
     organization: row.organization,
     pool: row.pool,
   };
@@ -59,7 +69,10 @@ export async function getActiveLandingBySlug(slug: string): Promise<ActiveLandin
 export async function getLandingForOrg(organizationId: string) {
   return prisma.candidateLandingPage.findUnique({
     where: { organizationId },
-    select: { id: true, slug: true, poolId: true, enabled: true, privacyPolicyUrl: true },
+    select: {
+      id: true, slug: true, poolId: true, enabled: true, privacyPolicyUrl: true,
+      titleIt: true, titleEn: true, subtitleIt: true, subtitleEn: true,
+    },
   });
 }
 

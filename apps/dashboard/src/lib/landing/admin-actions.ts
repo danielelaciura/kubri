@@ -29,6 +29,10 @@ export async function saveLandingPageAction(
     poolId: formData.get("poolId"),
     privacyPolicyUrl: formData.get("privacyPolicyUrl"),
     enabled: formData.get("enabled") === "on",
+    titleIt: formData.get("titleIt"),
+    titleEn: formData.get("titleEn"),
+    subtitleIt: formData.get("subtitleIt") ?? "",
+    subtitleEn: formData.get("subtitleEn") ?? "",
   });
   if (!parsed.success) return { status: "error", error: "VALIDATION" };
 

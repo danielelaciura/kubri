@@ -22,6 +22,10 @@ function form(over: Record<string, string | null> = {}) {
     poolId: POOL_ID,
     privacyPolicyUrl: "https://x.it/privacy",
     enabled: "on",
+    titleIt: "Lavora con noi",
+    titleEn: "Work with us",
+    subtitleIt: "",
+    subtitleEn: "Two minutes.",
     ...over,
   };
   const fd = new FormData();
@@ -51,6 +55,17 @@ describe("saveLandingPageAction", () => {
   it("returns VALIDATION when the organization id is not a UUID", async () => {
     expect(await saveLandingPageAction("not-a-uuid", IDLE, form())).toEqual({ status: "error", error: "VALIDATION" });
     expect(saveLandingPage).not.toHaveBeenCalled();
+  });
+
+  it("passes the page texts, a blank subtitle as none", async () => {
+    await saveLandingPageAction(ORG_ID, IDLE, form());
+    expect(saveLandingPage).toHaveBeenCalledWith(ORG_ID, expect.objectContaining({
+      titleIt: "Lavora con noi", titleEn: "Work with us", subtitleIt: null, subtitleEn: "Two minutes.",
+    }));
+  });
+
+  it("returns VALIDATION without a title", async () => {
+    expect(await saveLandingPageAction(ORG_ID, IDLE, form({ titleEn: "" }))).toEqual({ status: "error", error: "VALIDATION" });
   });
 
   it("passes enabled=false when the checkbox is unchecked", async () => {

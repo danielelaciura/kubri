@@ -478,7 +478,7 @@ export const it = {
   landing: {
     notFoundTitle: "Pagina non disponibile",
     notFoundBody: "Questa pagina di candidatura non esiste o non è più attiva.",
-    metaTitle: "Candidati con {org}",
+    /** Default title and intro of a new landing (editable in the admin). */
     headline: "Candidati con {org}",
     intro: "Scegli come preferisci. È gratis, ci vogliono pochi minuti e non serve registrarti.",
     whatsappTitle: "Fai il colloquio su WhatsApp",
@@ -563,9 +563,15 @@ export const it = {
     slug: "Indirizzo (slug)",
     slugHint: "Lettere minuscole, numeri e trattini. Es. coop-sole",
     pool: "Pool di destinazione",
-    noEligiblePools: "Aggancia prima un pool non globale a questa organizzazione.",
+    noEligiblePools: "Aggancia prima un pool a questa organizzazione.",
     privacyPolicyUrl: "URL informativa privacy (https)",
     enabled: "Pagina attiva",
+    textsLegend: "Testi della pagina",
+    titleIt: "Titolo (italiano)",
+    titleEn: "Titolo (inglese)",
+    subtitleIt: "Sottotitolo (italiano, facoltativo)",
+    subtitleEn: "Sottotitolo (inglese, facoltativo)",
+    textsHint: "Il candidato vede la versione nella lingua scelta. Lascia vuoto il sottotitolo per non mostrarlo.",
     save: "Salva landing",
     publicLink: "Link pubblico",
     disabled: "Disattivata",
@@ -580,10 +586,10 @@ export const it = {
     slugChangeWarning: "Attenzione: cambiando l'indirizzo, i QR già stampati smetteranno di funzionare.",
     saved: "Landing salvata.",
     errors: {
-      INVALID_POOL: "Il pool scelto non è agganciato o è globale.",
+      INVALID_POOL: "Il pool scelto non è agganciato a questa organizzazione.",
       SLUG_TAKEN: "Questo indirizzo è già usato da un'altra organizzazione.",
       FORBIDDEN: "Permessi insufficienti.",
-      VALIDATION: "Controlla slug e URL dell'informativa (deve iniziare con https://).",
+      VALIDATION: "Controlla slug, titoli e URL dell'informativa (deve iniziare con https://).",
     },
   },
   authErrors: {

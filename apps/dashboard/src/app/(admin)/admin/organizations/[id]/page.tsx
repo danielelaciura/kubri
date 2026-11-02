@@ -415,6 +415,11 @@ async function resendInvite(formData: FormData) {
                   privacyPolicyUrl: landing?.privacyPolicyUrl ?? "",
                   enabled: landing?.enabled ?? true,
                   exists: landing !== null,
+                  // A new landing starts from the standard texts, ready to edit.
+                  titleIt: landing?.titleIt ?? getDictionary("it").landing.headline.replace("{org}", org.name),
+                  titleEn: landing?.titleEn ?? getDictionary("en").landing.headline.replace("{org}", org.name),
+                  subtitleIt: landing ? (landing.subtitleIt ?? "") : getDictionary("it").landing.intro,
+                  subtitleEn: landing ? (landing.subtitleEn ?? "") : getDictionary("en").landing.intro,
                 }}
               />
             )}

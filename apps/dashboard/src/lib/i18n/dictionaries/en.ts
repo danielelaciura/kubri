@@ -480,7 +480,7 @@ export const en = {
   landing: {
     notFoundTitle: "Page not available",
     notFoundBody: "This application page does not exist or is no longer active.",
-    metaTitle: "Apply with {org}",
+    /** Default title and intro of a new landing (editable in the admin). */
     headline: "Apply to {org}",
     intro: "Choose the way you prefer. It's free, it takes a few minutes and you don't need an account.",
     whatsappTitle: "Do the interview on WhatsApp",
@@ -565,9 +565,15 @@ export const en = {
     slug: "Address (slug)",
     slugHint: "Lowercase letters, digits and dashes. E.g. coop-sole",
     pool: "Target pool",
-    noEligiblePools: "First attach a non-global pool to this organization.",
+    noEligiblePools: "First attach a pool to this organization.",
     privacyPolicyUrl: "Privacy notice URL (https)",
     enabled: "Page enabled",
+    textsLegend: "Page texts",
+    titleIt: "Title (Italian)",
+    titleEn: "Title (English)",
+    subtitleIt: "Subtitle (Italian, optional)",
+    subtitleEn: "Subtitle (English, optional)",
+    textsHint: "Candidates see the version in the language they chose. Leave the subtitle empty to hide it.",
     save: "Save landing",
     publicLink: "Public link",
     disabled: "Disabled",
@@ -582,10 +588,10 @@ export const en = {
     slugChangeWarning: "Warning: changing the address breaks QR codes that are already printed.",
     saved: "Landing saved.",
     errors: {
-      INVALID_POOL: "The selected pool is not attached or is global.",
+      INVALID_POOL: "The selected pool is not attached to this organization.",
       SLUG_TAKEN: "This address is already used by another organization.",
       FORBIDDEN: "Insufficient permissions.",
-      VALIDATION: "Check the slug and the privacy notice URL (it must start with https://).",
+      VALIDATION: "Check the slug, the titles and the privacy notice URL (it must start with https://).",
     },
   },
   authErrors: {

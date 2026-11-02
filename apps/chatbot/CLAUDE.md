@@ -217,7 +217,7 @@ step(state, event, campaignVersion) → { state, effects }
 - A delivery `failed` never waits on the contact lock inside the webhook: it enqueues
   `report-failure` (D120). Unreadable payloads → `InboundDeadLetter` + 200.
 - With `NODE_ENV=production` the worker refuses `--channel console`, `--nlu naive` and
-  `--translator fake`. Dev number setup: `docs/whatsapp-dev-setup.md`.
+  `--translator fake`. Local end-to-end testing (terminal, dashboard, WhatsApp dev number): `docs/local-test-setup.md`.
 - Model data as multi-number / multi-provider from day one (`SenderNumber.provider`), even though
   v1 only implements `meta-cloud`.
 
@@ -269,6 +269,9 @@ step(state, event, campaignVersion) → { state, effects }
 
 ## Commands
 
+**Trying the whole flow locally** (terminal → LLM → dashboard → WhatsApp, and how the local
+Docker database maps to Supabase): `docs/local-test-setup.md`, the single setup guide.
+
 Run from `apps/chatbot/` (or from the repo root with `pnpm --filter @kubri/chatbot <script>`).
 
 ```bash
@@ -302,7 +305,7 @@ pnpm cli worker start --channel meta --nlu llm --translator llm   # replies go t
   neither; required with `NODE_ENV=production`). Without them, outside production, it starts with
   a warning and `kubri-webhook` jobs go to `kubri-webhook-dead` with reason `not_configured`.
   Setup and the dev check (shared secret, a real interview, the CV in chat):
-  `docs/kubri-integration-setup.md`. Dead letters:
+  `docs/local-test-setup.md` (level 3). Dead letters:
   `select name, data->>'reason', count(*) from bot_queue.job where name like '%-dead' group by 1, 2;`
 
 - `campaigns import` creates a new immutable `CampaignVersion` only when the parsed file's

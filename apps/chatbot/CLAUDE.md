@@ -168,6 +168,16 @@ step(state, event, campaignVersion) → { state, effects }
   DB down → 500 so Meta retries.
 - Free-form messages only inside the **24h window**; outside it, templates only.
 - Classify Meta errors as transient (retry) or permanent (`failed`, stop the rest of the turn).
+- Interactive limits: 3 buttons of 20 characters, or a list of 10 rows of 24 (button 20), body 1024:
+  enforced in `src/channels/interactive.ts`. Closed questions (language, consent, yes/no, options) go
+  out as buttons or lists built by `awaitedChoices` (`src/engine/choices.ts`, pure, derived from the
+  state); a tap is understood without the LLM (`interpretReply`). Never add a "send buttons" effect
+  to the engine: a new step type that waits for a closed answer extends `awaitedChoices`. Tap ids
+  carry their question (`q:<questionId>:yes`, …) so a tap on an old widget is read as text (D114).
+- A delivery `failed` never waits on the contact lock inside the webhook: it enqueues
+  `report-failure` (D120). Unreadable payloads → `InboundDeadLetter` + 200.
+- With `NODE_ENV=production` the worker refuses `--channel console`, `--nlu naive` and
+  `--translator fake`. Dev number setup: `docs/whatsapp-dev-setup.md`.
 - Model data as multi-number / multi-provider from day one (`SenderNumber.provider`), even though
   v1 only implements `meta-cloud`.
 
@@ -237,8 +247,10 @@ pnpm cli campaigns validate <file>   # no database; exits 1 on issues
 pnpm cli campaigns import <file> [--activate] [--imported-by <name>]
 pnpm cli campaigns list
 pnpm cli campaigns simulate <file> [--nlu naive|llm] [--translator fake|llm] [--history 3] [--traces]
-pnpm cli worker start [--nlu naive|llm] [--translator fake|llm]   # replies are printed: no channel yet
+pnpm cli worker start [--channel console|meta] [--nlu naive|llm] [--translator fake|llm]   # console: replies printed here
 pnpm cli inbound send --sender <slug> --from <e164> <text...>    # a candidate writes (stored + queued)
+pnpm cli web start                    # WhatsApp webhooks on PORT (needs META_APP_SECRET, META_VERIFY_TOKEN)
+pnpm cli worker start --channel meta --nlu llm --translator llm   # replies go to WhatsApp (default: the terminal)
 ```
 
 - `campaigns import` creates a new immutable `CampaignVersion` only when the parsed file's
@@ -277,8 +289,9 @@ pnpm cli inbound send --sender <slug> --from <e164> <text...>    # a candidate w
   only touches `"bot".` objects before committing.
 - Code runs with `tsx` in every environment; there is no JS build step.
 - **Worker (plan 08).** `worker start` runs the conversation turns (`process-contact`) and the
-  sending (`send-messages`) on pg-boss; replies are printed on the terminal (`ConsoleChannel`):
-  Meta's Cloud API arrives with plan 09. `inbound send` stores a text message as if it came from
+  sending (`send-messages`, `report-failure`) on pg-boss; by default replies are printed on the
+  terminal (`ConsoleChannel`), with `--channel meta` they go out through Meta's Cloud API
+  (plan 09; the web process `web start` receives the webhooks). `inbound send` stores a text message as if it came from
   WhatsApp and enqueues its turn; it needs a running worker to get an answer.
 - Required by the worker (it refuses to start, with one line, before connecting):
   - `CONSENT_HASH_SECRET` (≥ 32 chars, HMAC key of `Consent.contactHash`; secret manager, never

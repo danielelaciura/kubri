@@ -157,6 +157,16 @@ Oggi il chatbot di Kubri vive su Make.com. L'analisi dello scenario ha evidenzia
 | D111d | Link mostrato con il consenso (piano 08, revisione) | `Consent.linkShown`: il link al testo ufficiale mostrato accanto a un testo non curato (D74), `null` se non è stato mostrato. Con `textShown` registra esattamente ciò che il candidato ha visto. |
 | D111e | Prova minima del contatto (piano 08, revisione; corregge D109) | `Consent.contactHash` = HMAC-SHA256 di `"<channel>:<externalId>"` con la chiave `CONSENT_HASH_SECRET` (almeno 32 caratteri, nel gestore dei segreti; obbligatoria per il worker, che non parte senza). Uno sha256 semplice di un numero di telefono si inverte provando tutti i numeri. La chiave non si ruota sul posto: le prove già scritte non corrisponderebbero più. |
 | D111f | Testo del consenso registrato come mostrato (piano 08, revisione finale; precisa D111d) | Quando il runtime invia il testo di un consenso salva ciò che è uscito (testo risolto, lingua, curato o no, link, `textVersion`) in `Session.consentsShown`, per `consentKey`; un nuovo invio dello stesso consenso sostituisce il precedente. `RecordConsent` copia da lì `textShown`, `language`, `textShownIsCurated` e `linkShown`, senza risolvere di nuovo il testo: se il traduttore era giù all'invio (italiano) e funziona alla risposta, la prova dice italiano. Se manca il record (o la versione non coincide) il testo si risolve di nuovo, con un log `warn` con gli id. `textShown` è il corpo inviato, compresa l'eventuale riga di riformulazione. |
+| D112 | Scelte chiuse derivate dallo stato (piano 09) | Nessun nuovo effetto (`SendChoice` del §7.1 non serve): `awaitedChoices(state, campaign)`, pura (`src/engine/choices.ts`), dice quali risposte chiuse il motore aspetta; il runtime le attacca all'ultimo messaggio del turno, che è sempre la domanda in attesa. Un turno finito in errore non porta mai un widget. `INTERACTIVE_MESSAGES=false` li spegne. |
+| D113 | Dove compare un widget (piano 09) | Lingua (elenco di 10 lingue, ciascuna col proprio nome), conferme in sospeso e `cv_offer` (Sì/No), consenso (Accetto/Non accetto), passaggio `choice` (opzioni con `label`; `yes`/`no`/`idk` dal catalogo; un'opzione senza etichetta = niente widget), domande `bool` (Sì/No) ed `enum` (se 2–10 opzioni da ≤ 24 caratteri). Il testo libero resta sempre possibile. |
+| D114 | Un tocco è deterministico (piano 09) | Se la raffica è solo un tocco con `id` atteso, l'`Interpretation` è sintetica (confidenza 1, niente NLU né tracce). Gli id portano la domanda a cui appartengono (`lang:<code>`, `confirm:value:<field>:yes`, `consent:<stepId>:accepted`, `step:<stepId>:<option>`, `cv:<stepId>:yes`, `q:<questionId>:yes` / `q:<questionId>:<valore>`): un tocco su un widget vecchio non è più atteso e passa dall'NLU come testo del titolo, come un tocco insieme a testo scritto. Resta possibile solo per la stessa domanda chiesta due volte. |
+| D115 | Forma sul canale (piano 09) | 2–3 voci: bottoni (titolo ≤ 20); 4–10: elenco (titolo ≤ 24, pulsante ≤ 20); altrimenti testo. Corpo ≤ 1024: oltre, la domanda va come testo e il widget segue in un messaggio breve ("Scegli una risposta:"). Titoli troncati con "…" dal canale. Canale senza widget (`supportsInteractive: false`): solo testo. Id oltre 200 caratteri: niente widget. |
+| D116 | Salvataggio dei widget (piano 09) | Uscita: `type = interactive` e `Message.interactive` (titoli già risolti nella lingua del candidato). Entrata: `type = interactive`, `body` = titolo toccato, `replyId` = id. I tocchi entrano anche nella storia dell'NLU. |
+| D117 | Processo web (piano 09) | `node:http`: `GET`/`POST /webhooks/whatsapp`, `GET /health`. Il numero si riconosce da `metadata.phone_number_id` (i numeri `suspended` no). Firma sul corpo grezzo con l'app secret (401 se non valida), confronti a tempo costante; JSON o payload illeggibili, elemento non leggibile, numero sconosciuto → `InboundDeadLetter` e 200; database giù → 500; corpo oltre 1 MB → 413. Niente che possa aspettare un lock: la segnalazione di un `failed` va nel job `report-failure`. |
+| D118 | Parsing (piano 09) | Tutte le entry, i cambiamenti, i messaggi e gli stati. Ogni messaggio è salvato; il motore parte per testo e tocchi. Reazioni e altri campi ignorati; tipo sconosciuto = `unsupported`. |
+| D119 | Invio Meta (piano 09) | Versione della Graph API configurabile (`META_GRAPH_VERSION`, default `v23.0`); token = valore della variabile il cui nome sta nella configurazione del numero. Temporanei: rete, timeout, 5xx, limiti; definitivi: finestra (131047), non raggiungibile (131026), non autorizzato (131030), parametri (100), token (190). I codici sono nominati da una sola tabella (`errorName`), uguali all'invio e in consegna. Finestra delle 24 ore controllata prima della chiamata (`outside_window`, senza chiamare Meta). In produzione il worker rifiuta canale `console`, NLU `naive` e traduttore `fake`. |
+| D120 | Stati di consegna (piano 09) | `delivered` e `read` solo in avanti; `failed` → messaggio `failed` e, se ha una sessione, job `report-failure` nella stessa transazione: il worker fa scattare `outbound_failed` sotto il lock del contatto. Un `failed` per un messaggio sconosciuto va negli scarti (`status_unknown_message`); gli altri stati sconosciuti si ignorano. Il pool del worker diventa `4 × WORKER_BATCH_SIZE + 4`. |
+| D121 | Lettura, "sta scrivendo" e media (piano 09) | Conferma di lettura con indicatore all'inizio di `process-contact`, fuori dalla transazione, best effort (un errore si registra con gli id e non ferma il turno). Audio, immagini e documenti con una sessione aperta ricevono "per ora scrivimi in testo" (turno `ignored_media`, il motore non parte); come primo messaggio aprono la sessione. |
 
 ---
 
@@ -322,7 +332,7 @@ apps/chatbot/
 | Tipo | Scopo | Configurazione principale | Esiti |
 |---|---|---|---|
 | `message` | Invia un testo informativo | `text` | `next` |
-| `choice` | Domanda chiusa interpretata dall'LLM | `prompt`, `options` (es. `yes`/`no`/`idk` o personalizzate, ognuna con una descrizione per l'LLM) | uno per opzione |
+| `choice` | Domanda chiusa interpretata dall'LLM | `prompt`, `options` (es. `yes`/`no`/`idk` o personalizzate, ognuna con una descrizione per l'LLM e una `label` facoltativa, il testo del bottone, ≤ 24 caratteri, D113) | uno per opzione |
 | `consent` | Consenso bloccante | `consentKey`, `textVersion`, `text`, `link`, `optional` | `accepted`, `declined` |
 | `questions` | Un blocco dell'intervista | `title`, `questions[]` | `completed`, `terminated` |
 | `cv_offer` | Propone di generare il CV | `prompt` | `yes`, `no` |
@@ -451,7 +461,7 @@ step(state: SessionState, event: EngineEvent, campaign: CampaignDefinition)
 - **Pura:** nessuna rete, nessun database, nessun orologio implicito (l'ora arriva nell'evento).
 - **Stato:** `{ phase, stepId, questionId, clarifications, pendingConfirmation, outcomes, language, consentsAccepted, profile }` (`profile`: istantanea del profilo, D31). `consentsAccepted` diventa `true` quando il consenso obbligatorio della campagna (uno solo, D48) è accettato, e torna `false` se viene rifiutato (soglia D24, §10.6, D38). `phase` vale `language`, `flow`, `post_completion` oppure `closed`.
 - **Eventi:** `user_turn` (con `Interpretation`), `session_started`, `timeout`, `admin_action` (futuro), `outbound_failed`.
-- **Effetti:** `SendText`, `SendChoice` (bottoni interattivi, futuro), `ApplyPatch`, `RecordConsent`, `SetLanguage`, `CompleteSession`, `StopSession`, `EnqueueJob` (`kubri-webhook`, `cv`, `geocoding`), `FlagSession`.
+- **Effetti:** `SendText`, `ApplyPatch`, `RecordConsent`, `SetLanguage`, `CompleteSession`, `StopSession`, `EnqueueJob` (`kubri-webhook`, `cv`, `geocoding`), `FlagSession`. Le scelte chiuse (bottoni ed elenchi) non sono un effetto: si derivano dallo stato (D112).
 - `campaign` è la definizione già validata della versione a cui la sessione è legata (piano 04).
 - Effetti aggiunti dal piano 04: `RecordPatchRejections` (valori scartati, senza il valore),
   `MarkFieldUnresolved`, `OptOut`; job `delete-contact` (D39, D49). `SendChoice` resta futuro.
@@ -606,7 +616,8 @@ Schema Postgres **`bot`**, nello stesso progetto Supabase della dashboard. Tutte
   - Al più una sessione **aperta** per (contatto, numero): `openKey` univoca, legata a `status` da un `CHECK` (D105, D111c): `openKey` vale `<contatto>:<numero>` mentre la sessione è aperta. `origin` non c'è ancora (D111).
 - **Message**:
   - `id`, `contactId`, `senderNumberId`, `sessionId?`, `direction` (`inbound` | `outbound`, D111a);
-  - `type` (`text` | `audio` | `image` | `document` | `location` | `unsupported`; `interactive` e `template` con il piano 09, D111a);
+  - `type` (`text` | `audio` | `image` | `document` | `interactive` | `location` | `unsupported`; `template` quando servirà, D111a);
+  - `interactive?` (uscita: le scelte inviate, titoli risolti) e `replyId?` (entrata: l'id toccato), D116;
   - `body`, `mediaRef?`, `templateName?`, `payloadRaw` (jsonb, per i messaggi in entrata);
   - `stepId?`, `questionId?` (contesto al momento del messaggio);
   - `providerMessageId` (**univoco**, per la deduplica);
@@ -624,7 +635,7 @@ Schema Postgres **`bot`**, nello stesso progetto Supabase della dashboard. Tutte
 - **NluTrace**: `id`, `turnId`, `task`, `promptVersion`, `provider`, `model`, `input` (jsonb), `output` (jsonb), `valid`, `latencyMs`, `inputTokens`, `outputTokens`, `costEstimate`, `error?`, `createdAt`. Più `attempt` (`primary` / `retry` / `fallback`) e `repair` (D87). Una riga per chiamata; `input` senza il prompt di sistema. Tabella creata nel piano 08.
 - **CvDocument** (piano 10, D111): `id`, `profileId`, `kind` (`generated` | `uploaded`), `template`, `storageKey`, `createdAt`.
 - **TranslationCache**: `sourceHash`, `language`, `text`, `provider`, `model`, `reviewed`, `createdAt`. Chiave primaria su (`sourceHash`, `language`).
-- **InboundDeadLetter** (piano 09, D111): payload non interpretabili (`raw`, `reason`, `createdAt`).
+- **InboundDeadLetter** (piano 09, D111, D117): payload non interpretabili (`raw`, `reason`, `createdAt`). Scadenza e comando per rileggerli: piano 11.
 
 ### 10.4 Code e job
 
@@ -661,15 +672,17 @@ Schema Postgres **`bot`**, nello stesso progetto Supabase della dashboard. Tutte
 ### 11.1 Processo web
 
 ```
-GET  /webhooks/whatsapp/:sender   verifica di Meta (hub.mode, hub.verify_token, hub.challenge)
-POST /webhooks/whatsapp/:sender
- 1. verifica X-Hub-Signature-256 con l'app secret del numero → se non valida: 401
+GET  /webhooks/whatsapp   verifica di Meta (hub.mode, hub.verify_token, hub.challenge)
+GET  /health             database raggiungibile: 200, altrimenti 503
+POST /webhooks/whatsapp   (D117: node:http; il numero si riconosce da metadata.phone_number_id)
+ 1. verifica X-Hub-Signature-256 con l'app secret sul corpo grezzo → se non valida: 401
  2. parse di TUTTE le entry, i change, i messaggi e gli stati
  3. per ogni messaggio:
       INSERT Message(in) … ON CONFLICT (providerMessageId) DO NOTHING → duplicato: ignora
       upsert Contact, aggiorna ContactChannelState.lastInboundAt
       accoda process-contact(contactId, senderId), partenza tra DEBOUNCE_MS, uno per contatto
- 4. per ogni ricevuta di stato: aggiorna Message.status e i relativi orari
+ 4. per ogni ricevuta di stato: aggiorna Message.status e i relativi orari (solo in avanti);
+    un failed accoda report-failure nella stessa transazione (D120)
  5. payload non interpretabile → InboundDeadLetter, risposta 200
  6. database non disponibile → 500 (Meta ritenta, la deduplica protegge)
  7. 200
@@ -936,7 +949,6 @@ Il motore di evals è scritto in proprio in TypeScript: dataset in JSON, misurat
 | **Promemoria e follow-up** (sessioni abbandonate dopo la soglia dei consensi, D24) | Job `sweep-inactive`, evento `timeout` del motore, controllo della finestra delle 24 ore, flag `consentsAccepted` nello stato, stato `abandoned` che conserva i dati fino alla scadenza. Fuori dalla finestra delle 24 ore il follow-up richiede un template approvato da Meta. |
 | **Vocali** | `InboundEvent` di tipo audio, modulo `media` con `Transcriber`: l'audio trascritto entra come testo. |
 | **Import del CV caricato dal candidato** | Tipo di passaggio `document_import`: scarico in storage privato → `DocumentExtractor` → patch (`source: document_import`) → riepilogo e conferma → esiti `complete` / `partial` / `failed`. Il **salto dell'intervista** non va costruito a parte: le domande con campo già valorizzato vengono saltate. `CvDocument.kind = uploaded`. |
-| **Bottoni interattivi** (sì/no, consensi) | Effetto `SendChoice`; `InboundEvent` di tipo interattivo. |
 | **Pannello per configurare le campagne** | Le campagne sono già documenti validati e versionati nel database: il pannello è solo un editor in più. |
 | **Storico delle conversazioni in dashboard** | Stesso Postgres; ruolo `dashboard_reader` in sola lettura su `Message` e `Session`. |
 | **Convergenza dei dati con la dashboard** | Stesso database (schemi separati): basteranno viste o chiavi esterne, senza procedure di copia. Collegamento `Organization.kubriOrganizationId`. |

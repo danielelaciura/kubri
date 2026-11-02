@@ -64,7 +64,7 @@ describe("parseWebhook (D118)", () => {
     ]);
     expect(parseWebhook(fixture("status-failed"))?.statuses[0]).toMatchObject({
       status: "failed",
-      errorCode: 131047,
+      errorCode: "outside_window",
     });
   });
 

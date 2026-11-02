@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { errorName } from "./errors";
 
 export type ParsedKind =
   "text" | "audio" | "image" | "document" | "interactive" | "location" | "unsupported";
@@ -23,8 +24,8 @@ export interface ParsedStatus {
   readonly providerMessageId: string;
   readonly status: ParsedStatusKind;
   readonly at: Date;
-  /** Meta's error code of a failure. */
-  readonly errorCode: number | null;
+  /** A failure's code, named like a failure at send time (`errorName`, C3). */
+  readonly errorCode: string | null;
 }
 
 export interface ParsedPayload {
@@ -76,6 +77,11 @@ const SIMPLE: Readonly<Record<string, ParsedKind>> = {
   document: "document",
   location: "location",
 };
+
+function failureCode(errors: readonly { readonly code: number }[] | undefined): string | null {
+  const code = errors?.[0]?.code;
+  return code === undefined ? null : errorName(code);
+}
 
 const at = (seconds: string): Date => new Date(Number(seconds) * 1000);
 
@@ -155,7 +161,7 @@ export function parseWebhook(json: unknown): ParsedPayload | null {
           providerMessageId: item.data.id,
           status: item.data.status,
           at: at(item.data.timestamp),
-          errorCode: item.data.errors?.[0]?.code ?? null,
+          errorCode: failureCode(item.data.errors),
         });
       }
     }

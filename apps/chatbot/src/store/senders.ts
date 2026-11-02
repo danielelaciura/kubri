@@ -77,3 +77,21 @@ export function findOutboundSender(db: Database, id: string): Promise<OutboundSe
     select: { id: true, slug: true, provider: true, providerConfig: true },
   });
 }
+
+/**
+ * The active (or provisioning) Meta number whose providerConfig.phoneNumberId is this one
+ * (webhook routing, D117). A suspended number is not found (C8).
+ */
+export function findSenderByPhoneNumberId(
+  db: Database,
+  phoneNumberId: string,
+): Promise<{ id: string; slug: string } | null> {
+  return db.senderNumber.findFirst({
+    where: {
+      provider: "meta",
+      status: { not: "suspended" },
+      providerConfig: { path: ["phoneNumberId"], equals: phoneNumberId },
+    },
+    select: { id: true, slug: true },
+  });
+}

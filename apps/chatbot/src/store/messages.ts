@@ -1,8 +1,22 @@
+import { z } from "zod";
 import type { Prisma } from "../generated/prisma/client";
 import type { Database, Tx } from "./db";
 import { lockKey } from "./db";
+import { asJson } from "./json";
 
-export type MessageKind = "text" | "audio" | "image" | "document" | "location" | "unsupported";
+export type MessageKind =
+  "text" | "audio" | "image" | "document" | "interactive" | "location" | "unsupported";
+
+/** The choices sent with an interactive message, titles already resolved and cut (D115, D116). */
+export interface StoredChoices {
+  readonly listButton: string;
+  readonly options: readonly { readonly id: string; readonly title: string }[];
+}
+
+const StoredChoicesSchema = z.strictObject({
+  listButton: z.string(),
+  options: z.array(z.strictObject({ id: z.string(), title: z.string() })),
+});
 
 /** The provider's raw payload, as JSON. Exported so the runtime never imports Prisma types. */
 export type PayloadRaw = Prisma.InputJsonValue;
@@ -13,6 +27,8 @@ export interface InboundMessageInput {
   readonly providerMessageId: string;
   readonly type: MessageKind;
   readonly body: string | null;
+  /** The id of the button or list row tapped (D116). */
+  readonly replyId?: string | null;
   readonly payloadRaw: PayloadRaw;
 }
 
@@ -32,6 +48,7 @@ export interface BurstMessage {
   readonly id: string;
   readonly type: MessageKind;
   readonly body: string | null;
+  readonly replyId: string | null;
   readonly createdAt: Date;
 }
 
@@ -44,7 +61,7 @@ export function receivedBurst(
   return tx.message.findMany({
     where: { contactId, senderNumberId, direction: "inbound", status: "received" },
     orderBy: { ordinal: "asc" },
-    select: { id: true, type: true, body: true, createdAt: true },
+    select: { id: true, type: true, body: true, replyId: true, createdAt: true },
   });
 }
 
@@ -97,6 +114,8 @@ export interface OutboundMessageInput {
   readonly language: string;
   readonly stepId: string | null;
   readonly questionId: string | null;
+  /** The widget sent with the text (D116); absent or null for plain text. */
+  readonly interactive?: StoredChoices | null;
 }
 
 /** One insert at a time: the sequence number must follow the engine's order. */
@@ -104,9 +123,15 @@ export async function queueOutbound(
   tx: Tx,
   messages: readonly OutboundMessageInput[],
 ): Promise<void> {
-  for (const m of messages) {
+  for (const { interactive, ...m } of messages) {
     await tx.message.create({
-      data: { ...m, direction: "outbound", type: "text", status: "queued" },
+      data: {
+        ...m,
+        direction: "outbound",
+        type: interactive ? "interactive" : "text",
+        status: "queued",
+        ...(interactive ? { interactive: asJson(interactive) } : {}),
+      },
     });
   }
 }
@@ -123,7 +148,14 @@ export interface ClaimedMessage {
   readonly sessionId: string | null;
   readonly turnId: string | null;
   readonly body: string;
+  /** The widget to send with the body, if any (D116). */
+  readonly interactive: StoredChoices | null;
   readonly attempts: number;
+}
+
+function parseChoices(json: unknown): StoredChoices | null {
+  const parsed = StoredChoicesSchema.safeParse(json);
+  return parsed.success ? parsed.data : null;
 }
 
 /**
@@ -172,6 +204,7 @@ export async function claimNextOutbound(
       sessionId: claimed.sessionId,
       turnId: claimed.turnId,
       body: next.body,
+      interactive: parseChoices(claimed.interactive),
       attempts: claimed.attempts,
     };
   });
@@ -235,4 +268,82 @@ export async function finishSend(
       }
     }
   });
+}
+
+/** The provider id of the newest unprocessed inbound message: what the read receipt names. */
+export async function latestReceivedProviderId(
+  tx: Tx,
+  contactId: string,
+  senderNumberId: string,
+): Promise<string | null> {
+  const row = await tx.message.findFirst({
+    where: {
+      contactId,
+      senderNumberId,
+      direction: "inbound",
+      status: "received",
+      providerMessageId: { not: null },
+    },
+    orderBy: { ordinal: "desc" },
+    select: { providerMessageId: true },
+  });
+  return row?.providerMessageId ?? null;
+}
+
+export type DeliveryStatus = "sent" | "delivered" | "read" | "failed";
+
+/** D120: a status moves a message forward only. `sent` is already known when the id is. */
+const MOVES_FROM: Readonly<Record<DeliveryStatus, readonly ("sent" | "delivered")[]>> = {
+  sent: [],
+  delivered: ["sent"],
+  read: ["sent", "delivered"],
+  failed: ["sent", "delivered"],
+};
+
+export interface DeliveryUpdate {
+  readonly providerMessageId: string;
+  readonly status: DeliveryStatus;
+  readonly at: Date;
+  /** The classified error code, for `failed`. */
+  readonly errorCode: string | null;
+}
+
+export interface DeliveryResult {
+  /** The status moved the message forward. */
+  readonly updated: boolean;
+  /** null when no outbound message has this provider id (yet). */
+  readonly contactId: string | null;
+  readonly sessionId: string | null;
+  readonly turnId: string | null;
+}
+
+export async function applyDeliveryStatus(tx: Tx, update: DeliveryUpdate): Promise<DeliveryResult> {
+  const from = MOVES_FROM[update.status];
+  const data =
+    update.status === "failed"
+      ? { status: "failed" as const, failedAt: update.at, errorCode: update.errorCode }
+      : update.status === "read"
+        ? { status: "read" as const, readAt: update.at }
+        : { status: "delivered" as const, deliveredAt: update.at };
+  const result =
+    from.length === 0
+      ? { count: 0 }
+      : await tx.message.updateMany({
+          where: {
+            providerMessageId: update.providerMessageId,
+            direction: "outbound",
+            status: { in: [...from] },
+          },
+          data,
+        });
+  const row = await tx.message.findFirst({
+    where: { providerMessageId: update.providerMessageId, direction: "outbound" },
+    select: { contactId: true, sessionId: true, turnId: true },
+  });
+  return {
+    updated: result.count === 1,
+    contactId: row?.contactId ?? null,
+    sessionId: row?.sessionId ?? null,
+    turnId: row?.turnId ?? null,
+  };
 }

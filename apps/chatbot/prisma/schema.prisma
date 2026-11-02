@@ -263,6 +263,7 @@ enum MessageType {
   audio
   image
   document
+  interactive
   location
   unsupported
 
@@ -298,6 +299,10 @@ model Message {
   bodyRedacted      String?
   language          String?
   payloadRaw        Json?
+  /// Outbound: the choices offered with the text, titles already resolved (D116).
+  interactive       Json?
+  /// Inbound: the id of the button or list row the candidate tapped.
+  replyId           String?
   stepId            String?
   questionId        String?
   /// Unique: deduplication of inbound messages (spec §11.1); set on outbound ones once sent.
@@ -464,5 +469,15 @@ model TranslationCache {
   createdAt  DateTime @default(now())
 
   @@id([sourceHash, language])
+  @@schema("bot")
+}
+
+/// Payloads that could not be processed: kept, and answered with 200 (D117).
+model InboundDeadLetter {
+  id        String   @id @default(uuid()) @db.Uuid
+  raw       Json
+  reason    String
+  createdAt DateTime @default(now())
+
   @@schema("bot")
 }

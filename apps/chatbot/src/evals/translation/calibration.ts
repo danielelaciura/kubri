@@ -48,6 +48,7 @@ export interface CalibrationReport {
   readonly disagreements: readonly Disagreement[];
   /** The models that actually graded, sorted: never another model than asked (E8). */
   readonly answeredBy: readonly string[];
+  /** Agreement high enough, and one single model graded (an alias that moved mid-run did not). */
   readonly ok: boolean;
 }
 
@@ -86,6 +87,7 @@ export async function calibrate(
     };
   };
   const [fidelity, naturalness] = DIMENSIONS.map(stats);
+  const answeredBy = [...new Set(rows.flatMap(({ score }) => (score ? [score.model] : [])))].sort();
   if (!fidelity || !naturalness) throw new Error("unreachable: two dimensions");
   return {
     cases: rows.length,
@@ -94,7 +96,11 @@ export async function calibrate(
     meanAbsError: { fidelity: fidelity.abs, naturalness: naturalness.abs },
     bias: { fidelity: fidelity.bias, naturalness: naturalness.bias },
     disagreements,
-    answeredBy: [...new Set(rows.flatMap(({ score }) => (score ? [score.model] : [])))].sort(),
-    ok: rows.length > 0 && fidelity.within >= MIN_AGREEMENT && naturalness.within >= MIN_AGREEMENT,
+    answeredBy,
+    ok:
+      rows.length > 0 &&
+      answeredBy.length === 1 &&
+      fidelity.within >= MIN_AGREEMENT &&
+      naturalness.within >= MIN_AGREEMENT,
   };
 }

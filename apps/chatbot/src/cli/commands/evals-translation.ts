@@ -1,6 +1,13 @@
 import type { Command } from "commander";
 import { parseJsonl } from "../../evals/jsonl";
-import { calibrationPath, calibrationProblem } from "../../evals/translation/calibration-record";
+import { datasetHash } from "../../evals/report";
+import {
+  CALIBRATION_DATASET,
+  calibrationPath,
+  checkCalibration,
+  JudgeDriftError,
+  pinJudge,
+} from "../../evals/translation/calibration-record";
 import { TranslationCaseSchema } from "../../evals/translation/case";
 import {
   runTranslationCases,
@@ -45,11 +52,13 @@ async function runTranslation(deps: CliDeps, options: TranslationOptions): Promi
 
   // E8: grades from a judge nobody checked are not a measurement, unless asked explicitly.
   const recordPath = calibrationPath(judgeModel);
-  const problem = calibrationProblem(
-    await readOptional(deps, recordPath),
-    judgeModel,
-    JUDGE_PROMPT_VERSION,
-  );
+  const calibrationLines = await readOptional(deps, CALIBRATION_DATASET);
+  const calibration = checkCalibration(await readOptional(deps, recordPath), {
+    model: judgeModel,
+    promptVersion: JUDGE_PROMPT_VERSION,
+    datasetHash: calibrationLines === null ? null : datasetHash(calibrationLines),
+  });
+  const problem = calibration.ok ? null : calibration.problem;
   if (problem !== null && !options.uncalibrated) {
     throw new CliError(
       `${problem} (${recordPath}): run \`evals calibrate\` first, or pass --uncalibrated to grade anyway`,
@@ -64,14 +73,24 @@ async function runTranslation(deps: CliDeps, options: TranslationOptions): Promi
     timing: REAL_TIMING,
     now: deps.now,
   });
-  const judge = createLlmJudge({
+  const llmJudge = createLlmJudge({
     provider,
     model: judgeModel,
     timeoutMs: config.timeoutMs,
     timing: REAL_TIMING,
   });
+  // E8: a calibrated judge must keep answering as the dated model that was calibrated.
+  const judge = calibration.ok
+    ? pinJudge(llmJudge, judgeModel, calibration.answeredModel)
+    : llmJudge;
 
-  const results = await runTranslationCases(cases, translator, judge);
+  let results;
+  try {
+    results = await runTranslationCases(cases, translator, judge);
+  } catch (error: unknown) {
+    if (error instanceof JudgeDriftError) throw new CliError(error.message);
+    throw error;
+  }
   const summary = summarizeTranslation(results);
   const header: TranslationRunHeader = {
     translateModel: config.models.translate,

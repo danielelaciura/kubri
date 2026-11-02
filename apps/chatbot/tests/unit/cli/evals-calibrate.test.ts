@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { CliError } from "../../../src/cli/deps";
 import { createProgram } from "../../../src/cli/program";
-import { calibrationProblem } from "../../../src/evals/translation/calibration-record";
+import { datasetHash } from "../../../src/evals/report";
+import { checkCalibration } from "../../../src/evals/translation/calibration-record";
 import { FakeLlmProvider } from "../../../src/nlu/fake-provider";
 import { fakeCli } from "./fake-deps";
 
@@ -14,6 +15,11 @@ const LINE = JSON.stringify({
   human: { fidelity: 5, naturalness: 5 },
 });
 const RECORD = "evals/calibration/mistral-large-latest.json";
+const EXPECTED = {
+  model: "mistral-large-latest",
+  promptVersion: "judge-v1",
+  datasetHash: datasetHash(`${LINE}\n`),
+};
 
 async function calibrate(reply: string) {
   const cli = fakeCli(
@@ -46,10 +52,13 @@ describe("evals calibrate", () => {
       cases: 1,
       ok: true,
       answeredBy: ["mistral-large-latest"],
+      answeredModel: "mistral-large-latest",
+      datasetHash: EXPECTED.datasetHash,
     });
-    expect(
-      calibrationProblem(written[RECORD] ?? null, "mistral-large-latest", "judge-v1"),
-    ).toBeNull();
+    expect(checkCalibration(written[RECORD] ?? null, EXPECTED)).toEqual({
+      ok: true,
+      answeredModel: "mistral-large-latest",
+    });
   });
 
   it("fails, and records the failure, when the judge does not agree (E8)", async () => {
@@ -58,8 +67,7 @@ describe("evals calibrate", () => {
     expect(error).toBeInstanceOf(CliError);
     expect((error as CliError).message).toMatch(/not calibrated/);
     expect(JSON.parse(written[RECORD] ?? "null")).toMatchObject({ ok: false });
-    expect(calibrationProblem(written[RECORD] ?? null, "mistral-large-latest", "judge-v1")).toMatch(
-      /did not pass/,
-    );
+    const check = checkCalibration(written[RECORD] ?? null, EXPECTED);
+    expect(check.ok ? null : check.problem).toMatch(/did not pass/);
   });
 });

@@ -7,6 +7,7 @@ import {
   MIN_AGREEMENT,
 } from "../../evals/translation/calibration";
 import {
+  CALIBRATION_DATASET,
   calibrationPath,
   type CalibrationRecord,
 } from "../../evals/translation/calibration-record";
@@ -20,7 +21,7 @@ import { asCliError, pct, readText, toJson } from "./evals-shared";
 const fixed = (v: number | null): string => (v === null ? "—" : v.toFixed(2));
 
 async function runCalibration(deps: CliDeps): Promise<void> {
-  const path = "evals/datasets/translation-calibration.jsonl";
+  const path = CALIBRATION_DATASET;
   const text = await readText(deps, path);
   let cases;
   try {
@@ -49,6 +50,7 @@ async function runCalibration(deps: CliDeps): Promise<void> {
     judged: report.judged,
     withinOne: report.withinOne,
     answeredBy: [...report.answeredBy],
+    answeredModel: report.answeredBy.length === 1 ? (report.answeredBy[0] ?? null) : null,
     ok: report.ok,
   };
   await deps.writeFile(calibrationPath(model), toJson(record));

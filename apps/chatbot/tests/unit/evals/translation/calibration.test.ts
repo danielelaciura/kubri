@@ -78,4 +78,19 @@ describe("calibrate (D100)", () => {
     expect(report.withinOne).toEqual({ fidelity: 0, naturalness: 0 });
     expect(report.disagreements[0]).toMatchObject({ id: "a", judge: null });
   });
+
+  it("does not pass when more than one model graded: it calibrated no single judge (E8)", async () => {
+    const cases = [labelled("a", 5, 5), labelled("b", 5, 5)].map(withSource);
+    const models = ["judge-2411", "judge-2502"];
+    const judge: Judge = {
+      score: () =>
+        Promise.resolve({ fidelity: 5, naturalness: 5, issues: [], model: models.shift() ?? "" }),
+    };
+
+    const report = await calibrate(cases, judge);
+
+    expect(report.withinOne).toEqual({ fidelity: 1, naturalness: 1 });
+    expect(report.answeredBy).toEqual(["judge-2411", "judge-2502"]);
+    expect(report.ok).toBe(false);
+  });
 });

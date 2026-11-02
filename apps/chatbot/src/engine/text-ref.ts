@@ -27,6 +27,8 @@ export const SYSTEM_TEXT_KEYS = [
   "system.stopped",
   "system.closing",
   "system.session_closed",
+  // D145: the short reminder sent instead of the consent text after repeated unclear answers.
+  "consent.answer_hint",
 ] as const;
 export type SystemTextKey = (typeof SYSTEM_TEXT_KEYS)[number];
 

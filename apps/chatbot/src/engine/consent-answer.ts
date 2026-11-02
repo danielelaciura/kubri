@@ -4,7 +4,13 @@ import { chosen } from "./choice-answers";
 import type { Interpretation } from "./interpretation";
 import { applyExtractedPatch } from "./patches";
 import { nonAnswer } from "./replies";
-import { emit, incoherent, setState, type Turn } from "./turn";
+import { emit, incoherent, say, setState, systemText, type Turn } from "./turn";
+
+/**
+ * D145: unclear answers in a row on a consent step (state.clarifications, reset when the step
+ * is entered) that still get the full consent text again; from the next one, a short hint.
+ */
+export const CONSENT_MAX_UNCLEAR = 3;
 
 /**
  * Spec §7.3: blocking; recorded only once answered, with the text shown. The optional
@@ -20,7 +26,7 @@ export function answerConsent(
   const outcome = chosen(interpretation);
   if (outcome !== "accepted" && outcome !== "declined") {
     applyExtractedPatch(turn, interpretation.patch, undefined);
-    nonAnswer(turn, interpretation);
+    unclearConsent(turn, interpretation);
     return;
   }
   const language = turn.state.language ?? incoherent("consent answered before the language");
@@ -57,4 +63,23 @@ function updateThreshold(turn: Turn, outcome: "accepted" | "declined"): void {
   setState(turn, { consentsAccepted: true });
   // The candidate exists on the Kubri platform from here on (spec §12.1).
   emit(turn, { type: "EnqueueJob", job: { name: "kubri-webhook", event: "consents.accepted" } });
+}
+
+/**
+ * D145: not an answer to a consent step (not understood, off topic, no choice). Up to
+ * CONSENT_MAX_UNCLEAR the lead text and the full consent text again, as any non-answer; then
+ * only a short hint, the turn's last message so it carries the Accetto / Non accetto buttons
+ * (D112), and the first time a flag. The consent stays blocking: nothing is recorded.
+ */
+export function unclearConsent(turn: Turn, interpretation: Interpretation | null): void {
+  const count = turn.state.clarifications + 1;
+  setState(turn, { clarifications: count });
+  if (count <= CONSENT_MAX_UNCLEAR) {
+    nonAnswer(turn, interpretation);
+    return;
+  }
+  if (count === CONSENT_MAX_UNCLEAR + 1) {
+    emit(turn, { type: "FlagSession", reason: "consent_unclear", needsAttention: false });
+  }
+  say(turn, systemText("consent.answer_hint"));
 }

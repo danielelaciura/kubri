@@ -148,6 +148,14 @@ export const SYSTEM_CATALOG: Readonly<Record<CatalogKey, CatalogEntry>> = {
     params: {},
     text: { it: "Questa conversazione è chiusa. Grazie per averci scritto!" },
   },
+  // D145: instead of the full consent text, after CONSENT_MAX_UNCLEAR unclear answers; the
+  // quoted answers are the titles of the buttons (choice.accepted, choice.declined).
+  "consent.answer_hint": {
+    params: {},
+    text: {
+      it: "Per continuare ho bisogno di sapere se accetti. Rispondi «Accetto» oppure «Non accetto».",
+    },
+  },
   "format.yes": { params: {}, text: { it: "sì" } },
   "format.no": { params: {}, text: { it: "no" } },
   "format.empty": { params: {}, text: { it: "(nessun valore)" } },

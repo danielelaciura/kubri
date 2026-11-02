@@ -68,6 +68,12 @@ describe("system catalog", () => {
     expect(it_("system.delete_confirm").toLowerCase()).toContain("rispondi sì per cancellare");
   });
 
+  it("quotes the consent buttons in the consent hint (D145)", () => {
+    const hint = it_("consent.answer_hint");
+    expect(hint).toContain(`«${it_("choice.accepted")}»`);
+    expect(hint).toContain(`«${it_("choice.declined")}»`);
+  });
+
   it("asks for a yes or a no in the confirmations", () => {
     expect(it_("system.confirm_value")).toContain("Rispondi sì o no");
     expect(it_("system.confirm_edit")).toContain("Rispondi sì");

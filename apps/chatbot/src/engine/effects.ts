@@ -29,7 +29,9 @@ export type FlagReason =
   | "auto_advance_limit"
   | "incoherent_state"
   | "outbound_failed"
-  | "stale_confirmation";
+  | "stale_confirmation"
+  /** D145: a consent step got more than CONSENT_MAX_UNCLEAR unclear answers in a row. */
+  | "consent_unclear";
 
 export interface AppliedField {
   readonly field: string;

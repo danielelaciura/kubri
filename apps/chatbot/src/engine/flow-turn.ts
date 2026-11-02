@@ -1,8 +1,9 @@
 import { answerChoice, answerCvOffer } from "./choice-answers";
 import { resolvePendingInFlow } from "./confirmations";
-import { answerConsent } from "./consent-answer";
+import { answerConsent, unclearConsent } from "./consent-answer";
 import { requestEdit } from "./edits";
 import type { UserTurnEvent } from "./events";
+import type { Interpretation } from "./interpretation";
 import { applyExtractedPatch } from "./patches";
 import { fieldState } from "./profile-snapshot";
 import { answerQuestion } from "./question-answer";
@@ -14,7 +15,7 @@ export function handleFlowTurn(turn: Turn, event: UserTurnEvent): void {
   const interpretation = event.interpretation;
   if (resolvePendingInFlow(turn, event)) return;
   if (!interpretation) {
-    nonAnswer(turn, null);
+    notAnAnswer(turn, null);
     return;
   }
   // Spec §7.2 point 5: before the patch, so the new value is only saved once confirmed.
@@ -27,7 +28,7 @@ export function handleFlowTurn(turn: Turn, event: UserTurnEvent): void {
   }
   // Not answers: nothing extracted from them is saved, and no clarification is used up (D43).
   if (interpretation.intent === "off_topic" || interpretation.intent === "help") {
-    nonAnswer(turn, interpretation);
+    notAnAnswer(turn, interpretation);
     return;
   }
   const { step, index } = currentStep(turn);
@@ -56,4 +57,13 @@ export function handleFlowTurn(turn: Turn, event: UserTurnEvent): void {
     case "end":
       incoherent(`step "${step.id}" (${step.type}) never waits for an answer`);
   }
+}
+
+/** D145: on a consent step the non-answers are capped, except help (always the full text). */
+function notAnAnswer(turn: Turn, interpretation: Interpretation | null): void {
+  if (currentStep(turn).step.type === "consent" && interpretation?.intent !== "help") {
+    unclearConsent(turn, interpretation);
+    return;
+  }
+  nonAnswer(turn, interpretation);
 }

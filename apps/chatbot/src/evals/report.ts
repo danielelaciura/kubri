@@ -53,7 +53,8 @@ export interface ReportMeta {
   readonly suite: string;
   readonly createdAt: string;
   readonly promptVersion: string;
-  readonly models: { readonly interpret: string; readonly fallback: string };
+  /** `fallback` is always null: evals measure the model under test alone (D96). */
+  readonly models: { readonly interpret: string; readonly fallback: null };
   readonly provider: string;
   /** sha256 of the dataset file: a changed dataset makes comparisons partial (D97). */
   readonly datasetHash: string;
@@ -85,6 +86,13 @@ const signed = (value: number | null): string =>
   value === null ? "—" : `${value >= 0 ? "+" : ""}${(value * 100).toFixed(1)}`;
 const share = (count: number, total: number): string =>
   `${count}/${total} (${pct(total === 0 ? null : count / total)})`;
+
+const answered = (counts: Metrics["answeredBy"]): string => {
+  const entries = Object.entries(counts);
+  return entries.length === 0
+    ? "nessuno"
+    : entries.map(([model, runs]) => `${model} ×${runs}`).join(", ");
+};
 
 interface AnyCheck {
   readonly expected: unknown;
@@ -177,7 +185,7 @@ export function reportToMarkdown(
     `# Evals · ${meta.suite}`,
     "",
     `- Data: ${meta.createdAt}`,
-    `- Prompt: ${meta.promptVersion} · modello: ${meta.models.interpret} (riserva: ${meta.models.fallback}) · provider: ${meta.provider}`,
+    `- Prompt: ${meta.promptVersion} · modello: ${meta.models.interpret} (senza riserva; risposte da ${answered(m.answeredBy)}) · provider: ${meta.provider}`,
     `- Dataset: ${meta.datasetHash.slice(0, 12)} · campagna: ${meta.campaign}`,
     `- Ripetizioni per caso: ${meta.repeat} · scadenza NLU: ${meta.deadlineMs} ms`,
     "",

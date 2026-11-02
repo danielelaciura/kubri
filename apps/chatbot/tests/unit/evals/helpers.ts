@@ -21,6 +21,7 @@ export const STATS: RunStats = {
   valid: true,
   repaired: false,
   overDeadline: false,
+  answeredBy: "m",
 };
 
 /** A case of a test ReportView: its outcome alone (language `it`), or with its language. */
@@ -78,5 +79,8 @@ export function view(overrides: {
 /** A one-run CaseResult whose run score is the shown checks, patch and failure. */
 export function oneRun(result: Omit<CaseResult, "runScores">): CaseResult {
   const { checks, patch, failure } = result;
-  return { ...result, runScores: [{ checks, patch, failure }] };
+  return {
+    ...result,
+    runScores: [{ checks, patch, failure, answeredBy: failure === "unavailable" ? null : "m" }],
+  };
 }

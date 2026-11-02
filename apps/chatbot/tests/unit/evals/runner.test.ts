@@ -152,6 +152,19 @@ describe("runCases", () => {
     ]);
   });
 
+  it("records the model of the last reply, as the provider reported it (D96)", async () => {
+    const answered = { ...record("c1", null), model: "m-2026-10", output: "{}" };
+    const failed = { ...record("c1", null), model: "m", output: null, attempt: "retry" as const };
+    const [result] = await runCases({
+      ...base,
+      cases: [makeCase()],
+      interpret: () => Promise.resolve(reply(interpretation(), { traces: [answered, failed] })),
+      clock: clock(),
+    });
+
+    expect(result?.runScores.map((r) => r.answeredBy)).toEqual(["m-2026-10"]);
+  });
+
   it("leaves the cost empty without traces", async () => {
     const [result] = await runCases({
       ...base,

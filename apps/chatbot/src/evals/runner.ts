@@ -33,6 +33,11 @@ function costOf(traces: readonly NluTraceRecord[]): number | null {
   return costs.length === 0 ? null : costs.reduce((sum, cost) => sum + cost, 0);
 }
 
+/** The model of the last call that got a reply (the repair, if there was one). */
+function answeredBy(traces: readonly NluTraceRecord[]): string | null {
+  return traces.findLast((record) => record.output !== null)?.model ?? null;
+}
+
 function toRequest(c: EvalCase, options: RunOptions): ContextInterpretRequest {
   const request = toInterpretRequest(c, options.campaign);
   return {
@@ -60,6 +65,7 @@ async function runOnce(c: EvalCase, options: RunOptions): Promise<CaseResult> {
     valid: result?.valid ?? false,
     repaired: result?.repaired ?? false,
     overDeadline: latencyMs > options.deadlineMs,
+    answeredBy: result ? answeredBy(result.traces) : null,
   });
 }
 

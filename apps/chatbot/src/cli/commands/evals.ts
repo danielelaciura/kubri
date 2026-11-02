@@ -121,10 +121,13 @@ async function runSuite(deps: CliDeps, options: RunOptions): Promise<void> {
   const prompt = selectPrompt(options.prompt);
   const deadlineMs = productionDeadlineMs();
   const services = connectLlm(deps);
-  // D99: the candidate is a prompt and a model; the fallback model stays the configured one.
-  const config = options.model
-    ? { ...services.config, models: { ...services.config.models, interpret: options.model } }
-    : services.config;
+  // D99: the candidate is a prompt and a model. D96: no fallback model, which would answer for
+  // the model under test; `callWithPolicy` skips the fallback when it is the same model.
+  const interpretModel = options.model ?? services.config.models.interpret;
+  const config = {
+    ...services.config,
+    models: { ...services.config.models, interpret: interpretModel, fallback: interpretModel },
+  };
   // The traces come back with each result (cost); nothing is stored.
   const task = {
     provider: services.provider,
@@ -148,7 +151,7 @@ async function runSuite(deps: CliDeps, options: RunOptions): Promise<void> {
       suite: options.suite,
       createdAt: deps.now(),
       promptVersion: prompt.version,
-      models: { interpret: config.models.interpret, fallback: config.models.fallback },
+      models: { interpret: interpretModel, fallback: null },
       provider: services.provider.name,
       datasetHash: hash,
       campaign: options.campaign,

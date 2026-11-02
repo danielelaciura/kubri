@@ -75,6 +75,8 @@ export interface RunScore {
   readonly checks: Checks;
   readonly patch: PatchScore;
   readonly failure: NluFailure | null;
+  /** The model that gave the last reply, as the provider reported it; null = no reply. */
+  readonly answeredBy: string | null;
 }
 
 export interface CaseResult {
@@ -106,6 +108,8 @@ export interface RunStats {
   readonly valid: boolean;
   readonly repaired: boolean;
   readonly overDeadline: boolean;
+  /** The model that gave the last reply, as the provider reported it; null = no reply. */
+  readonly answeredBy: string | null;
 }
 
 function check<T>(expected: T, actual: T | undefined): Check<T> {
@@ -212,7 +216,7 @@ export function scoreCase(
     patch,
     pass,
     failure,
-    runScores: [{ checks, patch, failure }],
+    runScores: [{ checks, patch, failure, answeredBy: run.answeredBy }],
     nlu: {
       runs: 1,
       passed: pass ? 1 : 0,

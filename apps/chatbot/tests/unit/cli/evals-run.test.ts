@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { CliError } from "../../../src/cli/deps";
 import { createProgram } from "../../../src/cli/program";
 import { FakeLlmProvider } from "../../../src/nlu/fake-provider";
@@ -62,6 +62,39 @@ describe("evals run", () => {
 
     expect(error).toBeUndefined();
     expect(llm.requests[0]?.model).toBe("m-candidate");
+  });
+
+  it("measures only the model under test: no fallback model, and records who answered (D96)", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout"] });
+    try {
+      const busy = () => new LlmError("server", "busy");
+      const pending = run(FILES, [busy(), busy(), busy(), interpretationJson()], RUN);
+      await vi.runAllTimersAsync();
+      const { llm, written } = await pending;
+
+      expect(llm.requests.map((r) => r.model)).toEqual([
+        "mistral-small-latest",
+        "mistral-small-latest",
+        "mistral-small-latest",
+      ]);
+      const json = Object.entries(written).find(([path]) => path.endsWith(".json"))?.[1] ?? "";
+      expect(JSON.parse(json)).toMatchObject({
+        meta: { models: { interpret: "mistral-small-latest", fallback: null } },
+        cases: [{ failure: "unavailable", runScores: [{ answeredBy: null }] }],
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("records the model that answered each run", async () => {
+    const { written } = await run(FILES, [interpretationJson({ intent: "opt_out" })], RUN);
+
+    const json = Object.entries(written).find(([path]) => path.endsWith(".json"))?.[1] ?? "";
+    expect(JSON.parse(json)).toMatchObject({
+      metrics: { answeredBy: { "mistral-small-latest": 1 } },
+      cases: [{ runScores: [{ answeredBy: "mistral-small-latest" }] }],
+    });
   });
 
   it("fails with the known versions on an unknown prompt", async () => {

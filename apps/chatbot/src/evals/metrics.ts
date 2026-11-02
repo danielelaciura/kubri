@@ -63,6 +63,8 @@ export interface Metrics {
   readonly confusion: Readonly<Record<string, Readonly<Record<string, number>>>>;
   readonly byLanguage: Readonly<Record<string, GroupMetrics>>;
   readonly byTag: Readonly<Record<string, GroupMetrics>>;
+  /** Runs per model that answered, as the provider reported it (D96): one model expected. */
+  readonly answeredBy: Readonly<Record<string, number>>;
   readonly avgLatencyMs: number;
   /** null = no case has a cost estimate. */
   readonly totalCost: number | null;
@@ -183,6 +185,14 @@ function nluMetrics(results: readonly CaseResult[]): NluMetrics {
  * Pass rates count cases (a case passes only if every run passes); accuracies, hallucinations,
  * fields and the confusion matrix count runs, so `--repeat` hides no wrong answer (E6).
  */
+function answeredByCounts(runs: readonly RunScore[]): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const { answeredBy } of runs) {
+    if (answeredBy !== null) counts[answeredBy] = (counts[answeredBy] ?? 0) + 1;
+  }
+  return Object.fromEntries(Object.entries(counts).sort(([a], [b]) => a.localeCompare(b)));
+}
+
 export function computeMetrics(results: readonly CaseResult[]): Metrics {
   const passed = results.filter((r) => r.pass).length;
   const runs = results.flatMap((r) => r.runScores);
@@ -204,6 +214,7 @@ export function computeMetrics(results: readonly CaseResult[]): Metrics {
     confusion: confusionMatrix(runs),
     byLanguage: groups(results, (r) => [r.language]),
     byTag: groups(results, (r) => r.tags),
+    answeredBy: answeredByCounts(runs),
     avgLatencyMs:
       results.length === 0 ? 0 : results.reduce((sum, r) => sum + r.latencyMs, 0) / results.length,
     totalCost: costs.length === 0 ? null : costs.reduce((sum, cost) => sum + cost, 0),

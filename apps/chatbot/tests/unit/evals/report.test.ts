@@ -17,7 +17,7 @@ const META: ReportMeta = {
   suite: "intent",
   createdAt: "2026-10-24T10:00:00.000Z",
   promptVersion: "interpret-v1",
-  models: { interpret: "m-small", fallback: "m-medium" },
+  models: { interpret: "m-small", fallback: null },
   provider: "mistral",
   datasetHash: datasetHash("a\nb\n"),
   campaign: "campaigns/kubri-standard.json",

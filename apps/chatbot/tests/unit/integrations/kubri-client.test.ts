@@ -70,6 +70,45 @@ describe("createKubriClient (spec §12.1, R6)", () => {
     expect(await c.send(BODY)).toEqual({ ok: false, kind, code, status });
   });
 
+  it("never follows a redirect: a 3xx is definitive (a wrong base URL, not a send)", async () => {
+    const { client: c, calls } = client(
+      () => new Response(null, { status: 308, headers: { location: "https://www.kubri.it/" } }),
+    );
+
+    expect(await c.send(BODY)).toEqual({
+      ok: false,
+      kind: "permanent",
+      code: "http_308",
+      status: 308,
+    });
+    expect(calls[0]?.init.redirect).toBe("manual");
+  });
+
+  it("treats an opaque redirect (status 0) as definitive too", async () => {
+    const opaque = { status: 0, ok: false, text: () => Promise.resolve("") } as Response;
+    const { client: c } = client(() => opaque);
+
+    expect(await c.send(BODY)).toMatchObject({ ok: false, kind: "permanent" });
+  });
+
+  it.each([
+    ["an HTML page", () => new Response("<html>login</html>", { status: 200 })],
+    ["ok: false", () => json({ ok: false })],
+    ["no ok at all", () => json({ candidateId: "cand-1" })],
+  ])(
+    "does not count a 2xx with %s as delivered: transient invalid_response",
+    async (_, respond) => {
+      const { client: c } = client(respond);
+
+      expect(await c.send(BODY)).toEqual({
+        ok: false,
+        kind: "transient",
+        code: "invalid_response",
+        status: 200,
+      });
+    },
+  );
+
   it("treats a timeout and a network failure as transient", async () => {
     expect(await failing(new DOMException("t", "TimeoutError")).send(BODY)).toEqual({
       ok: false,

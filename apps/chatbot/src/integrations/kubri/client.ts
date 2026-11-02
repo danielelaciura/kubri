@@ -7,7 +7,10 @@ export type KubriFailure = {
   readonly ok: false;
   /** transient: try again later; permanent: the same payload would fail the same way (D126). */
   readonly kind: "transient" | "permanent";
-  /** The dashboard's `error` code for a 4xx, else `http_<status>`, `timeout` or `network`. */
+  /**
+   * The dashboard's `error` code for a 4xx, else `http_<status>`, `invalid_response` (a 2xx
+   * without `{ ok: true }`), `timeout` or `network`.
+   */
   readonly code: string;
   readonly status?: number;
 };
@@ -46,7 +49,22 @@ function parseJson(text: string): unknown {
   }
 }
 
+/** The dashboard's answer to a send it took: `{ ok: true }`, nothing less. */
+function acknowledged(value: unknown): boolean {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "ok" in value &&
+    (value as Record<string, unknown>)["ok"] === true
+  );
+}
+
 function classify(status: number, body: unknown): KubriFailure {
+  // A redirect is never followed (`redirect: "manual"`; 0 is the opaque one): the base URL is
+  // wrong or points at a login page, and the same send would be redirected again.
+  if (status === 0 || (status >= 300 && status < 400)) {
+    return { ok: false, kind: "permanent", code: `http_${String(status)}`, status };
+  }
   if (status >= 500 || status === 429 || status === 408) {
     return { ok: false, kind: "transient", code: `http_${String(status)}`, status };
   }
@@ -64,9 +82,11 @@ export interface KubriClientOptions {
 }
 
 /**
- * R6: `POST {baseUrl}/api/webhooks/chatbot/candidate` with the bearer secret. 2xx is done
- * (`skipped` too); 5xx, 429, 408, a timeout or a network error are transient; any other 4xx is
- * permanent, with the dashboard's code. Results carry codes only: never the secret or the body.
+ * R6: `POST {baseUrl}/api/webhooks/chatbot/candidate` with the bearer secret. Done only on a
+ * 2xx whose JSON body says `ok: true` (`skipped` too): any other 2xx (an HTML page, `ok: false`)
+ * is a transient `invalid_response`. 5xx, 429, 408, a timeout or a network error are transient;
+ * a redirect (never followed, so the bearer secret never reaches another host) or any other
+ * 4xx is permanent, with the dashboard's code. Results carry codes only: never the secret or the body.
  */
 export function createKubriClient(
   config: KubriConfig,
@@ -82,10 +102,19 @@ export function createKubriClient(
           headers: { authorization: `Bearer ${config.secret}`, "content-type": "application/json" },
           body: JSON.stringify(body),
           signal: AbortSignal.timeout(timeoutMs),
+          redirect: "manual",
         });
         // Read in full to release the connection; only a machine code is ever kept from it.
         const answer = parseJson(await response.text());
         if (!response.ok) return classify(response.status, answer);
+        if (!acknowledged(answer)) {
+          return {
+            ok: false,
+            kind: "transient",
+            code: "invalid_response",
+            status: response.status,
+          };
+        }
         const skipped = codeOf(answer, "skipped");
         return skipped === undefined ? { ok: true } : { ok: true, skipped };
       } catch (error: unknown) {

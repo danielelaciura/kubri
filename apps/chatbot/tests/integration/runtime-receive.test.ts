@@ -29,6 +29,23 @@ const message = (overrides: Partial<InboundMessage> = {}): InboundMessage => ({
 });
 
 describe("receiveInbound", () => {
+  it("stores a tap with its id, and the title as the body (D116)", async () => {
+    await receiveInbound(
+      { db, queue: new MemoryJobQueue(), config: testConfig() },
+      message({
+        type: "interactive",
+        body: "Accetto",
+        reply: { id: "consent:privacy:accepted", title: "Accetto" },
+      }),
+    );
+
+    expect(await db.message.findFirstOrThrow()).toMatchObject({
+      type: "interactive",
+      body: "Accetto",
+      replyId: "consent:privacy:accepted",
+    });
+  });
+
   it("stores the message, opens the window and enqueues the turn after the quiet time", async () => {
     const queue = new MemoryJobQueue();
 

@@ -12,6 +12,11 @@ const RuntimeEnvSchema = z.object({
   SEND_LEASE_MS: z.coerce.number().int().positive().default(60_000),
   SEND_MAX_ATTEMPTS: z.coerce.number().int().positive().default(5),
   WORKER_BATCH_SIZE: z.coerce.number().int().positive().max(20).default(4),
+  /** Send buttons and lists where the channel supports them (D113); false = plain text only. */
+  INTERACTIVE_MESSAGES: z
+    .enum(["true", "false"])
+    .default("true")
+    .transform((value) => value === "true"),
   /** Becomes part of SQL identifiers: letters, digits and underscores only. */
   QUEUE_SCHEMA: z
     .string()
@@ -50,6 +55,8 @@ export interface RuntimeConfig {
   readonly sendMaxAttempts: number;
   readonly workerBatchSize: number;
   readonly queueSchema: string;
+  /** Buttons and lists for closed questions (D113), where the channel supports them. */
+  readonly interactive: boolean;
   readonly consentHashSecret: string | undefined;
   /** Where pg-boss connects; undefined when unset outside development and test. */
   readonly queueDatabaseUrl: string | undefined;
@@ -82,6 +89,7 @@ export function parseRuntimeConfig(
     sendMaxAttempts: env.SEND_MAX_ATTEMPTS,
     workerBatchSize: env.WORKER_BATCH_SIZE,
     queueSchema: env.QUEUE_SCHEMA,
+    interactive: env.INTERACTIVE_MESSAGES,
     consentHashSecret: env.CONSENT_HASH_SECRET,
     queueDatabaseUrl:
       env.QUEUE_DATABASE_URL ??

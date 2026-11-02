@@ -130,6 +130,7 @@ export function makeHarness(scenario: Scenario, options: HarnessOptions = {}): H
     interpreterFor: options.interpreterFor ?? (() => interpreter),
     historyMessages: 3,
     consentHashSecret: TEST_CONSENT_SECRET,
+    channelFor: () => channel,
     now: () => new Date(),
   };
   const sendDeps: SendDeps = {
@@ -159,7 +160,12 @@ let counter = 0;
 export async function say(
   harness: Harness,
   body: string | null,
-  options: { readonly type?: "text" | "audio"; readonly providerMessageId?: string } = {},
+  options: {
+    readonly type?: "text" | "audio" | "interactive";
+    readonly providerMessageId?: string;
+    /** A tap on a button or a list row (D114). */
+    readonly reply?: { readonly id: string; readonly title: string };
+  } = {},
 ): Promise<{ duplicate: boolean }> {
   counter += 1;
   return receiveInbound(
@@ -170,10 +176,16 @@ export async function say(
       from: { externalId: harness.scenario.externalId, phoneE164: harness.scenario.phone },
       type: options.type ?? "text",
       body,
+      reply: options.reply ?? null,
       receivedAt: new Date(),
       payloadRaw: { n: counter },
     },
   );
+}
+
+/** The candidate taps a button or a list row: the title is also the body (D116). */
+export function tap(harness: Harness, id: string, title: string): Promise<{ duplicate: boolean }> {
+  return say(harness, title, { type: "interactive", reply: { id, title } });
 }
 
 /** The bodies of the replies, in the order they were queued. */

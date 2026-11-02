@@ -47,6 +47,8 @@ export interface ApplyContext {
   readonly answeringMessageId: string | null;
   /** The turn's inbound messages: marked processed here, before a purge can reach them. */
   readonly inbound: readonly InboundOfTurn[];
+  /** Attach the awaited choices to the turn's last message as a widget (D112, D115). */
+  readonly interactive?: boolean;
 }
 
 /**

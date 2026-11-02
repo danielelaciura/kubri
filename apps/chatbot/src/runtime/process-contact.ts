@@ -1,11 +1,13 @@
 import { randomUUID } from "node:crypto";
 import type { Logger } from "pino";
 import type { LoadedCampaign } from "../campaigns/loaded-campaign";
+import type { ChannelAdapter, OutboundSender } from "../channels/channel";
+import { interpretReply } from "../engine/choices";
 import type { EngineEvent } from "../engine/events";
 import type { Interpretation } from "../engine/interpretation";
 import { initialSessionState, type SessionState } from "../engine/state";
 import type { LanguageCode } from "../i18n/localized-text";
-import type { TextResolver } from "../i18n/resolve";
+import { outputLanguage, type TextResolver } from "../i18n/resolve";
 import type { Interpreter } from "../nlu/interpreter";
 import { redactContacts, redactWithEvidence } from "../nlu/minimize";
 import type { NluTraceRecord, NluTraceSink } from "../nlu/trace";
@@ -18,12 +20,15 @@ import { findContactAddress } from "../store/contacts";
 import type { Database, Tx } from "../store/db";
 import { inTransaction, lockKey } from "../store/db";
 import {
+  latestReceivedProviderId,
   markInboundProcessed,
+  queueOutbound,
   receivedBurst,
   recentRedactedHistory,
   type BurstMessage,
 } from "../store/messages";
 import { loadProfile } from "../store/profiles";
+import { findOutboundSender } from "../store/senders";
 import type { JobQueue } from "../store/queue";
 import {
   closeOpenKey,
@@ -50,6 +55,8 @@ export interface RuntimeDeps {
   readonly logger: Logger;
   readonly queue: JobQueue;
   readonly resolver: TextResolver;
+  /** The channel of each provider: read receipts and widget support (D115, D121). */
+  readonly channelFor: (provider: OutboundSender["provider"]) => ChannelAdapter;
   /** One interpreter per turn: its traces go to that turn's sink (D110). */
   readonly interpreterFor: (traces: NluTraceSink) => Interpreter;
   /** Earlier candidate messages sent to the NLU (NLU_HISTORY_MESSAGES). */
@@ -74,8 +81,35 @@ export type ProcessResult =
  * workers never run the same contact together, and a crash leaves the messages `received` for
  * the job's retry. Idempotent: a second run finds nothing to do.
  */
-export function processContact(deps: RuntimeDeps, job: ContactJob): Promise<ProcessResult> {
+export async function processContact(deps: RuntimeDeps, job: ContactJob): Promise<ProcessResult> {
+  await acknowledgeLatest(deps, job);
   return inTransaction(deps.db, (tx) => runTurn(deps, tx, job), deps.config.turnTransactionMs);
+}
+
+/**
+ * D121: the read receipt and "typing" for the newest message, before the transaction and
+ * without the lock. It runs again if the job reschedules itself (that keeps the indicator on).
+ */
+async function acknowledgeLatest(deps: RuntimeDeps, job: ContactJob): Promise<void> {
+  try {
+    const providerMessageId = await latestReceivedProviderId(
+      deps.db,
+      job.contactId,
+      job.senderNumberId,
+    );
+    if (providerMessageId === null) return;
+    const sender = await findOutboundSender(deps.db, job.senderNumberId);
+    await deps.channelFor(sender.provider).acknowledge?.(providerMessageId, sender);
+  } catch (error: unknown) {
+    // Best effort: a missing read receipt never stops a conversation.
+    deps.logger.warn(
+      {
+        contactId: job.contactId,
+        errorName: error instanceof Error ? error.name : "unknown",
+      },
+      "read receipt not sent",
+    );
+  }
 }
 
 interface Contact {
@@ -104,25 +138,29 @@ async function runTurn(deps: RuntimeDeps, tx: Tx, job: ContactJob): Promise<Proc
   const contact: Contact = await findContactAddress(tx, job.contactId);
   const turnId = (deps.newId ?? randomUUID)();
   const open = await findOpenSession(tx, contact.id, job.senderNumberId);
-  const texts = burst.flatMap((m) => (m.type === "text" && m.body !== null ? [m.body] : []));
-  const quiet = { turnId, contactId: contact.id, burst, startedAt };
-
-  if (texts.length === 0) {
-    return finishQuietly(deps, tx, {
-      ...quiet,
-      sessionId: open?.id ?? null,
-      outcome: "ignored_media",
-    });
+  const texts = burst.flatMap((m) =>
+    m.body !== null && (m.type === "text" || m.type === "interactive") ? [m.body] : [],
+  );
+  // Audio, images and documents get a reply when a conversation is open (D121); as the very
+  // first message they open one, like any other.
+  if (texts.length === 0 && open) {
+    return replyToMedia(deps, tx, { turnId, session: open, contact, job, burst, startedAt });
   }
   const text = texts.join("\n");
   const route = await chooseCampaign(deps, job.senderNumberId, texts, open);
   if (route.kind === "none") {
-    return finishQuietly(deps, tx, { ...quiet, sessionId: null, outcome: "no_campaign" });
+    return finishQuietly(deps, tx, { turnId, contactId: contact.id, burst, startedAt });
   }
 
   const prepared =
     route.kind === "stay"
-      ? await continueSession(deps, tx, { open: route.session, text, turnId, startedAt })
+      ? await continueSession(deps, tx, {
+          open: route.session,
+          text,
+          turnId,
+          startedAt,
+          reply: onlyTap(burst),
+        })
       : await startSession(deps, tx, {
           contact,
           job,
@@ -153,6 +191,13 @@ async function runTurn(deps: RuntimeDeps, tx: Tx, job: ContactJob): Promise<Proc
     id: m.id,
     bodyRedacted: redactedCopy(m, interpretation, campaign),
   }));
+  const sender = await findOutboundSender(tx, job.senderNumberId);
+  // A turn that ended in an error never carries a widget (D112), and neither does a channel
+  // or a configuration that turns them off.
+  const interactive =
+    deps.config.interactive &&
+    !result.crashed &&
+    deps.channelFor(sender.provider).supportsInteractive;
   // applyEffects marks the inbound messages processed, before a purge can reach them.
   const effects = await applyEffects(
     {
@@ -172,6 +217,7 @@ async function runTurn(deps: RuntimeDeps, tx: Tx, job: ContactJob): Promise<Proc
       finalState: result.state,
       answeringMessageId: burst.at(-1)?.id ?? null,
       inbound,
+      interactive,
     },
     result.effects,
   );
@@ -194,7 +240,14 @@ async function runTurn(deps: RuntimeDeps, tx: Tx, job: ContactJob): Promise<Proc
     await deps.queue.enqueue("send-messages", job, {}, tx);
   }
   deps.logger.info(
-    { turnId, sessionId: session.id, contactId: contact.id, outcome, replies: effects.outbound },
+    {
+      turnId,
+      sessionId: session.id,
+      contactId: contact.id,
+      outcome,
+      replies: effects.outbound,
+      viaWidget: prepared.viaWidget,
+    },
     "turn done",
   );
   return outcome;
@@ -236,6 +289,8 @@ interface Prepared {
   readonly traces: readonly NluTraceRecord[];
   /** Paths of the stored state and profile that could not be read (D111b). */
   readonly dropped: readonly string[];
+  /** The answer was a tap on an awaited choice, understood without the NLU (D114). */
+  readonly viaWidget: boolean;
 }
 
 async function mustFindVersion(deps: RuntimeDeps, versionId: string): Promise<LoadedCampaign> {
@@ -247,7 +302,13 @@ async function mustFindVersion(deps: RuntimeDeps, versionId: string): Promise<Lo
 async function continueSession(
   deps: RuntimeDeps,
   tx: Tx,
-  a: { open: SessionRecord; text: string; turnId: string; startedAt: Date },
+  a: {
+    open: SessionRecord;
+    text: string;
+    turnId: string;
+    startedAt: Date;
+    reply: { readonly id: string; readonly title: string } | null;
+  },
 ): Promise<Prepared> {
   const campaign = await mustFindVersion(deps, a.open.campaignVersionId);
   const dropped: string[] = [];
@@ -279,6 +340,22 @@ async function continueSession(
       interpretation: null,
       traces: [],
       dropped,
+      viaWidget: false,
+    };
+  }
+  // D114: a tap on an awaited choice is understood without the NLU; an old widget is text.
+  const tapped = a.reply ? interpretReply(state, campaign.definition, a.reply) : null;
+  if (tapped) {
+    return {
+      session: a.open,
+      campaign,
+      state,
+      fallbackState,
+      event: { type: "user_turn", at, text: a.text, interpretation: tapped },
+      interpretation: tapped,
+      traces: [],
+      dropped,
+      viaWidget: true,
     };
   }
   const history = await recentRedactedHistory(tx, a.open.id, deps.historyMessages);
@@ -299,7 +376,18 @@ async function continueSession(
     // A late interpreter's traces are dropped from here on: they would land outside the turn.
     traces: traces.freeze(),
     dropped,
+    viaWidget: false,
   };
+}
+
+/** D114: a tap is the answer only when it is all the candidate sent in the burst. */
+function onlyTap(
+  burst: readonly BurstMessage[],
+): { readonly id: string; readonly title: string } | null {
+  const last = burst.at(-1);
+  if (!last || last.replyId === null || last.body === null) return null;
+  const typed = burst.some((m) => m.replyId === null && m.body !== null);
+  return typed ? null : { id: last.replyId, title: last.body };
 }
 
 /**
@@ -337,6 +425,7 @@ async function startSession(
     interpretation: null,
     traces: [],
     dropped: [],
+    viaWidget: false,
   };
 }
 
@@ -398,41 +487,103 @@ async function flagDropped(
   }
 }
 
+/** D105: no campaign answers this number; the turn records why. */
 async function finishQuietly(
   deps: RuntimeDeps,
   tx: Tx,
   a: {
     turnId: string;
     contactId: string;
-    sessionId: string | null;
     burst: readonly BurstMessage[];
     startedAt: Date;
-    outcome: "ignored_media" | "no_campaign";
   },
 ): Promise<ProcessResult> {
+  const outcome = "no_campaign";
   await insertTurn(tx, {
     id: a.turnId,
-    sessionId: a.sessionId,
+    sessionId: null,
     contactId: a.contactId,
     inboundMessageIds: a.burst.map((m) => m.id),
     startedAt: a.startedAt,
     completedAt: deps.now(),
-    outcome: a.outcome,
+    outcome,
   });
   // No applyEffects on this path: the messages are marked here.
   await markInboundProcessed(
     tx,
     a.burst.map((m) => ({
       id: m.id,
-      sessionId: a.sessionId,
+      sessionId: null,
       turnId: a.turnId,
       bodyRedacted: m.body === null ? null : redactContacts(m.body),
     })),
   );
   // Never silent without a recorded reason (CLAUDE.md): the turn row and this line are it.
   deps.logger.info(
-    { turnId: a.turnId, sessionId: a.sessionId, contactId: a.contactId, outcome: a.outcome },
+    { turnId: a.turnId, sessionId: null, contactId: a.contactId, outcome },
     "turn without a reply",
   );
-  return a.outcome;
+  return outcome;
+}
+
+/** D121: "write me instead", in the session's language; the turn stays recorded. */
+async function replyToMedia(
+  deps: RuntimeDeps,
+  tx: Tx,
+  a: {
+    turnId: string;
+    session: SessionRecord;
+    contact: Contact;
+    job: ContactJob;
+    burst: readonly BurstMessage[];
+    startedAt: Date;
+  },
+): Promise<ProcessResult> {
+  const campaign = await mustFindVersion(deps, a.session.campaignVersionId);
+  await insertTurn(tx, {
+    id: a.turnId,
+    sessionId: a.session.id,
+    contactId: a.contact.id,
+    inboundMessageIds: a.burst.map((m) => m.id),
+    startedAt: a.startedAt,
+    completedAt: deps.now(),
+    outcome: "ignored_media",
+  });
+  const language = outputLanguage(parseLanguage(a.session.language), campaign.definition);
+  // Same budget as a turn's translations: a hung translator falls back to Italian (D72, D102).
+  const reply = await deps.resolver
+    .withDeadline(Date.now() + deps.config.nluDeadlineMs)
+    .resolveKey("media.text_only", { campaign: campaign.definition, language });
+  await queueOutbound(tx, [
+    {
+      contactId: a.contact.id,
+      senderNumberId: a.job.senderNumberId,
+      sessionId: a.session.id,
+      turnId: a.turnId,
+      body: reply.text,
+      language: reply.language,
+      stepId: null,
+      questionId: null,
+    },
+  ]);
+  await markInboundProcessed(
+    tx,
+    a.burst.map((m) => ({
+      id: m.id,
+      sessionId: a.session.id,
+      turnId: a.turnId,
+      bodyRedacted: m.body === null ? null : redactContacts(m.body),
+    })),
+  );
+  await deps.queue.enqueue("send-messages", a.job, {}, tx);
+  deps.logger.info(
+    {
+      turnId: a.turnId,
+      sessionId: a.session.id,
+      contactId: a.contact.id,
+      outcome: "ignored_media",
+    },
+    "turn done",
+  );
+  return "ignored_media";
 }

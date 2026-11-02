@@ -1,5 +1,5 @@
 import type { MetaProviderConfig } from "../channels/provider-config";
-import type { Database } from "./db";
+import type { Database, Tx } from "./db";
 
 export type SenderProvider = "meta" | "twilio";
 export type SenderStatus = "provisioning" | "active" | "suspended";
@@ -71,7 +71,7 @@ export interface OutboundSenderRecord {
 }
 
 /** The number a message leaves from, as a channel adapter needs it. */
-export function findOutboundSender(db: Database, id: string): Promise<OutboundSenderRecord> {
+export function findOutboundSender(db: Tx, id: string): Promise<OutboundSenderRecord> {
   return db.senderNumber.findUniqueOrThrow({
     where: { id },
     select: { id: true, slug: true, provider: true, providerConfig: true },

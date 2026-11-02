@@ -119,6 +119,7 @@ export function registerWorkerCommands(program: Command, deps: CliDeps): void {
                 interpreterFor,
                 historyMessages: nluConfig.historyMessages,
                 consentHashSecret,
+                channelFor: () => channel,
                 now,
               },
               send: { db, config, logger, queue: queue.queue, channelFor: () => channel, now },

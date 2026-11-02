@@ -23,6 +23,7 @@ describe("parseRuntimeConfig", () => {
       sendMaxAttempts: 5,
       workerBatchSize: 4,
       queueSchema: "bot_queue",
+      interactive: true,
       consentHashSecret: undefined,
       // NODE_ENV unset counts as production: no fallback to DATABASE_URL.
       queueDatabaseUrl: undefined,
@@ -38,6 +39,7 @@ describe("parseRuntimeConfig", () => {
       SEND_MAX_ATTEMPTS: "3",
       WORKER_BATCH_SIZE: "1",
       QUEUE_SCHEMA: "bot_queue_test",
+      INTERACTIVE_MESSAGES: "false",
       CONSENT_HASH_SECRET: SECRET,
       QUEUE_DATABASE_URL: QUEUE_URL,
     });
@@ -52,9 +54,16 @@ describe("parseRuntimeConfig", () => {
       sendMaxAttempts: 3,
       workerBatchSize: 1,
       queueSchema: "bot_queue_test",
+      interactive: false,
       consentHashSecret: SECRET,
       queueDatabaseUrl: QUEUE_URL,
     });
+  });
+
+  it("accepts only true or false for INTERACTIVE_MESSAGES", () => {
+    expect(() => parseRuntimeConfig({ INTERACTIVE_MESSAGES: "yes" })).toThrow(
+      /INTERACTIVE_MESSAGES/,
+    );
   });
 
   it("treats an empty variable as unset and explains invalid ones without echoing them", () => {

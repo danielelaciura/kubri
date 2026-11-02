@@ -5,7 +5,9 @@ import { createTextResolver, type TextResolver } from "../../src/i18n/resolve";
 import { MemoryTranslationCache } from "../../src/i18n/translation-cache";
 import type { Interpreter } from "../../src/nlu/interpreter";
 import type { NluTraceRecord, NluTraceSink } from "../../src/nlu/trace";
+import { initialSessionState } from "../../src/engine/state";
 import { processContact } from "../../src/runtime/process-contact";
+import { encodeState } from "../../src/runtime/state-codec";
 import type { QueueRuntime } from "../../src/store/queue";
 import { minimalCampaign } from "../unit/campaigns/fixtures";
 import { createTestDatabase, resetBotSchema } from "./helpers/database";
@@ -16,6 +18,7 @@ import {
   say,
   seedScenario,
   startSession,
+  tap,
   testResolver,
   type Harness,
 } from "./helpers/runtime";
@@ -736,8 +739,8 @@ describe("the NLU traces of a turn (D110)", () => {
   });
 });
 
-describe("messages that are not text (D107)", () => {
-  it("does not run the engine for media only, and records the turn", async () => {
+describe("messages that are not text (D121)", () => {
+  it("answers audio with a request for text, once, and does not run the engine", async () => {
     const h = await harness();
     await say(h, "ciao");
     await run(h);
@@ -748,7 +751,22 @@ describe("messages that are not text (D107)", () => {
     const turn = await db.turn.findFirstOrThrow({ orderBy: { startedAt: "desc" } });
     expect(turn.outcome).toBe("ignored_media");
     expect(turn.sessionId).toBe((await db.session.findFirstOrThrow()).id);
-    expect(await replies(db)).toHaveLength(1);
+    expect(turn.contactId).toBe(h.key.contactId);
+    const bodies = await replies(db);
+    expect(bodies).toHaveLength(2);
+    expect(bodies[1]).toContain("solo messaggi di testo");
+    expect(h.queue.named("send-messages")).toHaveLength(2);
+    expect(await db.message.count({ where: { direction: "inbound", status: "received" } })).toBe(0);
+  });
+
+  it("opens the conversation when the first message is a voice note", async () => {
+    const h = await harness();
+    await say(h, null, { type: "audio" });
+
+    expect(await run(h)).toBe("replied");
+
+    expect(await db.session.count()).toBe(1);
+    expect((await replies(db))[0]).toContain("In che lingua");
   });
 });
 
@@ -784,5 +802,150 @@ describe("the history for the NLU (D107)", () => {
     await run(h);
 
     expect(seen).toEqual([["ciao"], ["ciao", "scrivetemi a [email]"]]);
+  });
+});
+
+describe("taps on buttons and lists (D114)", () => {
+  /** An interpreter that counts its calls: a tap must not make any. */
+  function counting(): { interpreter: Interpreter; calls: () => number } {
+    let calls = 0;
+    return {
+      calls: () => calls,
+      interpreter: {
+        interpret: (request) => {
+          calls += 1;
+          return naiveInterpreter.interpret(request);
+        },
+      },
+    };
+  }
+
+  it("picks the language from the list without the NLU", async () => {
+    const nlu = counting();
+    const h = await harness({ interpreter: nlu.interpreter });
+    await say(h, "ciao");
+    await run(h);
+
+    await tap(h, "lang:ar", "العربية");
+    expect(await run(h)).toBe("replied");
+
+    expect((await db.session.findFirstOrThrow()).language).toBe("ar");
+    expect(nlu.calls()).toBe(0);
+    expect(await db.nluTrace.count()).toBe(0);
+    expect(await db.message.findFirstOrThrow({ where: { replyId: "lang:ar" } })).toMatchObject({
+      type: "interactive",
+      body: "العربية",
+      status: "processed",
+    });
+  });
+
+  it("records a consent given with a tap", async () => {
+    const nlu = counting();
+    const h = await harness({ interpreter: nlu.interpreter });
+    await say(h, "ciao");
+    await run(h);
+    await tap(h, "lang:it", "Italiano");
+    await run(h);
+
+    await tap(h, "consent:privacy:accepted", "Accetto");
+    await run(h);
+
+    expect(await db.consent.findFirstOrThrow()).toMatchObject({
+      consentKey: "privacy_interview",
+      outcome: "accepted",
+    });
+    expect(nlu.calls()).toBe(0);
+  });
+
+  it("saves the value of a boolean question answered with a tap", async () => {
+    const nlu = counting();
+    const h = await harness({ interpreter: nlu.interpreter });
+    await say(h, "ciao");
+    await run(h);
+    await db.session.updateMany({
+      data: {
+        engineState: {
+          ...encodeState({
+            ...initialSessionState(),
+            phase: "flow",
+            stepId: "mobilita",
+            questionId: "patente",
+            outcomes: { privacy: "accepted" },
+            language: "it",
+            consentsAccepted: true,
+          }),
+          pendingConfirmation: null,
+        },
+        language: "it",
+      },
+    });
+
+    await tap(h, "q:patente:yes", "Sì");
+    await run(h);
+
+    const profile = await db.candidateProfile.findFirstOrThrow();
+    expect(profile.standard).toMatchObject({ drivingLicense: true });
+    expect(nlu.calls()).toBe(0);
+  });
+
+  it("reads a tap on an old widget as the text of its title, through the NLU", async () => {
+    const nlu = counting();
+    const h = await harness({ interpreter: nlu.interpreter });
+    await say(h, "ciao");
+    await run(h);
+    await tap(h, "lang:it", "Italiano");
+    await run(h);
+    expect(nlu.calls()).toBe(0);
+
+    // The language is behind us: "lang:ar" is not awaited any more.
+    await tap(h, "lang:ar", "العربية");
+    await run(h);
+
+    expect(nlu.calls()).toBe(1);
+  });
+
+  it("goes to the NLU when the candidate typed something besides the tap", async () => {
+    const nlu = counting();
+    const h = await harness({ interpreter: nlu.interpreter });
+    await say(h, "ciao");
+    await run(h);
+    await tap(h, "lang:it", "Italiano");
+    await say(h, "grazie");
+
+    await run(h);
+
+    expect(nlu.calls()).toBe(1);
+  });
+});
+
+describe("read receipt and typing (D121)", () => {
+  it("acknowledges the newest message before the turn", async () => {
+    const h = await harness();
+    await say(h, "ciao");
+    await say(h, "sono qui");
+
+    await run(h);
+
+    const newest = await db.message.findFirstOrThrow({
+      where: { direction: "inbound" },
+      orderBy: { ordinal: "desc" },
+    });
+    expect(h.channel.acknowledged).toEqual([newest.providerMessageId]);
+  });
+
+  it("does not let a failing acknowledgement stop the turn", async () => {
+    const h = await harness();
+    await say(h, "ciao");
+    const failing = {
+      ...h.deps,
+      channelFor: () => ({
+        supportsInteractive: true,
+        freeFormWindowMs: null,
+        send: () => Promise.reject(new Error("never")),
+        acknowledge: () => Promise.reject(new Error("socket hang up")),
+      }),
+    };
+
+    await expect(processContact(failing, h.key)).resolves.toBe("replied");
   });
 });

@@ -11,6 +11,8 @@ export interface InboundMessage {
   readonly from: { readonly externalId: string; readonly phoneE164: string };
   readonly type: MessageKind;
   readonly body: string | null;
+  /** A tap on a button or a list row: its id (D114). The title is also the body. */
+  readonly reply?: { readonly id: string; readonly title: string } | null;
   readonly receivedAt: Date;
   readonly payloadRaw: PayloadRaw;
 }
@@ -47,6 +49,7 @@ export async function receiveInbound(
         providerMessageId: message.providerMessageId,
         type: message.type,
         body: message.body,
+        replyId: message.reply?.id ?? null,
         payloadRaw: message.payloadRaw,
       });
       if (!created) return { duplicate: true };

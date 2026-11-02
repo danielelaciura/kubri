@@ -97,7 +97,13 @@ export async function recentRedactedHistory(
 ): Promise<string[]> {
   if (limit === 0) return [];
   const rows = await tx.message.findMany({
-    where: { sessionId, direction: "inbound", type: "text", bodyRedacted: { not: null } },
+    // A tap's title is what the candidate "said" (C4).
+    where: {
+      sessionId,
+      direction: "inbound",
+      type: { in: ["text", "interactive"] },
+      bodyRedacted: { not: null },
+    },
     orderBy: { ordinal: "desc" },
     take: limit,
     select: { bodyRedacted: true },

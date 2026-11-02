@@ -6,6 +6,7 @@ import {
   workerStopTimeoutMs,
   type RuntimeConfig,
 } from "./config";
+import { reportOutboundFailure } from "./outbound-failure";
 import { processContact, type RuntimeDeps } from "./process-contact";
 import { sendMessages, type SendDeps } from "./send-messages";
 
@@ -45,8 +46,8 @@ export function workerQueueSettings(config: RuntimeConfig, logger: Logger): Queu
 }
 
 /**
- * Starts pg-boss and registers the handlers of this plan: `process-contact` and
- * `send-messages`. The other queues (kubri-webhook, cv, geocoding, delete-contact) exist and
+ * Starts pg-boss and registers the handlers of plans 08 and 09: `process-contact`,
+ * `send-messages` and `report-failure`. The other queues (kubri-webhook, cv, geocoding, delete-contact) exist and
  * receive jobs; their handlers are plans 10 and 11's.
  *
  * Both handlers are idempotent, so a retried job is harmless: process-contact finds the burst
@@ -77,4 +78,9 @@ export async function startWorker(deps: WorkerDeps): Promise<void> {
     options,
   );
   await deps.queue.work("send-messages", (payload) => sendMessages(deps.send, payload), options);
+  // One at a time: each may wait for a whole turn to release the contact's lock (D120).
+  await deps.queue.work("report-failure", (payload) => reportOutboundFailure(deps.send, payload), {
+    ...options,
+    batchSize: 1,
+  });
 }

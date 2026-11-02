@@ -7,6 +7,7 @@ import type { Tx } from "./db";
 export const QUEUE_NAMES = [
   "process-contact",
   "send-messages",
+  "report-failure",
   "kubri-webhook",
   "cv",
   "geocoding",
@@ -25,6 +26,12 @@ const KUBRI_EVENTS = [
 const PAYLOAD_SCHEMAS = {
   "process-contact": z.strictObject({ contactId: z.string(), senderNumberId: z.string() }),
   "send-messages": z.strictObject({ contactId: z.string(), senderNumberId: z.string() }),
+  /** A message that failed after it was sent (D120, C7): flag its session under the lock. */
+  "report-failure": z.strictObject({
+    contactId: z.string(),
+    sessionId: z.string(),
+    turnId: z.string().nullable(),
+  }),
   "kubri-webhook": z.strictObject({ sessionId: z.string(), event: z.enum(KUBRI_EVENTS) }),
   cv: z.strictObject({ sessionId: z.string() }),
   geocoding: z.strictObject({ sessionId: z.string() }),

@@ -132,22 +132,24 @@ export function sendRetryLimit(config: RuntimeConfig): number {
 }
 
 /**
- * Connections of the worker's Prisma pool. Each queue runs up to WORKER_BATCH_SIZE jobs at once
- * and each job may need two connections together:
+ * Connections of the worker's Prisma pool. process-contact and send-messages run up to
+ * WORKER_BATCH_SIZE jobs at once, report-failure one, and each job may need two connections
+ * together:
  * - process-contact holds its turn transaction (D102) while it reads the campaign and writes
  *   the translation cache and traces on another connection;
- * - send-messages holds reportFailure's transaction (it may wait for a turn to release the
- *   contact's lock) while it reads the campaign on another connection.
+ * - send-messages and report-failure hold reportOutboundFailure's transaction (it may wait for
+ *   a turn to release the contact's lock) while they read the campaign on another connection.
  * A pool smaller than that can deadlock: every connection is a transaction waiting for one more.
- * So `2 queues × WORKER_BATCH_SIZE × 2`, plus 2 spare for the short reads outside a job.
+ * So `2 queues × WORKER_BATCH_SIZE × 2 + 2` for report-failure, plus 2 spare for the short
+ * reads outside a job.
  */
 export function workerPoolSize(config: RuntimeConfig): number {
-  return 2 * config.workerBatchSize * 2 + 2;
+  return 2 * config.workerBatchSize * 2 + 2 + 2;
 }
 
 /**
- * How long reportFailure's transaction may last (send-messages): it may wait for a whole turn
- * to release the contact's lock, then flag the session.
+ * How long reportOutboundFailure's transaction may last (send-messages, report-failure): it may
+ * wait for a whole turn to release the contact's lock, then flag the session.
  */
 export function reportFailureTransactionMs(config: RuntimeConfig): number {
   return config.turnTransactionMs + 15_000;

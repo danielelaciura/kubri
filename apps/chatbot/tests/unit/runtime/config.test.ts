@@ -147,8 +147,8 @@ describe("sendRetryLimit", () => {
 });
 
 describe("workerPoolSize", () => {
-  it("gives every job in flight of both queues two connections, plus two spare", () => {
-    expect(workerPoolSize(parseRuntimeConfig({}))).toBe(18);
-    expect(workerPoolSize(parseRuntimeConfig({ WORKER_BATCH_SIZE: "1" }))).toBe(6);
+  it("gives every job in flight two connections, report-failure's too, plus two spare", () => {
+    expect(workerPoolSize(parseRuntimeConfig({}))).toBe(20);
+    expect(workerPoolSize(parseRuntimeConfig({ WORKER_BATCH_SIZE: "1" }))).toBe(8);
   });
 });

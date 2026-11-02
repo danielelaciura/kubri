@@ -45,7 +45,7 @@ function depsFor(env: Record<string, string>, queue: QueueRuntime) {
 }
 
 describe("startWorker", () => {
-  it("registers process-contact and send-messages with the configured batch size", async () => {
+  it("registers process-contact and send-messages with the batch size, report-failure one by one", async () => {
     const queue = fakeQueue(5);
 
     await startWorker(depsFor({ WORKER_BATCH_SIZE: "3" }, queue));
@@ -54,6 +54,7 @@ describe("startWorker", () => {
     expect(queue.registered).toEqual([
       { name: "process-contact", options: { batchSize: 3 } },
       { name: "send-messages", options: { batchSize: 3 } },
+      { name: "report-failure", options: { batchSize: 1 } },
     ]);
   });
 

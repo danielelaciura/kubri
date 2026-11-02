@@ -1,11 +1,7 @@
 import type { Logger } from "pino";
 import type { ChannelAdapter, OutboundSender, SendOutcome } from "../channels/channel";
-import type { Effect } from "../engine/effects";
-import { initialSessionState, type SessionState } from "../engine/state";
-import { findCampaignVersion } from "../store/campaigns";
 import { findContactAddress, findLastInboundAt } from "../store/contacts";
 import type { Database } from "../store/db";
-import { inTransaction, lockKey } from "../store/db";
 import {
   claimNextOutbound,
   finishSend,
@@ -14,12 +10,9 @@ import {
 } from "../store/messages";
 import type { JobQueue } from "../store/queue";
 import { findOutboundSender } from "../store/senders";
-import { findSessionById } from "../store/sessions";
-import { recordFlag } from "./apply-effects";
-import { reportFailureTransactionMs, type RuntimeConfig } from "./config";
+import type { RuntimeConfig } from "./config";
 import { withDeadline } from "./deadline";
-import { stepSafely } from "./safe";
-import { decodeState } from "./state-codec";
+import { reportOutboundFailure } from "./outbound-failure";
 
 export interface SendDeps {
   readonly db: Database;
@@ -82,50 +75,6 @@ async function sendOnce(deps: SendDeps, message: ClaimedMessage): Promise<SendOu
   }
 }
 
-const OUTBOUND_FAILED_FLAG: Effect = {
-  type: "FlagSession",
-  reason: "outbound_failed",
-  needsAttention: true,
-};
-
-/**
- * Spec §11.3: after a definitive error the engine hears about it (`outbound_failed`), which
- * flags the session. Only the flags are applied, and the state is never saved here: the reply
- * to the candidate is the one that could not be sent. The contact's lock serializes this with
- * a running turn, whose saveSession would otherwise write back the status it read before.
- */
-async function reportFailure(deps: SendDeps, message: ClaimedMessage): Promise<void> {
-  if (message.sessionId === null) return;
-  const sessionId = message.sessionId;
-  await inTransaction(
-    deps.db,
-    async (tx) => {
-      await lockKey(tx, `contact:${message.contactId}`);
-      const session = await findSessionById(tx, sessionId);
-      if (!session) return;
-      const campaign = await findCampaignVersion(deps.db, session.campaignVersionId);
-      let effects: readonly Effect[] = [OUTBOUND_FAILED_FLAG];
-      if (campaign) {
-        // outbound_failed does not read the state: an unreadable one must not hide the flag.
-        let state: SessionState;
-        try {
-          state = decodeState(session.engineState, {});
-        } catch {
-          state = initialSessionState();
-        }
-        const event = { type: "outbound_failed", at: deps.now().toISOString() } as const;
-        effects = stepSafely(state, event, campaign.definition, deps.logger).effects;
-      }
-      for (const effect of effects) {
-        if (effect.type !== "FlagSession") continue;
-        await recordFlag(tx, { sessionId, turnId: message.turnId, logger: deps.logger }, effect);
-      }
-    },
-    // It may wait for a whole turn to release the contact's lock.
-    reportFailureTransactionMs(deps.config),
-  );
-}
-
 /**
  * Sends a contact's queued messages in order, until none is left, one is in someone else's
  * hands, or one fails (D108). Safe to run twice at once: the claim serializes the senders, and
@@ -172,7 +121,7 @@ export async function sendMessages(deps: SendDeps, key: SendKey): Promise<void> 
       return;
     }
     deps.logger.warn({ ...ids, code }, "message failed for good");
-    await reportFailure(deps, claim);
+    await reportOutboundFailure(deps, claim);
     return;
   }
 }

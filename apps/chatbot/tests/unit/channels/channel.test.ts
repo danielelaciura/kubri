@@ -118,3 +118,61 @@ describe("channel capabilities", () => {
     expect(lines).toEqual(["→ +393331112233: Ciao", "   [Sì] [No]"]);
   });
 });
+
+describe("documents (R8)", () => {
+  const FILE = {
+    bytes: new Uint8Array([37, 80, 68, 70, 45]),
+    filename: "CV.pdf",
+    mimeType: "application/pdf" as const,
+  };
+  const document = { mediaId: "media-1", filename: "CV.pdf" };
+
+  it("the fake channel records the uploads and numbers the media ids", async () => {
+    const channel = new FakeChannel();
+
+    expect(await channel.uploadDocument(FILE, MESSAGE.sender)).toEqual({
+      ok: true,
+      mediaId: "fake-media-1",
+    });
+    expect(await channel.uploadDocument(FILE, MESSAGE.sender)).toEqual({
+      ok: true,
+      mediaId: "fake-media-2",
+    });
+    expect(channel.uploaded).toEqual([FILE, FILE]);
+  });
+
+  it("the fake channel plays scripted upload failures first, without recording them", async () => {
+    const channel = new FakeChannel();
+    channel.enqueueUploadOutcome({ ok: false, kind: "transient", code: "rate_limited" });
+
+    expect(await channel.uploadDocument(FILE, MESSAGE.sender)).toEqual({
+      ok: false,
+      kind: "transient",
+      code: "rate_limited",
+    });
+    expect(await channel.uploadDocument(FILE, MESSAGE.sender)).toEqual({
+      ok: true,
+      mediaId: "fake-media-1",
+    });
+    expect(channel.uploaded).toHaveLength(1);
+  });
+
+  it("the fake channel records the document it is sent", async () => {
+    const channel = new FakeChannel();
+
+    await channel.send({ ...MESSAGE, document });
+
+    expect(channel.sent[0]?.document).toEqual(document);
+  });
+
+  it("the console channel shows the document under the text", async () => {
+    const lines: string[] = [];
+    const console = new ConsoleChannel((line) => lines.push(line));
+
+    const upload = await console.uploadDocument(FILE, MESSAGE.sender);
+    await console.send({ ...MESSAGE, text: "Ecco il tuo CV", document });
+
+    expect(upload).toMatchObject({ ok: true });
+    expect(lines).toEqual(["→ +393331112233: Ecco il tuo CV", "   [documento CV.pdf]"]);
+  });
+});

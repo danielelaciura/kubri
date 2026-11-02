@@ -394,3 +394,32 @@ describe("widgets and the 24 hour window", () => {
     expect((await statuses())[0]).toEqual(["uno", "failed", "outside_window"]);
   });
 });
+
+describe("documents (R8)", () => {
+  it("sends a queued document with its caption, in order with the texts", async () => {
+    await queueOutbound(db, [
+      {
+        ...h.key,
+        sessionId,
+        turnId: null,
+        body: "Ecco il tuo CV",
+        language: "it",
+        stepId: null,
+        questionId: null,
+        document: { mediaRef: "fake-media-1", filename: "CV.pdf" },
+      },
+    ]);
+    await queue("dopo");
+
+    await sendMessages(h.sendDeps, h.key);
+
+    expect(h.channel.sent.map((m) => [m.text, m.document])).toEqual([
+      ["Ecco il tuo CV", { mediaId: "fake-media-1", filename: "CV.pdf" }],
+      ["dopo", undefined],
+    ]);
+    expect(await statuses()).toEqual([
+      ["Ecco il tuo CV", "sent", null],
+      ["dopo", "sent", null],
+    ]);
+  });
+});

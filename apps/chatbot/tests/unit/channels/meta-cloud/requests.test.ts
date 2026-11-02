@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { OutboundText } from "../../../../src/channels/channel";
-import { acknowledgeBody, sendBody } from "../../../../src/channels/meta-cloud/requests";
+import {
+  acknowledgeBody,
+  sendBody,
+  uploadForm,
+} from "../../../../src/channels/meta-cloud/requests";
 
 const BASE: OutboundText = {
   clientMessageId: "m1",
@@ -73,6 +77,50 @@ describe("sendBody", () => {
     };
 
     expect(Array.from(body.interactive.body.text)).toHaveLength(1024);
+  });
+});
+
+describe("sendBody with a document (R8)", () => {
+  const document = { mediaId: "media-1", filename: "CV.pdf" };
+
+  it("sends the uploaded file with the text as its caption", () => {
+    expect(sendBody({ ...BASE, text: "Ecco il tuo CV", document })).toEqual({
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      to: "393334445566",
+      type: "document",
+      document: { id: "media-1", filename: "CV.pdf", caption: "Ecco il tuo CV" },
+    });
+  });
+
+  it("wins over the choices", () => {
+    expect(sendBody({ ...BASE, document, choices: choices(2) })).toMatchObject({
+      type: "document",
+    });
+  });
+
+  it("cuts a caption longer than Meta allows", () => {
+    const body = sendBody({ ...BASE, text: "x".repeat(2000), document }) as {
+      document: { caption: string };
+    };
+
+    expect(Array.from(body.document.caption)).toHaveLength(1024);
+  });
+});
+
+describe("uploadForm (R8)", () => {
+  it("is the multipart form of POST /{phone-number-id}/media", async () => {
+    const bytes = new Uint8Array([37, 80, 68, 70, 45]);
+
+    const form = uploadForm({ bytes, filename: "CV.pdf", mimeType: "application/pdf" });
+
+    expect(form.get("messaging_product")).toBe("whatsapp");
+    expect(form.get("type")).toBe("application/pdf");
+    const file = form.get("file");
+    if (!(file instanceof File)) throw new Error("expected a file part");
+    expect(file.name).toBe("CV.pdf");
+    expect(file.type).toBe("application/pdf");
+    expect(new Uint8Array(await file.arrayBuffer())).toEqual(bytes);
   });
 });
 

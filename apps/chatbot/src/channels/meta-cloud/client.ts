@@ -1,8 +1,15 @@
 import { z } from "zod";
-import type { ChannelAdapter, OutboundSender, OutboundText, SendOutcome } from "../channel";
+import type {
+  ChannelAdapter,
+  OutboundFile,
+  OutboundSender,
+  OutboundText,
+  SendOutcome,
+  UploadOutcome,
+} from "../channel";
 import { MetaProviderConfigSchema } from "../provider-config";
 import { classifyError } from "./errors";
-import { acknowledgeBody, sendBody } from "./requests";
+import { acknowledgeBody, sendBody, uploadForm } from "./requests";
 
 export type FetchLike = (url: string, init: RequestInit) => Promise<Response>;
 
@@ -20,6 +27,8 @@ const ResponseSchema = z.object({
   messages: z.array(z.object({ id: z.string().min(1) })).min(1),
 });
 
+const UploadResponseSchema = z.object({ id: z.string().min(1) });
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_TIMEOUT_MS = 10_000;
 const ACK_TIMEOUT_MS = 3_000;
@@ -28,9 +37,13 @@ type Failure = Extract<SendOutcome, { ok: false }>;
 
 interface Endpoint {
   readonly ok: true;
-  readonly url: string;
+  /** `https://graph.facebook.com/{version}/{phone-number-id}`: `/messages` and `/media` hang off it. */
+  readonly base: string;
   readonly token: string;
 }
+
+/** The parsed JSON of a successful reply (null when it is not JSON), or the failure. */
+type Reply = { readonly ok: true; readonly payload: unknown } | Failure;
 
 /** The Meta Cloud API behind the channel interface (D115, D119). The token never leaves here. */
 export function createMetaCloudChannel(options: MetaChannelOptions): ChannelAdapter {
@@ -45,18 +58,40 @@ export function createMetaCloudChannel(options: MetaChannelOptions): ChannelAdap
     return {
       ok: true,
       token,
-      url: `https://graph.facebook.com/${options.graphVersion}/${config.data.phoneNumberId}/messages`,
+      base: `https://graph.facebook.com/${options.graphVersion}/${config.data.phoneNumberId}`,
     };
   }
 
   function post(endpoint: Endpoint, body: unknown, timeoutMs: number): Promise<Response> {
-    return fetchImpl(endpoint.url, {
+    return fetchImpl(`${endpoint.base}/messages`, {
       method: "POST",
       headers: { authorization: `Bearer ${endpoint.token}`, "content-type": "application/json" },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(timeoutMs),
     });
   }
+
+  /** Runs a call and classifies what goes wrong (D119). The token never reaches a failure. */
+  async function settle(call: () => Promise<Response>): Promise<Reply> {
+    let response: Response;
+    try {
+      response = await call();
+    } catch (error: unknown) {
+      const timeout =
+        error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError");
+      return { ok: false, kind: "transient", code: timeout ? "timeout" : "network" };
+    }
+    let payload: unknown;
+    try {
+      payload = await response.json();
+    } catch {
+      payload = null;
+    }
+    if (!response.ok) return classifyError(response.status, payload);
+    return { ok: true, payload };
+  }
+
+  const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
   return {
     supportsInteractive: true,
@@ -65,25 +100,30 @@ export function createMetaCloudChannel(options: MetaChannelOptions): ChannelAdap
     async send(message: OutboundText): Promise<SendOutcome> {
       const endpoint = prepare(message.sender);
       if (!endpoint.ok) return endpoint;
-      let response: Response;
-      try {
-        response = await post(endpoint, sendBody(message), options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
-      } catch (error: unknown) {
-        const timeout =
-          error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError");
-        return { ok: false, kind: "transient", code: timeout ? "timeout" : "network" };
-      }
-      let payload: unknown;
-      try {
-        payload = await response.json();
-      } catch {
-        payload = null;
-      }
-      if (!response.ok) return classifyError(response.status, payload);
-      const parsed = ResponseSchema.safeParse(payload);
+      const reply = await settle(() => post(endpoint, sendBody(message), timeoutMs));
+      if (!reply.ok) return reply;
+      const parsed = ResponseSchema.safeParse(reply.payload);
       const id = parsed.success ? parsed.data.messages[0]?.id : undefined;
       if (!id) return { ok: false, kind: "transient", code: "invalid_response" };
       return { ok: true, providerMessageId: id };
+    },
+
+    async uploadDocument(file: OutboundFile, sender: OutboundSender): Promise<UploadOutcome> {
+      const endpoint = prepare(sender);
+      if (!endpoint.ok) return endpoint;
+      // No content-type: fetch writes the multipart one, with its boundary.
+      const reply = await settle(() =>
+        fetchImpl(`${endpoint.base}/media`, {
+          method: "POST",
+          headers: { authorization: `Bearer ${endpoint.token}` },
+          body: uploadForm(file),
+          signal: AbortSignal.timeout(timeoutMs),
+        }),
+      );
+      if (!reply.ok) return reply;
+      const parsed = UploadResponseSchema.safeParse(reply.payload);
+      if (!parsed.success) return { ok: false, kind: "transient", code: "invalid_response" };
+      return { ok: true, mediaId: parsed.data.id };
     },
 
     async acknowledge(providerMessageId: string, sender: OutboundSender): Promise<void> {

@@ -62,6 +62,12 @@ async function sendOnce(deps: SendDeps, message: ClaimedMessage): Promise<SendOu
         ...(message.interactive && channel.supportsInteractive
           ? { choices: message.interactive }
           : {}),
+        // R8: the file was uploaded before the message was queued; the body is its caption.
+        ...(message.document
+          ? {
+              document: { mediaId: message.document.mediaRef, filename: message.document.filename },
+            }
+          : {}),
       }),
     );
     // Shorter than the lease: the outcome is written while this sender still holds the claim.

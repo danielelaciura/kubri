@@ -174,6 +174,93 @@ describe("createMetaCloudChannel", () => {
     });
   });
 
+  describe("uploadDocument (R8)", () => {
+    const FILE = {
+      bytes: new Uint8Array([37, 80, 68, 70, 45]),
+      filename: "CV.pdf",
+      mimeType: "application/pdf" as const,
+    };
+
+    it("posts the file as multipart to the number's media endpoint", async () => {
+      const { channel: c, calls } = channel(() => json({ id: "media-42" }));
+
+      const outcome = await c.uploadDocument?.(FILE, MESSAGE.sender);
+
+      expect(outcome).toEqual({ ok: true, mediaId: "media-42" });
+      expect(calls[0]?.url).toBe("https://graph.facebook.com/v23.0/123456789012345/media");
+      expect(calls[0]?.init.method).toBe("POST");
+      expect(calls[0]?.init.headers).toEqual({ authorization: "Bearer tok-123" });
+      expect(calls[0]?.init.signal).toBeInstanceOf(AbortSignal);
+      const form = calls[0]?.init.body;
+      if (!(form instanceof FormData)) throw new Error("expected a multipart body");
+      expect(form.get("messaging_product")).toBe("whatsapp");
+      expect(form.get("type")).toBe("application/pdf");
+      expect(form.get("file")).toBeInstanceOf(File);
+    });
+
+    it.each([
+      [400, { error: { code: 100 } }, "permanent", "invalid_request"],
+      [429, {}, "transient", "rate_limited"],
+      [503, {}, "transient", "http_503"],
+    ])("classifies HTTP %i like a send", async (status, body, kind, code) => {
+      const { channel: c } = channel(() => json(body, status));
+
+      expect(await c.uploadDocument?.(FILE, MESSAGE.sender)).toEqual({ ok: false, kind, code });
+    });
+
+    it("treats a timeout, a network failure and a reply with no id as transient", async () => {
+      expect(
+        await failing(new DOMException("t", "TimeoutError")).uploadDocument?.(FILE, MESSAGE.sender),
+      ).toEqual({ ok: false, kind: "transient", code: "timeout" });
+      expect(
+        await failing(new TypeError("fetch failed")).uploadDocument?.(FILE, MESSAGE.sender),
+      ).toEqual({ ok: false, kind: "transient", code: "network" });
+      const { channel: c } = channel(() => json({}));
+      expect(await c.uploadDocument?.(FILE, MESSAGE.sender)).toEqual({
+        ok: false,
+        kind: "transient",
+        code: "invalid_response",
+      });
+    });
+
+    it("fails for good, without calling Meta, on a missing secret", async () => {
+      const { channel: c, calls } = channel(() => json({ id: "m" }), {});
+
+      expect(await c.uploadDocument?.(FILE, MESSAGE.sender)).toEqual({
+        ok: false,
+        kind: "permanent",
+        code: "missing_secret",
+      });
+      expect(calls).toHaveLength(0);
+    });
+
+    it("never puts the token in an error", async () => {
+      const { channel: c } = channel(() =>
+        json({ error: { code: 190, message: "Bearer tok-123 expired" } }, 401),
+      );
+
+      expect(JSON.stringify(await c.uploadDocument?.(FILE, MESSAGE.sender))).not.toContain(
+        "tok-123",
+      );
+    });
+  });
+
+  it("sends a document message with the uploaded media id", async () => {
+    const { channel: c, calls } = channel(() => json(OK));
+
+    await c.send({
+      ...MESSAGE,
+      text: "Ecco il tuo CV",
+      document: { mediaId: "media-42", filename: "CV.pdf" },
+    });
+
+    expect(calls[0]?.url).toBe("https://graph.facebook.com/v23.0/123456789012345/messages");
+    expect(bodyOf(calls[0])).toMatchObject({
+      type: "document",
+      document: { id: "media-42", filename: "CV.pdf", caption: "Ecco il tuo CV" },
+    });
+  });
+
   it("never puts the token in an error", async () => {
     const { channel: c } = channel(() =>
       json({ error: { code: 190, message: "Bearer tok-123 expired" } }, 401),

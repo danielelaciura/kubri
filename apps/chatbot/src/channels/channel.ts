@@ -22,12 +22,26 @@ export interface OutboundText {
   readonly text: string;
   /** Sent as buttons or a list when the channel supports them (D115). */
   readonly choices?: OutboundChoices;
+  /** A file already uploaded with `uploadDocument`; `text` becomes its caption. Wins over `choices` (R8). */
+  readonly document?: { readonly mediaId: string; readonly filename: string };
+}
+
+/** A file generated in memory and handed to the provider (R8: the CV). */
+export interface OutboundFile {
+  readonly bytes: Uint8Array;
+  readonly filename: string;
+  readonly mimeType: "application/pdf";
 }
 
 export type SendOutcome =
   | { readonly ok: true; readonly providerMessageId: string }
   /** transient: worth retrying (limits, 5xx); permanent: stop the turn's other messages. */
   | { readonly ok: false; readonly kind: "transient" | "permanent"; readonly code: string };
+
+type SendFailure = Extract<SendOutcome, { ok: false }>;
+
+/** The provider's id of an uploaded file, or the failure, classified as for a send (R8). */
+export type UploadOutcome = { readonly ok: true; readonly mediaId: string } | SendFailure;
 
 /**
  * The only module that talks to a messaging provider (CLAUDE.md). Plan 09 implements Meta's
@@ -44,6 +58,11 @@ export interface ChannelAdapter {
   readonly freeFormWindowMs: number | null;
   /** Read receipt and "typing" for an inbound message. Best effort: never throws (D121). */
   acknowledge?(providerMessageId: string, sender: OutboundSender): Promise<void>;
+  /**
+   * Uploads a file to send later as `OutboundText.document` (R8). A channel without it never
+   * gets a document to send.
+   */
+  uploadDocument?(file: OutboundFile, sender: OutboundSender): Promise<UploadOutcome>;
 }
 
 /** For tests: a script of outcomes first (failures are not recorded), then success. */
@@ -53,7 +72,10 @@ export class FakeChannel implements ChannelAdapter {
   freeFormWindowMs: number | null = null;
   /** The provider ids of the inbound messages acknowledged, in order. */
   readonly acknowledged: string[] = [];
+  /** The files uploaded successfully, in order (R8). */
+  readonly uploaded: OutboundFile[] = [];
   private readonly script: SendOutcome[];
+  private readonly uploadScript: SendFailure[] = [];
   private crash: Error | null = null;
 
   constructor(script: readonly SendOutcome[] = []) {
@@ -73,6 +95,18 @@ export class FakeChannel implements ChannelAdapter {
   /** Adds an outcome to the script. */
   enqueueOutcome(outcome: SendOutcome): void {
     this.script.push(outcome);
+  }
+
+  /** The next upload fails with this outcome (failures are not recorded). */
+  enqueueUploadOutcome(outcome: SendFailure): void {
+    this.uploadScript.push(outcome);
+  }
+
+  uploadDocument(file: OutboundFile, _sender: OutboundSender): Promise<UploadOutcome> {
+    const scripted = this.uploadScript.shift();
+    if (scripted) return Promise.resolve(scripted);
+    this.uploaded.push(file);
+    return Promise.resolve({ ok: true, mediaId: `fake-media-${this.uploaded.length}` });
   }
 
   send(message: OutboundText): Promise<SendOutcome> {
@@ -96,11 +130,21 @@ export class ConsoleChannel implements ChannelAdapter {
   readonly supportsInteractive = true;
   readonly freeFormWindowMs = null;
 
+  private uploads = 0;
+
   constructor(private readonly write: (line: string) => void) {}
+
+  /** Nothing leaves the terminal: the file is only named when its message is "sent". */
+  uploadDocument(_file: OutboundFile, _sender: OutboundSender): Promise<UploadOutcome> {
+    this.uploads += 1;
+    return Promise.resolve({ ok: true, mediaId: `console-media-${this.uploads}` });
+  }
 
   send(message: OutboundText): Promise<SendOutcome> {
     this.write(`→ ${message.to.phoneE164}: ${message.text}`);
-    if (message.choices) {
+    if (message.document) {
+      this.write(`   [documento ${message.document.filename}]`);
+    } else if (message.choices) {
       this.write(`   ${message.choices.options.map((o) => `[${o.title}]`).join(" ")}`);
     }
     // From the message id, not a counter: providerMessageId is unique across worker restarts.

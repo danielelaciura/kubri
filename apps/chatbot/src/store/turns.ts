@@ -30,3 +30,13 @@ export interface FlagInput {
 export async function insertFlag(tx: Tx, input: FlagInput): Promise<void> {
   await tx.sessionFlag.create({ data: input });
 }
+
+/** Whether the session already has a flag with this reason for this turn (the cv job, D131). */
+export async function hasFlagForTurn(
+  tx: Tx,
+  sessionId: string,
+  turnId: string,
+  reason: string,
+): Promise<boolean> {
+  return (await tx.sessionFlag.count({ where: { sessionId, turnId, reason } })) > 0;
+}

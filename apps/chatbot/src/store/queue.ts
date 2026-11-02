@@ -105,15 +105,27 @@ export interface WorkOptions {
   readonly pollingIntervalSeconds?: number;
 }
 
+/** Which run of a job a handler holds: pg-boss counts the retries. */
+export interface JobAttempt {
+  /** 0 on the first run. */
+  readonly retryCount: number;
+  /**
+   * No retry is left after this run (the queue's retry limit): a handler that wants to do
+   * something before the job goes to its dead letter queue does it now (the cv job, D131).
+   */
+  readonly lastAttempt: boolean;
+}
+
+export type JobHandler<Q extends QueueName> = (
+  payload: JobPayloads[Q],
+  attempt: JobAttempt,
+) => Promise<void>;
+
 export interface QueueRuntime {
   readonly queue: JobQueue;
   start(): Promise<void>;
   stop(): Promise<void>;
-  work<Q extends QueueName>(
-    name: Q,
-    handler: (payload: JobPayloads[Q]) => Promise<void>,
-    options: WorkOptions,
-  ): Promise<void>;
+  work<Q extends QueueName>(name: Q, handler: JobHandler<Q>, options: WorkOptions): Promise<void>;
   /** The retries a new job of the queue gets, as configured here. */
   retryLimitOf(name: QueueName): number;
   /** Tests: empties every queue. */
@@ -191,7 +203,12 @@ export function createQueueRuntime(settings: QueueSettings): QueueRuntime {
         },
         async (jobs) => {
           const results = await Promise.allSettled(
-            jobs.map((job) => handler(parsePayload(name, job.data))),
+            jobs.map((job) =>
+              handler(parsePayload(name, job.data), {
+                retryCount: job.retryCount,
+                lastAttempt: job.retryCount >= retryLimitOf(name),
+              }),
+            ),
           );
           return results.map((result, i) => {
             const id = jobs[i]?.id ?? "";

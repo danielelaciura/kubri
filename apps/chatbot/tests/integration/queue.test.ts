@@ -200,6 +200,37 @@ describe("dead letters (D126)", () => {
   });
 });
 
+describe("attempts", () => {
+  it("tells the handler which attempt it holds, and when it is the last one", async () => {
+    const seen: { retryCount: number; lastAttempt: boolean }[] = [];
+    const counting = await startTestQueue({ retryLimit: 1 });
+    try {
+      // A queue no other worker of this file listens on.
+      await counting.work(
+        "report-failure",
+        (_payload, attempt) => {
+          seen.push(attempt);
+          return attempt.lastAttempt ? Promise.resolve() : Promise.reject(new Error("again"));
+        },
+        { batchSize: 1, pollingIntervalSeconds: 0.5 },
+      );
+      await counting.queue.enqueue("report-failure", {
+        contactId: "c1",
+        sessionId: "s1",
+        turnId: null,
+      });
+
+      await expect.poll(() => seen.length, { timeout: 20_000, interval: 200 }).toBe(2);
+      expect(seen).toEqual([
+        { retryCount: 0, lastAttempt: false },
+        { retryCount: 1, lastAttempt: true },
+      ]);
+    } finally {
+      await counting.stop();
+    }
+  });
+});
+
 describe("failed jobs", () => {
   it("reports each failure with ids only and stores no error message", async () => {
     const failures: unknown[] = [];

@@ -70,15 +70,28 @@ export interface NluCounts {
   readonly overDeadline: number;
 }
 
+/** The score of one run of a case: what the metrics count (E6). */
+export interface RunScore {
+  readonly checks: Checks;
+  readonly patch: PatchScore;
+  readonly failure: NluFailure | null;
+}
+
 export interface CaseResult {
   readonly id: string;
   readonly tags: readonly string[];
   readonly language: string;
+  /** The run shown in the report (with `--repeat`, the first failing one). */
   readonly checks: Checks;
   readonly patch: PatchScore;
   readonly pass: boolean;
   /** Set when the NLU gave no usable answer (E2). */
   readonly failure: NluFailure | null;
+  /**
+   * Every run, in order (one without `--repeat`). Accuracies, hallucinations and field counts
+   * add up all of them, so a run that is not shown still counts (E6).
+   */
+  readonly runScores: readonly RunScore[];
   readonly nlu: NluCounts;
   readonly latencyMs: number;
   readonly costEstimate: number | null;
@@ -199,6 +212,7 @@ export function scoreCase(
     patch,
     pass,
     failure,
+    runScores: [{ checks, patch, failure }],
     nlu: {
       runs: 1,
       passed: pass ? 1 : 0,

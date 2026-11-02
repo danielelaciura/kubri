@@ -1,6 +1,6 @@
 import { EvalCaseSchema, type EvalCase } from "../../../src/evals/case";
 import type { ReportView } from "../../../src/evals/report";
-import type { RunStats } from "../../../src/evals/score-case";
+import type { CaseResult, RunStats } from "../../../src/evals/score-case";
 
 /** A valid case on the minimal test campaign; `raw` overrides the raw JSON fields. */
 export function makeCase(raw: Record<string, unknown> = {}): EvalCase {
@@ -56,4 +56,10 @@ export function view(overrides: {
     },
     cases: Object.entries(overrides.cases ?? {}).map(([id, pass]) => ({ id, pass })),
   };
+}
+
+/** A one-run CaseResult whose run score is the shown checks, patch and failure. */
+export function oneRun(result: Omit<CaseResult, "runScores">): CaseResult {
+  const { checks, patch, failure } = result;
+  return { ...result, runScores: [{ checks, patch, failure }] };
 }

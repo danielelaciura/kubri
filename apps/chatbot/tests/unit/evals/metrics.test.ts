@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { computeMetrics } from "../../../src/evals/metrics";
 import type { CaseResult } from "../../../src/evals/score-case";
+import { oneRun } from "./helpers";
 
 function result(overrides: Partial<CaseResult> & { id: string }): CaseResult {
-  return {
+  return oneRun({
     tags: [],
     language: "it",
     checks: {},
@@ -15,7 +16,7 @@ function result(overrides: Partial<CaseResult> & { id: string }): CaseResult {
     costEstimate: null,
     actual: null,
     ...overrides,
-  };
+  });
 }
 
 const intent = (expected: string, actual: string | null) =>

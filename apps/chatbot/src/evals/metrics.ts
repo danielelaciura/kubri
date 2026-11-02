@@ -1,4 +1,4 @@
-import type { CaseResult, Check } from "./score-case";
+import type { CaseResult, Check, RunScore } from "./score-case";
 
 export interface Ratio {
   readonly evaluated: number;
@@ -70,10 +70,10 @@ export interface Metrics {
 const divide = (a: number, b: number): number | null => (b === 0 ? null : a / b);
 
 function ratio(
-  results: readonly CaseResult[],
-  pick: (r: CaseResult) => Check<unknown> | undefined,
+  runs: readonly RunScore[],
+  pick: (r: RunScore) => Check<unknown> | undefined,
 ): Ratio {
-  const checks = results.map(pick).filter((item): item is Check<unknown> => item !== undefined);
+  const checks = runs.map(pick).filter((item): item is Check<unknown> => item !== undefined);
   const correct = checks.filter((item) => item.ok).length;
   return { evaluated: checks.length, correct, accuracy: divide(correct, checks.length) };
 }
@@ -98,7 +98,7 @@ function groups(
   );
 }
 
-function fieldMetrics(results: readonly CaseResult[]): Record<string, FieldMetrics> {
+function fieldMetrics(runs: readonly RunScore[]): Record<string, FieldMetrics> {
   const fields = new Map<string, FieldMetrics>();
   const entry = (field: string): FieldMetrics => {
     const existing = fields.get(field);
@@ -116,7 +116,7 @@ function fieldMetrics(results: readonly CaseResult[]): Record<string, FieldMetri
     fields.set(field, created);
     return created;
   };
-  for (const { patch } of results) {
+  for (const { patch } of runs) {
     for (const f of patch.correct) {
       const m = entry(f);
       m.correct += 1;
@@ -147,9 +147,9 @@ function fieldMetrics(results: readonly CaseResult[]): Record<string, FieldMetri
   return Object.fromEntries([...fields.entries()].sort(([a], [b]) => a.localeCompare(b)));
 }
 
-function confusionMatrix(results: readonly CaseResult[]): Record<string, Record<string, number>> {
+function confusionMatrix(runs: readonly RunScore[]): Record<string, Record<string, number>> {
   const matrix: Record<string, Record<string, number>> = {};
-  for (const { checks, failure } of results) {
+  for (const { checks, failure } of runs) {
     if (!checks.intent) continue;
     const row = (matrix[checks.intent.expected] ??= {});
     const column = failure === "invalid_output" ? "invalid" : (checks.intent.actual ?? "none");
@@ -176,10 +176,15 @@ function nluMetrics(results: readonly CaseResult[]): NluMetrics {
   };
 }
 
+/**
+ * Pass rates count cases (a case passes only if every run passes); accuracies, hallucinations,
+ * fields and the confusion matrix count runs, so `--repeat` hides no wrong answer (E6).
+ */
 export function computeMetrics(results: readonly CaseResult[]): Metrics {
   const passed = results.filter((r) => r.pass).length;
-  const invented = results.reduce((sum, r) => sum + r.patch.invented.length, 0);
-  const extracted = results.reduce((sum, r) => sum + r.patch.extracted, 0);
+  const runs = results.flatMap((r) => r.runScores);
+  const invented = runs.reduce((sum, r) => sum + r.patch.invented.length, 0);
+  const extracted = runs.reduce((sum, r) => sum + r.patch.extracted, 0);
   const costs = results.flatMap((r) => (r.costEstimate === null ? [] : [r.costEstimate]));
   return {
     cases: results.length,
@@ -187,13 +192,13 @@ export function computeMetrics(results: readonly CaseResult[]): Metrics {
     passRate: results.length === 0 ? 0 : passed / results.length,
     hallucination: { invented, extracted, rate: divide(invented, extracted) },
     nlu: nluMetrics(results),
-    intent: ratio(results, (r) => r.checks.intent),
-    choice: ratio(results, (r) => r.checks.choice),
-    language: ratio(results, (r) => r.checks.language),
-    completeness: ratio(results, (r) => r.checks.completeness),
-    editTarget: ratio(results, (r) => r.checks.editTarget),
-    fields: fieldMetrics(results),
-    confusion: confusionMatrix(results),
+    intent: ratio(runs, (r) => r.checks.intent),
+    choice: ratio(runs, (r) => r.checks.choice),
+    language: ratio(runs, (r) => r.checks.language),
+    completeness: ratio(runs, (r) => r.checks.completeness),
+    editTarget: ratio(runs, (r) => r.checks.editTarget),
+    fields: fieldMetrics(runs),
+    confusion: confusionMatrix(runs),
     byLanguage: groups(results, (r) => [r.language]),
     byTag: groups(results, (r) => r.tags),
     avgLatencyMs:

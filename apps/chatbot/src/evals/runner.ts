@@ -78,7 +78,8 @@ function sumCounts(runs: readonly CaseResult[]): NluCounts {
 
 /**
  * E6: one result for every run of a case. It shows the first failing run (the one to read),
- * or the last when all passed; latency is the mean, cost the total.
+ * or the last when all passed, and keeps the score of every run for the metrics; latency is the
+ * mean, cost the total.
  */
 function combineRuns(runs: readonly CaseResult[]): CaseResult {
   const last = runs[runs.length - 1];
@@ -88,6 +89,7 @@ function combineRuns(runs: readonly CaseResult[]): CaseResult {
   const costs = runs.flatMap((run) => (run.costEstimate === null ? [] : [run.costEstimate]));
   return {
     ...shown,
+    runScores: runs.flatMap((run) => run.runScores),
     nlu: sumCounts(runs),
     latencyMs: runs.reduce((sum, run) => sum + run.latencyMs, 0) / runs.length,
     costEstimate: costs.length === 0 ? null : costs.reduce((sum, cost) => sum + cost, 0),

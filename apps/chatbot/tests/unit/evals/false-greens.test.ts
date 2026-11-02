@@ -24,6 +24,7 @@ const META: ReportMeta = {
   repeat: 1,
   deadlineMs: 20_000,
 };
+const entry = (field: string, value: unknown) => ({ field, value, confidence: 0.95, evidence: "" });
 const base = { campaign: campaign(), historyMessages: 3, deadlineMs: 20_000, clock: () => 0 };
 
 function valid(interp: Interpretation): ContextInterpretResult {
@@ -82,5 +83,36 @@ describe("false greens", () => {
     const { report } = await gatesOf({ ...base, cases, interpret });
 
     expect(report.metrics.language).toEqual({ evaluated: 1, correct: 0, accuracy: 0 });
+  });
+
+  it("counts the hallucinations of every run with --repeat, not only the run shown (E6)", async () => {
+    const cases = [makeCase({ id: "name", expected: { patch: { firstName: "Mario" } } })];
+    const answers = [
+      interpretation({ patch: [] }),
+      interpretation({ patch: [entry("firstName", "Mario"), entry("lastName", "Rossi")] }),
+    ];
+    const interpret: InterpretFn = () =>
+      Promise.resolve(valid(answers.shift() ?? interpretation()));
+
+    const { report, gates } = await gatesOf({ ...base, cases, interpret }, 2);
+
+    expect(report.metrics.hallucination).toEqual({ invented: 1, extracted: 2, rate: 0.5 });
+    expect(report.metrics.fields).toMatchObject({
+      firstName: { expected: 2, correct: 1, missing: 1 },
+      lastName: { invented: 1 },
+    });
+    expect(gate(gates, "hallucination")).toMatchObject({ ok: false, skipped: false });
+  });
+
+  it("counts intent accuracy over every run with --repeat (E6)", async () => {
+    const cases = [makeCase({ id: "help", expected: { intent: "help" } })];
+    const answers = [interpretation({ intent: "help" }), interpretation({ intent: "answer" })];
+    const interpret: InterpretFn = () =>
+      Promise.resolve(valid(answers.shift() ?? interpretation()));
+
+    const { report } = await gatesOf({ ...base, cases, interpret }, 2);
+
+    expect(report.metrics.intent).toEqual({ evaluated: 2, correct: 1, accuracy: 0.5 });
+    expect(report.metrics.confusion).toEqual({ help: { help: 1, answer: 1 } });
   });
 });

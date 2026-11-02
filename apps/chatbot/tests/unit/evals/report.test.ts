@@ -11,6 +11,7 @@ import {
   type ReportMeta,
 } from "../../../src/evals/report";
 import type { CaseResult } from "../../../src/evals/score-case";
+import { oneRun } from "./helpers";
 
 const META: ReportMeta = {
   suite: "intent",
@@ -24,7 +25,7 @@ const META: ReportMeta = {
   deadlineMs: 20_000,
 };
 
-const passing: CaseResult = {
+const passing: CaseResult = oneRun({
   id: "stop-1",
   tags: ["global"],
   language: "it",
@@ -36,8 +37,8 @@ const passing: CaseResult = {
   latencyMs: 120,
   costEstimate: 0.001,
   actual: null,
-};
-const failing: CaseResult = {
+});
+const failing: CaseResult = oneRun({
   ...passing,
   id: "help-1",
   language: "ar",
@@ -50,7 +51,7 @@ const failing: CaseResult = {
     missing: ["transport"],
     extracted: 2,
   },
-};
+});
 
 describe("datasetHash", () => {
   it("changes with the content", () => {

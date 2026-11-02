@@ -7,12 +7,21 @@ export interface OutboundSender {
   readonly providerConfig: unknown;
 }
 
+/** Options offered with a text: a closed question the candidate can answer with a tap (D112). */
+export interface OutboundChoices {
+  /** The text of the button that opens a list. */
+  readonly listButton: string;
+  readonly options: readonly { readonly id: string; readonly title: string }[];
+}
+
 export interface OutboundText {
   /** The id of our Message row: lets an adapter deduplicate if the provider supports it. */
   readonly clientMessageId: string;
   readonly sender: OutboundSender;
   readonly to: { readonly externalId: string; readonly phoneE164: string };
   readonly text: string;
+  /** Sent as buttons or a list when the channel supports them (D115). */
+  readonly choices?: OutboundChoices;
 }
 
 export type SendOutcome =
@@ -26,11 +35,24 @@ export type SendOutcome =
  */
 export interface ChannelAdapter {
   send(message: OutboundText): Promise<SendOutcome>;
+  /** Whether `choices` can be sent as buttons or lists. If not, only the text is sent. */
+  readonly supportsInteractive: boolean;
+  /**
+   * Free-form messages are allowed this long after the contact's last message (Meta: 24 hours);
+   * null = no such rule. The runtime checks it before sending (D119).
+   */
+  readonly freeFormWindowMs: number | null;
+  /** Read receipt and "typing" for an inbound message. Best effort: never throws (D121). */
+  acknowledge?(providerMessageId: string, sender: OutboundSender): Promise<void>;
 }
 
 /** For tests: a script of outcomes first (failures are not recorded), then success. */
 export class FakeChannel implements ChannelAdapter {
   readonly sent: OutboundText[] = [];
+  supportsInteractive = true;
+  freeFormWindowMs: number | null = null;
+  /** The provider ids of the inbound messages acknowledged, in order. */
+  readonly acknowledged: string[] = [];
   private readonly script: SendOutcome[];
   private crash: Error | null = null;
 
@@ -41,6 +63,11 @@ export class FakeChannel implements ChannelAdapter {
   /** The next send() throws, like an adapter with a broken socket. */
   throwOnNext(error: Error): void {
     this.crash = error;
+  }
+
+  acknowledge(providerMessageId: string, _sender: OutboundSender): Promise<void> {
+    this.acknowledged.push(providerMessageId);
+    return Promise.resolve();
   }
 
   /** Adds an outcome to the script. */
@@ -66,10 +93,16 @@ export class FakeChannel implements ChannelAdapter {
 
 /** For trying the worker by hand: the candidate's "phone" is the terminal. */
 export class ConsoleChannel implements ChannelAdapter {
+  readonly supportsInteractive = true;
+  readonly freeFormWindowMs = null;
+
   constructor(private readonly write: (line: string) => void) {}
 
   send(message: OutboundText): Promise<SendOutcome> {
     this.write(`→ ${message.to.phoneE164}: ${message.text}`);
+    if (message.choices) {
+      this.write(`   ${message.choices.options.map((o) => `[${o.title}]`).join(" ")}`);
+    }
     // From the message id, not a counter: providerMessageId is unique across worker restarts.
     return Promise.resolve({ ok: true, providerMessageId: `console-${message.clientMessageId}` });
   }

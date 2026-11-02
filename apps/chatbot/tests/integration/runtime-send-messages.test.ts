@@ -115,7 +115,11 @@ describe("sendMessages", () => {
   });
 
   it("gives up on a channel that does not answer before the lease ends", async () => {
-    const hanging: ChannelAdapter = { send: () => new Promise<SendOutcome>(() => undefined) };
+    const hanging: ChannelAdapter = {
+      send: () => new Promise<SendOutcome>(() => undefined),
+      supportsInteractive: false,
+      freeFormWindowMs: null,
+    };
     const slow = withChannel(hanging, { SEND_LEASE_MS: "400" });
     await queue("uno");
 
@@ -211,6 +215,8 @@ describe("sendMessages", () => {
     // While this sender waits on the provider its lease expires and another sender claims
     // the message: the late permanent failure belongs to nobody any more.
     const stealing: ChannelAdapter = {
+      supportsInteractive: false,
+      freeFormWindowMs: null,
       async send(_message: OutboundText): Promise<SendOutcome> {
         const later = new Date(Date.now() + 120_000);
         const stolen = await claimNextOutbound(db, h.key, later, 60_000);

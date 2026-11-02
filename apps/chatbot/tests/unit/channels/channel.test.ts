@@ -83,3 +83,38 @@ describe("ConsoleChannel", () => {
     expect(await new ConsoleChannel(() => undefined).send(MESSAGE)).toEqual(first);
   });
 });
+
+describe("channel capabilities", () => {
+  const choices = {
+    listButton: "Scegli",
+    options: [
+      { id: "q:patente:yes", title: "Sì" },
+      { id: "q:patente:no", title: "No" },
+    ],
+  };
+
+  it("the fake channel supports widgets and has no window until told", () => {
+    const channel = new FakeChannel();
+
+    expect(channel.supportsInteractive).toBe(true);
+    expect(channel.freeFormWindowMs).toBeNull();
+  });
+
+  it("records the choices it is sent and the messages it acknowledges", async () => {
+    const channel = new FakeChannel();
+
+    await channel.send({ ...MESSAGE, choices });
+    await channel.acknowledge("wamid.1", MESSAGE.sender);
+
+    expect(channel.sent[0]?.choices).toEqual(choices);
+    expect(channel.acknowledged).toEqual(["wamid.1"]);
+  });
+
+  it("the console channel shows the options under the text", async () => {
+    const lines: string[] = [];
+
+    await new ConsoleChannel((line) => lines.push(line)).send({ ...MESSAGE, choices });
+
+    expect(lines).toEqual(["→ +393331112233: Ciao", "   [Sì] [No]"]);
+  });
+});

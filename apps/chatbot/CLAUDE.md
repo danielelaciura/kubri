@@ -345,6 +345,13 @@ pnpm cli worker start --channel meta --nlu llm --translator llm   # replies go t
   from `NLU_TRANSLATE_MODEL` and `NLU_FALLBACK_MODEL`.
   First baseline (owner, once the key exists): `pnpm cli evals calibrate`, then
   `pnpm cli evals run --suite <suite> --save-baseline` for each of the four suites.
+  **Pending: `interpret-v2` (D144) has no baseline yet.** It is the default prompt; v1 stays
+  registered for the comparison. Before merging, for each of the four suites:
+  `pnpm cli evals run --suite <suite> --prompt interpret-v1 --save-baseline` (v1 becomes the
+  baseline), then `pnpm cli evals run --suite <suite> --save-baseline` (v2, compared with that
+  baseline first; it replaces it only if the gates pass; exit 1 = do not merge). No suite scores the
+  language of `offTopicReply` / `missing` yet: check it by hand with `campaigns simulate --nlu llm`
+  in English.
 
 - Local DB: Docker Postgres on port 54329, databases `kubri_bot_dev` and `kubri_bot_test`.
   Both contain simulated dashboard tables in `public`, which the bot must never touch.

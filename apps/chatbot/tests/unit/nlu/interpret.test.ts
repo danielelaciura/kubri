@@ -5,7 +5,7 @@ import { buildInterpretContext } from "../../../src/nlu/context";
 import { createLlmInterpreter, interpretContext } from "../../../src/nlu/interpret";
 import type { InterpretRequest } from "../../../src/nlu/interpreter";
 import { LlmError } from "../../../src/nlu/llm-provider";
-import { INTERPRET_SYSTEM_PROMPT } from "../../../src/nlu/prompts/interpret-v1";
+import { INTERPRET_SYSTEM_PROMPT } from "../../../src/nlu/prompts/interpret-v2";
 import { MemoryTraceSink, traceInput } from "../../../src/nlu/trace";
 import { atQuestion, campaign, inferred } from "../engine/helpers";
 import { interpretationJson, NOW, taskOptions } from "./helpers";
@@ -51,7 +51,7 @@ describe("createLlmInterpreter", () => {
       {
         turnId: "turn-1",
         task: "interpret",
-        promptVersion: "interpret-v1",
+        promptVersion: "interpret-v2",
         provider: "fake",
         model: "mistral-small-latest",
         attempt: "primary",

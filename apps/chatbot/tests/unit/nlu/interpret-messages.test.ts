@@ -5,7 +5,7 @@ import { interpretMessages, repairMessages } from "../../../src/nlu/interpret-me
 import {
   INTERPRET_PROMPT_VERSION,
   INTERPRET_SYSTEM_PROMPT,
-} from "../../../src/nlu/prompts/interpret-v1";
+} from "../../../src/nlu/prompts/interpret-v2";
 import { atQuestion, campaign } from "../engine/helpers";
 
 const context = buildInterpretContext(
@@ -13,9 +13,21 @@ const context = buildInterpretContext(
   3,
 );
 
-describe("interpret-v1 prompt", () => {
+describe("interpret-v2 prompt", () => {
   it("is versioned", () => {
-    expect(INTERPRET_PROMPT_VERSION).toBe("interpret-v1");
+    expect(INTERPRET_PROMPT_VERSION).toBe("interpret-v2");
+  });
+
+  it("makes the language of the generated texts explicit (D144)", () => {
+    expect(INTERPRET_SYSTEM_PROMPT).toContain(
+      'context.sessionLanguage is an ISO 639-1 code ("en" = English, "ar" = Arabic',
+    );
+    expect(INTERPRET_SYSTEM_PROMPT).toContain("Write offTopicReply and missing in THAT language");
+    expect(INTERPRET_SYSTEM_PROMPT).toContain(
+      "The question texts, hints and descriptions in the context are always in Italian: never let them decide the language you write in",
+    );
+    // Both free-text rules repeat it where the model writes them.
+    expect(INTERPRET_SYSTEM_PROMPT.match(/never in Italian unless/g)).toHaveLength(2);
   });
 
   it.each(INTENTS)("explains the %s intent", (intent) => {
@@ -38,7 +50,7 @@ describe("interpret-v1 prompt", () => {
   });
 });
 
-describe("interpret-v1 prompt hardening", () => {
+describe("interpret-v2 prompt hardening (kept from interpret-v1)", () => {
   it.each([
     ["intent precedence (P1)", "use the first that applies: opt_out, delete_data, choice"],
     ["a different value on an edit confirmation (P2)", 'for "edit", intent "edit_request"'],

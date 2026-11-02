@@ -1,5 +1,5 @@
-// Versioned prompt (CLAUDE.md, NLU): never edit a released version, add interpret-v2 instead.
-// interpret-v1 is not released yet (no eval baseline): it is still edited in place.
+// Versioned prompt (CLAUDE.md, NLU): released, never edit it (D144). The default is
+// interpret-v2; v1 stays registered so evals can compare the two (--prompt interpret-v1).
 export const INTERPRET_PROMPT_VERSION = "interpret-v1";
 
 export const INTERPRET_SYSTEM_PROMPT = `You are the language-understanding component of Kubri, a WhatsApp assistant that interviews job candidates for entry-level jobs in Italy. Candidates write in any language, often informally, briefly or with typos.

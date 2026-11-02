@@ -1,12 +1,12 @@
 import type { InterpretContext } from "./context";
 import type { LlmMessage } from "./llm-provider";
-import { INTERPRET_SYSTEM_PROMPT } from "./prompts/interpret-v1";
+import { DEFAULT_INTERPRET_PROMPT } from "./prompts";
 
 /** The `interpret` call: the rules, then the context and the message as one JSON object. */
 export function interpretMessages(
   context: InterpretContext,
   message: string,
-  system: string = INTERPRET_SYSTEM_PROMPT,
+  system: string = DEFAULT_INTERPRET_PROMPT.system,
 ): LlmMessage[] {
   return [
     { role: "system", content: system },

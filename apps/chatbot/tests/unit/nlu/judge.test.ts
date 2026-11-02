@@ -87,4 +87,10 @@ describe("assertIndependentJudge (D100)", () => {
       assertIndependentJudge({ ...models, judge: "t" });
     }).toThrow(/NLU_JUDGE_MODEL/);
   });
+
+  it("refuses the fallback model as judge: it translates when the translator fails", () => {
+    expect(() => {
+      assertIndependentJudge({ ...models, judge: "f" });
+    }).toThrow(/NLU_JUDGE_MODEL must differ from NLU_FALLBACK_MODEL/);
+  });
 });

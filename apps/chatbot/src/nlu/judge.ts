@@ -81,11 +81,19 @@ export function createLlmJudge(options: JudgeOptions): Judge {
   return { score: (input) => scoreWithLlm(input, options) };
 }
 
-/** D100: a model must not grade its own translations. */
+/**
+ * D100: a model must not grade its own translations. The fallback model translates when the
+ * translate model fails (D82), so the judge must differ from both.
+ */
 export function assertIndependentJudge(models: NluConfig["models"]): void {
   if (models.judge === models.translate) {
     throw new Error(
       "NLU_JUDGE_MODEL must differ from NLU_TRANSLATE_MODEL: a model must not grade its own translations",
+    );
+  }
+  if (models.judge === models.fallback) {
+    throw new Error(
+      "NLU_JUDGE_MODEL must differ from NLU_FALLBACK_MODEL: the fallback translates when the translator fails, and a model must not grade its own translations",
     );
   }
 }

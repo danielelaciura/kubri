@@ -29,7 +29,7 @@ const NluEnvSchema = z.object({
   NLU_INTERPRET_MODEL: ModelSchema.default("mistral-small-latest"),
   NLU_TRANSLATE_MODEL: ModelSchema.default("mistral-small-latest"),
   NLU_FALLBACK_MODEL: ModelSchema.default("mistral-medium-latest"),
-  /** The evals judge: must differ from NLU_TRANSLATE_MODEL (plan 07, D100). */
+  /** The evals judge: must differ from NLU_TRANSLATE_MODEL and NLU_FALLBACK_MODEL (D100). */
   NLU_JUDGE_MODEL: ModelSchema.default("mistral-large-latest"),
   NLU_TIMEOUT_MS: z.coerce.number().int().positive().default(15_000),
   NLU_HISTORY_MESSAGES: z.coerce.number().int().min(0).max(MAX_HISTORY_MESSAGES).default(3),

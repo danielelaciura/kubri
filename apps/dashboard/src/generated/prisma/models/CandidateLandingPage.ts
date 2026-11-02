@@ -32,6 +32,10 @@ export type CandidateLandingPageMinAggregateOutputType = {
   poolId: string | null
   enabled: boolean | null
   privacyPolicyUrl: string | null
+  titleIt: string | null
+  titleEn: string | null
+  subtitleIt: string | null
+  subtitleEn: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -43,6 +47,10 @@ export type CandidateLandingPageMaxAggregateOutputType = {
   poolId: string | null
   enabled: boolean | null
   privacyPolicyUrl: string | null
+  titleIt: string | null
+  titleEn: string | null
+  subtitleIt: string | null
+  subtitleEn: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -54,6 +62,10 @@ export type CandidateLandingPageCountAggregateOutputType = {
   poolId: number
   enabled: number
   privacyPolicyUrl: number
+  titleIt: number
+  titleEn: number
+  subtitleIt: number
+  subtitleEn: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -67,6 +79,10 @@ export type CandidateLandingPageMinAggregateInputType = {
   poolId?: true
   enabled?: true
   privacyPolicyUrl?: true
+  titleIt?: true
+  titleEn?: true
+  subtitleIt?: true
+  subtitleEn?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -78,6 +94,10 @@ export type CandidateLandingPageMaxAggregateInputType = {
   poolId?: true
   enabled?: true
   privacyPolicyUrl?: true
+  titleIt?: true
+  titleEn?: true
+  subtitleIt?: true
+  subtitleEn?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -89,6 +109,10 @@ export type CandidateLandingPageCountAggregateInputType = {
   poolId?: true
   enabled?: true
   privacyPolicyUrl?: true
+  titleIt?: true
+  titleEn?: true
+  subtitleIt?: true
+  subtitleEn?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -173,6 +197,10 @@ export type CandidateLandingPageGroupByOutputType = {
   poolId: string
   enabled: boolean
   privacyPolicyUrl: string
+  titleIt: string
+  titleEn: string
+  subtitleIt: string | null
+  subtitleEn: string | null
   createdAt: Date
   updatedAt: Date
   _count: CandidateLandingPageCountAggregateOutputType | null
@@ -205,6 +233,10 @@ export type CandidateLandingPageWhereInput = {
   poolId?: Prisma.UuidFilter<"CandidateLandingPage"> | string
   enabled?: Prisma.BoolFilter<"CandidateLandingPage"> | boolean
   privacyPolicyUrl?: Prisma.StringFilter<"CandidateLandingPage"> | string
+  titleIt?: Prisma.StringFilter<"CandidateLandingPage"> | string
+  titleEn?: Prisma.StringFilter<"CandidateLandingPage"> | string
+  subtitleIt?: Prisma.StringNullableFilter<"CandidateLandingPage"> | string | null
+  subtitleEn?: Prisma.StringNullableFilter<"CandidateLandingPage"> | string | null
   createdAt?: Prisma.DateTimeFilter<"CandidateLandingPage"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"CandidateLandingPage"> | Date | string
   organization?: Prisma.XOR<Prisma.OrganizationScalarRelationFilter, Prisma.OrganizationWhereInput>
@@ -218,6 +250,10 @@ export type CandidateLandingPageOrderByWithRelationInput = {
   poolId?: Prisma.SortOrder
   enabled?: Prisma.SortOrder
   privacyPolicyUrl?: Prisma.SortOrder
+  titleIt?: Prisma.SortOrder
+  titleEn?: Prisma.SortOrder
+  subtitleIt?: Prisma.SortOrderInput | Prisma.SortOrder
+  subtitleEn?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   organization?: Prisma.OrganizationOrderByWithRelationInput
@@ -234,6 +270,10 @@ export type CandidateLandingPageWhereUniqueInput = Prisma.AtLeast<{
   poolId?: Prisma.UuidFilter<"CandidateLandingPage"> | string
   enabled?: Prisma.BoolFilter<"CandidateLandingPage"> | boolean
   privacyPolicyUrl?: Prisma.StringFilter<"CandidateLandingPage"> | string
+  titleIt?: Prisma.StringFilter<"CandidateLandingPage"> | string
+  titleEn?: Prisma.StringFilter<"CandidateLandingPage"> | string
+  subtitleIt?: Prisma.StringNullableFilter<"CandidateLandingPage"> | string | null
+  subtitleEn?: Prisma.StringNullableFilter<"CandidateLandingPage"> | string | null
   createdAt?: Prisma.DateTimeFilter<"CandidateLandingPage"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"CandidateLandingPage"> | Date | string
   organization?: Prisma.XOR<Prisma.OrganizationScalarRelationFilter, Prisma.OrganizationWhereInput>
@@ -247,6 +287,10 @@ export type CandidateLandingPageOrderByWithAggregationInput = {
   poolId?: Prisma.SortOrder
   enabled?: Prisma.SortOrder
   privacyPolicyUrl?: Prisma.SortOrder
+  titleIt?: Prisma.SortOrder
+  titleEn?: Prisma.SortOrder
+  subtitleIt?: Prisma.SortOrderInput | Prisma.SortOrder
+  subtitleEn?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.CandidateLandingPageCountOrderByAggregateInput
@@ -264,6 +308,10 @@ export type CandidateLandingPageScalarWhereWithAggregatesInput = {
   poolId?: Prisma.UuidWithAggregatesFilter<"CandidateLandingPage"> | string
   enabled?: Prisma.BoolWithAggregatesFilter<"CandidateLandingPage"> | boolean
   privacyPolicyUrl?: Prisma.StringWithAggregatesFilter<"CandidateLandingPage"> | string
+  titleIt?: Prisma.StringWithAggregatesFilter<"CandidateLandingPage"> | string
+  titleEn?: Prisma.StringWithAggregatesFilter<"CandidateLandingPage"> | string
+  subtitleIt?: Prisma.StringNullableWithAggregatesFilter<"CandidateLandingPage"> | string | null
+  subtitleEn?: Prisma.StringNullableWithAggregatesFilter<"CandidateLandingPage"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"CandidateLandingPage"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"CandidateLandingPage"> | Date | string
 }
@@ -273,6 +321,10 @@ export type CandidateLandingPageCreateInput = {
   slug: string
   enabled?: boolean
   privacyPolicyUrl: string
+  titleIt: string
+  titleEn: string
+  subtitleIt?: string | null
+  subtitleEn?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   organization: Prisma.OrganizationCreateNestedOneWithoutLandingPageInput
@@ -286,6 +338,10 @@ export type CandidateLandingPageUncheckedCreateInput = {
   poolId: string
   enabled?: boolean
   privacyPolicyUrl: string
+  titleIt: string
+  titleEn: string
+  subtitleIt?: string | null
+  subtitleEn?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -295,6 +351,10 @@ export type CandidateLandingPageUpdateInput = {
   slug?: Prisma.StringFieldUpdateOperationsInput | string
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   privacyPolicyUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  titleIt?: Prisma.StringFieldUpdateOperationsInput | string
+  titleEn?: Prisma.StringFieldUpdateOperationsInput | string
+  subtitleIt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  subtitleEn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   organization?: Prisma.OrganizationUpdateOneRequiredWithoutLandingPageNestedInput
@@ -308,6 +368,10 @@ export type CandidateLandingPageUncheckedUpdateInput = {
   poolId?: Prisma.StringFieldUpdateOperationsInput | string
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   privacyPolicyUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  titleIt?: Prisma.StringFieldUpdateOperationsInput | string
+  titleEn?: Prisma.StringFieldUpdateOperationsInput | string
+  subtitleIt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  subtitleEn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -319,6 +383,10 @@ export type CandidateLandingPageCreateManyInput = {
   poolId: string
   enabled?: boolean
   privacyPolicyUrl: string
+  titleIt: string
+  titleEn: string
+  subtitleIt?: string | null
+  subtitleEn?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -328,6 +396,10 @@ export type CandidateLandingPageUpdateManyMutationInput = {
   slug?: Prisma.StringFieldUpdateOperationsInput | string
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   privacyPolicyUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  titleIt?: Prisma.StringFieldUpdateOperationsInput | string
+  titleEn?: Prisma.StringFieldUpdateOperationsInput | string
+  subtitleIt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  subtitleEn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -339,6 +411,10 @@ export type CandidateLandingPageUncheckedUpdateManyInput = {
   poolId?: Prisma.StringFieldUpdateOperationsInput | string
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   privacyPolicyUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  titleIt?: Prisma.StringFieldUpdateOperationsInput | string
+  titleEn?: Prisma.StringFieldUpdateOperationsInput | string
+  subtitleIt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  subtitleEn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -365,6 +441,10 @@ export type CandidateLandingPageCountOrderByAggregateInput = {
   poolId?: Prisma.SortOrder
   enabled?: Prisma.SortOrder
   privacyPolicyUrl?: Prisma.SortOrder
+  titleIt?: Prisma.SortOrder
+  titleEn?: Prisma.SortOrder
+  subtitleIt?: Prisma.SortOrder
+  subtitleEn?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -376,6 +456,10 @@ export type CandidateLandingPageMaxOrderByAggregateInput = {
   poolId?: Prisma.SortOrder
   enabled?: Prisma.SortOrder
   privacyPolicyUrl?: Prisma.SortOrder
+  titleIt?: Prisma.SortOrder
+  titleEn?: Prisma.SortOrder
+  subtitleIt?: Prisma.SortOrder
+  subtitleEn?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -387,6 +471,10 @@ export type CandidateLandingPageMinOrderByAggregateInput = {
   poolId?: Prisma.SortOrder
   enabled?: Prisma.SortOrder
   privacyPolicyUrl?: Prisma.SortOrder
+  titleIt?: Prisma.SortOrder
+  titleEn?: Prisma.SortOrder
+  subtitleIt?: Prisma.SortOrder
+  subtitleEn?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -470,6 +558,10 @@ export type CandidateLandingPageCreateWithoutOrganizationInput = {
   slug: string
   enabled?: boolean
   privacyPolicyUrl: string
+  titleIt: string
+  titleEn: string
+  subtitleIt?: string | null
+  subtitleEn?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   pool: Prisma.PoolCreateNestedOneWithoutLandingPagesInput
@@ -481,6 +573,10 @@ export type CandidateLandingPageUncheckedCreateWithoutOrganizationInput = {
   poolId: string
   enabled?: boolean
   privacyPolicyUrl: string
+  titleIt: string
+  titleEn: string
+  subtitleIt?: string | null
+  subtitleEn?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -506,6 +602,10 @@ export type CandidateLandingPageUpdateWithoutOrganizationInput = {
   slug?: Prisma.StringFieldUpdateOperationsInput | string
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   privacyPolicyUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  titleIt?: Prisma.StringFieldUpdateOperationsInput | string
+  titleEn?: Prisma.StringFieldUpdateOperationsInput | string
+  subtitleIt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  subtitleEn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   pool?: Prisma.PoolUpdateOneRequiredWithoutLandingPagesNestedInput
@@ -517,6 +617,10 @@ export type CandidateLandingPageUncheckedUpdateWithoutOrganizationInput = {
   poolId?: Prisma.StringFieldUpdateOperationsInput | string
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   privacyPolicyUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  titleIt?: Prisma.StringFieldUpdateOperationsInput | string
+  titleEn?: Prisma.StringFieldUpdateOperationsInput | string
+  subtitleIt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  subtitleEn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -526,6 +630,10 @@ export type CandidateLandingPageCreateWithoutPoolInput = {
   slug: string
   enabled?: boolean
   privacyPolicyUrl: string
+  titleIt: string
+  titleEn: string
+  subtitleIt?: string | null
+  subtitleEn?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   organization: Prisma.OrganizationCreateNestedOneWithoutLandingPageInput
@@ -537,6 +645,10 @@ export type CandidateLandingPageUncheckedCreateWithoutPoolInput = {
   organizationId: string
   enabled?: boolean
   privacyPolicyUrl: string
+  titleIt: string
+  titleEn: string
+  subtitleIt?: string | null
+  subtitleEn?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -577,6 +689,10 @@ export type CandidateLandingPageScalarWhereInput = {
   poolId?: Prisma.UuidFilter<"CandidateLandingPage"> | string
   enabled?: Prisma.BoolFilter<"CandidateLandingPage"> | boolean
   privacyPolicyUrl?: Prisma.StringFilter<"CandidateLandingPage"> | string
+  titleIt?: Prisma.StringFilter<"CandidateLandingPage"> | string
+  titleEn?: Prisma.StringFilter<"CandidateLandingPage"> | string
+  subtitleIt?: Prisma.StringNullableFilter<"CandidateLandingPage"> | string | null
+  subtitleEn?: Prisma.StringNullableFilter<"CandidateLandingPage"> | string | null
   createdAt?: Prisma.DateTimeFilter<"CandidateLandingPage"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"CandidateLandingPage"> | Date | string
 }
@@ -587,6 +703,10 @@ export type CandidateLandingPageCreateManyPoolInput = {
   organizationId: string
   enabled?: boolean
   privacyPolicyUrl: string
+  titleIt: string
+  titleEn: string
+  subtitleIt?: string | null
+  subtitleEn?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -596,6 +716,10 @@ export type CandidateLandingPageUpdateWithoutPoolInput = {
   slug?: Prisma.StringFieldUpdateOperationsInput | string
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   privacyPolicyUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  titleIt?: Prisma.StringFieldUpdateOperationsInput | string
+  titleEn?: Prisma.StringFieldUpdateOperationsInput | string
+  subtitleIt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  subtitleEn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   organization?: Prisma.OrganizationUpdateOneRequiredWithoutLandingPageNestedInput
@@ -607,6 +731,10 @@ export type CandidateLandingPageUncheckedUpdateWithoutPoolInput = {
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   privacyPolicyUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  titleIt?: Prisma.StringFieldUpdateOperationsInput | string
+  titleEn?: Prisma.StringFieldUpdateOperationsInput | string
+  subtitleIt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  subtitleEn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -617,6 +745,10 @@ export type CandidateLandingPageUncheckedUpdateManyWithoutPoolInput = {
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   privacyPolicyUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  titleIt?: Prisma.StringFieldUpdateOperationsInput | string
+  titleEn?: Prisma.StringFieldUpdateOperationsInput | string
+  subtitleIt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  subtitleEn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -630,6 +762,10 @@ export type CandidateLandingPageSelect<ExtArgs extends runtime.Types.Extensions.
   poolId?: boolean
   enabled?: boolean
   privacyPolicyUrl?: boolean
+  titleIt?: boolean
+  titleEn?: boolean
+  subtitleIt?: boolean
+  subtitleEn?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   organization?: boolean | Prisma.OrganizationDefaultArgs<ExtArgs>
@@ -643,6 +779,10 @@ export type CandidateLandingPageSelectCreateManyAndReturn<ExtArgs extends runtim
   poolId?: boolean
   enabled?: boolean
   privacyPolicyUrl?: boolean
+  titleIt?: boolean
+  titleEn?: boolean
+  subtitleIt?: boolean
+  subtitleEn?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   organization?: boolean | Prisma.OrganizationDefaultArgs<ExtArgs>
@@ -656,6 +796,10 @@ export type CandidateLandingPageSelectUpdateManyAndReturn<ExtArgs extends runtim
   poolId?: boolean
   enabled?: boolean
   privacyPolicyUrl?: boolean
+  titleIt?: boolean
+  titleEn?: boolean
+  subtitleIt?: boolean
+  subtitleEn?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   organization?: boolean | Prisma.OrganizationDefaultArgs<ExtArgs>
@@ -669,11 +813,15 @@ export type CandidateLandingPageSelectScalar = {
   poolId?: boolean
   enabled?: boolean
   privacyPolicyUrl?: boolean
+  titleIt?: boolean
+  titleEn?: boolean
+  subtitleIt?: boolean
+  subtitleEn?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type CandidateLandingPageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "slug" | "organizationId" | "poolId" | "enabled" | "privacyPolicyUrl" | "createdAt" | "updatedAt", ExtArgs["result"]["candidateLandingPage"]>
+export type CandidateLandingPageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "slug" | "organizationId" | "poolId" | "enabled" | "privacyPolicyUrl" | "titleIt" | "titleEn" | "subtitleIt" | "subtitleEn" | "createdAt" | "updatedAt", ExtArgs["result"]["candidateLandingPage"]>
 export type CandidateLandingPageInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   organization?: boolean | Prisma.OrganizationDefaultArgs<ExtArgs>
   pool?: boolean | Prisma.PoolDefaultArgs<ExtArgs>
@@ -700,6 +848,13 @@ export type $CandidateLandingPagePayload<ExtArgs extends runtime.Types.Extension
     poolId: string
     enabled: boolean
     privacyPolicyUrl: string
+    /**
+     * Page headline and optional intro, written per landing, one per UI language.
+     */
+    titleIt: string
+    titleEn: string
+    subtitleIt: string | null
+    subtitleEn: string | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["candidateLandingPage"]>
@@ -1133,6 +1288,10 @@ export interface CandidateLandingPageFieldRefs {
   readonly poolId: Prisma.FieldRef<"CandidateLandingPage", 'String'>
   readonly enabled: Prisma.FieldRef<"CandidateLandingPage", 'Boolean'>
   readonly privacyPolicyUrl: Prisma.FieldRef<"CandidateLandingPage", 'String'>
+  readonly titleIt: Prisma.FieldRef<"CandidateLandingPage", 'String'>
+  readonly titleEn: Prisma.FieldRef<"CandidateLandingPage", 'String'>
+  readonly subtitleIt: Prisma.FieldRef<"CandidateLandingPage", 'String'>
+  readonly subtitleEn: Prisma.FieldRef<"CandidateLandingPage", 'String'>
   readonly createdAt: Prisma.FieldRef<"CandidateLandingPage", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"CandidateLandingPage", 'DateTime'>
 }

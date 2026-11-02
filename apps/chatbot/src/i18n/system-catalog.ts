@@ -18,6 +18,15 @@ export const I18N_TEXT_KEYS = [
   "send.clarify",
   "send.rephrase",
   "consent.official_link",
+  "choice.yes",
+  "choice.no",
+  "choice.idk",
+  "choice.accepted",
+  "choice.declined",
+  "choice.list_button",
+  "choice.language_button",
+  "choice.prompt",
+  "media.text_only",
 ] as const;
 export type I18nTextKey = (typeof I18N_TEXT_KEYS)[number];
 export type CatalogKey = SystemTextKey | I18nTextKey;
@@ -153,6 +162,20 @@ export const SYSTEM_CATALOG: Readonly<Record<CatalogKey, CatalogEntry>> = {
     text: {
       it: "Questa è una traduzione automatica. Il testo ufficiale, in italiano, è qui: {link}",
     },
+  },
+  "choice.yes": { params: {}, text: { it: "Sì" } },
+  "choice.no": { params: {}, text: { it: "No" } },
+  "choice.idk": { params: {}, text: { it: "Non so" } },
+  "choice.accepted": { params: {}, text: { it: "Accetto" } },
+  "choice.declined": { params: {}, text: { it: "Non accetto" } },
+  // The button that opens a list (WhatsApp: 20 characters at most).
+  "choice.list_button": { params: {}, text: { it: "Scegli" } },
+  "choice.language_button": { params: {}, text: { it: "Lingua / Language" } },
+  // The body of a widget sent on its own, when the question was too long to carry it (D115).
+  "choice.prompt": { params: {}, text: { it: "Scegli una risposta:" } },
+  "media.text_only": {
+    params: {},
+    text: { it: "Per ora riesco a leggere solo messaggi di testo. Puoi scrivermi la risposta?" },
   },
 };
 

@@ -51,6 +51,10 @@ export interface TextResolver {
   resolve(ref: TextRef, target: TextTarget): Promise<ResolvedText>;
   /** A SendText effect, with the line its purpose adds (D76). */
   resolveSend(effect: SendTextEffect, target: TextTarget): Promise<ResolvedText>;
+  /** A catalog text owned by i18n (button labels, the media reply): no parameters. */
+  resolveKey(key: I18nTextKey, target: TextTarget): Promise<ResolvedText>;
+  /** A short localized text with no parameters (an option label, an enum value). */
+  resolveLabel(text: LocalizedText, target: TextTarget): Promise<ResolvedText>;
   /**
    * The same resolver with one budget for every translation it asks for: past `deadlineAt`
    * (epoch ms) a translation still running is abandoned and the text falls back to Italian
@@ -242,9 +246,20 @@ export function createTextResolver(services: TemplateServices): TextResolver {
     };
   }
 
+  function resolveKey(key: I18nTextKey, target: TextTarget): Promise<ResolvedText> {
+    return resolveSystem(key, {}, target);
+  }
+
+  async function resolveLabel(text: LocalizedText, target: TextTarget): Promise<ResolvedText> {
+    const template = await resolveTemplate(text, target.language, "label", services);
+    return rendered(template, {}, false);
+  }
+
   return {
     resolve,
     resolveSend,
+    resolveKey,
+    resolveLabel,
     withDeadline: (deadlineAt) =>
       createTextResolver({
         ...services,

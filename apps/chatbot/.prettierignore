@@ -4,6 +4,7 @@ prisma/migrations
 pnpm-lock.yaml
 evals/reports
 evals/baselines
+evals/calibration
 CLAUDE.md
 docs
 .impeccable

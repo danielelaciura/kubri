@@ -84,6 +84,11 @@ step(state, event, campaignVersion) → { state, effects }
 - Fields are either standard-profile fields or `custom.<key>` declared in `customFields`.
 - Validation (Zod + semantic checks: references, reachability, cycles, consent versions,
   keyword collisions) runs on import. **An invalid campaign must never reach the database.**
+- Routing (D105, D143): the dashboard's links and QR codes prefill `[<pool key>] <text>`, as Make
+  expected. The first bracketed token (then the whole message) is matched against the active
+  campaigns' keywords on that number (`src/campaigns/route-keyword.ts`); no match → the sender's
+  default campaign. So a client campaign's keyword is its pool key. A keyword never replaces an
+  interview still running.
 - Each import creates an **immutable `CampaignVersion`**. Sessions stay pinned to the version
   they started on. Never mutate a stored version.
 - A question whose field is already filled with sufficient confidence is **skipped** — this is

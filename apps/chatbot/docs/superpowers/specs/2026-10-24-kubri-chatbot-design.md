@@ -187,6 +187,7 @@ Oggi il chatbot di Kubri vive su Make.com. L'analisi dello scenario ha evidenzia
 | D129 | Nessuno storage (piano 10) | Niente bucket, niente chiave di servizio di Supabase nel chatbot; se il candidato vuole di nuovo il CV, si rigenera dal profilo. |
 | D130 | Endpoint dedicato (piano 10) | `POST /api/webhooks/chatbot/candidate` con `CHATBOT_WEBHOOK_SECRET` (timeout 15 s: la dashboard può chiamare Google); il webhook di Make resta invariato; il chatbot non usa `/api/webhooks/make/candidate`. |
 | D131 | Fallimento del CV (piano 10) | Errore definitivo o ultimo tentativo di pg-boss: `cv.failed` al candidato una volta (per turno) e flag `cv_failed`, senza `needs_attention`. Una sessione sparita o fermata dopo un opt-out o una cancellazione non riceve né CV né scuse. |
+| D143 | Parola chiave tra parentesi quadre (2026-11-02, titolare; D132–D142 riservate al piano 11) | Come con Make: il primo messaggio dei link e dei QR della dashboard è `[<chiave del pool>] <testo>`. Il chatbot prova, per ogni messaggio, prima il primo token tra parentesi quadre (1–64 caratteri, normalizzato in minuscolo) e poi il messaggio intero, contro le parole chiave delle campagne attive del numero (`src/campaigns/route-keyword.ts`); senza corrispondenza vale la campagna di default. La parola chiave di una campagna cliente è quindi la chiave del suo pool. Il token in apertura si toglie dal testo passato all'NLU. D105 resta: una parola chiave non sostituisce un'intervista ancora in corso. |
 
 ---
 

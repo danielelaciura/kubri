@@ -6,7 +6,7 @@ import type { SaveLandingState } from "@/lib/landing/admin-types";
 import { SubmitButton } from "@/components/shared/loading-button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { LANDING_SUBTITLE_MAX, LANDING_TITLE_MAX } from "@/lib/validations/landing-page";
+import { LANDING_SUBTITLE_MAX, LANDING_TAGLINE_MAX, LANDING_TITLE_MAX } from "@/lib/validations/landing-page";
 import { useT } from "@/lib/i18n/provider";
 
 interface Props {
@@ -22,6 +22,10 @@ interface Props {
     titleEn: string;
     subtitleIt: string;
     subtitleEn: string;
+    taglineIt: string;
+    taglineEn: string;
+    logoUrl: string | null;
+    hasLogo: boolean;
   };
 }
 
@@ -73,6 +77,25 @@ export function LandingAdminForm({ organizationId, pools, initial }: Props) {
           defaultValue={initial.privacyPolicyUrl}
         />
       </label>
+      <fieldset className="space-y-2 md:col-span-2">
+        <legend className="mb-1 text-sm font-medium">{t.logoLegend}</legend>
+        <div className="flex items-center gap-3">
+          {initial.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- admin preview of our own route
+            <img src={initial.logoUrl} alt="" className="size-11 rounded-lg border bg-white object-contain" />
+          ) : (
+            <span className="text-xs text-muted-foreground">{initial.hasLogo ? t.logoSavedHidden : t.logoNone}</span>
+          )}
+          <Input name="logo" type="file" accept="image/png,image/jpeg" className="max-w-xs" />
+        </div>
+        <span className="block text-xs text-muted-foreground">{t.logoHint}</span>
+        {initial.hasLogo && (
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="removeLogo" className="h-4 w-4" />
+            {t.logoRemove}
+          </label>
+        )}
+      </fieldset>
       <fieldset className="grid gap-3 md:col-span-2 md:grid-cols-2">
         <legend className="mb-1 text-sm font-medium">{t.textsLegend}</legend>
         {(["It", "En"] as const).map((lang) => (
@@ -80,6 +103,13 @@ export function LandingAdminForm({ organizationId, pools, initial }: Props) {
             <label className="block space-y-1 text-sm">
               <span>{lang === "It" ? t.titleIt : t.titleEn}</span>
               <Input name={`title${lang}`} required maxLength={LANDING_TITLE_MAX} defaultValue={initial[`title${lang}`]} />
+            </label>
+            <label className="block space-y-1 text-sm">
+              <span>{lang === "It" ? t.taglineIt : t.taglineEn}</span>
+              <Input
+                name={`tagline${lang}`} maxLength={LANDING_TAGLINE_MAX} defaultValue={initial[`tagline${lang}`]}
+                placeholder={lang === "It" ? t.taglinePlaceholderIt : t.taglinePlaceholderEn}
+              />
             </label>
             <label className="block space-y-1 text-sm">
               <span>{lang === "It" ? t.subtitleIt : t.subtitleEn}</span>

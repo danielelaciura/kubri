@@ -116,7 +116,7 @@ export interface LandingFlowProps {
   locale: string;
   orgName: string;
   waLink: string | null;
-  privacyPolicyUrl: string;
+  privacyPolicyUrl: string | null;
   /** The landing feeds the Global pool (internal Kubri organization). */
   isGlobal: boolean;
   showShare: boolean;

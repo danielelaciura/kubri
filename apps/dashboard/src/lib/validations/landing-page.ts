@@ -6,6 +6,7 @@ export const LANDING_SLUG_RE = /^[a-z0-9][a-z0-9-]{1,58}[a-z0-9]$/;
 export const LANDING_TITLE_MAX = 120;
 export const LANDING_SUBTITLE_MAX = 300;
 export const LANDING_TAGLINE_MAX = 60;
+export const LANDING_BRAND_NAME_MAX = 60;
 
 const landingTitle = z.string().trim().min(1).max(LANDING_TITLE_MAX);
 /** Optional: blank means the page shows no intro line. */
@@ -25,15 +26,18 @@ const landingTagline = z
 export const landingPageInputSchema = z.object({
   slug: z.string().trim().toLowerCase().regex(LANDING_SLUG_RE),
   poolId: z.string().uuid(),
-  privacyPolicyUrl: z
-    .url()
-    .max(500)
-    .refine((u) => u.startsWith("https://")),
+  // Optional: blank means the consent names Kubri's notice only.
+  privacyPolicyUrl: z.union([
+    z.literal("").transform(() => null),
+    z.url().max(500).refine((u) => u.startsWith("https://")),
+  ]),
   enabled: z.boolean(),
   titleIt: landingTitle,
   titleEn: landingTitle,
   subtitleIt: landingSubtitle,
   subtitleEn: landingSubtitle,
+  /** Name next to the logo, free text (not translated). */
+  brandName: z.string().trim().min(1).max(LANDING_BRAND_NAME_MAX),
   taglineIt: landingTagline,
   taglineEn: landingTagline,
 });

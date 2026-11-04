@@ -28,12 +28,13 @@ export async function saveLandingPageAction(
   const parsed = landingPageInputSchema.safeParse({
     slug: formData.get("slug"),
     poolId: formData.get("poolId"),
-    privacyPolicyUrl: formData.get("privacyPolicyUrl"),
+    privacyPolicyUrl: String(formData.get("privacyPolicyUrl") ?? "").trim(),
     enabled: formData.get("enabled") === "on",
     titleIt: formData.get("titleIt"),
     titleEn: formData.get("titleEn"),
     subtitleIt: formData.get("subtitleIt") ?? "",
     subtitleEn: formData.get("subtitleEn") ?? "",
+    brandName: formData.get("brandName"),
     taglineIt: formData.get("taglineIt") ?? "",
     taglineEn: formData.get("taglineEn") ?? "",
   });

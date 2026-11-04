@@ -79,7 +79,7 @@ export default async function CandidateLandingPage(props: Props) {
             {!landing.pool.isGlobal && (
               <div className="pb-2">
                 <PartnerBrand
-                  name={landing.organization.name}
+                  name={landing.brandName}
                   tagline={texts.tagline}
                   logoSrc={landing.logoVersion ? `/candidati/${landing.slug}/logo?v=${landing.logoVersion}` : null}
                 />

@@ -51,6 +51,7 @@ const LANDING: ActiveLanding = {
     it: { title: "Candidati con Coop Sole", subtitle: null, tagline: null },
     en: { title: "Apply to Coop Sole", subtitle: null, tagline: null },
   },
+  brandName: "Coop Sole",
   logoVersion: null,
   organization: { id: "o-1", name: "Coop Sole" },
   pool: { id: "p-1", isGlobal: false, globalSharing: "WEBHOOK", externalKey: "SOLE", slug: "sole" },
@@ -359,7 +360,7 @@ describe("confirmLandingImport", () => {
         landingPageId: LANDING.id,
         consent: {
           privacyPolicyUrl: "https://x.it/p", kubriPrivacyPolicyUrl: "https://www.kubri.it/privacy",
-          acceptedAt: "2026-10-29T10:00:00.000Z", shareWithGlobal: true, textVersion: "2026-11-01",
+          acceptedAt: "2026-10-29T10:00:00.000Z", shareWithGlobal: true, textVersion: "2026-11-04",
         },
         place: { placeId: "ChIJ1", source: "google", resolvedAt: "2026-10-29T10:00:00.000Z" },
       },
@@ -375,7 +376,7 @@ describe("confirmLandingImport", () => {
         ipHash: CTX.ipHash,
         consent: {
           privacyPolicyUrl: "https://x.it/p", kubriPrivacyPolicyUrl: "https://www.kubri.it/privacy",
-          acceptedAt: "2026-10-29T10:00:00.000Z", shareWithGlobal: true, textVersion: "2026-11-01",
+          acceptedAt: "2026-10-29T10:00:00.000Z", shareWithGlobal: true, textVersion: "2026-11-04",
         },
         place: { placeId: "ChIJ1", source: "google", resolvedAt: "2026-10-29T10:00:00.000Z" },
       },

@@ -10,12 +10,15 @@ vi.mock("@/app/(public)/candidati/[slug]/actions", () => ({ searchLandingPlacesA
 const PLACE = { placeId: "istat:MI:milano", label: "Milano (MI)" };
 const PREFILL: LandingPrefill = { firstName: "Ahmed", lastName: "", phone: "333 1234567", email: "", place: PLACE };
 
-function setup(showShare = true, busy = false, prefill = PREFILL, isGlobal = false) {
+function setup(
+  showShare = true, busy = false, prefill = PREFILL, isGlobal = false,
+  privacyPolicyUrl: string | null = "https://x.it/p",
+) {
   const onSubmit = vi.fn();
   render(
     <I18nProvider locale="it">
       <ContactForm
-        slug="coop-sole" orgName="Coop Sole" prefill={prefill} privacyPolicyUrl="https://x.it/p"
+        slug="coop-sole" orgName="Coop Sole" prefill={prefill} privacyPolicyUrl={privacyPolicyUrl}
         isGlobal={isGlobal} showShare={showShare} busy={busy} placeResetKey={0} onSubmit={onSubmit}
       />
     </I18nProvider>,
@@ -57,9 +60,16 @@ describe("ContactForm", () => {
     expect(screen.getByLabelText(/altre organizzazioni/)).toBeInTheDocument();
   });
 
-  it("uses the landing's notice as Kubri's on the Global landing", () => {
+  it("names Kubri's notice only when the landing has no organization notice", () => {
+    setup(false, false, PREFILL, false, null);
+    expect(screen.getByRole("link", { name: "Kubri" })).toHaveAttribute("href", "https://www.kubri.it/privacy");
+    expect(screen.queryByRole("link", { name: "Coop Sole" })).toBeNull();
+    expect(screen.getByLabelText(/^Ho letto l'informativa privacy di Kubri e acconsento/)).toBeInTheDocument();
+  });
+
+  it("names Kubri's notice only on the Global landing", () => {
     setup(false, false, PREFILL, true);
-    expect(screen.getByRole("link", { name: "Kubri" })).toHaveAttribute("href", "https://x.it/p");
+    expect(screen.getByRole("link", { name: "Kubri" })).toHaveAttribute("href", "https://www.kubri.it/privacy");
     expect(screen.queryByRole("link", { name: "Coop Sole" })).toBeNull();
     expect(screen.getByLabelText(/visibile alle organizzazioni che collaborano con Kubri/)).toBeInTheDocument();
   });

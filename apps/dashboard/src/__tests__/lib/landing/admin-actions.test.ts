@@ -30,6 +30,7 @@ function form(over: Record<string, string | Blob | null> = {}) {
     enabled: "on",
     titleIt: "Lavora con noi",
     titleEn: "Work with us",
+    brandName: "Activa Group",
     subtitleIt: "",
     subtitleEn: "Two minutes.",
     ...over,

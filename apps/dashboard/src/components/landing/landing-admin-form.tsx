@@ -99,6 +99,18 @@ export function LandingAdminForm({ organizationId, pools, initial }: Props) {
           <span>{t.brandName}</span>
           <Input name="brandName" required maxLength={LANDING_BRAND_NAME_MAX} defaultValue={initial.brandName} />
         </label>
+        {/* The logo's subtitle sits with the name it goes under, not with the page texts. */}
+        <div className="grid gap-3 md:grid-cols-2">
+          {(["It", "En"] as const).map((lang) => (
+            <label key={lang} className="block space-y-1 text-sm">
+              <span>{lang === "It" ? t.taglineIt : t.taglineEn}</span>
+              <Input
+                name={`tagline${lang}`} maxLength={LANDING_TAGLINE_MAX} defaultValue={initial[`tagline${lang}`]}
+                placeholder={lang === "It" ? t.taglinePlaceholderIt : t.taglinePlaceholderEn}
+              />
+            </label>
+          ))}
+        </div>
         {initial.hasLogo && (
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" name="removeLogo" className="h-4 w-4" />
@@ -113,13 +125,6 @@ export function LandingAdminForm({ organizationId, pools, initial }: Props) {
             <label className="block space-y-1 text-sm">
               <span>{lang === "It" ? t.titleIt : t.titleEn}</span>
               <Input name={`title${lang}`} required maxLength={LANDING_TITLE_MAX} defaultValue={initial[`title${lang}`]} />
-            </label>
-            <label className="block space-y-1 text-sm">
-              <span>{lang === "It" ? t.taglineIt : t.taglineEn}</span>
-              <Input
-                name={`tagline${lang}`} maxLength={LANDING_TAGLINE_MAX} defaultValue={initial[`tagline${lang}`]}
-                placeholder={lang === "It" ? t.taglinePlaceholderIt : t.taglinePlaceholderEn}
-              />
             </label>
             <label className="block space-y-1 text-sm">
               <span>{lang === "It" ? t.subtitleIt : t.subtitleEn}</span>

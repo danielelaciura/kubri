@@ -490,7 +490,7 @@ export const it = {
     whatsappDesktopCta: "Apri WhatsApp su questo computer",
     uploadHowTitle: "Come funziona",
     uploadTitle: "Hai già un curriculum?",
-    uploadBody: "Caricalo qui: leggiamo noi i dati e li inviamo a {org}.",
+    uploadBody: "Caricalo qui: in pochi minuti ti candidi con {org}.",
     uploadCta: "Carica il tuo CV",
     uploadTag: "PDF o Word",
     uploadStepTitle: "Carica il tuo CV",

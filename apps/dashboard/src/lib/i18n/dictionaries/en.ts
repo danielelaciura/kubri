@@ -492,7 +492,7 @@ export const en = {
     whatsappDesktopCta: "Open WhatsApp on this computer",
     uploadHowTitle: "How it works",
     uploadTitle: "Already have a CV?",
-    uploadBody: "Upload it here: we read your details and send them to {org}.",
+    uploadBody: "Upload it here: apply to {org} in a few minutes.",
     uploadCta: "Upload your CV",
     uploadTag: "PDF or Word",
     uploadStepTitle: "Upload your CV",

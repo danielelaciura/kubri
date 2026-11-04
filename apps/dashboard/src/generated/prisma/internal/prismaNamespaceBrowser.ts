@@ -323,6 +323,7 @@ export const CandidateLandingPageScalarFieldEnum = {
   subtitleIt: 'subtitleIt',
   subtitleEn: 'subtitleEn',
   logoPath: 'logoPath',
+  brandName: 'brandName',
   taglineIt: 'taglineIt',
   taglineEn: 'taglineEn',
   createdAt: 'createdAt',

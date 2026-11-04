@@ -34,6 +34,7 @@ export async function saveLandingPageAction(
     titleEn: formData.get("titleEn"),
     subtitleIt: formData.get("subtitleIt") ?? "",
     subtitleEn: formData.get("subtitleEn") ?? "",
+    brandName: formData.get("brandName"),
     taglineIt: formData.get("taglineIt") ?? "",
     taglineEn: formData.get("taglineEn") ?? "",
   });

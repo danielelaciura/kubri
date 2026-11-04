@@ -51,6 +51,7 @@ const LANDING: ActiveLanding = {
     it: { title: "Candidati con Coop Sole", subtitle: null, tagline: null },
     en: { title: "Apply to Coop Sole", subtitle: null, tagline: null },
   },
+  brandName: "Coop Sole",
   logoVersion: null,
   organization: { id: "o-1", name: "Coop Sole" },
   pool: { id: "p-1", isGlobal: false, globalSharing: "WEBHOOK", externalKey: "SOLE", slug: "sole" },

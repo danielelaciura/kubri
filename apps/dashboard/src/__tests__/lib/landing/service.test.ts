@@ -17,7 +17,7 @@ const POOL_ID = "11111111-1111-4111-8111-111111111111";
 const ROW = {
   id: "l-1", slug: "coop-sole", enabled: true, privacyPolicyUrl: "https://x.it/privacy",
   titleIt: "Lavora con noi", titleEn: "Work with us", subtitleIt: "Due minuti.", subtitleEn: null,
-  taglineIt: "Cooperativa sociale", taglineEn: null, logoPath: "landing-logos/o-1.png",
+  taglineIt: "Cooperativa sociale", taglineEn: null, brandName: "Coop Sole Group", logoPath: "landing-logos/o-1.png",
   updatedAt: new Date("2026-11-04T10:00:00Z"),
   organizationId: "o-1", poolId: POOL_ID,
   organization: { id: "o-1", name: "Coop Sole" },
@@ -28,7 +28,7 @@ describe("landingPageInputSchema", () => {
   const ok = {
     slug: "Coop-Sole", poolId: POOL_ID, privacyPolicyUrl: "https://x.it/p", enabled: true,
     titleIt: " Lavora con noi ", titleEn: "Work with us", subtitleIt: "  ", subtitleEn: "Two minutes.",
-    taglineIt: " Cooperativa sociale ", taglineEn: "",
+    taglineIt: " Cooperativa sociale ", taglineEn: "", brandName: " Activa Group ",
   };
   it("lowercases the slug", () => {
     expect(landingPageInputSchema.parse(ok).slug).toBe("coop-sole");
@@ -36,10 +36,10 @@ describe("landingPageInputSchema", () => {
   it("trims the texts and turns a blank subtitle into none", () => {
     expect(landingPageInputSchema.parse(ok)).toMatchObject({
       titleIt: "Lavora con noi", titleEn: "Work with us", subtitleIt: null, subtitleEn: "Two minutes.",
-      taglineIt: "Cooperativa sociale", taglineEn: null,
+      taglineIt: "Cooperativa sociale", taglineEn: null, brandName: "Activa Group",
     });
   });
-  it.each(["titleIt", "titleEn"])("requires %s", (key) => {
+  it.each(["titleIt", "titleEn", "brandName"])("requires %s", (key) => {
     expect(landingPageInputSchema.safeParse({ ...ok, [key]: "  " }).success).toBe(false);
   });
   it("caps title and subtitle length", () => {
@@ -70,6 +70,7 @@ describe("getActiveLandingBySlug", () => {
         it: { title: "Lavora con noi", subtitle: "Due minuti.", tagline: "Cooperativa sociale" },
         en: { title: "Work with us", subtitle: null, tagline: null },
       },
+      brandName: "Coop Sole Group",
       logoVersion: new Date("2026-11-04T10:00:00Z").getTime(),
     });
     expect(m(prisma.organizationPool.findUnique).mock.calls[0]![0].where).toEqual({
@@ -118,7 +119,7 @@ describe("saveLandingPage", () => {
   const input = {
     slug: "coop-sole", poolId: POOL_ID, privacyPolicyUrl: "https://x.it/p", enabled: true,
     titleIt: "Lavora con noi", titleEn: "Work with us", subtitleIt: null, subtitleEn: null,
-    taglineIt: null, taglineEn: null,
+    brandName: "Coop Sole", taglineIt: null, taglineEn: null,
   };
   beforeEach(() => vi.resetAllMocks());
 
@@ -173,7 +174,7 @@ describe("saveLandingPage errors", () => {
       saveLandingPage("o-1", {
         slug: "coop-sole", poolId: POOL_ID, privacyPolicyUrl: "https://x.it/p", enabled: true,
         titleIt: "Lavora con noi", titleEn: "Work with us", subtitleIt: null, subtitleEn: null,
-    taglineIt: null, taglineEn: null,
+    brandName: "Coop Sole", taglineIt: null, taglineEn: null,
       }),
     ).rejects.toThrow("boom");
   });

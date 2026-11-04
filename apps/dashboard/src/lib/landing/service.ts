@@ -9,6 +9,8 @@ export interface ActiveLanding {
   privacyPolicyUrl: string | null;
   /** Headline, intro and the line under the org name (null = none) per UI language. */
   texts: Record<"it" | "en", { title: string; subtitle: string | null; tagline: string | null }>;
+  /** Name shown next to the partner logo. */
+  brandName: string;
   /** Partner logo version (for cache busting), or null when there is no logo. */
   logoVersion: number | null;
   organization: { id: string; name: string };
@@ -43,6 +45,7 @@ export async function getActiveLandingBySlug(slug: string): Promise<ActiveLandin
       subtitleEn: true,
       taglineIt: true,
       taglineEn: true,
+      brandName: true,
       logoPath: true,
       updatedAt: true,
       organizationId: true,
@@ -67,6 +70,7 @@ export async function getActiveLandingBySlug(slug: string): Promise<ActiveLandin
       it: { title: row.titleIt, subtitle: row.subtitleIt, tagline: row.taglineIt },
       en: { title: row.titleEn, subtitle: row.subtitleEn, tagline: row.taglineEn },
     },
+    brandName: row.brandName,
     logoVersion: row.logoPath ? row.updatedAt.getTime() : null,
     organization: row.organization,
     pool: row.pool,
@@ -80,7 +84,7 @@ export async function getLandingForOrg(organizationId: string) {
     select: {
       id: true, slug: true, poolId: true, enabled: true, privacyPolicyUrl: true,
       titleIt: true, titleEn: true, subtitleIt: true, subtitleEn: true,
-      taglineIt: true, taglineEn: true, logoPath: true, updatedAt: true,
+      taglineIt: true, taglineEn: true, brandName: true, logoPath: true, updatedAt: true,
     },
   });
 }

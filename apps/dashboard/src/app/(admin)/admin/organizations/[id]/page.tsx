@@ -420,6 +420,7 @@ async function resendInvite(formData: FormData) {
                   titleEn: landing?.titleEn ?? getDictionary("en").landing.headline.replace("{org}", org.name),
                   subtitleIt: landing ? (landing.subtitleIt ?? "") : getDictionary("it").landing.intro,
                   subtitleEn: landing ? (landing.subtitleEn ?? "") : getDictionary("en").landing.intro,
+                  brandName: landing?.brandName ?? org.name,
                   taglineIt: landing?.taglineIt ?? "",
                   taglineEn: landing?.taglineEn ?? "",
                   // Served by the public route, so only previewable while the landing is enabled.

@@ -6,7 +6,12 @@ import type { SaveLandingState } from "@/lib/landing/admin-types";
 import { SubmitButton } from "@/components/shared/loading-button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { LANDING_SUBTITLE_MAX, LANDING_TAGLINE_MAX, LANDING_TITLE_MAX } from "@/lib/validations/landing-page";
+import {
+  LANDING_BRAND_NAME_MAX,
+  LANDING_SUBTITLE_MAX,
+  LANDING_TAGLINE_MAX,
+  LANDING_TITLE_MAX,
+} from "@/lib/validations/landing-page";
 import { useT } from "@/lib/i18n/provider";
 
 interface Props {
@@ -22,6 +27,7 @@ interface Props {
     titleEn: string;
     subtitleIt: string;
     subtitleEn: string;
+    brandName: string;
     taglineIt: string;
     taglineEn: string;
     logoUrl: string | null;
@@ -89,6 +95,10 @@ export function LandingAdminForm({ organizationId, pools, initial }: Props) {
           <Input name="logo" type="file" accept="image/png,image/jpeg" className="max-w-xs" />
         </div>
         <span className="block text-xs text-muted-foreground">{t.logoHint}</span>
+        <label className="block max-w-md space-y-1 text-sm">
+          <span>{t.brandName}</span>
+          <Input name="brandName" required maxLength={LANDING_BRAND_NAME_MAX} defaultValue={initial.brandName} />
+        </label>
         {initial.hasLogo && (
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" name="removeLogo" className="h-4 w-4" />

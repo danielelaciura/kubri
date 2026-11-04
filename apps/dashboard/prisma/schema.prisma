@@ -401,6 +401,8 @@ model CandidateLandingPage {
   /// Partner logo (re-encoded PNG in the candidate-documents bucket) and the
   /// optional line shown under the organization name, per UI language.
   logoPath         String?
+  /// Name shown next to the logo (free text, e.g. "Activa Group").
+  brandName        String
   taglineIt        String?
   taglineEn        String?
   createdAt        DateTime @default(now())

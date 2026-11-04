@@ -72,10 +72,10 @@ export function LandingAdminForm({ organizationId, pools, initial }: Props) {
         <Input
           name="privacyPolicyUrl"
           type="url"
-          required
           placeholder="https://"
           defaultValue={initial.privacyPolicyUrl}
         />
+        <span className="block text-xs text-muted-foreground">{t.privacyPolicyUrlHint}</span>
       </label>
       <fieldset className="space-y-2 md:col-span-2">
         <legend className="mb-1 text-sm font-medium">{t.logoLegend}</legend>

@@ -36,7 +36,7 @@ import type { ActiveLanding } from "./service";
 export const PUBLIC_MAX_DOCUMENT_BYTES = 5 * 1024 * 1024;
 export const PUBLIC_MAX_OCR_PAGES = 3;
 /** Bump when the consent copy in the dictionaries changes. */
-export const CONSENT_TEXT_VERSION = "2026-11-01";
+export const CONSENT_TEXT_VERSION = "2026-11-04";
 
 const HOUR = 3600;
 const DAY = 24 * HOUR;

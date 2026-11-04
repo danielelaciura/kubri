@@ -5,7 +5,8 @@ import { LANDING_SLUG_RE, type LandingPageInput } from "@/lib/validations/landin
 export interface ActiveLanding {
   id: string;
   slug: string;
-  privacyPolicyUrl: string;
+  /** The organization's own notice; null = the consent names Kubri's only. */
+  privacyPolicyUrl: string | null;
   /** Headline, intro and the line under the org name (null = none) per UI language. */
   texts: Record<"it" | "en", { title: string; subtitle: string | null; tagline: string | null }>;
   /** Partner logo version (for cache busting), or null when there is no logo. */

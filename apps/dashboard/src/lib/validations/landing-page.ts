@@ -25,10 +25,11 @@ const landingTagline = z
 export const landingPageInputSchema = z.object({
   slug: z.string().trim().toLowerCase().regex(LANDING_SLUG_RE),
   poolId: z.string().uuid(),
-  privacyPolicyUrl: z
-    .url()
-    .max(500)
-    .refine((u) => u.startsWith("https://")),
+  // Optional: blank means the consent names Kubri's notice only.
+  privacyPolicyUrl: z.union([
+    z.literal("").transform(() => null),
+    z.url().max(500).refine((u) => u.startsWith("https://")),
+  ]),
   enabled: z.boolean(),
   titleIt: landingTitle,
   titleEn: landingTitle,

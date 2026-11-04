@@ -52,6 +52,9 @@ describe("landingPageInputSchema", () => {
   it("requires an https privacy URL", () => {
     expect(landingPageInputSchema.safeParse({ ...ok, privacyPolicyUrl: "http://x.it" }).success).toBe(false);
   });
+  it("accepts no organization privacy URL", () => {
+    expect(landingPageInputSchema.parse({ ...ok, privacyPolicyUrl: "" }).privacyPolicyUrl).toBeNull();
+  });
 });
 
 describe("getActiveLandingBySlug", () => {

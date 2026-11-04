@@ -391,7 +391,8 @@ model CandidateLandingPage {
   organizationId   String   @unique @db.Uuid
   poolId           String   @db.Uuid
   enabled          Boolean  @default(true)
-  privacyPolicyUrl String
+  /// The organization's own notice, optional: Kubri's notice always applies.
+  privacyPolicyUrl String?
   /// Page headline and optional intro, written per landing, one per UI language.
   titleIt          String
   titleEn          String

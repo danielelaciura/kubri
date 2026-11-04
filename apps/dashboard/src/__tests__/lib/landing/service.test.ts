@@ -17,6 +17,8 @@ const POOL_ID = "11111111-1111-4111-8111-111111111111";
 const ROW = {
   id: "l-1", slug: "coop-sole", enabled: true, privacyPolicyUrl: "https://x.it/privacy",
   titleIt: "Lavora con noi", titleEn: "Work with us", subtitleIt: "Due minuti.", subtitleEn: null,
+  taglineIt: "Cooperativa sociale", taglineEn: null, logoPath: "landing-logos/o-1.png",
+  updatedAt: new Date("2026-11-04T10:00:00Z"),
   organizationId: "o-1", poolId: POOL_ID,
   organization: { id: "o-1", name: "Coop Sole" },
   pool: { id: POOL_ID, isGlobal: false, globalSharing: "WEBHOOK", externalKey: "SOLE", slug: "sole" },
@@ -26,6 +28,7 @@ describe("landingPageInputSchema", () => {
   const ok = {
     slug: "Coop-Sole", poolId: POOL_ID, privacyPolicyUrl: "https://x.it/p", enabled: true,
     titleIt: " Lavora con noi ", titleEn: "Work with us", subtitleIt: "  ", subtitleEn: "Two minutes.",
+    taglineIt: " Cooperativa sociale ", taglineEn: "",
   };
   it("lowercases the slug", () => {
     expect(landingPageInputSchema.parse(ok).slug).toBe("coop-sole");
@@ -33,6 +36,7 @@ describe("landingPageInputSchema", () => {
   it("trims the texts and turns a blank subtitle into none", () => {
     expect(landingPageInputSchema.parse(ok)).toMatchObject({
       titleIt: "Lavora con noi", titleEn: "Work with us", subtitleIt: null, subtitleEn: "Two minutes.",
+      taglineIt: "Cooperativa sociale", taglineEn: null,
     });
   });
   it.each(["titleIt", "titleEn"])("requires %s", (key) => {
@@ -59,7 +63,11 @@ describe("getActiveLandingBySlug", () => {
     const l = await getActiveLandingBySlug("coop-sole");
     expect(l).toMatchObject({
       id: "l-1", organization: { name: "Coop Sole" }, pool: { id: POOL_ID },
-      texts: { it: { title: "Lavora con noi", subtitle: "Due minuti." }, en: { title: "Work with us", subtitle: null } },
+      texts: {
+        it: { title: "Lavora con noi", subtitle: "Due minuti.", tagline: "Cooperativa sociale" },
+        en: { title: "Work with us", subtitle: null, tagline: null },
+      },
+      logoVersion: new Date("2026-11-04T10:00:00Z").getTime(),
     });
     expect(m(prisma.organizationPool.findUnique).mock.calls[0]![0].where).toEqual({
       organizationId_poolId: { organizationId: "o-1", poolId: POOL_ID },
@@ -107,6 +115,7 @@ describe("saveLandingPage", () => {
   const input = {
     slug: "coop-sole", poolId: POOL_ID, privacyPolicyUrl: "https://x.it/p", enabled: true,
     titleIt: "Lavora con noi", titleEn: "Work with us", subtitleIt: null, subtitleEn: null,
+    taglineIt: null, taglineEn: null,
   };
   beforeEach(() => vi.resetAllMocks());
 
@@ -128,8 +137,19 @@ describe("saveLandingPage", () => {
     await expect(saveLandingPage("o-1", input)).resolves.toEqual({ ok: true, id: "l-1" });
     const args = m(prisma.candidateLandingPage.upsert).mock.calls[0]![0];
     expect(args.where).toEqual({ organizationId: "o-1" });
-    expect(args.create).toEqual({ organizationId: "o-1", ...input });
+    expect(args.create).toEqual({ organizationId: "o-1", ...input, logoPath: null });
     expect(args.update).toEqual(input);
+  });
+
+  it.each([
+    ["sets a new logo", "landing-logos/o-1.png"],
+    ["clears the logo", null],
+  ])("%s", async (_, logoPath) => {
+    m(prisma.organizationPool.findUnique).mockResolvedValueOnce({ poolId: POOL_ID });
+    m(prisma.candidateLandingPage.upsert).mockResolvedValueOnce({ id: "l-1" });
+    await saveLandingPage("o-1", input, logoPath);
+    const args = m(prisma.candidateLandingPage.upsert).mock.calls[0]![0];
+    expect(args.update).toEqual({ ...input, logoPath });
   });
 
   it("maps a slug unique violation to SLUG_TAKEN", async () => {
@@ -150,6 +170,7 @@ describe("saveLandingPage errors", () => {
       saveLandingPage("o-1", {
         slug: "coop-sole", poolId: POOL_ID, privacyPolicyUrl: "https://x.it/p", enabled: true,
         titleIt: "Lavora con noi", titleEn: "Work with us", subtitleIt: null, subtitleEn: null,
+    taglineIt: null, taglineEn: null,
       }),
     ).rejects.toThrow("boom");
   });

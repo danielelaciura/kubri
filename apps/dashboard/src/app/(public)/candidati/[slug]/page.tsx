@@ -10,6 +10,7 @@ import { buildWaLink } from "@/lib/whatsapp/build-link";
 import { LandingFlow } from "@/components/landing/landing-flow";
 import { LocaleFlag } from "@/components/landing/locale-flag";
 import { LandingFooter } from "@/components/landing/landing-footer";
+import { PartnerBrand } from "@/components/landing/partner-brand";
 
 // Route segment config: server actions invoked from this page (CV extraction)
 // inherit this budget (Next 16 docs, route-segment-config/maxDuration).
@@ -73,6 +74,16 @@ export default async function CandidateLandingPage(props: Props) {
       <div className="flex-1 bg-[#f8f8f8]">
         <main lang={locale} className="mx-auto w-full max-w-2xl space-y-6 px-4 py-10">
           <header className="space-y-2">
+            {/* The Global landing belongs to Kubri, already in the top bar. */}
+            {!landing.pool.isGlobal && (
+              <div className="pb-2">
+                <PartnerBrand
+                  name={landing.organization.name}
+                  tagline={texts.tagline}
+                  logoSrc={landing.logoVersion ? `/candidati/${landing.slug}/logo?v=${landing.logoVersion}` : null}
+                />
+              </div>
+            )}
             <h1 className="text-2xl font-semibold tracking-tight text-balance sm:text-3xl">{texts.title}</h1>
             {texts.subtitle && <p className="max-w-prose text-pretty text-muted-foreground">{texts.subtitle}</p>}
           </header>

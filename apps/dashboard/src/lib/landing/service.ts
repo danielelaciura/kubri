@@ -6,8 +6,10 @@ export interface ActiveLanding {
   id: string;
   slug: string;
   privacyPolicyUrl: string;
-  /** Headline and intro (intro null = none) per UI language. */
-  texts: Record<"it" | "en", { title: string; subtitle: string | null }>;
+  /** Headline, intro and the line under the org name (null = none) per UI language. */
+  texts: Record<"it" | "en", { title: string; subtitle: string | null; tagline: string | null }>;
+  /** Partner logo version (for cache busting), or null when there is no logo. */
+  logoVersion: number | null;
   organization: { id: string; name: string };
   pool: {
     id: string;
@@ -38,6 +40,10 @@ export async function getActiveLandingBySlug(slug: string): Promise<ActiveLandin
       titleEn: true,
       subtitleIt: true,
       subtitleEn: true,
+      taglineIt: true,
+      taglineEn: true,
+      logoPath: true,
+      updatedAt: true,
       organizationId: true,
       poolId: true,
       organization: { select: { id: true, name: true } },
@@ -57,9 +63,10 @@ export async function getActiveLandingBySlug(slug: string): Promise<ActiveLandin
     slug: row.slug,
     privacyPolicyUrl: row.privacyPolicyUrl,
     texts: {
-      it: { title: row.titleIt, subtitle: row.subtitleIt },
-      en: { title: row.titleEn, subtitle: row.subtitleEn },
+      it: { title: row.titleIt, subtitle: row.subtitleIt, tagline: row.taglineIt },
+      en: { title: row.titleEn, subtitle: row.subtitleEn, tagline: row.taglineEn },
     },
+    logoVersion: row.logoPath ? row.updatedAt.getTime() : null,
     organization: row.organization,
     pool: row.pool,
   };
@@ -72,8 +79,20 @@ export async function getLandingForOrg(organizationId: string) {
     select: {
       id: true, slug: true, poolId: true, enabled: true, privacyPolicyUrl: true,
       titleIt: true, titleEn: true, subtitleIt: true, subtitleEn: true,
+      taglineIt: true, taglineEn: true, logoPath: true, updatedAt: true,
     },
   });
+}
+
+/** Storage path of an enabled landing's logo, for the public logo route. */
+export async function getLandingLogoPath(slug: string): Promise<string | null> {
+  slug = slug.toLowerCase();
+  if (!LANDING_SLUG_RE.test(slug)) return null;
+  const row = await prisma.candidateLandingPage.findUnique({
+    where: { slug },
+    select: { enabled: true, logoPath: true },
+  });
+  return row?.enabled ? row.logoPath : null;
 }
 
 export type SaveLandingResult =
@@ -83,11 +102,13 @@ export type SaveLandingResult =
 /**
  * Create or update the organization's landing. Callers enforce ADMIN_KUBRI
  * and validate with landingPageInputSchema. The pool must be linked to the
- * organization (the Global pool included).
+ * organization (the Global pool included). `logoPath`: a new stored logo,
+ * null to clear it, undefined to leave it as it is.
  */
 export async function saveLandingPage(
   organizationId: string,
   input: LandingPageInput,
+  logoPath?: string | null,
 ): Promise<SaveLandingResult> {
   const link = await prisma.organizationPool.findUnique({
     where: { organizationId_poolId: { organizationId, poolId: input.poolId } },
@@ -98,8 +119,8 @@ export async function saveLandingPage(
   try {
     const row = await prisma.candidateLandingPage.upsert({
       where: { organizationId },
-      create: { organizationId, ...input },
-      update: input,
+      create: { organizationId, ...input, logoPath: logoPath ?? null },
+      update: logoPath === undefined ? input : { ...input, logoPath },
       select: { id: true },
     });
     return { ok: true, id: row.id };

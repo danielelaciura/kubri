@@ -420,6 +420,13 @@ async function resendInvite(formData: FormData) {
                   titleEn: landing?.titleEn ?? getDictionary("en").landing.headline.replace("{org}", org.name),
                   subtitleIt: landing ? (landing.subtitleIt ?? "") : getDictionary("it").landing.intro,
                   subtitleEn: landing ? (landing.subtitleEn ?? "") : getDictionary("en").landing.intro,
+                  taglineIt: landing?.taglineIt ?? "",
+                  taglineEn: landing?.taglineEn ?? "",
+                  // Served by the public route, so only previewable while the landing is enabled.
+                  logoUrl: landing?.logoPath && landing.enabled
+                    ? `/candidati/${landing.slug}/logo?v=${landing.updatedAt.getTime()}`
+                    : null,
+                  hasLogo: Boolean(landing?.logoPath),
                 }}
               />
             )}

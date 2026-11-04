@@ -397,6 +397,11 @@ model CandidateLandingPage {
   titleEn          String
   subtitleIt       String?
   subtitleEn       String?
+  /// Partner logo (re-encoded PNG in the candidate-documents bucket) and the
+  /// optional line shown under the organization name, per UI language.
+  logoPath         String?
+  taglineIt        String?
+  taglineEn        String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

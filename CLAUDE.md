@@ -132,7 +132,7 @@ This is the ingestion path. The Make scenario POSTs a candidate payload here whe
 5. Generates the embedding via the Supabase Edge Function and writes `embedding` / `embeddingText` / `embeddingUpdatedAt`
 6. Returns 200
 
-Every write to `Candidate` goes through `src/lib/candidates/ingest.ts` (`upsertCandidate` / `ingestCandidate`). Sanctioned callers: the Make webhook, the assessment webhook, dashboard candidate creation (manual form and CV import, `src/lib/candidates/dashboard-create.ts` and `src/lib/candidate-imports/`), the public candidate landing (`src/lib/landing/`), and backfill scripts. Editing existing candidates from the UI is not supported.
+Every write to `Candidate` goes through `src/lib/candidates/ingest.ts` (`upsertCandidate` / `ingestCandidate`). Sanctioned callers: the Make webhook, the chatbot webhook (`/api/webhooks/chatbot/candidate`), the assessment webhook, dashboard candidate creation (manual form and CV import, `src/lib/candidates/dashboard-create.ts` and `src/lib/candidate-imports/`), the public candidate landing (`src/lib/landing/`), and backfill scripts. Editing existing candidates from the UI is not supported.
 
 ### Legacy `src/lib/make/` module
 
@@ -189,6 +189,7 @@ Conventions:
 - The webhook handler is responsible for upserting **and** for regenerating the embedding (sync). If embedding fails, log and leave `embedding = null`; a nightly cron will retry
 - The dashboard may create candidates (form or CV import) but never edit existing profile fields
 - The public candidate landing (`/candidati/[slug]`, `src/lib/landing/`) is a sanctioned write path: it creates `Candidate` rows with `channel = "landing_cv"` (or attaches the CV to an existing same-phone candidate of the same pool) through `confirmImport`. Every public upload goes through Turnstile, Upstash rate limits (fail-closed in production), `inspectPublicDocument` and the pre-LLM quality gate — never bypass them. The candidate's address comes from the required place field: the place id is resolved server-side (`src/lib/landing/place.ts`, Google or ISTAT fallback); never accept client-sent coordinates.
+- The Kubri chatbot (`apps/chatbot`) is a sanctioned write path through its own endpoint `POST /api/webhooks/chatbot/candidate` (`src/lib/chatbot/`), not the Make webhook. Bearer `CHATBOT_WEBHOOK_SECRET` (constant-time compare), body validated by the strict contract `chatbotCandidateWebhookSchema` in `@kubri/contracts` (change it there, the chatbot's tests use the same example). `channel = "whatsapp"` and `sourceOrganization = "kubri-chatbot"` are fixed server side; a send older than the stored `sourceUpdatedAt` is skipped (`{ ok: true, skipped: "stale" }`). The chatbot never sends coordinates: the endpoint geocodes `"<address>, <location>"` with `geocodeFreeText` (`src/lib/geo/geocode-text.ts`, the landing's Google → ISTAT chain) and reuses the stored coordinates when address and location are unchanged.
 
 ### Semantic search (embeddings)
 - Embeddings are generated via a Supabase Edge Function running `gte-small` (multilingual, 384-dim, free, EU-hosted). Never send candidate text to an external embedding provider
@@ -361,6 +362,7 @@ See `.env.example` for the current authoritative list. The categories in use tod
 - **Supabase**: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
 - **Supabase Edge Functions** (semantic matching): `SUPABASE_EDGE_FUNCTION_URL`, `EMBEDDING_TIMEOUT_MS`
 - **Make webhook**: shared secret for the candidate ingestion endpoint
+- **Chatbot webhook**: `CHATBOT_WEBHOOK_SECRET`, shared with the Kubri chatbot (same value in both apps); without it `/api/webhooks/chatbot/candidate` refuses every request
 - **Mistral**: `MISTRAL_API_KEY` (CV OCR + draft extraction)
 - **Cron**: `CRON_SECRET` for protected scheduled jobs
 - **Candidate landing**: `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, `LANDING_COOKIE_SECRET` (≥32 chars), `LANDING_IP_SALT` (≥16 chars), `GOOGLE_MAPS_API_KEY` (server only; address autocomplete/geocoding, ISTAT fallback when unset); Upstash Redis is required in production for its rate limits
@@ -419,7 +421,7 @@ Next:
 ## Security — Non-Negotiable Rules
 
 1. Every Postgres query on notes, tags, candidates, JDs filters by `organizationId` (directly or through `poolId`) of the logged-in user
-2. The Make webhook is authenticated with a shared secret in `Authorization`; reject any request without it
+2. The Make and chatbot webhooks are authenticated with a shared secret in `Authorization` (separate secrets); reject any request without it
 3. Roles are enforced server-side, never client-side only
 4. Candidate data is personal sensitive data (GDPR) — audit log access, no data leaks between orgs
 5. Embedding text and vectors never leave the Supabase infrastructure (Edge Function with `gte-small`)

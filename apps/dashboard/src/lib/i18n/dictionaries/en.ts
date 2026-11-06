@@ -483,8 +483,8 @@ export const en = {
     /** Default title and intro of a new landing (editable in the admin). */
     headline: "Apply to {org}",
     intro: "Choose the way you prefer. It's free, it takes a few minutes and you don't need an account.",
-    whatsappTitle: "Do the interview on WhatsApp",
-    whatsappBody: "Answer a few questions in chat, in your language.",
+    whatsappTitle: "Tell us about your skills",
+    whatsappBody: "Answer the questions in the chat, in the language you prefer.",
     whatsappCta: "Open WhatsApp",
     whatsappTag: "Even without a CV",
     whatsappQrTitle: "Scan with your phone",
@@ -543,7 +543,7 @@ export const en = {
     back: "Back",
     startOver: "Start over",
     retry: "Try again",
-    orWhatsapp: "Or do the interview on WhatsApp",
+    orWhatsapp: "Or tell us about your skills on WhatsApp",
     languageLabel: "Language",
     languageName: "English",
     fieldRequired: "Required field",
@@ -562,7 +562,7 @@ export const en = {
   },
   landingAdmin: {
     cardTitle: "Candidate landing",
-    cardDescription: "Public page where candidates choose between the WhatsApp interview and uploading a CV.",
+    cardDescription: "Public page where candidates choose between the WhatsApp chat and uploading a CV.",
     slug: "Address (slug)",
     slugHint: "Lowercase letters, digits and dashes. E.g. coop-sole",
     pool: "Target pool",

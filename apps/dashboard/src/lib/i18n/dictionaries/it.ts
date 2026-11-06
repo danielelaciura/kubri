@@ -481,8 +481,8 @@ export const it = {
     /** Default title and intro of a new landing (editable in the admin). */
     headline: "Candidati con {org}",
     intro: "Scegli come preferisci. È gratis, ci vogliono pochi minuti e non serve registrarti.",
-    whatsappTitle: "Fai il colloquio su WhatsApp",
-    whatsappBody: "Rispondi a qualche domanda in chat, nella tua lingua.",
+    whatsappTitle: "Raccontaci le tue competenze",
+    whatsappBody: "Rispondi alle domande in chat nella lingua che preferisci.",
     whatsappCta: "Apri WhatsApp",
     whatsappTag: "Anche senza CV",
     whatsappQrTitle: "Inquadra con il telefono",
@@ -541,7 +541,7 @@ export const it = {
     back: "Indietro",
     startOver: "Ricomincia",
     retry: "Riprova",
-    orWhatsapp: "Oppure fai il colloquio su WhatsApp",
+    orWhatsapp: "Oppure raccontaci le tue competenze su WhatsApp",
     languageLabel: "Lingua",
     languageName: "Italiano",
     fieldRequired: "Campo obbligatorio",
@@ -560,7 +560,7 @@ export const it = {
   },
   landingAdmin: {
     cardTitle: "Landing candidati",
-    cardDescription: "Pagina pubblica dove i candidati scelgono tra il colloquio WhatsApp e il caricamento del CV.",
+    cardDescription: "Pagina pubblica dove i candidati scelgono tra la chat WhatsApp e il caricamento del CV.",
     slug: "Indirizzo (slug)",
     slugHint: "Lettere minuscole, numeri e trattini. Es. coop-sole",
     pool: "Pool di destinazione",

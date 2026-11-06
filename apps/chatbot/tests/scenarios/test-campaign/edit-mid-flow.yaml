@@ -1,0 +1,66 @@
+description: Modifica di un altro campo durante un approfondimento, che resta in sospeso
+campaign: tests/scenarios/campaigns/test-campaign.json
+turns:
+  - start: true
+    expect: { sent: [system.welcome] }
+
+  - user: "italiano"
+    expect: { step: privacy }
+
+  - user: "accetto"
+    nlu: { intent: choice, choice: accepted }
+    expect: { step: kubri_global }
+
+  - user: "no"
+    nlu: { intent: choice, choice: declined }
+    expect: { question: nome }
+
+  - user: "Mario, ho il permesso e niente patente"
+    nlu: { patch: { firstName: Mario, workingPermit: true, drivingLicense: false } }
+    expect: { step: magazzino, question: notte }
+
+  - user: "sì, anche di notte"
+    nlu: { patch: { custom.night_shifts: true }, completeness: complete }
+    expect: { question: muletto }
+
+  - user: "sono esperto"
+    nlu: { patch: { custom.forklift: esperto }, completeness: complete }
+    expect: { question: esperienze }
+
+  - user: "ho fatto il cameriere"
+    nlu:
+      patch:
+        workExperience: ["2020 - 2021 Hotel Sole (IT): Cameriere"]
+      completeness: partial
+      missing: "altre esperienze"
+    expect:
+      question: esperienze
+      sent: [magazzino.esperienze]
+      effects: ["ApplyPatch:extraction:workExperience"]
+
+  - user: "scusa, mi chiamo Marco, non Mario"
+    nlu: { intent: edit_request, editTarget: { field: firstName, newValue: Marco } }
+    expect: { question: esperienze, sent: [system.confirm_edit], effects: [] }
+
+  # The follow-up on the experiences is still pending: it is asked again, not skipped.
+  - user: "sì"
+    nlu: { intent: choice, choice: "yes" }
+    expect:
+      question: esperienze
+      sent: [system.edit_saved, magazzino.esperienze]
+      effects: ["ApplyPatch:edit:firstName"]
+      profile: { firstName: Marco }
+
+  - user: "e poi un anno in un magazzino a Bergamo"
+    nlu:
+      patch:
+        workExperience:
+          - "2020 - 2021 Hotel Sole (IT): Cameriere"
+          - "2022 - 2023 Magazzino Bianchi (IT): Magazziniere"
+      completeness: complete
+    expect:
+      step: cv_info
+      sent: [cv_info]
+      effects:
+        - "ApplyPatch:extraction:workExperience"
+        - "EnqueueJob:kubri-webhook:block.completed"

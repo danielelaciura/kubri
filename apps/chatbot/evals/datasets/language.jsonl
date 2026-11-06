@@ -1,0 +1,6 @@
+{"id":"lingua-italiano","tags":["greeting"],"language":"it","state":{"phase":"language"},"message":"Ciao, parlo italiano","expected":{"language":"it"}}
+{"id":"lingua-inglese","tags":["greeting"],"language":"en","state":{"phase":"language"},"message":"Hello, I speak English","expected":{"language":"en"}}
+{"id":"lingua-francese","tags":["greeting"],"language":"fr","state":{"phase":"language"},"message":"Bonjour","expected":{"language":"fr"}}
+{"id":"lingua-araba","tags":["greeting"],"language":"ar","state":{"phase":"language"},"message":"السلام عليكم","expected":{"language":"ar"}}
+{"id":"lingua-ucraina","tags":["greeting"],"language":"uk","state":{"phase":"language"},"message":"Привіт","expected":{"language":"uk"}}
+{"id":"lingua-rumena","tags":["greeting"],"language":"ro","state":{"phase":"language"},"message":"Salut, vorbesc română","expected":{"language":"ro"}}

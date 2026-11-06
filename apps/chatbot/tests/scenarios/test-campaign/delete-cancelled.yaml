@@ -1,0 +1,43 @@
+description: Cancellazione dei dati annullata, il messaggio di annullamento non viene elaborato (D49, D52)
+campaign: tests/scenarios/campaigns/test-campaign.json
+turns:
+  - start: true
+    expect: { sent: [system.welcome] }
+
+  - user: "italiano"
+    expect: { step: privacy }
+
+  - user: "accetto"
+    nlu: { intent: choice, choice: accepted }
+    expect: { step: kubri_global }
+
+  - user: "no"
+    nlu: { intent: choice, choice: declined }
+    expect: { question: nome }
+
+  # From the LLM: data extracted from a global-intent message is never saved (D52).
+  - user: "voglio che cancelliate tutto, comunque sono Mario"
+    nlu: { intent: delete_data, patch: { firstName: Mario } }
+    expect:
+      question: nome
+      sent: [system.delete_confirm]
+      effects: []
+      profile: { firstName: null }
+
+  # Anything but a yes cancels and resumes; the message itself is not processed.
+  - user: "no aspetta, mi chiamo Mario"
+    nlu: { intent: choice, choice: "no", patch: { firstName: Mario } }
+    expect:
+      phase: flow
+      question: nome
+      sent: [system.delete_cancelled, anagrafica.nome]
+      effects: []
+      profile: { firstName: null }
+
+  - user: "Mario"
+    nlu: { patch: { firstName: Mario } }
+    expect:
+      question: permesso
+      sent: [anagrafica.permesso]
+      effects: ["ApplyPatch:extraction:firstName"]
+      profile: { firstName: Mario }

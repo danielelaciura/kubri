@@ -1,0 +1,207 @@
+{
+  "campaign": "kubri-standard",
+  "organization": "kubri",
+  "externalKey": "global",
+  "trigger": {
+    "sender": "kubri-main",
+    "keywords": [],
+    "isDefault": true
+  },
+  "defaultLanguage": "it",
+  "dataController": {
+    "name": "Kubri S.r.l. Società Benefit",
+    "privacyUrl": "https://kubri.it/privacy"
+  },
+  "onStop": {
+    "data": "keep"
+  },
+  "flow": [
+    {
+      "id": "benvenuto",
+      "type": "message",
+      "text": {
+        "it": "Ciao! Sono l'assistente di Kubri. Ti farò alcune domande per conoscerti e aiutarti a trovare un lavoro adatto a te. Ci vorranno circa 5 minuti, e puoi rispondere come preferisci, anche con frasi brevi."
+      }
+    },
+    {
+      "id": "privacy",
+      "type": "consent",
+      "consentKey": "privacy_interview",
+      "textVersion": "placeholder-2026-10",
+      "text": {
+        "it": "[TESTO SEGNAPOSTO] Prima di iniziare: per svolgere questa intervista raccogliamo e conserviamo le informazioni che ci darai (dati personali, esperienze, preferenze di lavoro). Il titolare del trattamento è Kubri S.r.l. Società Benefit. Usiamo i tuoi dati solo per valutare la tua candidatura e metterti in contatto con opportunità di lavoro adatte a te. Puoi chiedere in qualsiasi momento di vedere, correggere o cancellare i tuoi dati scrivendo \"cancella i miei dati\". L'informativa completa è qui: https://kubri.it/privacy\nAccetti di proseguire?"
+      },
+      "link": "https://kubri.it/privacy",
+      "optional": false
+    },
+    {
+      "id": "pool_globale",
+      "type": "consent",
+      "consentKey": "kubri_global",
+      "textVersion": "placeholder-2026-10",
+      "text": {
+        "it": "[TESTO SEGNAPOSTO] Vuoi che il tuo profilo sia visibile anche ad altre organizzazioni partner di Kubri (cooperative, agenzie per il lavoro, centri per l'impiego), per ricevere più opportunità? Puoi dire di no: la tua candidatura per questa campagna resta valida comunque. Informativa: https://kubri.it/privacy"
+      },
+      "link": "https://kubri.it/privacy",
+      "optional": true
+    },
+    {
+      "id": "professionale",
+      "type": "questions",
+      "title": {
+        "it": "Partiamo dalle tue esperienze di lavoro e da quello che sai fare."
+      },
+      "questions": [
+        {
+          "id": "lavori",
+          "field": "workExperience",
+          "prompt": {
+            "it": "Che lavori hai fatto finora e di cosa ti occupavi? Elenca tutte le tue esperienze di lavoro, indicando date e luoghi."
+          },
+          "required": false,
+          "hint": "Una voce per esperienza, nella forma \"anno - anno Datore di lavoro, Città (Paese): Ruolo\" (es. \"2010 - 2012 Bar Antonio, Madrid (Spagna): Cameriere e barista\"), con il ruolo in italiano. Conta anche il lavoro informale, all'estero o in famiglia. Se manca un'informazione, ometti solo quella parte: non inventare date, luoghi o datori di lavoro. Se dice \"due anni\" senza date, scrivi la durata nel ruolo. Se dice di non avere esperienze di lavoro, nessun valore."
+        },
+        {
+          "id": "competenze",
+          "field": "skillsAndCompetences",
+          "prompt": {
+            "it": "Quali capacità pratiche e attitudini hai sviluppato? 🤓"
+          },
+          "required": false,
+          "hint": "Competenze pratiche e attitudini, una per voce, in italiano e brevi (es. \"uso del muletto\", \"HACCP\", \"lavoro in squadra\", \"puntualità\"). Non ripetere i ruoli già elencati nelle esperienze."
+        },
+        {
+          "id": "studi",
+          "field": "educationAndTraining",
+          "prompt": {
+            "it": "Quali titoli di studio hai o quali corsi di formazione professionale hai completato?"
+          },
+          "required": false,
+          "hint": "Una voce per titolo o corso, nella forma \"anno - anno Città (Paese): Titolo - Istituto\" (es. \"2019 - 2023 Madrid (Spagna): Laurea in giurisprudenza - Universidad de Madrid\"). Il nome dell'istituto resta nella lingua originale. Se mancano parti, ometti solo quelle senza inventarle; se l'informazione è parziale (per esempio manca il tipo di titolo), chiedi di specificare meglio. Se dice di non avere titoli o corsi, nessun valore."
+        }
+      ]
+    },
+    {
+      "id": "personale",
+      "type": "questions",
+      "title": {
+        "it": "Ora qualche informazione su di te."
+      },
+      "questions": [
+        {
+          "id": "nome",
+          "field": "firstName",
+          "prompt": {
+            "it": "Come ti chiami (nome e cognome) e qual è la tua data di nascita? 🙂"
+          },
+          "hint": "La domanda chiede nome, cognome e data di nascita insieme: il nome di battesimo con l'iniziale maiuscola in firstName, il cognome in lastName, la data in birthday. Se il nome è scritto in un alfabeto non latino, chiedi di scriverlo in caratteri latini, senza spiegare il motivo. Se manca il cognome o la data, la risposta è comunque completa: i campi mancanti si chiedono con le domande successive."
+        },
+        {
+          "id": "cognome",
+          "field": "lastName",
+          "prompt": {
+            "it": "E il tuo cognome?"
+          },
+          "hint": "Riporta il cognome come lo scrive il candidato, senza tradurlo né traslitterarlo in modo diverso."
+        },
+        {
+          "id": "nascita",
+          "field": "birthday",
+          "prompt": {
+            "it": "Qual è la tua data di nascita? (giorno, mese e anno)"
+          },
+          "hint": "Serve la data completa. Se il candidato dice solo l'età o solo l'anno, non inventare giorno e mese: chiedi la data completa."
+        },
+        {
+          "id": "indirizzo",
+          "field": "address",
+          "prompt": {
+            "it": "Dove abiti? Scrivi il tuo indirizzo, indicando anche la città. 🏡"
+          },
+          "required": false,
+          "hint": "Riporta l'indirizzo (via e numero civico) come dichiarato in address, e il comune di residenza con il nome italiano ufficiale in location (es. Milano, Sesto San Giovanni). Se il candidato non vuole dare l'indirizzo, non insistere: basta la città."
+        },
+        {
+          "id": "comune",
+          "field": "location",
+          "prompt": {
+            "it": "In quale città vivi?"
+          },
+          "hint": "Il comune di residenza attuale, con il nome italiano ufficiale (es. Milano, Sesto San Giovanni). Se indica solo un quartiere, chiedi il comune."
+        },
+        {
+          "id": "patente",
+          "field": "drivingLicense",
+          "prompt": {
+            "it": "Hai la patente di guida? (Sì/No)"
+          },
+          "hint": "Una patente scaduta, sospesa o ancora in corso di conseguimento è false. Una patente straniera valida è true."
+        }
+      ]
+    },
+    {
+      "id": "trasversale",
+      "type": "questions",
+      "title": {
+        "it": "Per finire: le lingue, il lavoro che cerchi e la formazione."
+      },
+      "questions": [
+        {
+          "id": "lingue",
+          "field": "language",
+          "prompt": {
+            "it": "Quali lingue parli? Indica anche il tuo livello."
+          },
+          "hint": "In language la lingua madre del candidato come codice ISO 639-1 (arabo → ar, ucraino → uk): se non la dice esplicitamente, è la prima lingua che elenca come propria. In italianLevel il livello di italiano, se lo indica (nessuno, base, intermedio, avanzato, madrelingua). In additionalLanguages le altre lingue, una per voce nella forma \"lingua (livello)\" in italiano (es. \"inglese (base)\"), senza l'italiano né la lingua madre."
+        },
+        {
+          "id": "lavoro_desiderato",
+          "field": "jobPreferences.preferredJob",
+          "prompt": {
+            "it": "Che tipo di lavoro ti piacerebbe fare?"
+          },
+          "hint": "Il lavoro desiderato, in italiano e sintetico (es. magazziniere, addetto alle pulizie, aiuto cuoco). Se ne indica più di uno, elencali separati da virgola."
+        },
+        {
+          "id": "formazione",
+          "field": "learningPreferences.isInterested",
+          "prompt": {
+            "it": "Ti interessa imparare nuove competenze con dei corsi di formazione? Se sì, indica quali."
+          },
+          "hint": "Sì o forse con interesse → isInterested true; no → false. Se indica quali corsi, mettili in learningPreferences.preference, in italiano e sintetici (es. \"corso di italiano\", \"patentino del muletto\", \"HACCP\")."
+        },
+        {
+          "id": "quale_corso",
+          "field": "learningPreferences.preference",
+          "prompt": {
+            "it": "Quali corsi ti interesserebbero?"
+          },
+          "required": false,
+          "when": {
+            "field": "learningPreferences.isInterested",
+            "eq": true
+          },
+          "hint": "Il tipo di formazione, in italiano e sintetico (es. \"corso di italiano\", \"patentino del muletto\", \"HACCP\")."
+        }
+      ]
+    },
+    {
+      "id": "cv",
+      "type": "cv_offer",
+      "prompt": {
+        "it": "Grazie, abbiamo quasi finito! Vuoi che prepari per te un curriculum (CV) con le informazioni che mi hai dato? Potrai usarlo per candidarti anche altrove."
+      }
+    },
+    {
+      "id": "fine",
+      "type": "end",
+      "text": {
+        "it": "Grazie per il tuo tempo! Il tuo profilo è stato registrato. Se un'opportunità è adatta a te, verrai contattato. Se vuoi correggere qualcosa, puoi scrivermi in qualsiasi momento."
+      }
+    }
+  ],
+  "afterCompletion": {
+    "allowEdits": true,
+    "allowCvRegeneration": true
+  }
+}

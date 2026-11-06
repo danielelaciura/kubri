@@ -1,0 +1,6 @@
+{"id":"progress-en","tags":["placeholders"],"language":"en","kind":"system","text":"Sezione {current} di {total}"}
+{"id":"confirm-value-ro","tags":["placeholders"],"language":"ro","kind":"system","text":"Per «{field}» ho capito: {value}. È corretto? Rispondi sì o no."}
+{"id":"delete-confirm-ar","tags":["instruction"],"language":"ar","kind":"system","text":"Vuoi cancellare tutti i tuoi dati? Rispondi sì per cancellare. Con qualsiasi altra risposta non cancello nulla e continuiamo da dove eravamo."}
+{"id":"consent-fr","tags":["consent"],"language":"fr","kind":"critical","text":"Vuoi che il tuo profilo sia visibile anche ad altre organizzazioni partner di Kubri, per ricevere più opportunità? Puoi dire di no: la tua candidatura per questa campagna resta valida comunque."}
+{"id":"label-uk","tags":["label"],"language":"uk","kind":"label","text":"comune di residenza"}
+{"id":"help-es","tags":["tone"],"language":"es","kind":"system","text":"Ti faccio alcune domande per conoscerti e aiutarti a trovare un lavoro adatto a te. Puoi rispondere come preferisci, anche con frasi brevi."}

@@ -1,0 +1,113 @@
+description: Percorso ideale con richiesta del CV
+campaign: tests/scenarios/campaigns/test-campaign.json
+turns:
+  - start: true
+    expect: { phase: language, sent: [system.welcome] }
+
+  - user: "italiano"
+    expect: { phase: flow, step: privacy, sent: [intro, privacy], effects: ["SetLanguage:it"] }
+
+  - user: "sì, accetto"
+    nlu: { intent: choice, choice: accepted }
+    expect:
+      step: kubri_global
+      consentsAccepted: true
+      sent: [kubri_global]
+      effects:
+        - "RecordConsent:test_privacy:accepted"
+        - "EnqueueJob:kubri-webhook:consents.accepted"
+
+  - user: "va bene"
+    nlu: { intent: choice, choice: accepted }
+    expect:
+      step: anagrafica
+      question: nome
+      sent: [system.progress, anagrafica.title, anagrafica.nome]
+      effects: ["RecordConsent:kubri_global:accepted"]
+
+  - user: "Mario"
+    nlu: { patch: { firstName: Mario } }
+    expect:
+      question: permesso
+      sent: [anagrafica.permesso]
+      effects: ["ApplyPatch:extraction:firstName"]
+
+  - user: "sì, ho il permesso di soggiorno"
+    nlu: { patch: { workingPermit: true } }
+    expect:
+      question: patente
+      sent: [anagrafica.patente]
+      effects: ["ApplyPatch:extraction:workingPermit"]
+
+  - user: "sì"
+    nlu: { patch: { drivingLicense: true } }
+    expect:
+      question: tipi_patente
+      sent: [anagrafica.tipi_patente]
+      effects: ["ApplyPatch:extraction:drivingLicense"]
+
+  - user: "la B"
+    nlu: { patch: { drivingLicenseTypes: [B] } }
+    expect:
+      step: magazzino
+      question: notte
+      sent: [patente_info, system.progress, magazzino.title, magazzino.notte]
+      effects:
+        - "ApplyPatch:extraction:drivingLicenseTypes"
+        - "EnqueueJob:kubri-webhook:block.completed"
+      outcomes: { anagrafica: completed, patente_info: next }
+
+  - user: "sì, anche di notte"
+    nlu: { patch: { custom.night_shifts: true } }
+    expect:
+      question: muletto
+      sent: [magazzino.muletto]
+      effects: ["ApplyPatch:extraction:custom.night_shifts"]
+
+  - user: "un po'"
+    nlu: { patch: { custom.forklift: base } }
+    expect:
+      question: esperienze
+      sent: [magazzino.esperienze]
+      effects: ["ApplyPatch:extraction:custom.forklift"]
+
+  - user: "dal 2019 al 2022 magazziniere da Rossi a Milano"
+    nlu:
+      patch:
+        workExperience: ["2019 - 2022 Magazzino Rossi (IT): Magazziniere"]
+    expect:
+      step: cv_info
+      sent: [cv_info]
+      effects:
+        - "ApplyPatch:extraction:workExperience"
+        - "EnqueueJob:kubri-webhook:block.completed"
+
+  - user: "sì, lo so"
+    nlu: { intent: choice, choice: "yes" }
+    expect: { step: cv, sent: [cv] }
+
+  - user: "sì grazie"
+    nlu: { intent: choice, choice: "yes" }
+    expect:
+      phase: post_completion
+      step: null
+      sent: [fine]
+      effects:
+        - "EnqueueJob:cv"
+        - "CompleteSession"
+        - "EnqueueJob:kubri-webhook:interview.completed"
+      outcomes:
+        privacy: accepted
+        kubri_global: accepted
+        anagrafica: completed
+        magazzino: completed
+        cv_info: "yes"
+        cv: "yes"
+      profile:
+        firstName: Mario
+        workingPermit: true
+        drivingLicense: true
+        drivingLicenseTypes: [B]
+        custom.night_shifts: true
+        custom.forklift: base
+        workExperience: ["2019 - 2022 Magazzino Rossi (IT): Magazziniere"]

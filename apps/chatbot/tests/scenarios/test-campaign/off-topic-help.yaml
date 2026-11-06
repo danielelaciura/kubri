@@ -1,0 +1,51 @@
+description: Messaggi fuori contesto e richieste di aiuto a metà intervista, senza salvare dati
+campaign: tests/scenarios/campaigns/test-campaign.json
+turns:
+  - start: true
+    expect: { sent: [system.welcome] }
+
+  - user: "italiano"
+    expect: { step: privacy }
+
+  - user: "accetto"
+    nlu: { intent: choice, choice: accepted }
+    expect: { step: kubri_global }
+
+  - user: "no"
+    nlu: { intent: choice, choice: declined }
+    expect: { question: nome }
+
+  # §7.2 point 4: the LLM's short reply, then the question again; nothing extracted is saved (D52).
+  - user: "Sono Mario, ma che tempo fa a Milano?"
+    nlu:
+      intent: off_topic
+      offTopicReply: "Non lo so, sono qui per il colloquio di lavoro."
+      patch: { firstName: Mario }
+    expect:
+      question: nome
+      sent: [generated, anagrafica.nome]
+      effects: []
+      profile: { firstName: null }
+
+  - user: "che cosa devo scrivere?"
+    nlu:
+      intent: help
+      patch: { drivingLicense: true }
+    expect:
+      question: nome
+      sent: [system.help, anagrafica.nome]
+      effects: []
+      profile: { drivingLicense: null }
+
+  - user: "Mario"
+    nlu: { patch: { firstName: Mario }, completeness: complete }
+    expect:
+      question: permesso
+      sent: [anagrafica.permesso]
+      effects: ["ApplyPatch:extraction:firstName"]
+      profile: { firstName: Mario }
+
+  # Off-topic without a reply from the LLM: the system text. No clarification is used up.
+  - user: "quanto si guadagna?"
+    nlu: { intent: off_topic }
+    expect: { question: permesso, sent: [system.off_topic, anagrafica.permesso], effects: [] }

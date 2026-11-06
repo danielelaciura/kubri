@@ -1,0 +1,7 @@
+{"id":"progress-ok","language":"en","kind":"system","source":"Sezione {current} di {total}","translation":"Section {current} of {total}","human":{"fidelity":5,"naturalness":5}}
+{"id":"delete-omits-instruction","language":"en","kind":"critical","source":"Vuoi cancellare tutti i tuoi dati? Rispondi sì per cancellare.","translation":"Do you want to delete your data?","human":{"fidelity":3,"naturalness":5}}
+{"id":"no-delete-ok","language":"fr","kind":"system","source":"Va bene, non cancello nulla.","translation":"D'accord, je ne supprime rien.","human":{"fidelity":5,"naturalness":5}}
+{"id":"not-understood-awkward","language":"fr","kind":"system","source":"Scusa, non ho capito bene. Puoi scriverlo in un altro modo?","translation":"Excuse, je n'ai pas compris bien. Peux-tu l'écrire dans un autre mode ?","human":{"fidelity":4,"naturalness":2}}
+{"id":"stop-wrong-meaning","language":"es","kind":"system","source":"Va bene, mi fermo qui e non ti scriverò più.","translation":"Está bien, sigo aquí y te escribiré más.","human":{"fidelity":1,"naturalness":4}}
+{"id":"updated-ok","language":"en","kind":"system","source":"Fatto, ho aggiornato il dato.","translation":"Done, I've updated the information.","human":{"fidelity":5,"naturalness":5}}
+{"id":"accept-ok","language":"en","kind":"critical","source":"Accetti di proseguire?","translation":"Do you agree to continue?","human":{"fidelity":5,"naturalness":5}}

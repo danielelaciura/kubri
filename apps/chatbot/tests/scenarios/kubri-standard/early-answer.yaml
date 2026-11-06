@@ -1,0 +1,86 @@
+description: Campagna standard — risposte anticipate, anche tra blocchi diversi; le domande già valorizzate si saltano
+campaign: campaigns/kubri-standard.json
+turns:
+  - start: true
+    expect: { sent: [system.welcome] }
+
+  - user: "italiano"
+    expect: { step: privacy }
+
+  - user: "accetto"
+    nlu: { intent: choice, choice: accepted }
+    expect: { step: pool_globale }
+
+  - user: "sì"
+    nlu: { intent: choice, choice: accepted }
+    expect: { step: professionale, question: lavori }
+
+  # competenze is answered together with lavori: it is skipped.
+  - user: "autista di camion in Marocco per 5 anni, so guidare i mezzi pesanti"
+    nlu:
+      patch:
+        workExperience: ["Marocco: Autista di camion (5 anni)"]
+        skillsAndCompetences: [guida di mezzi pesanti]
+    expect:
+      question: studi
+      sent: [professionale.studi]
+      effects: ["ApplyPatch:extraction:workExperience,skillsAndCompetences"]
+
+  # The desired job (trasversale) is answered early: it is skipped later.
+  - user: "la scuola media in Marocco. Vorrei fare l'autista"
+    nlu:
+      patch:
+        educationAndTraining: ["Marocco: Scuola media"]
+        jobPreferences.preferredJob: autista
+    expect:
+      step: personale
+      question: nome
+      sent: [system.progress, personale.title, personale.nome]
+      effects:
+        - "ApplyPatch:extraction:educationAndTraining,jobPreferences.preferredJob"
+        - "EnqueueJob:kubri-webhook:block.completed"
+
+  # The prompt asks name, surname and birth date together: cognome and nascita are skipped.
+  - user: "Mario Rossi, nato il 12/03/1990"
+    nlu: { patch: { firstName: Mario, lastName: Rossi, birthday: "1990-03-12" } }
+    expect:
+      question: indirizzo
+      sent: [personale.indirizzo]
+      effects: ["ApplyPatch:extraction:firstName,lastName,birthday"]
+
+  # The address with the city fills location too: comune is skipped.
+  - user: "via Marelli 3, Sesto San Giovanni"
+    nlu: { patch: { address: Via Marelli 3, location: Sesto San Giovanni } }
+    expect:
+      question: patente
+      sent: [personale.patente]
+      effects: ["ApplyPatch:extraction:address,location", "EnqueueJob:geocoding"]
+
+  # The whole trasversale block is answered early (formazione: not interested, so
+  # quale_corso does not apply): personale and trasversale complete at once.
+  - user: "sì, la patente ce l'ho. Parlo arabo, l'italiano bene. Corsi no, non mi interessano"
+    nlu:
+      patch:
+        drivingLicense: true
+        language: ar
+        italianLevel: avanzato
+        learningPreferences.isInterested: false
+    expect:
+      step: cv
+      question: null
+      sent: [cv]
+      effects:
+        - "ApplyPatch:extraction:drivingLicense,language,italianLevel,learningPreferences.isInterested"
+        - "EnqueueJob:kubri-webhook:block.completed"
+        - "EnqueueJob:kubri-webhook:block.completed"
+      outcomes: { personale: completed, trasversale: completed }
+      profile:
+        firstName: Mario
+        lastName: Rossi
+        birthday: "1990-03-12"
+        location: Sesto San Giovanni
+        language: ar
+        italianLevel: avanzato
+        jobPreferences.preferredJob: autista
+        learningPreferences.isInterested: false
+        learningPreferences.preference: null

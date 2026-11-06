@@ -1,0 +1,21 @@
+description: Consenso obbligatorio negato, poi un messaggio a sessione chiusa
+campaign: tests/scenarios/campaigns/test-campaign.json
+turns:
+  - start: true
+    expect: { sent: [system.welcome] }
+
+  - user: "italiano"
+    expect: { step: privacy, sent: [intro, privacy] }
+
+  - user: "no, non accetto"
+    nlu: { intent: choice, choice: declined }
+    expect:
+      phase: closed
+      consentsAccepted: false
+      sent: [system.stopped]
+      effects:
+        - "RecordConsent:test_privacy:declined"
+        - "StopSession:consent_declined:delete"
+
+  - user: "ciao?"
+    expect: { phase: closed, sent: [system.session_closed], effects: [] }

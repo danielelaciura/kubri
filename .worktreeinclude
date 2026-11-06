@@ -4,3 +4,4 @@
 apps/dashboard/.env.local
 apps/dashboard/.env.prod
 apps/assessment/.env.local
+apps/chatbot/.env

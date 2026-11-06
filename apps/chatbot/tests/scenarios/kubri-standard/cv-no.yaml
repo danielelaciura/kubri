@@ -1,0 +1,79 @@
+description: Campagna standard — intervista con risposte multiple per blocco, poi CV rifiutato
+campaign: campaigns/kubri-standard.json
+turns:
+  - start: true
+    expect: { sent: [system.welcome] }
+
+  - user: "italiano"
+    expect: { step: privacy }
+
+  - user: "accetto"
+    nlu: { intent: choice, choice: accepted }
+    expect: { step: pool_globale }
+
+  - user: "sì"
+    nlu: { intent: choice, choice: accepted }
+    expect: { step: professionale, question: lavori }
+
+  - user: "cameriera 2 anni a Bergamo, so cucinare, ho la laurea dell'università di Kyiv"
+    nlu:
+      patch:
+        workExperience: ["Ristorante, Bergamo (Italia): Cameriera (2 anni)"]
+        skillsAndCompetences: [cucina]
+        educationAndTraining: ["Kyiv (Ucraina): Laurea - Università di Kyiv"]
+    expect:
+      step: personale
+      question: nome
+      sent: [system.progress, personale.title, personale.nome]
+      effects:
+        - "ApplyPatch:extraction:workExperience,skillsAndCompetences,educationAndTraining"
+        - "EnqueueJob:kubri-webhook:block.completed"
+
+  - user: "Olena Kovalenko, nata il 3 giugno 1988, vivo a Bergamo in via Dante 4, niente patente"
+    nlu:
+      patch:
+        firstName: Olena
+        lastName: Kovalenko
+        birthday: "1988-06-03"
+        address: Via Dante 4
+        location: Bergamo
+        drivingLicense: false
+    expect:
+      step: trasversale
+      question: lingue
+      sent: [system.progress, trasversale.title, trasversale.lingue]
+      effects:
+        - "ApplyPatch:extraction:firstName,lastName,birthday,address,location,drivingLicense"
+        - "EnqueueJob:geocoding"
+        - "EnqueueJob:kubri-webhook:block.completed"
+
+  - user: "ucraino, l'italiano poco, il russo bene; vorrei fare l'aiuto cuoca; sì, un corso di italiano"
+    nlu:
+      patch:
+        language: uk
+        italianLevel: base
+        additionalLanguages: ["russo (avanzato)"]
+        jobPreferences.preferredJob: aiuto cuoco
+        learningPreferences.isInterested: true
+        learningPreferences.preference: corso di italiano
+    expect:
+      step: cv
+      sent: [cv]
+      effects:
+        - "ApplyPatch:extraction:language,italianLevel,additionalLanguages,jobPreferences.preferredJob,learningPreferences.isInterested,learningPreferences.preference"
+        - "EnqueueJob:kubri-webhook:block.completed"
+
+  - user: "no grazie"
+    nlu: { intent: choice, choice: "no" }
+    expect:
+      phase: post_completion
+      step: null
+      sent: [fine]
+      effects: ["CompleteSession", "EnqueueJob:kubri-webhook:interview.completed"]
+      outcomes: { cv: "no", professionale: completed, personale: completed, trasversale: completed }
+      profile:
+        {
+          firstName: Olena,
+          drivingLicense: false,
+          learningPreferences.preference: corso di italiano,
+        }

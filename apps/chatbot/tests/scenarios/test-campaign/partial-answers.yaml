@@ -1,0 +1,97 @@
+description: Risposte assenti, parziali e incerte, con approfondimenti e campo non risolto
+campaign: tests/scenarios/campaigns/test-campaign.json
+turns:
+  - start: true
+    expect: { sent: [system.welcome] }
+
+  - user: "italiano"
+    expect: { step: privacy }
+
+  - user: "accetto"
+    nlu: { intent: choice, choice: accepted }
+    expect: { step: kubri_global }
+
+  - user: "no"
+    nlu: { intent: choice, choice: declined }
+    expect: { question: nome }
+
+  - user: "boh"
+    nlu: { intent: unclear }
+    expect: { question: nome, sent: [anagrafica.nome], effects: [] }
+
+  - user: "Mario, ho il permesso e niente patente"
+    nlu: { patch: { firstName: Mario, workingPermit: true, drivingLicense: false } }
+    expect:
+      step: magazzino
+      question: notte
+      sent: [system.progress, magazzino.title, magazzino.notte]
+      effects:
+        - "ApplyPatch:extraction:firstName,workingPermit,drivingLicense"
+        - "EnqueueJob:kubri-webhook:block.completed"
+
+  - user: "dipende"
+    nlu: { intent: answer }
+    expect: { question: notte, sent: [magazzino.notte], effects: [] }
+
+  - user: "non saprei"
+    nlu: { intent: unclear }
+    expect: { question: notte, sent: [magazzino.notte] }
+
+  - user: "boh"
+    nlu: { intent: unclear }
+    expect:
+      question: muletto
+      sent: [magazzino.muletto]
+      effects:
+        - "MarkFieldUnresolved:custom.night_shifts"
+        - "FlagSession:unresolved_field:custom.night_shifts"
+      profile: { custom.night_shifts: null }
+
+  - user: "un pochino"
+    nlu:
+      patch:
+        - { field: custom.forklift, value: base, confidence: 0.5 }
+      completeness: complete
+    expect: { question: muletto, sent: [system.confirm_value], effects: [] }
+
+  - user: "sì esatto"
+    nlu: { intent: choice, choice: "yes" }
+    expect:
+      question: esperienze
+      sent: [magazzino.esperienze]
+      effects: ["ApplyPatch:extraction:custom.forklift"]
+      profile: { custom.forklift: base }
+
+  - user: "ho fatto il cameriere"
+    nlu:
+      patch:
+        workExperience: ["2020 - 2021 Hotel Sole (IT): Cameriere"]
+      completeness: partial
+      missing: "altre esperienze"
+    expect:
+      question: esperienze
+      sent: [magazzino.esperienze]
+      effects: ["ApplyPatch:extraction:workExperience"]
+
+  # D51: the value saved by the partial answer is not an answer to this turn by itself.
+  - user: "uhm"
+    nlu: { intent: unclear }
+    expect: { question: esperienze, sent: [magazzino.esperienze], effects: [] }
+
+  - user: "e poi un anno in un magazzino a Bergamo"
+    nlu:
+      patch:
+        workExperience:
+          - "2020 - 2021 Hotel Sole (IT): Cameriere"
+          - "2022 - 2023 Magazzino Bianchi (IT): Magazziniere"
+      completeness: complete
+    expect:
+      step: cv_info
+      sent: [cv_info]
+      effects:
+        - "ApplyPatch:extraction:workExperience"
+        - "EnqueueJob:kubri-webhook:block.completed"
+      profile:
+        workExperience:
+          - "2020 - 2021 Hotel Sole (IT): Cameriere"
+          - "2022 - 2023 Magazzino Bianchi (IT): Magazziniere"

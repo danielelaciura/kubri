@@ -1,0 +1,179 @@
+import { z } from "zod";
+
+const Ms = z.coerce.number().int().min(0);
+
+const RuntimeEnvSchema = z.object({
+  /** Quiet time before a burst of messages becomes one turn (spec §11.2, D106). */
+  DEBOUNCE_MS: Ms.default(3000),
+  /** A burst is never held longer than this. */
+  DEBOUNCE_MAX_WAIT_MS: Ms.default(10_000),
+  /** Past this the NLU counts as unavailable for the turn (D107). */
+  TURN_NLU_DEADLINE_MS: z.coerce.number().int().positive().default(20_000),
+  SEND_LEASE_MS: z.coerce.number().int().positive().default(60_000),
+  SEND_MAX_ATTEMPTS: z.coerce.number().int().positive().default(5),
+  WORKER_BATCH_SIZE: z.coerce.number().int().positive().max(20).default(4),
+  /** Send buttons and lists where the channel supports them (D113); false = plain text only. */
+  INTERACTIVE_MESSAGES: z
+    .enum(["true", "false"])
+    .default("true")
+    .transform((value) => value === "true"),
+  /** Becomes part of SQL identifiers: letters, digits and underscores only. */
+  QUEUE_SCHEMA: z
+    .string()
+    .regex(/^[a-z][a-z0-9_]*$/, "lowercase letters, digits and underscores")
+    .default("bot_queue"),
+  /**
+   * Key of the HMAC that turns a contact into Consent.contactHash (D109): without it a
+   * phone number cannot be checked against the proof. Required only where consents are
+   * written (requireConsentHashSecret); never rotate it in place, old proofs stop matching.
+   */
+  CONSENT_HASH_SECRET: z.string().min(32, "at least 32 characters").optional(),
+  /**
+   * The direct / session connection (port 5432) pg-boss uses: never the transaction pooler
+   * (6543). Falls back to DATABASE_URL only with NODE_ENV development or test.
+   */
+  QUEUE_DATABASE_URL: z
+    .string()
+    .regex(/^postgres(ql)?:\/\//, "a postgres:// or postgresql:// URL")
+    .optional(),
+  NODE_ENV: z.string().optional(),
+  DATABASE_URL: z.string().optional(),
+});
+
+export interface RuntimeConfig {
+  readonly debounceMs: number;
+  readonly debounceMaxWaitMs: number;
+  readonly nluDeadlineMs: number;
+  /** Timeout of the turn transaction (D102): the NLU and the translations both wait inside it. */
+  readonly turnTransactionMs: number;
+  readonly sendLeaseMs: number;
+  /**
+   * How long send-messages waits for the channel: half the lease, so the outcome is written
+   * while the claim is still held (a later one is lost, D108).
+   */
+  readonly sendCallTimeoutMs: number;
+  readonly sendMaxAttempts: number;
+  readonly workerBatchSize: number;
+  readonly queueSchema: string;
+  /** Buttons and lists for closed questions (D113), where the channel supports them. */
+  readonly interactive: boolean;
+  readonly consentHashSecret: string | undefined;
+  /** Where pg-boss connects; undefined when unset outside development and test. */
+  readonly queueDatabaseUrl: string | undefined;
+}
+
+const QUEUE_FALLBACK_ENVS: readonly string[] = ["development", "test"];
+
+/** Same convention as the NLU configuration: `KEY=` means unset; no values in the messages. */
+export function parseRuntimeConfig(
+  source: Readonly<Record<string, string | undefined>>,
+): RuntimeConfig {
+  const present = Object.fromEntries(
+    Object.entries(source).filter(([, value]) => value !== undefined && value.trim() !== ""),
+  );
+  const result = RuntimeEnvSchema.safeParse(present);
+  if (!result.success) {
+    const details = result.error.issues
+      .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
+      .join("; ");
+    throw new Error(`Invalid runtime configuration: ${details}`);
+  }
+  const env = result.data;
+  return {
+    debounceMs: env.DEBOUNCE_MS,
+    debounceMaxWaitMs: env.DEBOUNCE_MAX_WAIT_MS,
+    nluDeadlineMs: env.TURN_NLU_DEADLINE_MS,
+    turnTransactionMs: 2 * env.TURN_NLU_DEADLINE_MS + 30_000,
+    sendLeaseMs: env.SEND_LEASE_MS,
+    sendCallTimeoutMs: Math.floor(env.SEND_LEASE_MS / 2),
+    sendMaxAttempts: env.SEND_MAX_ATTEMPTS,
+    workerBatchSize: env.WORKER_BATCH_SIZE,
+    queueSchema: env.QUEUE_SCHEMA,
+    interactive: env.INTERACTIVE_MESSAGES,
+    consentHashSecret: env.CONSENT_HASH_SECRET,
+    queueDatabaseUrl:
+      env.QUEUE_DATABASE_URL ??
+      (env.NODE_ENV !== undefined && QUEUE_FALLBACK_ENVS.includes(env.NODE_ENV)
+        ? env.DATABASE_URL
+        : undefined),
+  };
+}
+
+/** The worker and the web process enqueue jobs: they refuse to start without it. */
+export function requireQueueDatabaseUrl(config: RuntimeConfig): string {
+  if (config.queueDatabaseUrl === undefined) {
+    throw new Error(
+      "QUEUE_DATABASE_URL is not set: pg-boss needs the direct (session, port 5432) connection.",
+    );
+  }
+  return config.queueDatabaseUrl;
+}
+
+/** The worker writes consents: it refuses to start without the key (no value in the message). */
+export function requireConsentHashSecret(config: RuntimeConfig): string {
+  if (config.consentHashSecret === undefined) {
+    throw new Error("CONSENT_HASH_SECRET is not set: it is required to record consents.");
+  }
+  return config.consentHashSecret;
+}
+
+/** pg-boss retries of every queue but send-messages and kubri-webhook (see below). */
+export const DEFAULT_RETRY_LIMIT = 5;
+
+/**
+ * pg-boss retries of a kubri-webhook job (D126): enough to outlast a dashboard deploy or a short
+ * outage before the job gives up (dead letter + `kubri_webhook_failed`). With the queue's 10 s
+ * retryDelay and retryBackoff (no retryDelayMax), the wait after the n-th failure is
+ * 10 × 2^(n−1) to 10 × 2^n seconds (jitter), so 10 retries span 10 × (2^10 − 1) = 10 230 s
+ * (≈ 2 h 50 min) at least and ≈ 5 h 40 min at most from the first failure to the last attempt.
+ * Each run sends the profile as it is then (D125), so a late success is never stale data.
+ */
+export const KUBRI_WEBHOOK_RETRY_LIMIT = 10;
+
+/**
+ * pg-boss retries of a send-messages job (D108). Every run claims the head message once and a
+ * transient failure throws, so the message needs SEND_MAX_ATTEMPTS runs: with fewer retries the
+ * job would reach the dead letter queue while its message is still `queued`, and nothing would
+ * send it again. Never below the default, which leaves room for runs that fail before the claim
+ * (database down).
+ */
+export function sendRetryLimit(config: RuntimeConfig): number {
+  return Math.max(DEFAULT_RETRY_LIMIT, config.sendMaxAttempts - 1);
+}
+
+/** Queues whose handler runs one job at a time: report-failure (D120) and plan 10's (R3, R9). */
+export const ONE_AT_A_TIME_QUEUES = ["report-failure", "kubri-webhook", "cv", "geocoding"] as const;
+
+/**
+ * Connections of the worker's Prisma pool. process-contact and send-messages run up to
+ * WORKER_BATCH_SIZE jobs at once, the one-at-a-time queues one each, and each job may need two
+ * connections together:
+ * - process-contact holds its turn transaction (D102) while it reads the campaign and writes
+ *   the translation cache and traces on another connection;
+ * - send-messages and report-failure hold reportOutboundFailure's transaction (it may wait for
+ *   a turn to release the contact's lock) while they read the campaign on another connection;
+ * - cv holds its transaction under the contact's lock while it reads on another connection;
+ *   kubri-webhook and geocoding need less, but get the same two.
+ * A pool smaller than that can deadlock: every connection is a transaction waiting for one more.
+ * So `2 queues × WORKER_BATCH_SIZE × 2 + 4 queues × 2`, i.e. `4 × WORKER_BATCH_SIZE + 8` (R3).
+ */
+export function workerPoolSize(config: RuntimeConfig): number {
+  return 2 * config.workerBatchSize * 2 + ONE_AT_A_TIME_QUEUES.length * 2;
+}
+
+/**
+ * How long reportOutboundFailure's transaction may last (send-messages, report-failure): it may
+ * wait for a whole turn to release the contact's lock, then flag the session.
+ */
+export function reportFailureTransactionMs(config: RuntimeConfig): number {
+  return config.turnTransactionMs + 15_000;
+}
+
+/**
+ * How long the worker waits on shutdown for the jobs still running: the longest one, a send
+ * whose reportFailure waits for a turn, plus 5 s for the claim and the channel call around it.
+ * The hosting platform's grace period (SIGTERM → SIGKILL) must be at least this (plan 11).
+ */
+export function workerStopTimeoutMs(config: RuntimeConfig): number {
+  return reportFailureTransactionMs(config) + 5_000;
+}

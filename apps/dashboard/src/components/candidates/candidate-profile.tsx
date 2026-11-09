@@ -12,7 +12,6 @@ import {
   Mail,
   Calendar,
   Car,
-  Briefcase,
   GraduationCap,
   FileText,
 } from "lucide-react";
@@ -92,11 +91,6 @@ export async function CandidateProfile({ candidate }: CandidateProfileProps) {
                 <span className="text-sm">{c.legalStatus}</span>
               </div>
             )}
-            <div className="flex items-center gap-2">
-              <Briefcase className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">{t.candidates.workingPermit}</span>
-              <span className="text-sm">{c.workingPermit ? t.candidates.workingPermitYes : t.candidates.workingPermitNo}</span>
-            </div>
             {c.meanOfTransport && (
               <div className="flex items-center gap-2">
                 <Car className="h-4 w-4 text-muted-foreground" />

@@ -170,10 +170,6 @@ export function renderCandidatePdf({ candidate, notes, dictionary, locale }: Can
             </View>
           )}
           <View style={styles.row}>
-            <Text style={styles.label}>{strip(d.candidates.workingPermit)}</Text>
-            <Text style={styles.value}>{c.workingPermit ? d.candidates.workingPermitYes : d.candidates.workingPermitNo}</Text>
-          </View>
-          <View style={styles.row}>
             <Text style={styles.label}>{strip(d.candidates.drivingLicense)}</Text>
             <Text style={styles.value}>{c.drivingLicense ? d.candidates.drivingLicenseYes : d.candidates.drivingLicenseNo}</Text>
           </View>

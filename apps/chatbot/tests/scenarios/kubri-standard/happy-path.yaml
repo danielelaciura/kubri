@@ -1,0 +1,192 @@
+description: Campagna standard — percorso ideale, i tre blocchi domanda per domanda, consensi accettati e CV sì
+campaign: campaigns/kubri-standard.json
+turns:
+  - start: true
+    expect: { phase: language, sent: [system.welcome], effects: [] }
+
+  - user: "italiano"
+    expect:
+      phase: flow
+      step: privacy
+      consentsAccepted: false
+      sent: [benvenuto, privacy]
+      effects: ["SetLanguage:it"]
+      outcomes: { benvenuto: next }
+
+  - user: "sì, accetto"
+    nlu: { intent: choice, choice: accepted }
+    expect:
+      step: pool_globale
+      consentsAccepted: true
+      sent: [pool_globale]
+      effects:
+        - "RecordConsent:privacy_interview:accepted"
+        - "EnqueueJob:kubri-webhook:consents.accepted"
+      outcomes: { privacy: accepted }
+
+  # kubri_global accepted: only the consent is recorded, no second threshold event.
+  - user: "va bene"
+    nlu: { intent: choice, choice: accepted }
+    expect:
+      step: professionale
+      question: lavori
+      consentsAccepted: true
+      sent: [system.progress, professionale.title, professionale.lavori]
+      effects: ["RecordConsent:kubri_global:accepted"]
+      outcomes: { pool_globale: accepted }
+
+  # --- professionale (Sezione 1 di 3) ---
+  - user: "magazziniere da Rossi a Milano dal 2019 al 2022"
+    nlu:
+      patch:
+        workExperience: ["2019 - 2022 Magazzino Rossi, Milano (Italia): Magazziniere"]
+    expect:
+      question: competenze
+      sent: [professionale.competenze]
+      effects: ["ApplyPatch:extraction:workExperience"]
+
+  - user: "so usare il muletto e lavorare in squadra"
+    nlu: { patch: { skillsAndCompetences: ["uso del muletto", "lavoro in squadra"] } }
+    expect:
+      question: studi
+      sent: [professionale.studi]
+      effects: ["ApplyPatch:extraction:skillsAndCompetences"]
+
+  - user: "ho fatto il liceo a Casablanca dal 2004 al 2008"
+    nlu:
+      patch:
+        educationAndTraining:
+          ["2004 - 2008 Casablanca (Marocco): Diploma di maturità - Lycée Ibn Khaldoun"]
+    expect:
+      step: personale
+      question: nome
+      sent: [system.progress, personale.title, personale.nome]
+      effects:
+        - "ApplyPatch:extraction:educationAndTraining"
+        - "EnqueueJob:kubri-webhook:block.completed"
+      outcomes: { professionale: completed }
+
+  # --- personale (Sezione 2 di 3): only the first name, so the fallbacks are asked ---
+  - user: "Mario"
+    nlu: { patch: { firstName: Mario } }
+    expect:
+      question: cognome
+      sent: [personale.cognome]
+      effects: ["ApplyPatch:extraction:firstName"]
+
+  - user: "Rossi"
+    nlu: { patch: { lastName: Rossi } }
+    expect:
+      question: nascita
+      sent: [personale.nascita]
+      effects: ["ApplyPatch:extraction:lastName"]
+
+  - user: "il 12 marzo 1990"
+    nlu: { patch: { birthday: "1990-03-12" } }
+    expect:
+      question: indirizzo
+      sent: [personale.indirizzo]
+      effects: ["ApplyPatch:extraction:birthday"]
+
+  # address triggers geocoding; without the city, comune is asked.
+  - user: "via Roma 10"
+    nlu: { patch: { address: "Via Roma 10" } }
+    expect:
+      question: comune
+      sent: [personale.comune]
+      effects: ["ApplyPatch:extraction:address", "EnqueueJob:geocoding"]
+
+  - user: "a Milano"
+    nlu: { patch: { location: Milano } }
+    expect:
+      question: patente
+      sent: [personale.patente]
+      effects: ["ApplyPatch:extraction:location"]
+
+  - user: "sì"
+    nlu: { patch: { drivingLicense: true } }
+    expect:
+      step: trasversale
+      question: lingue
+      sent: [system.progress, trasversale.title, trasversale.lingue]
+      effects:
+        - "ApplyPatch:extraction:drivingLicense"
+        - "EnqueueJob:kubri-webhook:block.completed"
+      outcomes: { personale: completed }
+
+  # --- trasversale (Sezione 3 di 3): one answer fills the mother tongue, the Italian level
+  # and the other languages ---
+  - user: "arabo, l'italiano abbastanza bene, un po' di inglese e il francese bene"
+    nlu:
+      patch:
+        language: ar
+        italianLevel: intermedio
+        additionalLanguages: ["inglese (base)", "francese (avanzato)"]
+    expect:
+      question: lavoro_desiderato
+      sent: [trasversale.lavoro_desiderato]
+      effects: ["ApplyPatch:extraction:language,italianLevel,additionalLanguages"]
+
+  - user: "il magazziniere"
+    nlu: { patch: { jobPreferences.preferredJob: magazziniere } }
+    expect:
+      question: formazione
+      sent: [trasversale.formazione]
+      effects: ["ApplyPatch:extraction:jobPreferences.preferredJob"]
+
+  # isInterested true without the course: the conditional question is asked.
+  - user: "sì, mi interessa"
+    nlu: { patch: { learningPreferences.isInterested: true } }
+    expect:
+      question: quale_corso
+      sent: [trasversale.quale_corso]
+      effects: ["ApplyPatch:extraction:learningPreferences.isInterested"]
+
+  - user: "il patentino del muletto"
+    nlu: { patch: { learningPreferences.preference: patentino del muletto } }
+    expect:
+      step: cv
+      question: null
+      sent: [cv]
+      effects:
+        - "ApplyPatch:extraction:learningPreferences.preference"
+        - "EnqueueJob:kubri-webhook:block.completed"
+      outcomes: { trasversale: completed }
+
+  # --- CV yes, then the end ---
+  - user: "sì grazie"
+    nlu: { intent: choice, choice: "yes" }
+    expect:
+      phase: post_completion
+      step: null
+      sent: [fine]
+      effects:
+        - "EnqueueJob:cv"
+        - "CompleteSession"
+        - "EnqueueJob:kubri-webhook:interview.completed"
+      consentsAccepted: true
+      outcomes:
+        benvenuto: next
+        privacy: accepted
+        pool_globale: accepted
+        professionale: completed
+        personale: completed
+        trasversale: completed
+        cv: "yes"
+      profile:
+        workExperience: ["2019 - 2022 Magazzino Rossi, Milano (Italia): Magazziniere"]
+        skillsAndCompetences: ["uso del muletto", "lavoro in squadra"]
+        educationAndTraining:
+          ["2004 - 2008 Casablanca (Marocco): Diploma di maturità - Lycée Ibn Khaldoun"]
+        firstName: Mario
+        lastName: Rossi
+        birthday: "1990-03-12"
+        address: Via Roma 10
+        location: Milano
+        drivingLicense: true
+        language: ar
+        italianLevel: intermedio
+        additionalLanguages: ["inglese (base)", "francese (avanzato)"]
+        jobPreferences.preferredJob: magazziniere
+        learningPreferences.isInterested: true
+        learningPreferences.preference: patentino del muletto

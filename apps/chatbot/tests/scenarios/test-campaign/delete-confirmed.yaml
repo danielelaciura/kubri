@@ -1,0 +1,39 @@
+description: Cancellazione dei dati a metà intervista, confermata senza LLM (D49)
+campaign: tests/scenarios/campaigns/test-campaign.json
+turns:
+  - start: true
+    expect: { sent: [system.welcome] }
+
+  - user: "italiano"
+    expect: { step: privacy }
+
+  - user: "accetto"
+    nlu: { intent: choice, choice: accepted }
+    expect: { step: kubri_global, consentsAccepted: true }
+
+  - user: "no"
+    nlu: { intent: choice, choice: declined }
+    expect: { question: nome }
+
+  - user: "Mario"
+    nlu: { patch: { firstName: Mario } }
+    expect: { question: permesso, profile: { firstName: Mario } }
+
+  # The keyword works without the LLM; nothing is touched until the yes.
+  - user: "cancella i miei dati"
+    expect:
+      phase: flow
+      step: anagrafica
+      question: permesso
+      sent: [system.delete_confirm]
+      effects: []
+
+  - user: "sì"
+    expect:
+      phase: closed
+      step: null
+      sent: [system.delete_done]
+      effects: ["EnqueueJob:delete-contact", "StopSession:delete_data:delete"]
+
+  - user: "ciao"
+    expect: { phase: closed, sent: [system.session_closed], effects: [] }

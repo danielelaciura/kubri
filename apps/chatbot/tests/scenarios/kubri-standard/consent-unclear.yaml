@@ -1,0 +1,55 @@
+description: Campagna standard — informativa senza risposta chiara, dopo 3 volte solo un promemoria breve con un flag (D145); poi accettata
+campaign: campaigns/kubri-standard.json
+turns:
+  - start: true
+    expect: { sent: [system.welcome] }
+
+  - user: "italiano"
+    expect: { step: privacy, sent: [benvenuto, privacy] }
+
+  # Up to CONSENT_MAX_UNCLEAR (3) unclear answers: the full consent text again, as before.
+  - user: "boh"
+    nlu: { intent: unclear }
+    expect: { step: privacy, sent: [system.not_understood, privacy], effects: [] }
+
+  - user: "che cos'è?"
+    nlu: { intent: off_topic }
+    expect: { step: privacy, sent: [system.off_topic, privacy], effects: [] }
+
+  - user: "forse"
+    nlu: { intent: unclear }
+    expect: { step: privacy, sent: [system.not_understood, privacy], effects: [] }
+
+  # The 4th: only the short hint (it carries the buttons), and a flag, once.
+  - user: "mah"
+    nlu: { intent: unclear }
+    expect:
+      step: privacy
+      consentsAccepted: false
+      sent: [consent.answer_hint]
+      effects: ["FlagSession:consent_unclear"]
+
+  # Data given now is still dropped: the consent is not answered yet.
+  - user: "mi chiamo Amina"
+    nlu: { patch: { firstName: Amina } }
+    expect:
+      step: privacy
+      sent: [consent.answer_hint]
+      effects: []
+      profile: { firstName: null }
+
+  # Help always gets the full text, past the limit too.
+  - user: "non capisco"
+    nlu: { intent: help }
+    expect: { step: privacy, sent: [system.help, privacy], effects: [] }
+
+  - user: "accetto"
+    nlu: { intent: choice, choice: accepted }
+    expect:
+      step: pool_globale
+      consentsAccepted: true
+      sent: [pool_globale]
+      effects:
+        - "RecordConsent:privacy_interview:accepted"
+        - "EnqueueJob:kubri-webhook:consents.accepted"
+      outcomes: { privacy: accepted }

@@ -1,0 +1,69 @@
+import type { Database } from "../../../src/store/db";
+import {
+  createQueueRuntime,
+  type QueueRuntime,
+  type QueueSettings,
+} from "../../../src/store/queue";
+import { testDatabaseUrl } from "./database";
+
+/**
+ * The production schema name: the test database is a database of its own (kubri_bot_test), so
+ * tests never touch a developer's queue, and they exercise the same schema the worker uses.
+ */
+export const TEST_QUEUE_SCHEMA = "bot_queue";
+
+/** A pg-boss on the test database, retrying at once and only once so failures surface fast. */
+export async function startTestQueue(
+  overrides: Partial<Omit<QueueSettings, "connectionString" | "schema">> = {},
+): Promise<QueueRuntime> {
+  const runtime = createQueueRuntime({
+    // The Prisma URL as is (?schema=bot): createQueueRuntime cleans it.
+    connectionString: testDatabaseUrl(),
+    schema: TEST_QUEUE_SCHEMA,
+    retryDelaySeconds: 0,
+    retryLimit: 1,
+    ...overrides,
+  });
+  await runtime.start();
+  await runtime.purge();
+  return runtime;
+}
+
+/** The jobs of a queue that could run now, read with SQL so nothing is consumed. */
+export async function peekQueue(
+  db: Database,
+  name: string,
+): Promise<{ id: string; data: unknown }[]> {
+  return db.$queryRawUnsafe(
+    `SELECT id::text AS id, data FROM ${TEST_QUEUE_SCHEMA}.job
+     WHERE name = $1 AND state IN ('created', 'retry') AND start_after <= now()
+     ORDER BY created_on`,
+    name,
+  );
+}
+
+/** Every job of a queue, delayed ones included. */
+export async function countJobs(db: Database, name: string): Promise<number> {
+  const rows = await db.$queryRawUnsafe<{ n: number }[]>(
+    `SELECT count(*)::int AS n FROM ${TEST_QUEUE_SCHEMA}.job WHERE name = $1`,
+    name,
+  );
+  return rows[0]?.n ?? 0;
+}
+
+/** The retry limit pg-boss gives the new jobs of a queue, and the one of its latest job. */
+export async function retryLimits(
+  db: Database,
+  name: string,
+): Promise<{ queue: number | undefined; job: number | undefined }> {
+  const queue = await db.$queryRawUnsafe<{ n: number }[]>(
+    `SELECT retry_limit AS n FROM ${TEST_QUEUE_SCHEMA}.queue WHERE name = $1`,
+    name,
+  );
+  const job = await db.$queryRawUnsafe<{ n: number }[]>(
+    `SELECT retry_limit AS n FROM ${TEST_QUEUE_SCHEMA}.job WHERE name = $1
+     ORDER BY created_on DESC LIMIT 1`,
+    name,
+  );
+  return { queue: queue[0]?.n, job: job[0]?.n };
+}

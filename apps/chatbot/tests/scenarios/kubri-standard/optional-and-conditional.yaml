@@ -1,0 +1,106 @@
+description: Campagna standard — domande facoltative rifiutate e domande condizionate (when) saltate
+campaign: campaigns/kubri-standard.json
+turns:
+  - start: true
+    expect: { sent: [system.welcome] }
+
+  - user: "italiano"
+    expect: { step: privacy }
+
+  - user: "accetto"
+    nlu: { intent: choice, choice: accepted }
+    expect: { step: pool_globale }
+
+  - user: "sì"
+    nlu: { intent: choice, choice: accepted }
+    expect: { step: professionale, question: lavori }
+
+  # Optional question refused: skipped at once, nothing saved, no flag (D43).
+  - user: "sul lavoro preferisco non rispondere"
+    nlu: { intent: refusal }
+    expect:
+      question: competenze
+      sent: [professionale.competenze]
+      effects: []
+      profile: { workExperience: null }
+
+  - user: "so cucinare e badare ai bambini"
+    nlu: { patch: { skillsAndCompetences: [cucina, cura dei bambini] } }
+    expect: { question: studi, sent: [professionale.studi] }
+
+  - user: "ho fatto un corso di cucina a Torino nel 2023"
+    nlu:
+      patch:
+        { educationAndTraining: ["2023 Torino (Italia): Corso di cucina - Centro di formazione"] }
+    expect:
+      step: personale
+      question: nome
+      sent: [system.progress, personale.title, personale.nome]
+
+  - user: "Fatima Zahra El Idrissi, nata il 1 gennaio 2000"
+    nlu:
+      patch:
+        firstName: Fatima Zahra
+        lastName: El Idrissi
+        birthday: "2000-01-01"
+    expect: { question: indirizzo, sent: [personale.indirizzo] }
+
+  # The optional address is refused: comune is still asked, because location is empty.
+  - user: "l'indirizzo preferisco non darlo"
+    nlu: { intent: refusal }
+    expect:
+      question: comune
+      sent: [personale.comune]
+      effects: []
+      profile: { address: null }
+
+  - user: "Torino"
+    nlu: { patch: { location: Torino } }
+    expect:
+      question: patente
+      sent: [personale.patente]
+      effects: ["ApplyPatch:extraction:location"]
+
+  - user: "no, la patente non ce l'ho"
+    nlu: { patch: { drivingLicense: false } }
+    expect:
+      step: trasversale
+      question: lingue
+      sent: [system.progress, trasversale.title, trasversale.lingue]
+      effects:
+        - "ApplyPatch:extraction:drivingLicense"
+        - "EnqueueJob:kubri-webhook:block.completed"
+      profile: { drivingLicense: false }
+
+  - user: "arabo, l'italiano poco"
+    nlu: { patch: { language: ar, italianLevel: base } }
+    expect: { question: lavoro_desiderato, sent: [trasversale.lavoro_desiderato] }
+
+  - user: "babysitter o aiuto cuoca"
+    nlu: { patch: { jobPreferences.preferredJob: "babysitter, aiuto cuoco" } }
+    expect:
+      question: formazione
+      sent: [trasversale.formazione]
+      effects: ["ApplyPatch:extraction:jobPreferences.preferredJob"]
+
+  # isInterested false: quale_corso (when isInterested = true) is not asked.
+  - user: "no, adesso no"
+    nlu: { patch: { learningPreferences.isInterested: false } }
+    expect:
+      step: cv
+      question: null
+      sent: [cv]
+      effects:
+        - "ApplyPatch:extraction:learningPreferences.isInterested"
+        - "EnqueueJob:kubri-webhook:block.completed"
+      profile: { learningPreferences.preference: null }
+
+  - user: "sì"
+    nlu: { intent: choice, choice: "yes" }
+    expect:
+      phase: post_completion
+      sent: [fine]
+      effects:
+        - "EnqueueJob:cv"
+        - "CompleteSession"
+        - "EnqueueJob:kubri-webhook:interview.completed"

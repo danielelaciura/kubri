@@ -1,0 +1,30 @@
+description: Campagna standard — informativa obbligatoria rifiutata, stop con cancellazione e nessun dato salvato
+campaign: campaigns/kubri-standard.json
+turns:
+  - start: true
+    expect: { sent: [system.welcome] }
+
+  - user: "italiano"
+    expect: { step: privacy, sent: [benvenuto, privacy], effects: ["SetLanguage:it"] }
+
+  # Data in the declining message is dropped: the threshold was never reached (D24, D50).
+  - user: "no, non accetto. Mi chiamo Mario"
+    nlu: { intent: choice, choice: declined, patch: { firstName: Mario } }
+    expect:
+      phase: closed
+      step: null
+      consentsAccepted: false
+      sent: [system.stopped]
+      effects:
+        - "RecordConsent:privacy_interview:declined"
+        - "StopSession:consent_declined:delete"
+      outcomes: { privacy: declined }
+      profile: { firstName: null }
+
+  - user: "ciao?"
+    nlu: { patch: { firstName: Mario } }
+    expect:
+      phase: closed
+      sent: [system.session_closed]
+      effects: []
+      profile: { firstName: null }

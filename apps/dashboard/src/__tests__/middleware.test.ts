@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { NextResponse, NextRequest } from "next/server";
 
 vi.mock("@/lib/supabase/middleware", () => ({
@@ -51,6 +51,35 @@ describe("middleware auth gating", () => {
   it("does not open look-alike prefixes of the candidate landing", async () => {
     const res = await run("/candidatix", null);
     expect(res.headers.get("location")).toContain("/login");
+  });
+
+  describe("Kubri x APL demo (secret path from env)", () => {
+    beforeEach(() => {
+      process.env.APL_DEMO_PATH = "demo-apl-s3cr3t";
+      process.env.APL_DEMO_ORIGIN = "https://apl-demo.example.vercel.app";
+    });
+    afterEach(() => {
+      delete process.env.APL_DEMO_PATH;
+      delete process.env.APL_DEMO_ORIGIN;
+    });
+
+    it("lets anonymous visitors through without touching the session", async () => {
+      const { updateSession } = await import("@/lib/supabase/middleware");
+      const res = await run("/demo-apl-s3cr3t/agenzia", null);
+      expect(res.headers.get("location")).toBeNull();
+      expect(updateSession).not.toHaveBeenCalled();
+    });
+
+    it("does not open look-alike prefixes of the secret path", async () => {
+      const res = await run("/demo-apl-s3cr3tx", null);
+      expect(res.headers.get("location")).toContain("/login");
+    });
+
+    it("keeps everything protected when the demo is not configured", async () => {
+      delete process.env.APL_DEMO_ORIGIN;
+      const res = await run("/demo-apl-s3cr3t/agenzia", null);
+      expect(res.headers.get("location")).toContain("/login");
+    });
   });
 
   it("redirects unauthenticated access to a protected route to /login", async () => {

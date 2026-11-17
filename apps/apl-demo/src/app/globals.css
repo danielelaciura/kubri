@@ -1,0 +1,99 @@
+@import "tailwindcss";
+
+/* Mondo visivo Kubri: viola primario della dashboard, neutri appena tinti di viola,
+   Poppins per tutto il testo. Registro "prodotto": colore solo per azioni, stato e selezione. */
+:root {
+  --primary: oklch(0.5647 0.1653 291.4);
+  --primary-strong: oklch(0.47 0.16 291.4);
+  --primary-soft: oklch(0.955 0.03 291.4);
+  --primary-line: oklch(0.85 0.07 291.4);
+
+  --surface: oklch(0.982 0.004 291);
+  --panel: oklch(1 0 0);
+  --sidebar: oklch(0.968 0.007 291);
+  --ink: oklch(0.23 0.02 291);
+  --ink-2: oklch(0.4 0.02 291);
+  --ink-3: oklch(0.52 0.016 291);
+  --line: oklch(0.915 0.008 291);
+  --line-strong: oklch(0.86 0.01 291);
+
+  --good: oklch(0.52 0.12 155);
+  --good-soft: oklch(0.96 0.03 155);
+  --warn: oklch(0.58 0.13 70);
+  --warn-soft: oklch(0.965 0.04 85);
+  --bad: oklch(0.55 0.17 25);
+  --bad-soft: oklch(0.965 0.025 25);
+  --whatsapp: oklch(0.93 0.06 145);
+}
+
+@theme inline {
+  --font-sans: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  --color-primary: var(--primary);
+  --color-primary-strong: var(--primary-strong);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-line: var(--primary-line);
+  --color-surface: var(--surface);
+  --color-panel: var(--panel);
+  --color-sidebar: var(--sidebar);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-good: var(--good);
+  --color-good-soft: var(--good-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-bad: var(--bad);
+  --color-bad-soft: var(--bad-soft);
+  --color-whatsapp: var(--whatsapp);
+}
+
+html {
+  color: var(--ink);
+  background: var(--surface);
+  -webkit-font-smoothing: antialiased;
+  accent-color: var(--primary);
+  caret-color: var(--primary);
+}
+
+::selection {
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+* {
+  scrollbar-color: var(--line-strong) transparent;
+  scrollbar-width: thin;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-rise {
+  animation: rise 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise {
+    animation: none;
+  }
+}

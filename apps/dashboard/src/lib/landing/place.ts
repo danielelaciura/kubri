@@ -1,20 +1,13 @@
 import { getCacheStore } from "@/lib/cache/store";
+import { geocodeFreeText, googlePlaceToResolved } from "@/lib/geo/geocode-text";
 import {
   autocompletePlaces,
-  geocodeAddress,
   getPlaceDetails,
   googleMapsConfigured,
   GoogleMapsUnavailableError,
   GooglePlaceNotFoundError,
-  type GooglePlace,
 } from "@/lib/geo/google";
-import {
-  isIstatPlaceId,
-  istatPlaceForText,
-  nearestIstatLabel,
-  resolveIstatPlace,
-  searchIstatPlaces,
-} from "@/lib/geo/istat-places";
+import { isIstatPlaceId, resolveIstatPlace, searchIstatPlaces } from "@/lib/geo/istat-places";
 import type { PlaceSuggestion, ResolvedPlace } from "@/lib/geo/place-types";
 
 /** Shorter queries return nothing (and never reach Google). */
@@ -32,32 +25,9 @@ export function normalizeQuery(query: string): string {
   return query.replace(/\s+/g, " ").trim().slice(0, MAX_QUERY);
 }
 
-function toResolved(p: GooglePlace): ResolvedPlace {
-  const location =
-    p.municipality && p.provinceCode
-      ? `${p.municipality} (${p.provinceCode})`
-      : nearestIstatLabel(p.latitude, p.longitude);
-  return {
-    placeId: p.placeId,
-    source: "google",
-    address: p.formattedAddress,
-    location,
-    latitude: p.latitude,
-    longitude: p.longitude,
-  };
-}
-
 async function geocodeForPrefill(text: string): Promise<PlaceSuggestion | null> {
-  if (googleMapsConfigured()) {
-    try {
-      const p = await geocodeAddress(text);
-      return p ? { placeId: p.placeId, label: p.formattedAddress } : null;
-    } catch (e) {
-      if (!(e instanceof GoogleMapsUnavailableError)) throw e;
-      warn("prefill", e);
-    }
-  }
-  return istatPlaceForText(text);
+  const place = await geocodeFreeText(text);
+  return place ? { placeId: place.placeId, label: place.address } : null;
 }
 
 /**
@@ -109,7 +79,7 @@ export async function resolvePlace(placeId: string, sessionToken?: string): Prom
   if (isIstatPlaceId(placeId)) return resolveIstatPlace(placeId);
   if (!googleMapsConfigured()) return null;
   try {
-    return toResolved(await getPlaceDetails(placeId, sessionToken));
+    return googlePlaceToResolved(await getPlaceDetails(placeId, sessionToken));
   } catch (e) {
     if (e instanceof GooglePlaceNotFoundError) return null;
     if (e instanceof GoogleMapsUnavailableError) {

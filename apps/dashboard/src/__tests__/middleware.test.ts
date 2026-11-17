@@ -30,6 +30,12 @@ describe("middleware auth gating", () => {
     expect(res.headers.get("location")).toBeNull();
   });
 
+  it("lets unauthenticated chatbot webhook requests through (shared-secret auth)", async () => {
+    const res = await run("/api/webhooks/chatbot/candidate", null);
+    expect(res.status).not.toBe(307);
+    expect(res.headers.get("location")).toBeNull();
+  });
+
   it("lets unauthenticated assessment report requests through (shared-secret auth)", async () => {
     const res = await run("/api/assessment/report", null);
     expect(res.status).not.toBe(307);

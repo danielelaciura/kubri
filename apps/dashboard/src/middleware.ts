@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
+import { isAplDemoPath } from "@/lib/apl-demo";
 
 const PUBLIC_PREFIXES = [
   "/login",
@@ -23,8 +24,16 @@ const PUBLIC_PREFIXES = [
 ];
 
 export async function middleware(request: NextRequest) {
-  const { response, user } = await updateSession(request);
   const { pathname } = request.nextUrl;
+
+  // The Kubri x APL sales demo is proxied to its own deployment (next.config
+  // rewrites): no session, no Supabase cookie refresh. Its secret path, read
+  // from the environment, is the access control (see src/lib/apl-demo.ts).
+  if (isAplDemoPath(pathname)) {
+    return NextResponse.next();
+  }
+
+  const { response, user } = await updateSession(request);
 
   const isPublic = PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
 

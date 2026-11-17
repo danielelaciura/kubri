@@ -54,7 +54,8 @@ shared code under `packages/*`:
 kubri/                              ← workspace root (orchestrator, no app code)
 ├── apps/
 │   ├── dashboard/                  ← the operator dashboard (this is the tree below)
-│   └── assessment/                 ← public skills-assessment app (separate domain, no DB)
+│   ├── assessment/                 ← public skills-assessment app (separate domain, no DB)
+│   └── apl-demo/                   ← static Kubri x APL sales demo (fake data, no DB), proxied by the dashboard under a secret path
 ├── packages/
 │   └── contracts/                  ← @kubri/contracts: shared Zod payload schemas
 ├── supabase/                       ← Edge Functions (deployed via Supabase CLI)
